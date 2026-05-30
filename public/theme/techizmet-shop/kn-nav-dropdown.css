@@ -177,8 +177,7 @@ body.kn-nav-dropdown-open .header--navigation-list .header--menu-link {
 }
 
 @media (min-width: 992px) {
-  .header--navigation-list .header--menu-item:hover > .header--menu-link,
-  .header--navigation-list .kn-nav-has-dropdown.kn-nav-open > .header--menu-link {
+  .header--navigation-list .header--menu-item:hover > .header--menu-link {
     color: var(--kn-brand, #b45309) !important;
   }
 }
@@ -324,15 +323,7 @@ body.kn-nav-dropdown-open .header--logo-img {
   line-height: 1.3;
 }
 
-.kn-nav-has-dropdown.kn-nav-open > .header--menu-link {
-  color: var(--kn-brand, #b45309) !important;
-}
-
 @media (min-width: 992px) {
-  .kn-nav-has-dropdown:hover > .header--menu-link {
-    color: var(--kn-brand, #b45309) !important;
-  }
-
   .kn-nav-has-dropdown.kn-nav-open > .header--menu-link::after {
     content: "";
     position: absolute;

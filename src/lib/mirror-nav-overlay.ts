@@ -142,12 +142,19 @@ function pointerInNavZone(doc: Document): boolean {
   if (doc.querySelector(".kn-nav-has-dropdown.kn-nav-open:hover")) return true;
   const host = doc.getElementById("kn-mega-host");
   if (host?.matches(":hover")) return true;
-  const nav = doc.querySelector(".header--navigation-main");
-  if (nav?.matches(":hover")) return true;
-  const headerBar =
-    doc.querySelector("sticky-always.header") ?? doc.querySelector("[data-header-section]");
-  if (headerBar?.matches(":hover")) return true;
   return false;
+}
+
+function closeAllNavDropdowns(doc: Document) {
+  let hadOpen = false;
+  doc.querySelectorAll(".kn-nav-has-dropdown.kn-nav-open").forEach((li) => {
+    li.classList.remove("kn-nav-open");
+    hadOpen = true;
+  });
+  if (hadOpen || doc.body.classList.contains("kn-nav-dropdown-open")) {
+    doc.body.classList.remove("kn-nav-dropdown-open");
+    clearActiveMega(doc);
+  }
 }
 
 function scheduleNavClose(doc: Document, li: HTMLElement) {
@@ -161,6 +168,9 @@ function scheduleNavClose(doc: Document, li: HTMLElement) {
 
 function openNavDropdown(doc: Document, el: HTMLElement) {
   cancelNavClose();
+  doc.querySelectorAll(".kn-nav-has-dropdown.kn-nav-open").forEach((other) => {
+    if (other !== el) other.classList.remove("kn-nav-open");
+  });
   doc.body.classList.add("kn-nav-dropdown-open");
   el.classList.add("kn-nav-open");
   setActiveMega(doc, el);
@@ -269,6 +279,13 @@ function bindKnNavDropdown(doc: Document) {
       if (megaHost && e.relatedTarget instanceof Node && megaHost.contains(e.relatedTarget)) return;
       scheduleNavClose(doc, el);
     });
+  });
+
+  doc.querySelectorAll(".header--navigation-list > .header--menu-item:not(.kn-nav-has-dropdown)").forEach((li) => {
+    const el = li as HTMLElement;
+    if (el.dataset.knNavPlainBound === "1") return;
+    el.dataset.knNavPlainBound = "1";
+    el.addEventListener("mouseenter", () => closeAllNavDropdowns(doc));
   });
 
   bindMegaLinkClicks(doc);
