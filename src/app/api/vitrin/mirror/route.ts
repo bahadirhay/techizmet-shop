@@ -29,6 +29,7 @@ import { injectMirrorNavDropdownStyles } from "@/lib/mirror-nav-dropdown-inject"
 import { injectAccountDashboardStyles } from "@/lib/mirror-account-dashboard";
 import { injectMirrorContentFallback } from "@/lib/mirror-html-content-fix";
 import { patchMirrorPerformance } from "@/lib/mirror-html-perf";
+import { patchMirrorProductPageHtml } from "@/lib/mirror-html-product-fix";
 import { loadMirrorFooterData } from "@/lib/mirror-footer-server";
 import { loadMirrorNavItems } from "@/lib/mirror-nav-server";
 import { injectNavIntoMirrorHtml } from "@/lib/mirror-html-nav-inject";
@@ -98,6 +99,7 @@ export async function GET(req: Request) {
   html = stripShopifyTrackingFromMirrorHtml(html);
   html = rewriteShopifyLinksInMirrorHtml(html);
   html = patchMirrorPerformance(html);
+  html = patchMirrorProductPageHtml(html);
   const assetsFixed = fixMirrorCdnPathsInHtml(html);
   const branded = injectBrandingIntoMirrorHtml(assetsFixed, branding);
   let localized = localizeMirrorHtml(branded, normalized, locale);
