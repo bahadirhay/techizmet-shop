@@ -1,0 +1,371 @@
+/**
+ * King Noor — yalnızca tema çakışma düzeltmeleri (boyut küçültme YOK)
+ * base2ff2: input,textarea,select { width:100%; min-height:62px } → radio/checkbox bozulur
+ */
+
+/* Radio / checkbox — checkout/hesap (ürün varyasyon pill .productOption hariç) */
+input[type="radio"]:not(.productOption),
+input[type="checkbox"] {
+  -webkit-appearance: auto !important;
+  appearance: auto !important;
+  display: inline-block !important;
+  width: 1rem !important;
+  height: 1rem !important;
+  min-width: 1rem !important;
+  min-height: 1rem !important;
+  max-width: 1rem !important;
+  max-height: 1rem !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  flex-shrink: 0;
+  border: none !important;
+  background: transparent !important;
+  accent-color: var(--text_color, #1a1a1a);
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+/* Ürün kartı varyasyon — yalnızca pill metin (Noor), yanında radio dairesi yok */
+.product--variant-picker-list input.productOption,
+.product--variants-list input.productOption {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  opacity: 0 !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  accent-color: transparent !important;
+  cursor: pointer !important;
+  z-index: 2 !important;
+  display: block !important;
+}
+
+.product--variant-picker-list .variant--item,
+.product--variants-list.options-style-pills .variant--item {
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: stretch !important;
+  height: auto !important;
+  min-height: 30px !important;
+}
+
+.product--variant-picker-list .variant-item-name,
+.product--variants-list.options-style-pills .variant-item-name {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 4px 16px !important;
+  border: 1px solid var(--text_color, #000) !important;
+  border-radius: 20px !important;
+  background: var(--product_card_background, #fff) !important;
+  color: var(--text_color, #000) !important;
+  font-size: var(--small_text, 0.8125rem) !important;
+  pointer-events: none;
+}
+
+.product--variant-picker-list input.productOption:checked + .variant-item-name,
+.product--variants-list input.productOption:checked + .variant-item-name {
+  background-color: var(--text_color, #000) !important;
+  color: var(--product_card_background, #fff) !important;
+  border-color: var(--text_color, #000) !important;
+}
+
+/* Miktar pill — sepet + ürün sayfası (base2ff2 input min-height:62px çakışması) */
+:is(
+    .cart--side-drawer,
+    .cart-page,
+    .main-cart--form,
+    .section-main-product,
+    .quantity-main-product,
+    .quickview--side-drawer,
+    .sticky--button-box
+  )
+  .quantity,
+:is(
+    .cart--side-drawer,
+    .cart-page,
+    .main-cart--form,
+    .section-main-product,
+    .quantity-main-product,
+    .quickview--side-drawer,
+    .sticky--button-box
+  )
+  quantity-set {
+  display: inline-block !important;
+  width: auto !important;
+}
+
+:is(
+    .cart--side-drawer,
+    .cart-page,
+    .main-cart--form,
+    .section-main-product,
+    .quantity-main-product,
+    .quickview--side-drawer,
+    .sticky--button-box
+  )
+  .quantity--inner {
+  display: inline-flex !important;
+  align-items: center !important;
+  width: auto !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
+  border: 1px solid var(--text_color) !important;
+  border-radius: var(--form_radius, 999px) !important;
+  overflow: hidden;
+}
+
+:is(
+    .cart--side-drawer,
+    .cart-page,
+    .main-cart--form,
+    .section-main-product,
+    .quantity-main-product,
+    .quickview--side-drawer,
+    .sticky--button-box
+  )
+  input.quantity-input[type="number"] {
+  display: block !important;
+  width: 2.25rem !important;
+  min-width: 2rem !important;
+  max-width: 2.5rem !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  padding: 0 2px !important;
+  margin: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  font-size: var(--text, 0.875rem) !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+:is(
+    .cart--side-drawer,
+    .cart-page,
+    .main-cart--form,
+    .section-main-product,
+    .quantity-main-product,
+    .quickview--side-drawer,
+    .sticky--button-box
+  )
+  input.quantity-input[type="number"]::-webkit-outer-spin-button,
+:is(
+    .cart--side-drawer,
+    .cart-page,
+    .main-cart--form,
+    .section-main-product,
+    .quantity-main-product,
+    .quickview--side-drawer,
+    .sticky--button-box
+  )
+  input.quantity-input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+:is(
+    .cart--side-drawer,
+    .cart-page,
+    .main-cart--form,
+    .section-main-product,
+    .quantity-main-product,
+    .quickview--side-drawer,
+    .sticky--button-box
+  )
+  .quantity-button {
+  width: 28px !important;
+  min-width: 28px !important;
+  max-width: 28px !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  flex-shrink: 0;
+}
+
+:is(
+    .cart--side-drawer,
+    .cart-page,
+    .main-cart--form,
+    .section-main-product,
+    .quantity-main-product,
+    .quickview--side-drawer,
+    .sticky--button-box
+  )
+  .quantity-button svg {
+  width: 10px !important;
+  height: auto !important;
+}
+
+@media (min-width: 768px) {
+  :is(
+      .cart--side-drawer,
+      .cart-page,
+      .main-cart--form,
+      .section-main-product,
+      .quantity-main-product,
+      .quickview--side-drawer,
+      .sticky--button-box
+    )
+    .quantity--inner {
+    height: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px !important;
+  }
+
+  :is(
+      .cart--side-drawer,
+      .cart-page,
+      .main-cart--form,
+      .section-main-product,
+      .quantity-main-product,
+      .quickview--side-drawer,
+      .sticky--button-box
+    )
+    .quantity-button {
+    width: 26px !important;
+    min-width: 26px !important;
+    max-width: 26px !important;
+  }
+}
+
+/* Drawer footer — Subtotal / Total hiyerarşisi (referans Noor) */
+.cart--side-drawer [data-kn-cart-footer] .cart-summary-price-item {
+  font-size: var(--text, 0.875rem);
+}
+
+.cart--side-drawer [data-kn-cart-footer] .cart-summary-price-item--total {
+  margin-top: 4px;
+}
+
+.cart--side-drawer [data-kn-cart-footer] .cart-summary-price-item--total .kn-cart-total-label {
+  font-size: var(--medium_text, 1rem);
+  font-weight: 600;
+}
+
+.cart--side-drawer [data-kn-cart-footer] .cart-summary-price-item--total strong {
+  font-size: var(--medium_text, 1rem);
+  font-weight: 600;
+}
+
+.cart--side-drawer [data-kn-cart-footer] .kn-cart-footer-note {
+  margin: 0 0 12px;
+  opacity: 0.85;
+}
+
+/* Sepet sayfası — Total satırı abartılı büyük olmasın */
+.main-cart--bottom-right .cart-summary-price-item--total .heading-font {
+  font-size: var(--medium_text, 1rem) !important;
+  font-weight: 600;
+}
+
+/* Hesap — metin/link tipi aksiyonlar (Varsayılan yap / Sil) */
+.kn-account-dashboard .button.text-button,
+.account-page .address--footer .button.text-button {
+  min-height: auto !important;
+  height: auto !important;
+  min-width: unset !important;
+  width: auto !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  text-decoration: underline !important;
+  font-size: var(--small_text, 0.8125rem) !important;
+  display: inline !important;
+  line-height: 1.4 !important;
+}
+
+.kn-account-dashboard .address--footer,
+.account-page .address--card .address--footer {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 12px 16px !important;
+  margin-top: 12px !important;
+}
+
+/* React checkout — seçim satırları */
+.kn-address-pick__item,
+.kn-shipping-option,
+.kn-payment-options label {
+  align-items: flex-start;
+}
+
+.kn-address-pick__item input[type="radio"],
+.kn-shipping-option input[type="radio"],
+.kn-payment-options input[type="radio"],
+.kn-checkout__terms input[type="checkbox"],
+.kn-checkout__account-toggle input[type="checkbox"] {
+  margin-top: 0.2rem;
+}
+
+/* Hesap çekmecesi — header içinden taşındıktan sonra üstte görünsün */
+account-drawer.side-drawer {
+  z-index: 999 !important;
+}
+
+account-drawer.side-drawer.show {
+  display: flex !important;
+}
+
+account-drawer.side-drawer .side--drawer-panel {
+  position: relative;
+  z-index: 1;
+}
+
+/* Hesap çekmecesi — giriş yapılmışken misafir formları gizle */
+account-drawer.kn-account-is-logged-in [data-form],
+account-drawer.kn-account-is-logged-in .account--login-form,
+account-drawer.kn-account-is-logged-in .account--register-form,
+account-drawer.kn-account-is-logged-in .account--recover-password-form {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+account-drawer.kn-account-is-logged-in account-event {
+  display: none !important;
+}
+
+account-drawer.kn-account-is-logged-in .kn-account-logged-in {
+  padding: 8px 4px 16px;
+}
+
+account-drawer.kn-account-is-logged-in .kn-account-logout {
+  margin-top: 4px;
+}
+
+/* Header arama — tema min-width 120px uygulamasın */
+.kn-search-form .kn-search-btn {
+  min-width: unset !important;
+  min-height: 46px !important;
+  padding: 0 14px !important;
+}
+
+.kn-search-form--header .kn-search-input {
+  min-height: 46px !important;
+  width: 9rem !important;
+}

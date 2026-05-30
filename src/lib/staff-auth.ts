@@ -1,0 +1,81 @@
+import { redirect } from "next/navigation";
+import { NextResponse } from "next/server";
+import { getAdminSession } from "@/lib/session";
+import {
+  allStaffPermissions,
+  parsePermissionsJson,
+} from "@/lib/staff-permissions";
+import { prisma } from "@/lib/prisma";
+
+export type StaffAccess = {
+  staffUserId: string;
+  username: string;
+  roleSlug: string;
+  siteId: string;
+  permissions: string[];
+};
+
+function isAdminRole(roleSlug: string): boolean {
+  return roleSlug.split(",").some((s) => s.trim() === "admin");
+}
+
+/** Veritabanından gelen izinleri birleştirir; admin rolü her zaman tam yetki */
+export function resolveStaffPermissions(roleSlug: string, fromDb: string[]): string[] {
+  if (isAdminRole(roleSlug)) return allStaffPermissions();
+  if (fromDb.length === 0) return allStaffPermissions();
+  return fromDb;
+}
+
+export async function loadStaffSession(userId: string, siteId: string) {
+  const user = await prisma.shopStaffUser.findFirst({
+    where: { id: userId, siteId, active: true },
+    include: { roleAssignments: { include: { role: true } } },
+  });
+  if (!user) return null;
+  const roles = user.roleAssignments.map((a) => a.role);
+  const slug = roles.map((r) => r.slug).join(",");
+  const perms = new Set<string>();
+  for (const r of roles) {
+    for (const p of parsePermissionsJson(r.permissionsJson)) perms.add(p);
+  }
+  const fromDb = [...perms];
+  return {
+    staffUserId: user.id,
+    username: user.username,
+    roleSlug: slug || "admin",
+    siteId,
+    permissions: resolveStaffPermissions(slug || "admin", fromDb),
+  };
+}
+
+/** Sayfa/API isteklerinde yetkiler DB'den okunur (çerez RSC'de yazılamaz). */
+async function staffAccessFromSession(session: {
+  staffUserId?: string;
+  siteId?: string;
+}): Promise<StaffAccess | null> {
+  if (!session.staffUserId || !session.siteId) return null;
+  return loadStaffSession(session.staffUserId, session.siteId);
+}
+
+export async function requireStaffPage(): Promise<StaffAccess> {
+  const s = await getAdminSession();
+  if (!s.isLoggedIn || !s.staffUserId || !s.siteId) redirect("/admin/login");
+  const loaded = await staffAccessFromSession(s);
+  if (!loaded) redirect("/admin/login");
+  return loaded;
+}
+
+export async function requireStaffApi(perm?: string): Promise<StaffAccess | NextResponse> {
+  const s = await getAdminSession();
+  if (!s.isLoggedIn || !s.staffUserId || !s.siteId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const loaded = await staffAccessFromSession(s);
+  if (!loaded) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (perm && !loaded.permissions.includes(perm)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  return loaded;
+}

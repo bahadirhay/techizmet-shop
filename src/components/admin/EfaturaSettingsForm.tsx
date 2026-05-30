@@ -1,0 +1,191 @@
+"use client";
+
+import { useState } from "react";
+import { AdminField, btnPrimary, inputClass } from "@/components/admin/AdminForm";
+
+type EfaturaFormState = {
+  enabled: boolean;
+  testMode: boolean;
+  sellerTitle: string;
+  sellerTaxId: string;
+  sellerTaxOffice: string;
+  username: string;
+  password: string;
+  defaultConsumerTaxId: string;
+  defaultVatRate: number;
+  autoSign: boolean;
+  autoSendMarketplace: boolean;
+  hasPassword: boolean;
+};
+
+export function EfaturaSettingsForm({ initial }: { initial: EfaturaFormState }) {
+  const [s, setS] = useState(initial);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function save() {
+    setBusy(true);
+    setMsg(null);
+    const res = await fetch("/api/admin/settings/efatura", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        efatura: {
+          enabled: s.enabled,
+          testMode: s.testMode,
+          sellerTitle: s.sellerTitle,
+          sellerTaxId: s.sellerTaxId,
+          sellerTaxOffice: s.sellerTaxOffice,
+          username: s.username,
+          password: s.password || undefined,
+          defaultConsumerTaxId: s.defaultConsumerTaxId,
+          defaultVatRate: s.defaultVatRate,
+          autoSign: s.autoSign,
+          autoSendMarketplace: s.autoSendMarketplace,
+        },
+      }),
+    });
+    const j = (await res.json()) as { efatura?: EfaturaFormState; error?: string };
+    setBusy(false);
+    if (res.ok && j.efatura) {
+      setS({ ...s, ...j.efatura, password: "" });
+      setMsg("Kaydedildi");
+    } else {
+      setMsg(j.error ?? "Kayıt başarısız");
+    }
+  }
+
+  return (
+    <div className="admin-card admin-card-pad max-w-2xl">
+      <p className="text-sm text-zinc-600">
+        GİB e-Arşiv portalı üzerinden ücretsiz e-Arşiv faturası kesilir. Kullanıcı kodu ve parola{" "}
+        <a
+          href="https://earsivportal.efatura.gov.tr/intragiris.html"
+          target="_blank"
+          rel="noreferrer"
+          className="text-[var(--kn-brand)] underline"
+        >
+          İVD / e-Arşiv portal
+        </a>{" "}
+        giriş bilgilerinizdir.
+      </p>
+
+      <h3 className="mt-6 text-sm font-semibold text-zinc-900">Satıcı bilgileri (ön izleme)</h3>
+      <p className="mt-1 text-xs text-zinc-500">
+        Fatura ön izlemesinde görünür. Resmi kesimde GİB portalındaki hesap bilgileriniz kullanılır.
+      </p>
+      <div className="mt-3 space-y-3">
+        <AdminField label="Satıcı unvanı">
+          <input
+            className={inputClass}
+            value={s.sellerTitle}
+            onChange={(e) => setS({ ...s, sellerTitle: e.target.value })}
+            placeholder="Örn. King Noor Kozmetik Ltd. Şti."
+          />
+        </AdminField>
+        <AdminField label="Satıcı VKN">
+          <input
+            className={inputClass}
+            value={s.sellerTaxId}
+            onChange={(e) => setS({ ...s, sellerTaxId: e.target.value.replace(/\D/g, "").slice(0, 11) })}
+            placeholder="10 haneli VKN"
+            inputMode="numeric"
+          />
+        </AdminField>
+        <AdminField label="Vergi dairesi">
+          <input
+            className={inputClass}
+            value={s.sellerTaxOffice}
+            onChange={(e) => setS({ ...s, sellerTaxOffice: e.target.value })}
+            placeholder="Örn. Kadıköy"
+          />
+        </AdminField>
+      </div>
+
+      <label className="mt-6 flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={s.enabled}
+          onChange={(e) => setS({ ...s, enabled: e.target.checked })}
+        />
+        e-Arşiv fatura entegrasyonunu etkinleştir
+      </label>
+
+      <label className="mt-2 flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={s.testMode}
+          onChange={(e) => setS({ ...s, testMode: e.target.checked })}
+        />
+        Test ortamı (earsivportaltest.efatura.gov.tr)
+      </label>
+
+      <div className="mt-4 space-y-3">
+        <AdminField label="GİB kullanıcı kodu">
+          <input
+            className={inputClass}
+            value={s.username}
+            onChange={(e) => setS({ ...s, username: e.target.value })}
+            placeholder="İVD kullanıcı kodu"
+          />
+        </AdminField>
+        <AdminField label="GİB parolası">
+          <input
+            type="password"
+            className={inputClass}
+            value={s.password}
+            onChange={(e) => setS({ ...s, password: e.target.value })}
+            placeholder={s.hasPassword ? "Kayıtlı — değiştirmek için yazın" : "Parola"}
+          />
+          <p className="mt-1 text-xs text-zinc-500">
+            Üretimde parolayı <code>GIB_PASSWORD</code> ortam değişkeninde tutmanız önerilir.
+          </p>
+        </AdminField>
+        <AdminField label="B2C varsayılan TCKN (VKN/TCKN yoksa)">
+          <input
+            className={inputClass}
+            value={s.defaultConsumerTaxId}
+            onChange={(e) => setS({ ...s, defaultConsumerTaxId: e.target.value })}
+          />
+        </AdminField>
+        <AdminField
+          label="Varsayılan KDV (%)"
+          hint="Ürün kartında ayrı oran seçilmemişse ve kargo satırında kullanılır. Ürün bazlı oran: Ürünler → düzenle."
+        >
+          <input
+            type="number"
+            min={0}
+            max={100}
+            className={inputClass}
+            value={s.defaultVatRate}
+            onChange={(e) => setS({ ...s, defaultVatRate: Number(e.target.value) || 20 })}
+          />
+        </AdminField>
+      </div>
+
+      <div className="mt-4 space-y-2 text-sm">
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={s.autoSign}
+            onChange={(e) => setS({ ...s, autoSign: e.target.checked })}
+          />
+          Faturayı otomatik imzala (SMS doğrulama gerekebilir)
+        </label>
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={s.autoSendMarketplace}
+            onChange={(e) => setS({ ...s, autoSendMarketplace: e.target.checked })}
+          />
+          Pazaryeri siparişlerinde faturayı otomatik Trendyol&apos;a ilet
+        </label>
+      </div>
+
+      <button type="button" className={`${btnPrimary} mt-6`} disabled={busy} onClick={() => void save()}>
+        Kaydet
+      </button>
+      {msg ? <p className="mt-2 text-sm text-zinc-600">{msg}</p> : null}
+    </div>
+  );
+}

@@ -1,0 +1,31 @@
+/** Blog kart görselleri — DB src, lazyload devre dışı */
+.kn-blog-card-img {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  object-fit: cover !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.blog--image .media .kn-blog-card-img {
+  position: absolute;
+  inset: 0;
+}
+
+.blog--image .media,
+.horizontal-view .blog--image .media {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.blog--image .media:has(.kn-blog-card-img) {
+  min-height: 200px;
+}
+
+@media (max-width: 991px) {
+  .horizontal-view .blog--image .media:has(.kn-blog-card-img) {
+    min-height: 160px;
+  }
+}

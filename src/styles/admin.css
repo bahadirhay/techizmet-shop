@@ -1,0 +1,577 @@
+/* Techizmet Shop — admin panel */
+
+.admin-shell {
+  --admin-sidebar-w: 15.5rem;
+  --admin-top-h: 3.25rem;
+  --admin-accent: var(--kn-brand, #1a5f4a);
+  --admin-surface: #ffffff;
+  --admin-bg: #f4f5f7;
+  --admin-border: #e4e4e7;
+  --admin-muted: #71717a;
+  min-height: 100vh;
+  background: var(--admin-bg);
+}
+
+.admin-sidebar {
+  width: var(--admin-sidebar-w);
+  background: var(--admin-surface);
+  border-right: 1px solid var(--admin-border);
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-sidebar-brand {
+  padding: 1rem 1rem 0.75rem;
+  border-bottom: 1px solid #f4f4f5;
+}
+
+.admin-sidebar-brand a {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--admin-accent);
+  text-decoration: none;
+}
+
+.admin-sidebar-user {
+  margin-top: 0.25rem;
+  font-size: 0.7rem;
+  color: var(--admin-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-nav-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.5rem 0.5rem 1rem;
+}
+
+.admin-nav-group {
+  margin-top: 0.35rem;
+}
+
+.admin-nav-group-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--admin-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-radius: 0.375rem;
+}
+
+.admin-nav-group-label:hover {
+  background: #f4f4f5;
+}
+
+.admin-nav-group-label[data-open="true"] {
+  color: var(--admin-accent);
+}
+
+.admin-nav-items {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding-left: 0.25rem;
+}
+
+.admin-nav-link {
+  display: flex;
+  padding: 0.45rem 0.65rem 0.45rem 0.85rem;
+  font-size: 0.8125rem;
+  color: #3f3f46;
+  text-decoration: none;
+  border-radius: 0.5rem;
+  border-left: 2px solid transparent;
+  transition: background 0.12s, color 0.12s;
+}
+
+.admin-nav-link:hover {
+  background: #f4f4f5;
+  color: #18181b;
+}
+
+.admin-nav-link[data-active="true"] {
+  background: color-mix(in srgb, var(--admin-accent) 12%, white);
+  color: var(--admin-accent);
+  font-weight: 600;
+  border-left-color: var(--admin-accent);
+}
+
+.admin-nav-branch {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.media-drop-zone[data-drag="true"] {
+  border-color: var(--admin-accent);
+  background: color-mix(in srgb, var(--admin-accent) 8%, white);
+}
+
+.admin-nav-children {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-left: 0.65rem;
+  padding-left: 0.5rem;
+  border-left: 1px solid #e4e4e7;
+}
+
+.admin-nav-link--nested {
+  font-size: 0.78rem;
+  padding-left: 0.65rem;
+}
+
+.admin-nav-footer {
+  padding: 0.75rem;
+  border-top: 1px solid #f4f4f5;
+}
+
+.admin-menu-toggle {
+  flex-shrink: 0;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface);
+  border-radius: 0.5rem;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #3f3f46;
+  cursor: pointer;
+}
+
+.admin-mobile-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 40;
+}
+
+.admin-mobile-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: min(var(--admin-sidebar-w), 88vw);
+  background: var(--admin-surface);
+  border-right: 1px solid var(--admin-border);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(-100%);
+  transition: transform 0.2s ease;
+}
+
+.admin-mobile-drawer--open {
+  transform: translateX(0);
+}
+
+.admin-badge--muted {
+  background: #f4f4f5;
+  color: #71717a;
+  font-weight: 500;
+  font-size: 0.6rem;
+}
+
+.admin-topbar {
+  height: var(--admin-top-h);
+  background: var(--admin-surface);
+  border-bottom: 1px solid var(--admin-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.25rem;
+  gap: 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.admin-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-content {
+  flex: 1;
+  padding: 1.25rem 1.5rem 2rem;
+}
+
+.admin-kpi-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+}
+
+.admin-kpi {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: 0.75rem;
+  padding: 1rem 1.1rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.admin-kpi::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--kpi-accent, var(--admin-accent));
+}
+
+.admin-kpi-label {
+  font-size: 0.75rem;
+  color: var(--admin-muted);
+}
+
+.admin-kpi-value {
+  margin-top: 0.35rem;
+  font-size: 1.65rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: #18181b;
+}
+
+.admin-kpi-meta {
+  margin-top: 0.35rem;
+  font-size: 0.7rem;
+  color: var(--admin-muted);
+}
+
+.admin-kpi-link {
+  margin-top: 0.5rem;
+  font-size: 0.7rem;
+  color: var(--admin-accent);
+  text-decoration: none;
+}
+
+.admin-kpi-link:hover {
+  text-decoration: underline;
+}
+
+.admin-card {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: 0.75rem;
+}
+
+.admin-card-pad {
+  padding: 1rem 1.25rem;
+}
+
+.admin-table-wrap {
+  overflow-x: auto;
+  border-radius: 0.75rem;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface);
+}
+
+.admin-table {
+  width: 100%;
+  font-size: 0.8125rem;
+  text-align: left;
+}
+
+.admin-table th {
+  padding: 0.65rem 1rem;
+  font-weight: 600;
+  color: var(--admin-muted);
+  border-bottom: 1px solid var(--admin-border);
+  background: #fafafa;
+  white-space: nowrap;
+}
+
+.admin-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #f4f4f5;
+  vertical-align: middle;
+}
+
+.admin-table tr:last-child td {
+  border-bottom: none;
+}
+
+.admin-table tr:hover td {
+  background: #fafafa;
+}
+
+.admin-page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.admin-page-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #18181b;
+}
+
+.admin-page-desc {
+  margin-top: 0.25rem;
+  font-size: 0.8125rem;
+  color: var(--admin-muted);
+}
+
+.admin-breadcrumb {
+  font-size: 0.75rem;
+  color: var(--admin-muted);
+  margin-bottom: 0.35rem;
+}
+
+.admin-breadcrumb a {
+  color: var(--admin-accent);
+  text-decoration: none;
+}
+
+.admin-breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+.admin-search {
+  flex: 1;
+  max-width: 22rem;
+  padding: 0.45rem 0.75rem 0.45rem 2rem;
+  font-size: 0.8125rem;
+  border: 1px solid var(--admin-border);
+  border-radius: 0.5rem;
+  background: #fafafa url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%2371717a' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85zm-5.242 1.1a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11z'/%3E%3C/svg%3E")
+    no-repeat 0.55rem center;
+}
+
+.admin-search:focus {
+  outline: none;
+  border-color: var(--admin-accent);
+  background-color: #fff;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--admin-accent) 20%, transparent);
+}
+
+.admin-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  padding: 0 0.35rem;
+  height: 1.15rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #166534;
+}
+
+@media (max-width: 767px) {
+  .admin-sidebar {
+    display: none;
+  }
+  .admin-mobile-nav-toggle {
+    display: inline-flex;
+  }
+}
+
+@media (min-width: 768px) {
+  .admin-mobile-nav-toggle {
+    display: none;
+  }
+}
+
+/* —— Kargo etiketi yazdırma —— */
+.shipping-labels-print-page .admin-content {
+  max-width: none;
+}
+
+.shipping-labels-print__stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 0 2rem;
+}
+
+.shipping-label {
+  box-sizing: border-box;
+  width: 100mm;
+  min-height: 150mm;
+  padding: 4mm;
+  border: 1px dashed #a1a1aa;
+  background: #fff;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 9pt;
+  line-height: 1.35;
+  color: #111;
+  break-after: page;
+  page-break-after: always;
+}
+
+.shipping-label--compact,
+.shipping-labels-print__stack--compact .shipping-label {
+  min-height: 100mm;
+}
+
+.shipping-label__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 3mm;
+  border-bottom: 2px solid #111;
+  padding-bottom: 2mm;
+  margin-bottom: 3mm;
+}
+
+.shipping-label__brand {
+  font-weight: 700;
+  font-size: 11pt;
+}
+
+.shipping-label__meta {
+  font-size: 7.5pt;
+  color: #52525b;
+  margin-top: 1mm;
+}
+
+.shipping-label__order-no {
+  font-weight: 700;
+  font-size: 10pt;
+  text-align: right;
+  word-break: break-all;
+}
+
+.shipping-label__block {
+  margin-bottom: 3mm;
+}
+
+.shipping-label__block--recipient {
+  border: 1.5px solid #111;
+  padding: 2.5mm;
+  min-height: 38mm;
+}
+
+.shipping-label__label {
+  font-size: 7pt;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #52525b;
+  margin-bottom: 1mm;
+}
+
+.shipping-label__name {
+  font-weight: 700;
+  font-size: 12pt;
+  line-height: 1.2;
+}
+
+.shipping-label__phone {
+  font-size: 10pt;
+  font-weight: 600;
+  margin-top: 1mm;
+}
+
+.shipping-label__address {
+  white-space: pre-line;
+  margin-top: 1.5mm;
+  font-size: 9.5pt;
+}
+
+.shipping-label__muted {
+  color: #71717a;
+  font-style: italic;
+}
+
+.shipping-label__footer {
+  border-top: 1px solid #d4d4d8;
+  padding-top: 2mm;
+  font-size: 8pt;
+}
+
+.shipping-label__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 2mm;
+  margin-bottom: 1mm;
+}
+
+.shipping-label__tracking {
+  margin: 2mm 0;
+  padding: 2mm;
+  border: 1px solid #111;
+  text-align: center;
+}
+
+.shipping-label__tracking strong {
+  display: block;
+  font-size: 13pt;
+  letter-spacing: 0.04em;
+  margin-top: 1mm;
+}
+
+.shipping-label__items {
+  margin-top: 1.5mm;
+  font-size: 7.5pt;
+  color: #3f3f46;
+}
+
+.shipping-label__badge {
+  margin-top: 2mm;
+  padding: 1.5mm;
+  background: #fef3c7;
+  font-size: 7pt;
+  text-align: center;
+}
+
+@media print {
+  @page {
+    size: 100mm 150mm;
+    margin: 0;
+  }
+
+  body {
+    background: #fff !important;
+  }
+
+  .admin-sidebar,
+  .admin-topbar,
+  .no-print,
+  .shipping-labels-print__toolbar {
+    display: none !important;
+  }
+
+  .admin-shell,
+  .admin-main,
+  .admin-content,
+  .shipping-labels-print-page {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  .shipping-labels-print__stack {
+    gap: 0;
+    padding: 0;
+  }
+
+  .shipping-label {
+    border: none;
+    margin: 0;
+    box-shadow: none;
+  }
+
+  .shipping-labels-print__stack--compact .shipping-label {
+    min-height: 100mm;
+  }
+}

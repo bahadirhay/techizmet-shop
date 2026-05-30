@@ -1,0 +1,39 @@
+/* Next iç sayfalar — mirror ile uyumlu (kompakt UI: store-ui-compact.css) */
+body {
+  font-family: Poppins, "Segoe UI", sans-serif;
+  background: #faf9f7;
+  color: #1a1a1a;
+}
+
+.kn-header--mirror .kn-header__logo img {
+  height: 43px;
+  width: auto;
+}
+
+.kn-product-card {
+  position: relative;
+}
+.kn-product-badges {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: calc(100% - 16px);
+}
+.kn-product-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.kn-pdp .kn-product-badges {
+  position: static;
+  margin-bottom: 12px;
+}

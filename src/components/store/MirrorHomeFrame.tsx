@@ -1,0 +1,33 @@
+import type { ShopLocale } from "@/lib/i18n/locale";
+import { getMirrorHomeConfig } from "@/lib/mirror-home-sections";
+import { toBrandedMirrorSrc } from "@/lib/mirror-html-branding";
+import { getSiteBranding, getSiteSettings } from "@/lib/site-settings";
+import { getDefaultSite } from "@/lib/site";
+import { loadMirrorFooterData } from "@/lib/mirror-footer-server";
+import { loadMirrorNavItems } from "@/lib/mirror-nav-server";
+import { MirrorHomeFrameClient } from "@/components/store/MirrorHomeFrameClient";
+
+/** King Noor mirror ana sayfa — admin ayarları iframe overlay */
+export async function MirrorHomeFrame({ locale }: { locale: ShopLocale }) {
+  const site = await getDefaultSite();
+  const settings = await getSiteSettings(site.id);
+  const homeConfig = getMirrorHomeConfig(settings);
+  const branding = getSiteBranding(settings);
+  const nav = await loadMirrorNavItems(site.id, locale);
+  const footer = await loadMirrorFooterData(site.id, locale);
+  const src = toBrandedMirrorSrc(
+    locale === "tr" ? "theme/king-noor/mirror/index-tr.html" : "theme/king-noor/mirror/index.html",
+  );
+
+  return (
+    <MirrorHomeFrameClient
+      src={src}
+      title="King Noor — Ana sayfa"
+      homeConfig={homeConfig}
+      branding={branding}
+      nav={nav}
+      footer={footer}
+      locale={locale}
+    />
+  );
+}

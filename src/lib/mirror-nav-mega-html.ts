@@ -1,0 +1,190 @@
+import type { MegaNavProduct, ResolvedNavColumn } from "@/lib/mirror-nav-resolve";
+import type { NavMenuMegaMeta } from "@/lib/nav-menu-link";
+
+function escAttr(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+}
+
+function escText(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+}
+
+function dropdownLinksHtml(links: { href: string; label: string }[]): string {
+  return links
+    .map((l) => `<li><a href="${escAttr(l.href)}">${escText(l.label)}</a></li>`)
+    .join("");
+}
+
+function pickFeaturedLink(columns: ResolvedNavColumn[]) {
+  for (const col of columns) {
+    for (const link of col.links) {
+      if (link.href.startsWith("/products/")) return link;
+    }
+  }
+  for (const col of columns) {
+    if (col.links[0]) return col.links[0];
+    if (col.href) return { href: col.href, label: col.title };
+  }
+  return null;
+}
+
+function megaImageSlots(mega?: NavMenuMegaMeta) {
+  const featuredUrl = mega?.featuredImageUrl?.trim() ?? "";
+  const secondaryUrl =
+    mega?.featuredSecondaryImageUrl?.trim() || mega?.promoImageUrl?.trim() || "";
+  return {
+    featuredUrl,
+    secondaryUrl,
+    hasFeatured: Boolean(featuredUrl),
+    hasSecondary: Boolean(secondaryUrl),
+  };
+}
+
+function buildMegaProductCard(p: MegaNavProduct): string {
+  const img = p.imageUrl ? ` style="background-image:url('${escAttr(p.imageUrl)}')"` : "";
+  const compare = p.compareLabel
+    ? `<span class="kn-nav-mega__product-compare">${escText(p.compareLabel)}</span>`
+    : "";
+  return `<a href="${escAttr(p.href)}" class="kn-nav-mega__product" role="listitem">
+  <span class="kn-nav-mega__product-img"${img} aria-hidden="true"></span>
+  <span class="kn-nav-mega__product-title">${escText(p.title)}</span>
+  <span class="kn-nav-mega__product-prices"><span class="kn-nav-mega__product-price">${escText(p.priceLabel)}</span>${compare}</span>
+</a>`;
+}
+
+/** Yatay şerit — her iki kartta da görsel varken */
+function buildMegaProductsStripHtml(products: MegaNavProduct[]): string {
+  if (!products.length) return "";
+  return `<div class="kn-nav-mega__products-wrap kn-nav-mega__products-wrap--strip">
+  <div class="kn-nav-mega__products-track" role="list">${products.map(buildMegaProductCard).join("")}</div>
+</div>`;
+}
+
+/** Kart yuvası — görsel yoksa ızgara ürün listesi */
+function buildMegaProductsSlotHtml(products: MegaNavProduct[]): string {
+  if (!products.length) return "";
+  return `<div class="kn-nav-mega__products-wrap kn-nav-mega__products-wrap--slot">
+  <div class="kn-nav-mega__products-slot" role="list">${products.map(buildMegaProductCard).join("")}</div>
+</div>`;
+}
+
+function buildImageTileHtml(href: string, imageUrl: string, title: string, secondary = false): string {
+  const colClass = secondary
+    ? "col-md-6 col-sm-12 kn-nav-mega__tile-col kn-nav-mega__tile-col--secondary"
+    : "col-md-6 col-sm-12 kn-nav-mega__tile-col";
+  return `<div class="${colClass}">
+  <a href="${escAttr(href)}" class="kn-nav-mega__tile">
+    <span class="kn-nav-mega__tile-img" aria-hidden="true" style="background-image:url('${escAttr(imageUrl)}')"></span>
+    <span class="kn-nav-mega__tile-title">${escText(title)}</span>
+  </a>
+</div>`;
+}
+
+function splitProductsForSlots(
+  products: MegaNavProduct[],
+  emptySlotCount: 0 | 1 | 2,
+  fillFirstSlot: boolean,
+): { slot1: MegaNavProduct[]; slot2: MegaNavProduct[]; strip: MegaNavProduct[] } {
+  if (!products.length) {
+    return { slot1: [], slot2: [], strip: [] };
+  }
+  if (emptySlotCount === 0) {
+    return { slot1: [], slot2: [], strip: products };
+  }
+  if (emptySlotCount === 1) {
+    return fillFirstSlot
+      ? { slot1: products, slot2: [], strip: [] }
+      : { slot1: [], slot2: products, strip: [] };
+  }
+  const mid = Math.ceil(products.length / 2);
+  return { slot1: products.slice(0, mid), slot2: products.slice(mid), strip: [] };
+}
+
+function buildMegaAsideHtml(
+  columns: ResolvedNavColumn[],
+  locale: "tr" | "en" = "tr",
+  mega?: NavMenuMegaMeta,
+  products: MegaNavProduct[] = [],
+): string {
+  const tr = locale === "tr";
+  const featured = pickFeaturedLink(columns);
+  const promoHref = columns.find((c) => c.href)?.href ?? featured?.href ?? "/collections/all";
+  const featuredHref = featured?.href ?? promoHref;
+  const titleFeatured =
+    locale === "tr"
+      ? mega?.featuredTitleTr?.trim() || featured?.label || "Yeni Gelenler"
+      : mega?.featuredTitleEn?.trim() || featured?.label || "New Arrivals";
+  const titleSecondary = tr ? "Çok Satanlar" : "Best Sellers";
+
+  const { featuredUrl, secondaryUrl, hasFeatured, hasSecondary } = megaImageSlots(mega);
+  const emptySlots = (!hasFeatured ? 1 : 0) + (!hasSecondary ? 1 : 0);
+  const { slot1: slot1Products, slot2: slot2Products, strip: stripProducts } = splitProductsForSlots(
+    products,
+    emptySlots as 0 | 1 | 2,
+    !hasFeatured,
+  );
+
+  const cols: string[] = [];
+
+  if (hasFeatured) {
+    cols.push(buildImageTileHtml(featuredHref, featuredUrl, titleFeatured, false));
+  } else if (slot1Products.length) {
+    cols.push(
+      `<div class="col-md-6 col-sm-12 kn-nav-mega__tile-col kn-nav-mega__tile-col--products">${buildMegaProductsSlotHtml(slot1Products)}</div>`,
+    );
+  }
+
+  if (hasSecondary) {
+    cols.push(buildImageTileHtml(promoHref, secondaryUrl, titleSecondary, true));
+  } else if (slot2Products.length) {
+    cols.push(
+      `<div class="col-md-6 col-sm-12 kn-nav-mega__tile-col kn-nav-mega__tile-col--products kn-nav-mega__tile-col--secondary">${buildMegaProductsSlotHtml(slot2Products)}</div>`,
+    );
+  }
+
+  const stripHtml = buildMegaProductsStripHtml(stripProducts);
+
+  if (!cols.length && !stripHtml) {
+    return "";
+  }
+
+  return `<div class="col-md-6 col-sm-6 mega-img kn-nav-mega__aside">
+    <div class="row megaproimg kn-nav-mega__aside-row">${cols.join("")}</div>
+    ${stripHtml}
+  </div>`;
+}
+
+/** Fruitser tarzı mega menü — sol kategori ızgarası + sağ öne çıkan alan */
+export function buildMegaDropdownHtml(
+  columns: ResolvedNavColumn[],
+  locale: "tr" | "en" = "tr",
+  mega?: NavMenuMegaMeta,
+  products: MegaNavProduct[] = [],
+): string {
+  if (!columns.length) return "";
+
+  const colBlocks = columns
+    .map((col) => {
+      const title = col.href
+        ? `<a class="currentm kn-nav-mega__heading" href="${escAttr(col.href)}">${escText(col.title)}</a>`
+        : `<span class="currentm kn-nav-mega__heading">${escText(col.title)}</span>`;
+      const links = col.links.length
+        ? `<ul class="dropdown kn-nav-mega__links">${dropdownLinksHtml(col.links)}</ul>`
+        : "";
+      return `<div class="inner col-sm-6 col-xs-12 kn-nav-mega__inner">${title}${links}</div>`;
+    })
+    .join("");
+
+  const aside = buildMegaAsideHtml(columns, locale, mega, products);
+
+  return `<div class="kn-nav-dropdown kn-nav-dropdown--mega kn-nav-dropdown--fruitser" data-kn-nav-dropdown>
+  <div class="kn-nav-dropdown__panel">
+    <div class="style_1 row kn-nav-mega__row">
+      <div class="parent-mega-menu parent-mega-menu col-md-6 col-sm-6 kn-nav-mega__left">
+        <div class="row kn-nav-mega__categories">${colBlocks}</div>
+      </div>
+      ${aside}
+    </div>
+  </div>
+</div>`;
+}

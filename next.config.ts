@@ -1,7 +1,43 @@
 import type { NextConfig } from "next";
+import { LEGACY_PRODUCT_REDIRECTS } from "./src/lib/catalog/mirror-catalog";
+
+const legacyProductRedirects = Object.entries(LEGACY_PRODUCT_REDIRECTS).map(([from, to]) => ({
+  source: `/products/${from}`,
+  destination: `/products/${to}`,
+  permanent: true,
+}));
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  serverExternalPackages: ["@prisma/client", ".prisma/client"],
+  async redirects() {
+    return [
+      { source: "/products/:slug.html", destination: "/products/:slug", permanent: true },
+      { source: "/collections/:slug.html", destination: "/collections/:slug", permanent: true },
+      { source: "/pages/:slug.html", destination: "/pages/:slug", permanent: true },
+      { source: "/blogs/news.html", destination: "/blogs/news", permanent: true },
+      {
+        source: "/blogs/news/:slug.html",
+        destination: "/blogs/news/:slug",
+        permanent: true,
+      },
+      { source: "/en-us/products/:slug", destination: "/products/:slug", permanent: true },
+      { source: "/en-us/collections", destination: "/collections", permanent: true },
+      { source: "/en-us/collections/:slug", destination: "/collections/:slug", permanent: true },
+      { source: "/collections.html", destination: "/collections", permanent: true },
+      { source: "/en-us/pages/:slug", destination: "/pages/:slug", permanent: true },
+      { source: "/en-us", destination: "/", permanent: false },
+      ...legacyProductRedirects,
+    ];
+  },
+  async headers() {
+    const noStore = [
+      { key: "Cache-Control", value: "private, no-store, max-age=0, must-revalidate" },
+    ] as const;
+    return [
+      { source: "/admin/:path*", headers: [...noStore] },
+      { source: "/api/admin/:path*", headers: [...noStore] },
+    ];
+  },
 };
 
 export default nextConfig;

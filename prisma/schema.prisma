@@ -1,0 +1,805 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["shop"]
+}
+
+model StoreSite {
+  id              String   @id @default(cuid())
+  slug            String   @unique
+  name            String
+  currency        String   @default("TRY")
+  locale          String   @default("tr")
+  themeId         String   @default("king-noor")
+  themeTokensJson String?
+  headerBlocks    String?
+  footerBlocks    String?
+  settingsJson    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  pages           ShopPage[]
+  staffUsers      ShopStaffUser[]
+  staffRoles      ShopStaffRole[]
+  collections     StoreCollection[]
+  categories      StoreCategory[]
+  brands          StoreBrand[]
+  products        StoreProduct[]
+  media           StoreMedia[]
+  carriers        ShippingCarrier[]
+  marketplaces    MarketplaceIntegration[]
+  marketplaceSyncLogs MarketplaceSyncLog[]
+  marketplaceCategoryMappings MarketplaceCategoryMapping[]
+  marketplaceCommissionRules MarketplaceCommissionRule[]
+  marketplaceProductListings MarketplaceProductListing[]
+  orders          StoreOrder[]
+  customers       StoreCustomer[]
+  customerGroups  CustomerGroup[]
+  campaigns       StoreCampaign[]
+  cookieConsentLogs CookieConsentLog[]
+  navMenuItems      NavMenuItem[]
+  blogPosts         StoreBlogPost[]
+  priceChangeBatches StorePriceChangeBatch[]
+  financeCategories FinanceCategory[]
+  financeAccounts   FinanceAccount[]
+  financeTransactions FinanceTransaction[]
+
+  @@map("site")
+  @@schema("shop")
+}
+
+model StoreBlogPost {
+  id               String    @id @default(cuid())
+  siteId           String
+  site             StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  slug             String
+  titleTr          String
+  titleEn          String?
+  excerptTr        String?
+  excerptEn        String?
+  bodyTr           String    @default("")
+  bodyEn           String?
+  imageUrl         String?
+  author           String?
+  publishedAt      DateTime?
+  published        Boolean   @default(false)
+  featuredOnHome   Boolean   @default(false)
+  sortOrder        Int       @default(0)
+  seoTitle         String?
+  seoDescription   String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@unique([siteId, slug])
+  @@index([siteId, published, sortOrder])
+  @@map("blog_post")
+  @@schema("shop")
+}
+
+/// Üst / alt menü ağacı (web-page NavItem ile uyumlu)
+model NavMenuItem {
+  id           String        @id @default(cuid())
+  siteId       String
+  site         StoreSite     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  menuSlug     String        @default("header")
+  parentId     String?
+  parent       NavMenuItem?  @relation("NavMenuTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children     NavMenuItem[] @relation("NavMenuTree")
+  labelTr      String
+  labelEn      String
+  /** url | page | category | collection | collections_auto */
+  linkType     String        @default("url")
+  /** pageKey, categoryId, collection slug — linkType’a göre */
+  linkTarget   String?
+  href         String
+  sortOrder    Int           @default(0)
+  published    Boolean       @default(true)
+  openInNewTab Boolean       @default(false)
+
+  @@index([siteId, menuSlug, parentId, sortOrder])
+  @@map("nav_menu_item")
+  @@schema("shop")
+}
+
+model CookieConsentLog {
+  id              String    @id @default(cuid())
+  siteId          String
+  site            StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  consentKey      String
+  decision        String
+  preferencesJson String?
+  ipAddress       String?
+  userAgent       String?
+  createdAt       DateTime  @default(now())
+
+  @@index([siteId, consentKey, createdAt])
+  @@map("cookie_consent_log")
+  @@schema("shop")
+}
+
+model ShopPage {
+  id             String    @id @default(cuid())
+  siteId         String
+  site           StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  slug           String
+  title          String
+  blocks         String    @default("[]")
+  blocksMobile   String?
+  published      Boolean   @default(true)
+  seoTitle       String?
+  seoDescription String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([siteId, slug])
+  @@map("page")
+  @@schema("shop")
+}
+
+model ShopStaffRole {
+  id              String   @id @default(cuid())
+  siteId          String
+  site            StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  slug            String
+  label           String
+  permissionsJson String
+  assignments     ShopStaffRoleAssignment[]
+
+  @@unique([siteId, slug])
+  @@map("staff_role")
+  @@schema("shop")
+}
+
+model ShopStaffUser {
+  id              String   @id @default(cuid())
+  siteId          String
+  site            StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  username        String
+  passwordHash    String
+  displayName     String?
+  active          Boolean  @default(true)
+  roleAssignments ShopStaffRoleAssignment[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([siteId, username])
+  @@map("staff_user")
+  @@schema("shop")
+}
+
+model ShopStaffRoleAssignment {
+  staffUserId String
+  roleId      String
+  staffUser   ShopStaffUser @relation(fields: [staffUserId], references: [id], onDelete: Cascade)
+  role        ShopStaffRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([staffUserId, roleId])
+  @@map("staff_role_assignment")
+  @@schema("shop")
+}
+
+model StoreBrand {
+  id        String   @id @default(cuid())
+  siteId    String
+  site      StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  slug      String
+  name      String
+  logoUrl   String?
+  active    Boolean  @default(true)
+  products  StoreProduct[]
+
+  @@unique([siteId, slug])
+  @@map("brand")
+  @@schema("shop")
+}
+
+model StoreCategory {
+  id          String   @id @default(cuid())
+  siteId      String
+  site        StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  parentId    String?
+  parent      StoreCategory? @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children    StoreCategory[] @relation("CategoryTree")
+  slug        String
+  title       String
+  description String?
+  imageUrl    String?
+  seoTitle    String?
+  seoDescription String?
+  sortOrder   Int      @default(0)
+  active      Boolean  @default(true)
+  products    StoreProduct[]
+  productLinks StoreProductCategory[]
+  marketplaceCategoryMappings MarketplaceCategoryMapping[]
+  marketplaceCommissionRules MarketplaceCommissionRule[]
+
+  @@unique([siteId, slug])
+  @@map("category")
+  @@schema("shop")
+}
+
+model StoreCollection {
+  id          String   @id @default(cuid())
+  siteId      String
+  site        StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  slug        String
+  title       String
+  description String?
+  imageUrl    String?
+  sortOrder   Int      @default(0)
+  published   Boolean  @default(true)
+  products    StoreProduct[]
+
+  @@unique([siteId, slug])
+  @@map("collection")
+  @@schema("shop")
+}
+
+model StoreProduct {
+  id               String   @id @default(cuid())
+  siteId           String
+  site             StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  collectionId     String?
+  collection       StoreCollection? @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+  categoryId       String?
+  category         StoreCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  brandId          String?
+  brand            StoreBrand? @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  slug             String
+  title            String
+  description      String?
+  descriptionHtml  String?
+  keyFeaturesHtml  String?
+  howToUseHtml     String?
+  /** Sayfa altı EXPLORE kartları JSON; null = mağaza varsayılanı */
+  exploreLooksJson String?
+  sku              String?
+  barcode          String?
+  priceMinor       Int
+  compareAtMinor   Int?
+  /** Toplu fiyat geri alma — ilk kural/uygulama anındaki satış fiyatı */
+  basePriceMinor   Int?
+  costMinor        Int?
+  /** JSON: { "trendyol": 94900, "hepsiburada": 92900 } — kuruş, boşsa web fiyatı */
+  marketplacePricesJson String?
+  /** KDV oranı (%) — satış fiyatı KDV dahil kabul edilir */
+  vatRate          Int      @default(20)
+  imageUrl         String?
+  stockQty         Int      @default(0)
+  lowStockThreshold Int     @default(5)
+  weightGrams      Int?
+  desi             Float?
+  seoTitle         String?
+  seoDescription   String?
+  badgesJson         String?
+  /** Örn. Hacim — varyant satırlarında 30ml, 50ml */
+  variantOptionName  String?
+  published          Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  images             StoreProductImage[]
+  variants           StoreProductVariant[]
+  categoryLinks      StoreProductCategory[]
+  orderLines         StoreOrderLine[]
+  favorites          CustomerFavorite[]
+  priceChangeItems   StorePriceChangeItem[]
+  marketplaceListings MarketplaceProductListing[]
+
+  @@unique([siteId, slug])
+  @@index([siteId, sku])
+  @@map("product")
+  @@schema("shop")
+}
+
+model StoreProductCategory {
+  productId  String
+  categoryId String
+  sortOrder  Int      @default(0)
+  product    StoreProduct  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  category   StoreCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([productId, categoryId])
+  @@index([categoryId, sortOrder])
+  @@map("product_category")
+  @@schema("shop")
+}
+
+model StoreProductVariant {
+  id             String   @id @default(cuid())
+  productId      String
+  product        StoreProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  label          String
+  sku            String?
+  priceMinor     Int
+  compareAtMinor Int?
+  basePriceMinor Int?
+  stockQty       Int      @default(0)
+  sortOrder      Int      @default(0)
+  isDefault      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  priceChangeItems StorePriceChangeItem[]
+
+  @@index([productId, sortOrder])
+  @@map("product_variant")
+  @@schema("shop")
+}
+
+/// Toplu fiyat güncelleme — geri alma için batch kaydı
+model StorePriceChangeBatch {
+  id                 String   @id @default(cuid())
+  siteId             String
+  site               StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  staffUserId        String?
+  label              String?
+  filterJson         String
+  adjustmentJson     String
+  productCount       Int      @default(0)
+  lineCount          Int      @default(0)
+  revertedAt         DateTime?
+  createdAt          DateTime @default(now())
+  items              StorePriceChangeItem[]
+
+  @@index([siteId, createdAt])
+  @@map("price_change_batch")
+  @@schema("shop")
+}
+
+model StorePriceChangeItem {
+  id                 String   @id @default(cuid())
+  batchId            String
+  batch              StorePriceChangeBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  productId          String
+  product            StoreProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variantId          String?
+  variant            StoreProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  oldPriceMinor      Int
+  newPriceMinor      Int
+  oldCompareAtMinor  Int?
+  newCompareAtMinor  Int?
+  skipped            Boolean  @default(false)
+  skipReason         String?
+
+  @@index([batchId])
+  @@index([productId])
+  @@map("price_change_item")
+  @@schema("shop")
+}
+
+model StoreProductImage {
+  id        String   @id @default(cuid())
+  productId String
+  product   StoreProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String
+  /** image | video */
+  mediaType String   @default("image")
+  alt       String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([productId, sortOrder])
+  @@map("product_image")
+  @@schema("shop")
+}
+
+model StoreMedia {
+  id        String   @id @default(cuid())
+  siteId    String
+  site      StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  filename  String
+  url       String
+  mimeType  String?
+  sizeBytes Int?
+  createdAt DateTime @default(now())
+
+  @@index([siteId, createdAt])
+  @@map("media")
+  @@schema("shop")
+}
+
+/// Kargo firması + API / sözleşme bilgileri (admin panelden girilir)
+model ShippingCarrier {
+  id                  String   @id @default(cuid())
+  siteId              String
+  site                StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  code                String
+  name                String
+  active              Boolean  @default(true)
+  trackingUrlTemplate String?
+  customerServicePhone String?
+  notes               String?
+  configJson          String?
+  sortOrder           Int      @default(0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  rates               ShippingRate[]
+  orders              StoreOrder[]
+
+  @@unique([siteId, code])
+  @@map("shipping_carrier")
+  @@schema("shop")
+}
+
+model ShippingRate {
+  id            String   @id @default(cuid())
+  carrierId     String
+  carrier       ShippingCarrier @relation(fields: [carrierId], references: [id], onDelete: Cascade)
+  name          String
+  priceMinor    Int
+  freeOverMinor Int?
+  minDesi       Float?
+  maxDesi       Float?
+  regionsJson   String?
+  active        Boolean  @default(true)
+  sortOrder     Int      @default(0)
+
+  @@index([carrierId])
+  @@map("shipping_rate")
+  @@schema("shop")
+}
+
+/// Trendyol, Hepsiburada, n11, Amazon TR vb.
+model MarketplaceIntegration {
+  id          String   @id @default(cuid())
+  siteId      String
+  site        StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  platform    String
+  label       String
+  active      Boolean  @default(false)
+  configJson  String?
+  lastSyncAt  DateTime?
+  lastError   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([siteId, platform])
+  @@map("marketplace_integration")
+  @@schema("shop")
+}
+
+/// Kupon, sepet indirimi, ücretsiz kargo kampanyası
+model StoreCampaign {
+  id            String    @id @default(cuid())
+  siteId        String
+  site          StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  name          String
+  code          String?
+  type          String    @default("percent_off")
+  percentOff    Int?
+  amountOffMinor Int?
+  /** buy_x_pay_y: kaç adet al (örn. 3) */
+  buyQuantity   Int?
+  /** buy_x_pay_y: kaç adet öde (örn. 2) */
+  payQuantity   Int?
+  /** JSON: { categoryIds?, collectionIds?, productIds?, brandIds? } */
+  scopeJson     String?
+  /** Kodsuz otomatik uygulama */
+  autoApply     Boolean   @default(false)
+  minCartMinor  Int?
+  freeShipping  Boolean   @default(false)
+  maxUses       Int?
+  usedCount     Int       @default(0)
+  active        Boolean   @default(true)
+  startsAt      DateTime?
+  endsAt        DateTime?
+  description   String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([siteId, code])
+  @@index([siteId, active])
+  @@map("campaign")
+  @@schema("shop")
+}
+
+model CustomerGroup {
+  id              String   @id @default(cuid())
+  siteId          String
+  site            StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  name            String
+  slug            String
+  discountPercent Int      @default(0)
+  /** B2B / bayi grubu sipariş no öneki — boşsa mağaza varsayılanı */
+  orderNumberPrefix String?
+  active          Boolean  @default(true)
+  description     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  members         StoreCustomer[]
+
+  @@unique([siteId, slug])
+  @@index([siteId, active])
+  @@map("customer_group")
+  @@schema("shop")
+}
+
+model StoreCustomer {
+  id              String   @id @default(cuid())
+  siteId          String
+  site            StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  email           String?
+  phone           String?
+  firstName       String?
+  lastName        String?
+  passwordHash    String?
+  notes           String?
+  customerGroupId String?
+  customerGroup   CustomerGroup? @relation(fields: [customerGroupId], references: [id], onDelete: SetNull)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  orders          StoreOrder[]
+  addresses       CustomerAddress[]
+  favorites       CustomerFavorite[]
+
+  @@unique([siteId, email])
+  @@index([siteId, email])
+  @@index([customerGroupId])
+  @@map("customer")
+  @@schema("shop")
+}
+
+model CustomerFavorite {
+  id         String   @id @default(cuid())
+  customerId String
+  customer   StoreCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  productId  String
+  product    StoreProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([customerId, productId])
+  @@index([customerId])
+  @@map("customer_favorite")
+  @@schema("shop")
+}
+
+model CustomerAddress {
+  id         String   @id @default(cuid())
+  customerId String
+  customer   StoreCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  label      String?
+  firstName  String?
+  lastName   String?
+  phone      String?
+  city       String
+  district   String
+  line1      String
+  postalCode String?
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([customerId])
+  @@map("customer_address")
+  @@schema("shop")
+}
+
+model MarketplaceSyncLog {
+  id         String   @id @default(cuid())
+  siteId     String
+  site       StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  platform   String
+  action     String
+  status     String
+  message    String?
+  itemsCount Int?
+  createdAt  DateTime @default(now())
+
+  @@index([siteId, platform, createdAt])
+  @@map("marketplace_sync_log")
+  @@schema("shop")
+}
+
+/// Yerel kategori ↔ pazaryeri kategori/marka eşlemesi
+model MarketplaceCategoryMapping {
+  id                 String   @id @default(cuid())
+  siteId             String
+  site               StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  platform           String
+  categoryId         String?
+  category           StoreCategory? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  platformCategoryId String
+  platformBrandId    String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([siteId, platform, categoryId])
+  @@index([siteId, platform])
+  @@map("marketplace_category_mapping")
+  @@schema("shop")
+}
+
+/// Pazaryeri komisyon / kargo kesinti kuralları (platform × yerel kategori)
+model MarketplaceCommissionRule {
+  id                String   @id @default(cuid())
+  siteId            String
+  site              StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  platform          String
+  categoryId        String?
+  category          StoreCategory? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  /** Komisyon oranı (%) — brüt satış üzerinden */
+  commissionPercent Float
+  /** marketplace_cargo | seller_cargo | none */
+  shippingModel     String   @default("marketplace_cargo")
+  /** Tahmini kargo kesintisi (kuruş) — marketplace_cargo için */
+  shippingFeeMinor  Int      @default(0)
+  notes             String?
+  sortOrder         Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([siteId, platform])
+  @@map("marketplace_commission_rule")
+  @@schema("shop")
+}
+
+/// Ürünün pazaryerindeki listeleme durumu
+model MarketplaceProductListing {
+  id            String   @id @default(cuid())
+  siteId        String
+  site          StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  productId     String
+  product       StoreProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  platform      String
+  barcode       String?
+  listingStatus String   @default("pending")
+  lastSyncAt    DateTime?
+  lastError     String?
+  metaJson      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([siteId, platform, productId])
+  @@index([siteId, platform, listingStatus])
+  @@map("marketplace_product_listing")
+  @@schema("shop")
+}
+
+model StoreOrder {
+  id              String   @id @default(cuid())
+  siteId          String
+  site            StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  orderNumber     String
+  status          String   @default("pending")
+  customerId      String?
+  customer        StoreCustomer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  carrierId       String?
+  carrier         ShippingCarrier? @relation(fields: [carrierId], references: [id], onDelete: SetNull)
+  customerEmail   String?
+  customerPhone   String?
+  customerName    String?
+  shippingAddressJson String?
+  subtotalMinor   Int      @default(0)
+  shippingMinor   Int      @default(0)
+  discountMinor   Int      @default(0)
+  totalMinor      Int      @default(0)
+  paymentMethod   String?
+  paymentStatus   String   @default("unpaid")
+  trackingNumber  String?
+  marketplaceRef  String?
+  marketplacePlatform String?
+  /** JSON: shipmentPackageId, orderNumber, tyStatus, lines[{lineId,qty,barcode}] */
+  marketplaceMetaJson String?
+  /** GİB e-Arşiv fatura no */
+  invoiceNumber   String?
+  /** GİB belge UUID (ETTN) */
+  invoiceUuid     String?
+  /** Herkese açık fatura görüntüleme URL'si (pazaryeri için) */
+  invoiceLink     String?
+  /** none | draft | signed | marketplace_sent */
+  invoiceStatus   String?
+  invoiceIssuedAt DateTime?
+  /** JSON: htmlStored, publicToken, gibDownloadUrl, recipientTaxId, errors */
+  invoiceMetaJson String?
+  /** JSON: brüt, komisyon, kargo, maliyet, tahmini net — sipariş anında dondurulur */
+  financeSnapshotJson String?
+  adminNotes      String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  lines           StoreOrderLine[]
+  financeTransactions FinanceTransaction[]
+
+  @@unique([siteId, orderNumber])
+  @@index([siteId, status, createdAt])
+  @@map("order")
+  @@schema("shop")
+}
+
+model StoreOrderLine {
+  id          String   @id @default(cuid())
+  orderId     String
+  order       StoreOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId     String?
+  product       StoreProduct? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  variantId     String?
+  variantLabel  String?
+  title         String
+  sku           String?
+  qty           Int
+  unitMinor     Int
+  lineMinor     Int
+  /** Kampanya indirimi (satır payı) */
+  discountMinor Int      @default(0)
+  /** Sipariş anındaki KDV % — null ise fatura kesiminde mağaza varsayılanı */
+  vatRate       Int?
+
+  @@index([orderId])
+  @@map("order_line")
+  @@schema("shop")
+}
+
+model FinanceCategory {
+  id           String   @id @default(cuid())
+  siteId       String
+  site         StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  name         String
+  /** income | expense */
+  kind         String
+  sortOrder    Int      @default(0)
+  active       Boolean  @default(true)
+  transactions FinanceTransaction[]
+
+  @@unique([siteId, kind, name])
+  @@map("finance_category")
+  @@schema("shop")
+}
+
+model FinanceAccount {
+  id           String   @id @default(cuid())
+  siteId       String
+  site         StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  name         String
+  /** cash | bank | credit_card | marketplace_receivable */
+  kind         String
+  platform     String?
+  active       Boolean  @default(true)
+  transactions FinanceTransaction[]
+
+  @@unique([siteId, name])
+  @@map("finance_account")
+  @@schema("shop")
+}
+
+model FinanceTransaction {
+  id                   String   @id @default(cuid())
+  siteId                 String
+  site                   StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  txDate                 DateTime
+  /** sale_income | other_income | expense | payment_in | payment_out | marketplace_deduction | marketplace_payout */
+  kind                   String
+  amountMinor            Int
+  categoryId             String?
+  category               FinanceCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  accountId              String?
+  account                FinanceAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  orderId                String?
+  order                  StoreOrder? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  description            String
+  /** issued | received */
+  invoiceDirection       String?
+  invoiceNumber          String?
+  counterpartyName       String?
+  counterpartyTaxId      String?
+  vatMinor               Int      @default(0)
+  marketplacePlatform    String?
+  marketplaceRef         String?
+  linkedTxId             String?
+  linkedTx               FinanceTransaction?  @relation("FinanceTxLink", fields: [linkedTxId], references: [id], onDelete: SetNull)
+  childLinks             FinanceTransaction[] @relation("FinanceTxLink")
+  /** none | open | matched | unmatched | reviewed */
+  reconciliationStatus   String   @default("none")
+  fileUrl                String?
+  notes                  String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  @@index([siteId, txDate])
+  @@index([siteId, kind])
+  @@index([siteId, orderId])
+  @@index([siteId, reconciliationStatus])
+  @@index([siteId, marketplacePlatform])
+  @@map("finance_transaction")
+  @@schema("shop")
+}

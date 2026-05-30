@@ -1,0 +1,195 @@
+/**
+ * King Noor mirror — kayıp / görünmeyen ikonlar (SVG stroke, swiper, ürün kartı)
+ */
+
+/* Header ikonları — siyah daire içinde kaybolan SVG */
+.header--icons-list .header--icon-link-text {
+  position: relative !important;
+  color: var(--header_icon_color, #1a1a1a) !important;
+}
+
+.header--icons-list .header--icon-link-text:after {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.header--icons-list .header--icon-link-text svg {
+  position: relative !important;
+  z-index: 1 !important;
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  width: 18px !important;
+  height: 18px !important;
+}
+
+.header--icons-list .header--icon-link-text svg path,
+.header--icons-list .header--icon-link-text svg line,
+.header--icons-list .header--icon-link-text svg circle {
+  stroke: currentColor !important;
+  fill: none !important;
+}
+
+/* Arama drawer — siyah yuvarlak arama butonu */
+.search-form-button.arrow--btn,
+.serach--drawer-input-group .search-form-button {
+  color: var(--button_text, #fff) !important;
+  background: var(--button_background, #111) !important;
+}
+
+.search-form-button svg,
+.search-form-button svg path {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  stroke: currentColor !important;
+  fill: none !important;
+}
+
+.drawer-close,
+.close-drawer {
+  color: var(--text_color, #1a1a1a) !important;
+}
+
+/* Ürün kartı — hızlı bak / sepete ekle */
+.product--icon,
+a.product--icon,
+button.product--icon {
+  color: #fff !important;
+  background: var(--heading_color, #000) !important;
+}
+
+.product--icon svg,
+.product--icon .quick--view-icon,
+.product--icon .cart--icon {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  flex-shrink: 0;
+}
+
+.product--icon .quick--view-icon {
+  width: 16px !important;
+  height: auto !important;
+}
+
+.product--icon .cart--icon,
+.product--icon span .cart--icon {
+  width: 15px !important;
+  height: auto !important;
+}
+
+.product--icon svg path,
+.product--icon .quick--view-icon path,
+.product--icon .cart--icon path {
+  stroke: #fff !important;
+  fill: none !important;
+}
+
+/* Swiper okları */
+.swiper-button.button-circle,
+swiper-nav.swiper-button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: var(--slider_icon_color, #111) !important;
+  background: var(--slider_icon_background, #fff) !important;
+}
+
+.swiper-button.button-circle svg,
+swiper-nav.swiper-button svg {
+  position: static !important;
+  left: auto !important;
+  top: auto !important;
+  transform: none !important;
+  display: block !important;
+  opacity: 1 !important;
+  width: 13px !important;
+  height: auto !important;
+  margin: 0 auto;
+}
+
+.swiper-button.button-circle svg path,
+swiper-nav.swiper-button svg path {
+  stroke: currentColor !important;
+  fill: none !important;
+}
+
+/* Drawer / arama kapatma */
+.drawer-close svg,
+.drawer-close .close-icon {
+  display: block !important;
+  width: 18px !important;
+  height: auto !important;
+}
+
+.drawer-close svg path,
+.drawer-close svg line {
+  stroke: currentColor !important;
+}
+
+/* Ürün zoom popup — kapatma X (CurrentColor SVG + :before katmanı) */
+.product-media-popup .popup-close {
+  color: var(--text_color, #212121) !important;
+  border-color: var(--text_color, #212121) !important;
+}
+
+.product-media-popup .popup-close svg,
+.product-media-popup .popup-close .close-icon {
+  display: block !important;
+  width: 16px !important;
+  height: 16px !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+.product-media-popup .popup-close svg line,
+.product-media-popup .popup-close svg path {
+  stroke: currentColor !important;
+  fill: none !important;
+}
+
+.product-media-popup .popup-close:hover {
+  color: var(--body_background, #fff) !important;
+}
+
+/* Accordion + footer */
+.accordion--icon svg,
+.accordion--icon path {
+  stroke: currentColor !important;
+  fill: none !important;
+}
+
+/* no-js kalmışsa swiper okları yine görünsün */
+html.no-js swiper-nav.swiper-button.button-circle {
+  display: inline-flex !important;
+}
+
+/* Ürün / sepet — adet +/- ikonları */
+.section-main-product .quantity-button,
+.quantity-main-product .quantity-button,
+.quickview--side-drawer .quantity-button,
+.cart--side-drawer .quantity-button,
+.cart-page .quantity-button,
+.main-cart--form .quantity-button {
+  color: var(--text_color, #1a1a1a) !important;
+}
+
+.section-main-product .quantity-button svg,
+.quantity-main-product .quantity-button svg,
+.quickview--side-drawer .quantity-button svg,
+.cart--side-drawer .quantity-button svg,
+.cart-page .quantity-button svg,
+.main-cart--form .quantity-button svg {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.section-main-product .quantity-button svg path,
+.quantity-main-product .quantity-button svg path,
+.quickview--side-drawer .quantity-button svg path {
+  fill: currentColor !important;
+}

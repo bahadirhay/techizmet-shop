@@ -1,0 +1,29 @@
+/**
+ * Ana sayfa hero (media-grid) — şeffaf header altında tam yükseklik
+ */
+
+@media (min-width: 768px) {
+  #MainContent > .section-media-grid:first-of-type {
+    --kn-hero-stack: calc(
+      var(--dynamic_announcement_height, var(--announcement_height, 0px)) +
+        var(--dynamic_header_height, var(--header_height, 80px))
+    );
+    --desktop_height: max(
+      300px,
+      calc((100svh - var(--kn-hero-stack)) / 3)
+    );
+  }
+}
+
+@media (max-width: 767px) {
+  #MainContent > .section-media-grid:first-of-type {
+    --kn-hero-stack: calc(
+      var(--dynamic_announcement_height, var(--announcement_height, 0px)) +
+        var(--dynamic_header_height, var(--header_height, 72px))
+    );
+    --mobile_height: max(
+      200px,
+      calc((100svh - var(--kn-hero-stack)) / 2)
+    );
+  }
+}
