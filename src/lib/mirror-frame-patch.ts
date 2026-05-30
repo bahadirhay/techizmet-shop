@@ -8,6 +8,7 @@ import { applyMirrorFooter, type MirrorFooterData } from "@/lib/mirror-footer-ov
 import { applyMirrorHeaderIconsFix } from "@/lib/mirror-header-overlay";
 import { applyMirrorLocaleOverlay } from "@/lib/mirror-locale-overlay";
 import { installMirrorSwiperQuiet } from "@/lib/mirror-swiper-overlay";
+import { installMirrorLayoutQuiet } from "@/lib/mirror-layout-quiet-overlay";
 import { ensureMirrorLayoutStyles } from "@/lib/mirror-nav-dropdown-inject";
 import { applyMirrorNavigation, rebindMirrorNavDropdown, type MirrorNavItem } from "@/lib/mirror-nav-overlay";
 
@@ -34,6 +35,7 @@ export function isMirrorServerReady(doc: Document): boolean {
 /** Tüm mirror iframe’lerinde ortak yama (istemci güvenli) */
 export function applyMirrorFramePatches(doc: Document, opts: MirrorFramePatchOpts) {
   const serverReady = isMirrorServerReady(doc);
+  installMirrorLayoutQuiet(doc);
   ensureMirrorLayoutStyles(doc);
 
   if (!serverReady) {

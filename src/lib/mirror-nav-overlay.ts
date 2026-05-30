@@ -129,15 +129,6 @@ function clearActiveMega(doc: Document) {
   });
 }
 
-function syncMegaContentWidth(doc: Document) {
-  const container =
-    doc.querySelector("header.section-header .container-fullwidth") ??
-    doc.querySelector(".header .container-fullwidth");
-  if (!container || !doc.defaultView) return;
-  const w = Math.round(container.getBoundingClientRect().width);
-  if (w > 0) doc.documentElement.style.setProperty("--kn-mega-content-max", `${w}px`);
-}
-
 let navCloseTimer: ReturnType<typeof setTimeout> | null = null;
 
 function cancelNavClose() {
@@ -186,20 +177,17 @@ function closeNavDropdown(doc: Document, el: HTMLElement) {
 
 function bindKnNavDropdown(doc: Document) {
   initMegaPanels(doc);
-  syncMegaContentWidth(doc);
   const win = doc.defaultView;
   if (win && !(win as Window & { __knMegaLayoutBound?: number }).__knMegaLayoutBound) {
     (win as Window & { __knMegaLayoutBound?: number }).__knMegaLayoutBound = 1;
     win.addEventListener("resize", () => {
       closeMobileDrawerOnDesktop(doc);
       initMegaPanels(doc);
-      syncMegaContentWidth(doc);
     });
     const mq = win.matchMedia("(min-width: 992px)");
     const onMq = () => {
       closeMobileDrawerOnDesktop(doc);
       initMegaPanels(doc);
-      syncMegaContentWidth(doc);
     };
     if (typeof mq.addEventListener === "function") mq.addEventListener("change", onMq);
     else if (typeof mq.addListener === "function") mq.addListener(onMq);

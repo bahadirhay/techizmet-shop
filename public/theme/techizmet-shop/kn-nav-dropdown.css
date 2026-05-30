@@ -268,7 +268,7 @@ body.kn-nav-dropdown-open .header--logo-img {
   display: flex;
   flex-wrap: wrap;
   width: 100%;
-  max-width: var(--kn-mega-content-max, min(1220px, 100%));
+  max-width: min(1220px, 100%);
   margin: 0 auto;
   padding: 0 4px;
   box-sizing: border-box;
