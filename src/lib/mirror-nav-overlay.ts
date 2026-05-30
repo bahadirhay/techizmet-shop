@@ -180,6 +180,51 @@ function syncMegaPanelPosition(doc: Document) {
   }
 }
 
+let navCloseTimer: ReturnType<typeof setTimeout> | null = null;
+
+function cancelNavClose() {
+  if (navCloseTimer) {
+    clearTimeout(navCloseTimer);
+    navCloseTimer = null;
+  }
+}
+
+function pointerInNavZone(doc: Document): boolean {
+  if (doc.querySelector(".kn-nav-has-dropdown.kn-nav-open:hover")) return true;
+  const host = doc.getElementById("kn-mega-host");
+  if (host?.matches(":hover")) return true;
+  const nav = doc.querySelector(".header--navigation-main");
+  if (nav?.matches(":hover")) return true;
+  return false;
+}
+
+function scheduleNavClose(doc: Document, li: HTMLElement) {
+  cancelNavClose();
+  navCloseTimer = setTimeout(() => {
+    navCloseTimer = null;
+    if (pointerInNavZone(doc)) return;
+    closeNavDropdown(doc, li);
+  }, 240);
+}
+
+function openNavDropdown(doc: Document, el: HTMLElement) {
+  cancelNavClose();
+  syncMegaPanelPosition(doc);
+  doc.defaultView?.requestAnimationFrame(() => syncMegaPanelPosition(doc));
+  setActiveMega(doc, el);
+  doc.body.classList.add("kn-nav-dropdown-open");
+  el.classList.add("kn-nav-open");
+}
+
+function closeNavDropdown(doc: Document, el: HTMLElement) {
+  cancelNavClose();
+  el.classList.remove("kn-nav-open");
+  if (!doc.querySelector(".kn-nav-has-dropdown.kn-nav-open")) {
+    doc.body.classList.remove("kn-nav-dropdown-open");
+    clearActiveMega(doc);
+  }
+}
+
 function bindKnNavDropdown(doc: Document) {
   initMegaPanels(doc);
   syncMegaPanelPosition(doc);
@@ -201,7 +246,7 @@ function bindKnNavDropdown(doc: Document) {
     else if (typeof mq.addListener === "function") mq.addListener(onMq);
     win.addEventListener("scroll", () => syncMegaPanelPosition(doc), true);
     const roTargets = doc.querySelectorAll(
-      ".section-announcement-bar, header.section-header, sticky-always.header, [data-announcement-wrapper]",
+      ".section-announcement-bar, header.section-header, sticky-always.header, sticky-on-scroll.header, [data-announcement-wrapper]",
     );
     if (typeof ResizeObserver !== "undefined" && roTargets.length) {
       const ro = new ResizeObserver(() => syncMegaPanelPosition(doc));
@@ -211,41 +256,43 @@ function bindKnNavDropdown(doc: Document) {
     win.setTimeout(() => syncMegaPanelPosition(doc), 120);
   }
 
-  const open = (el: HTMLElement) => {
-    syncMegaPanelPosition(doc);
-    setActiveMega(doc, el);
-    doc.body.classList.add("kn-nav-dropdown-open");
-    el.classList.add("kn-nav-open");
-  };
-  const close = (el: HTMLElement) => {
-    el.classList.remove("kn-nav-open");
-    if (!doc.querySelector(".kn-nav-has-dropdown.kn-nav-open")) {
-      doc.body.classList.remove("kn-nav-dropdown-open");
-      clearActiveMega(doc);
-    }
-  };
-
   const megaHost = doc.getElementById("kn-mega-host");
   if (megaHost && megaHost.dataset.knHostBound !== "1") {
     megaHost.dataset.knHostBound = "1";
+    megaHost.addEventListener("mouseenter", () => {
+      cancelNavClose();
+      const openLi = doc.querySelector(".kn-nav-has-dropdown.kn-nav-open") as HTMLElement | null;
+      if (openLi) openNavDropdown(doc, openLi);
+    });
     megaHost.addEventListener("mouseleave", (e) => {
       const openLi = doc.querySelector(".kn-nav-has-dropdown.kn-nav-open") as HTMLElement | null;
       if (!openLi) return;
       if (e.relatedTarget instanceof Node && openLi.contains(e.relatedTarget)) return;
-      close(openLi);
+      scheduleNavClose(doc, openLi);
     });
+  }
+
+  const navMain = doc.querySelector(".header--navigation-main");
+  if (navMain instanceof HTMLElement && navMain.dataset.knNavZoneBound !== "1") {
+    navMain.dataset.knNavZoneBound = "1";
+    navMain.addEventListener("mouseenter", cancelNavClose);
   }
 
   doc.querySelectorAll(".kn-nav-has-dropdown").forEach((li) => {
     const el = li as HTMLElement;
     if (el.dataset.knNavBound === "1") return;
     el.dataset.knNavBound = "1";
-    el.addEventListener("mouseenter", () => open(el));
+    el.addEventListener("mouseenter", () => openNavDropdown(doc, el));
     el.addEventListener("mouseleave", (e) => {
       if (megaHost && e.relatedTarget instanceof Node && megaHost.contains(e.relatedTarget)) return;
-      close(el);
+      scheduleNavClose(doc, el);
     });
   });
+}
+
+/** Sunucu menüsü varken yalnızca hover bağlantısını yenile (HTML’i silme) */
+export function rebindMirrorNavDropdown(doc: Document) {
+  bindKnNavDropdown(doc);
 }
 
 export function applyMirrorNavigation(doc: Document, nav: MirrorNavItem[], locale: "tr" | "en" = "tr") {

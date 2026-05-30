@@ -109,7 +109,7 @@ header.header {
   text-decoration: underline;
 }
 
-/* Mega panel — header altına yapışık (boşluk yok) */
+/* Mega panel — header altına yapışık; görünmez köprü ile hover kopması önlenir */
 #kn-mega-host {
   position: fixed;
   left: 0;
@@ -124,13 +124,38 @@ header.header {
   width: 100%;
   max-width: 100%;
   margin: 0;
-  padding: 0;
+  padding: 14px 0 0;
+  margin-top: -14px;
   z-index: 190;
   pointer-events: none;
+  box-sizing: border-box;
+}
+
+#kn-mega-host::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 14px;
+  pointer-events: auto;
 }
 
 body.kn-nav-dropdown-open #kn-mega-host {
   pointer-events: auto;
+}
+
+/* Mega açıkken header gizlenmesin (scroll-down is-hidden) */
+body.kn-nav-dropdown-open sticky-always.header.is-hidden,
+body.kn-nav-dropdown-open sticky-on-scroll.header.is-hidden {
+  transform: none !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+body.kn-nav-dropdown-open header.section-header.is-hidden-header {
+  pointer-events: auto !important;
 }
 
 @media (min-width: 992px) {

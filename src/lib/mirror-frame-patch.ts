@@ -9,7 +9,7 @@ import { applyMirrorHeaderIconsFix } from "@/lib/mirror-header-overlay";
 import { applyMirrorLocaleOverlay } from "@/lib/mirror-locale-overlay";
 import { installMirrorSwiperQuiet } from "@/lib/mirror-swiper-overlay";
 import { ensureMirrorLayoutStyles } from "@/lib/mirror-nav-dropdown-inject";
-import { applyMirrorNavigation, type MirrorNavItem } from "@/lib/mirror-nav-overlay";
+import { applyMirrorNavigation, rebindMirrorNavDropdown, type MirrorNavItem } from "@/lib/mirror-nav-overlay";
 
 export type MirrorFramePatchOpts = {
   branding?: MirrorBranding;
@@ -44,8 +44,12 @@ export function applyMirrorFramePatches(doc: Document, opts: MirrorFramePatchOpt
     }
   }
 
-  /** Admin menüsü her zaman güncel — sunucu HTML’i eski JSON menü içerebilir */
-  if (opts.nav?.length) applyMirrorNavigation(doc, opts.nav, opts.locale ?? "tr");
+  /** Admin menüsü — sunucu HTML menüsünü silmeden güncelle */
+  if (opts.nav?.length) {
+    const serverNav = doc.documentElement.getAttribute("data-kn-nav-server") === "1";
+    if (serverNav) rebindMirrorNavDropdown(doc);
+    else applyMirrorNavigation(doc, opts.nav, opts.locale ?? "tr");
+  }
   if (opts.footer && !hasServerFooter(doc) && !serverReady) applyMirrorFooter(doc, opts.footer);
 
   if (opts.locale && !isServerProcessedMirror(doc)) {
