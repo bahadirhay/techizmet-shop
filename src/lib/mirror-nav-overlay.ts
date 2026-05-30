@@ -209,11 +209,14 @@ function scheduleNavClose(doc: Document, li: HTMLElement) {
 
 function openNavDropdown(doc: Document, el: HTMLElement) {
   cancelNavClose();
-  syncMegaPanelPosition(doc);
-  doc.defaultView?.requestAnimationFrame(() => syncMegaPanelPosition(doc));
-  setActiveMega(doc, el);
   doc.body.classList.add("kn-nav-dropdown-open");
   el.classList.add("kn-nav-open");
+  syncMegaPanelPosition(doc);
+  setActiveMega(doc, el);
+  doc.defaultView?.requestAnimationFrame(() => {
+    syncMegaPanelPosition(doc);
+    setActiveMega(doc, el);
+  });
 }
 
 function closeNavDropdown(doc: Document, el: HTMLElement) {
@@ -249,7 +252,15 @@ function bindKnNavDropdown(doc: Document) {
       ".section-announcement-bar, header.section-header, sticky-always.header, sticky-on-scroll.header, [data-announcement-wrapper]",
     );
     if (typeof ResizeObserver !== "undefined" && roTargets.length) {
-      const ro = new ResizeObserver(() => syncMegaPanelPosition(doc));
+      const ro = new ResizeObserver(() => {
+        if (doc.body.classList.contains("kn-nav-dropdown-open")) {
+          const win = doc.defaultView as Window & { __knMegaRoTimer?: number };
+          if (win.__knMegaRoTimer) win.clearTimeout(win.__knMegaRoTimer);
+          win.__knMegaRoTimer = win.setTimeout(() => syncMegaPanelPosition(doc), 32);
+          return;
+        }
+        syncMegaPanelPosition(doc);
+      });
       roTargets.forEach((el) => ro.observe(el));
     }
     win.requestAnimationFrame(() => syncMegaPanelPosition(doc));

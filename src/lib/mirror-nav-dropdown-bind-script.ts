@@ -119,11 +119,14 @@ function knScheduleNavClose(li){
 }
 function knOpenNavDropdown(li){
   knCancelNavClose();
-  knSyncMegaPanelPosition();
-  requestAnimationFrame(function(){knSyncMegaPanelPosition();});
-  knSetActiveMega(li);
   document.body.classList.add("kn-nav-dropdown-open");
   li.classList.add("kn-nav-open");
+  knSyncMegaPanelPosition();
+  knSetActiveMega(li);
+  requestAnimationFrame(function(){
+    knSyncMegaPanelPosition();
+    knSetActiveMega(li);
+  });
 }
 function knCloseNavDropdown(li){
   knCancelNavClose();
@@ -148,7 +151,14 @@ function knBindNavDropdown(){
       ".section-announcement-bar, header.section-header, sticky-always.header, sticky-on-scroll.header, [data-announcement-wrapper]"
     );
     if(typeof ResizeObserver!=="undefined"&&roTargets.length){
-      var ro=new ResizeObserver(function(){knSyncMegaPanelPosition();});
+      var ro=new ResizeObserver(function(){
+        if(document.body.classList.contains("kn-nav-dropdown-open")){
+          if(window.__knMegaRoTimer)clearTimeout(window.__knMegaRoTimer);
+          window.__knMegaRoTimer=setTimeout(knSyncMegaPanelPosition,32);
+          return;
+        }
+        knSyncMegaPanelPosition();
+      });
       roTargets.forEach(function(el){ro.observe(el);});
     }
     requestAnimationFrame(knSyncMegaPanelPosition);
