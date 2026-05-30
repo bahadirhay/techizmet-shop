@@ -254,6 +254,8 @@ model StoreProduct {
   descriptionHtml  String?
   keyFeaturesHtml  String?
   howToUseHtml     String?
+  /** Sepete ekle altı ikon şeridi JSON: [{ label, iconUrl }] */
+  highlightsJson   String?
   /** Sayfa altı EXPLORE kartları JSON; null = mağaza varsayılanı */
   exploreLooksJson String?
   sku              String?

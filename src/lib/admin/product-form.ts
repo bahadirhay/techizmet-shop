@@ -6,6 +6,8 @@ import {
   parseExploreLooksJson,
   type ProductExploreLook,
 } from "@/lib/product-explore-looks";
+import type { ProductHighlight } from "@/lib/product-highlights";
+import { emptyProductHighlights, parseProductHighlightsJson } from "@/lib/product-highlights";
 import type { ProductMediaItem } from "@/lib/product-media";
 import { primaryProductImageUrl } from "@/lib/product-media";
 import type { VariantFormRow } from "@/lib/product-variants";
@@ -21,6 +23,7 @@ type ProductRow = {
   descriptionHtml: string | null;
   keyFeaturesHtml: string | null;
   howToUseHtml: string | null;
+  highlightsJson: string | null;
   exploreLooksJson: string | null;
   sku: string | null;
   barcode: string | null;
@@ -64,6 +67,7 @@ export function emptyProductForm(): ProductFormData {
     descriptionHtml: "",
     keyFeaturesHtml: "",
     howToUseHtml: "",
+    highlights: emptyProductHighlights(),
     sku: "",
     barcode: "",
     collectionId: "",
@@ -122,6 +126,7 @@ export function productToForm(
     descriptionHtml: htmlToPlainText(p.descriptionHtml),
     keyFeaturesHtml: htmlToPlainText(p.keyFeaturesHtml),
     howToUseHtml: htmlToPlainText(p.howToUseHtml),
+    highlights: parseProductHighlightsJson(p.highlightsJson),
     sku: p.sku ?? "",
     barcode: p.barcode ?? "",
     collectionId: p.collectionId ?? "",

@@ -1,3 +1,5 @@
+import type { ProductHighlight } from "@/lib/product-highlights";
+
 export type VitrinProductMedia = {
   url: string;
   alt?: string | null;
@@ -23,6 +25,7 @@ export type VitrinProductDetail = {
   images?: VitrinProductMedia[];
   variantOptionName?: string | null;
   variants?: VitrinProductVariant[];
+  highlights?: ProductHighlight[];
 };
 
 function productHref(slug: string) {
@@ -250,6 +253,32 @@ function patchDescription(doc: Document, product: VitrinProductDetail) {
   });
 }
 
+function patchProductHighlights(doc: Document, highlights: ProductHighlight[]) {
+  const items = doc.querySelectorAll("#MainContent .custom-icons-list .custom-icons-item");
+  if (!items.length) return;
+
+  highlights.forEach((highlight, index) => {
+    const li = items[index];
+    if (!li) return;
+    const label = highlight.label.trim();
+    if (label) {
+      const text = li.querySelector(".custom-icons-text");
+      if (text) text.textContent = label;
+    }
+    const iconUrl = highlight.iconUrl.trim();
+    if (iconUrl) {
+      li.querySelectorAll(".custom-icons-icon img").forEach((img) => {
+        if (!(img instanceof HTMLImageElement)) return;
+        img.src = iconUrl;
+        img.setAttribute("data-src", iconUrl);
+        img.setAttribute("data-original", iconUrl);
+        img.removeAttribute("loading");
+        img.classList.remove("lazyload");
+      });
+    }
+  });
+}
+
 function mainVariantScripts(product: VitrinProductDetail, optionName: string) {
   const variants = product.variants ?? [];
   return {
@@ -369,4 +398,5 @@ export function applyProductDetailFromAdmin(doc: Document, product: VitrinProduc
   patchDescription(doc, product);
   patchMainImage(doc, product);
   patchVariants(doc, product);
+  if (product.highlights?.length) patchProductHighlights(doc, product.highlights);
 }

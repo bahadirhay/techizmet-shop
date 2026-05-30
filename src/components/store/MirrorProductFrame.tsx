@@ -15,8 +15,9 @@ import {
   resolveProductExploreLooks,
 } from "@/lib/site-settings";
 import type { ProductPageBottomSettings } from "@/lib/product-page-bottom";
-import { getDefaultSite } from "@/lib/site";
+import { productHighlightsForPatch } from "@/lib/product-highlights";
 import { prisma } from "@/lib/prisma";
+import { getDefaultSite } from "@/lib/site";
 
 /** HTTrack mirror — ürün detay; DB içeriği iframe’e yansıtılır */
 export async function MirrorProductFrame({
@@ -85,6 +86,7 @@ export async function MirrorProductFrame({
       stockQty: variant.stockQty,
       isDefault: variant.isDefault,
     })),
+    highlights: productHighlightsForPatch(product.highlightsJson) ?? undefined,
   };
 
   const productPageBottom: ProductPageBottomSettings = getProductPageBottomSettings(settings);

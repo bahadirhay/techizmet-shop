@@ -63,6 +63,7 @@ export async function POST(req: Request) {
         descriptionHtml: String(body.descriptionHtml ?? "").trim() || null,
         keyFeaturesHtml: String(body.keyFeaturesHtml ?? "").trim() || null,
         howToUseHtml: String(body.howToUseHtml ?? "").trim() || null,
+        highlightsJson: String(body.highlightsJson ?? "").trim() || null,
         exploreLooksJson:
           body.useSiteDefaultExplore === true
             ? null

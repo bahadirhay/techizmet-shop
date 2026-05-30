@@ -19,6 +19,11 @@ import { ProductMarketplacePrices } from "@/components/admin/ProductMarketplaceP
 import { DEFAULT_TR_VAT_RATE } from "@/lib/tr-vat-rates";
 import type { ActiveMarketplaceOption } from "@/lib/marketplace/product-prices";
 import { serializeExploreLooks, type ProductExploreLook } from "@/lib/product-explore-looks";
+import {
+  PRODUCT_HIGHLIGHT_SLOTS,
+  serializeProductHighlights,
+  type ProductHighlight,
+} from "@/lib/product-highlights";
 
 type Opt = { id: string; title: string };
 type ProductOpt = { slug: string; title: string };
@@ -31,6 +36,7 @@ export type ProductFormData = {
   descriptionHtml: string;
   keyFeaturesHtml: string;
   howToUseHtml: string;
+  highlights: ProductHighlight[];
   sku: string;
   barcode: string;
   collectionId: string;
@@ -158,6 +164,7 @@ export function ProductForm({
       exploreLooksJson: useSiteDefaultExplore
         ? null
         : serializeExploreLooks(cleanedLooks),
+      highlightsJson: serializeProductHighlights(form.highlights),
     };
     const url = form.id ? `/api/admin/products/${form.id}` : "/api/admin/products";
     const method = form.id ? "PATCH" : "POST";
@@ -594,6 +601,43 @@ export function ProductForm({
               onChange={(e) => set("howToUseHtml", e.target.value)}
             />
           </AdminField>
+          <div className="space-y-3 rounded-lg border border-zinc-200 bg-white p-4">
+            <div>
+              <p className="text-sm font-semibold text-zinc-800">Ürün ikon şeridi</p>
+              <p className="mt-1 text-xs text-zinc-500">
+                Sepete ekle butonunun altındaki 3 ikon alanı (ör. Derin Arındırma, Akıllı Formül, Besleyici).
+                İkon URL boş bırakılırsa temadaki varsayılan görsel kalır.
+              </p>
+            </div>
+            {Array.from({ length: PRODUCT_HIGHLIGHT_SLOTS }, (_, index) => (
+              <div key={index} className="grid gap-2 sm:grid-cols-2">
+                <AdminField label={`Etiket ${index + 1}`}>
+                  <input
+                    className={inputClass}
+                    value={form.highlights[index]?.label ?? ""}
+                    onChange={(e) => {
+                      const next = [...form.highlights];
+                      next[index] = { ...next[index], label: e.target.value };
+                      set("highlights", next);
+                    }}
+                    placeholder="Örn. Derin Arındırma"
+                  />
+                </AdminField>
+                <AdminField label={`İkon URL ${index + 1}`} hint="SVG/PNG — /api/media/... veya tema dosyası">
+                  <input
+                    className={inputClass}
+                    value={form.highlights[index]?.iconUrl ?? ""}
+                    onChange={(e) => {
+                      const next = [...form.highlights];
+                      next[index] = { ...next[index], iconUrl: e.target.value };
+                      set("highlights", next);
+                    }}
+                    placeholder="/theme/techizmet-shop/cdn/shop/files/..."
+                  />
+                </AdminField>
+              </div>
+            ))}
+          </div>
         </div>
         <ProductSeoOptimizer
           title={form.title}

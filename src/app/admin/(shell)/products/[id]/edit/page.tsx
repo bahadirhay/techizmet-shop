@@ -23,6 +23,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
       descriptionHtml: true,
       keyFeaturesHtml: true,
       howToUseHtml: true,
+      highlightsJson: true,
       exploreLooksJson: true,
       sku: true,
       barcode: true,

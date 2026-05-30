@@ -89,6 +89,10 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
           body.keyFeaturesHtml != null ? String(body.keyFeaturesHtml).trim() || null : undefined,
         howToUseHtml:
           body.howToUseHtml != null ? String(body.howToUseHtml).trim() || null : undefined,
+        highlightsJson:
+          body.highlightsJson !== undefined
+            ? String(body.highlightsJson).trim() || null
+            : undefined,
         exploreLooksJson:
           body.useSiteDefaultExplore === true
             ? null
