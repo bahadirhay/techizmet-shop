@@ -5,14 +5,20 @@ import { randomBytes } from "node:crypto";
 const IMAGE_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml"]);
 const VIDEO_MIME = new Set(["video/mp4", "video/webm", "video/quicktime"]);
 
+export type SavedUpload = {
+  url: string;
+  filename: string;
+  mimeType: string;
+  sizeBytes: number;
+  /** Vercel — dosya Neon DB'de saklanır */
+  dbBuffer?: Buffer;
+};
+
 function isServerlessReadonlyFs(): boolean {
   return process.env.VERCEL === "1" || process.cwd().startsWith("/var/task");
 }
 
-export async function saveUploadedImage(
-  siteId: string,
-  file: File,
-): Promise<{ url: string; filename: string; mimeType: string; sizeBytes: number }> {
+export async function saveUploadedImage(siteId: string, file: File): Promise<SavedUpload> {
   const mime = file.type || "application/octet-stream";
   if (!IMAGE_MIME.has(mime)) {
     throw new Error("Yalnızca JPEG, PNG, WebP, GIF veya SVG yüklenebilir.");
@@ -33,13 +39,10 @@ export async function saveUploadedImage(
             : "jpg";
 
   const buf = Buffer.from(await file.arrayBuffer());
-  return writeUpload(siteId, file, buf, ext, mime);
+  return writeUpload(siteId, buf, ext, mime, file.size);
 }
 
-export async function saveUploadedVideo(
-  siteId: string,
-  file: File,
-): Promise<{ url: string; filename: string; mimeType: string; sizeBytes: number }> {
+export async function saveUploadedVideo(siteId: string, file: File): Promise<SavedUpload> {
   const mime = file.type || "application/octet-stream";
   if (!VIDEO_MIME.has(mime)) {
     throw new Error("Yalnızca MP4, WebM veya MOV (video) yüklenebilir.");
@@ -49,53 +52,39 @@ export async function saveUploadedVideo(
   }
 
   const ext = mime === "video/webm" ? "webm" : mime === "video/quicktime" ? "mov" : "mp4";
-
   const buf = Buffer.from(await file.arrayBuffer());
-  return writeUpload(siteId, file, buf, ext, mime);
+  return writeUpload(siteId, buf, ext, mime, file.size);
 }
 
 async function writeUpload(
   siteId: string,
-  file: File,
   buf: Buffer,
   ext: string,
   mime: string,
-): Promise<{ url: string; filename: string; mimeType: string; sizeBytes: number }> {
+  sizeBytes: number,
+): Promise<SavedUpload> {
   const token = randomBytes(8).toString("hex");
   const filename = `${Date.now()}-${token}.${ext}`;
-  const relPath = `uploads/shop/${siteId}/${filename}`;
 
-  if (process.env.BLOB_READ_WRITE_TOKEN) {
-    const { put } = await import("@vercel/blob");
-    const blob = await put(relPath, buf, {
-      access: "public",
-      contentType: mime,
-      addRandomSuffix: false,
-    });
+  if (isServerlessReadonlyFs()) {
     return {
-      url: blob.url,
+      url: "",
       filename,
       mimeType: mime,
-      sizeBytes: file.size,
+      sizeBytes,
+      dbBuffer: buf,
     };
   }
 
-  if (isServerlessReadonlyFs()) {
-    throw new Error(
-      "Canlı ortamda dosya yüklemek için Vercel Blob Storage gerekli. " +
-        "Vercel Dashboard → Storage → Blob Store oluşturun ve projeye bağlayın " +
-        "(BLOB_READ_WRITE_TOKEN otomatik eklenir).",
-    );
-  }
-
+  const relPath = join("uploads", "shop", siteId, filename);
   const absDir = join(process.cwd(), "public", "uploads", "shop", siteId);
   await mkdir(absDir, { recursive: true });
   await writeFile(join(absDir, filename), buf);
 
   return {
-    url: `/${relPath}`,
+    url: `/${relPath.replace(/\\/g, "/")}`,
     filename,
     mimeType: mime,
-    sizeBytes: file.size,
+    sizeBytes,
   };
 }

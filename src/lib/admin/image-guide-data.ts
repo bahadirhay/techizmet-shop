@@ -11,7 +11,7 @@ export type ImageGuideRow = {
 export const IMAGE_GUIDE_GENERAL = {
   formats: "JPEG, PNG, WebP (tercih), GIF, SVG (logo)",
   maxMb: 8,
-  uploadPath: "public/uploads/shop/{siteId}/",
+  uploadPath: "Yerel: public/uploads/shop/{siteId}/ — Canlı (Vercel): Neon DB (/api/media/…)",
   maxEdgeNoCrop: "2000 px (blog/mirror: 2400 px)",
 };
 

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
+import { persistStoreMedia } from "@/lib/admin/store-media-persist";
 import { saveUploadedVideo } from "@/lib/admin/upload";
 import { requireStaffApi } from "@/lib/staff-auth";
-import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
   const auth = await requireStaffApi("content.pages");
@@ -15,19 +15,12 @@ export async function POST(req: Request) {
 
   try {
     const saved = await saveUploadedVideo(auth.siteId, file);
-    const row = await prisma.storeMedia.create({
-      data: {
-        siteId: auth.siteId,
-        filename: saved.filename,
-        url: saved.url,
-        mimeType: saved.mimeType,
-        sizeBytes: saved.sizeBytes,
-      },
-    });
-    return NextResponse.json({ ok: true, media: row, url: saved.url });
+    const row = await persistStoreMedia(auth.siteId, saved);
+    return NextResponse.json({ ok: true, media: row, url: row.url });
   } catch (e) {
-    const message = e instanceof Error ? e.message : "Yükleme hatası";
-    const needsBlob = message.includes("Vercel Blob");
-    return NextResponse.json({ error: message }, { status: needsBlob ? 503 : 400 });
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Yükleme hatası" },
+      { status: 400 },
+    );
   }
 }
