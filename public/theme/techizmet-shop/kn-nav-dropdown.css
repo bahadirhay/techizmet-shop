@@ -100,20 +100,15 @@ header.header {
 .kn-nav-dropdown--simple .kn-nav-dropdown__links a {
   display: block;
   font-size: 0.875rem;
-  padding: 6px 10px;
-  margin: 0 -2px;
-  border-radius: 4px;
+  padding: 4px 8px;
   color: var(--text_color, #333);
   text-decoration: none;
-  transition:
-    color 0.15s ease,
-    background-color 0.15s ease;
+  transition: color 0.15s ease;
 }
 
 .kn-nav-dropdown--simple .kn-nav-dropdown__links a:hover,
 .kn-nav-dropdown--simple .kn-nav-dropdown__links a:focus-visible {
   color: var(--kn-brand, #b45309) !important;
-  background-color: rgba(0, 0, 0, 0.05);
   text-decoration: none;
 }
 
@@ -179,6 +174,13 @@ body.kn-nav-dropdown-open .header.mobile-transparent::before {
 body.kn-nav-dropdown-open .header--menu-link,
 body.kn-nav-dropdown-open .header--navigation-list .header--menu-link {
   color: var(--header_color, #1a1a1a) !important;
+}
+
+@media (min-width: 992px) {
+  .header--navigation-list .header--menu-item:hover > .header--menu-link,
+  .header--navigation-list .kn-nav-has-dropdown.kn-nav-open > .header--menu-link {
+    color: var(--kn-brand, #b45309) !important;
+  }
 }
 
 body.kn-nav-dropdown-open .header--logo-img.transparent-logo-img {
@@ -323,10 +325,14 @@ body.kn-nav-dropdown-open .header--logo-img {
 }
 
 .kn-nav-has-dropdown.kn-nav-open > .header--menu-link {
-  color: var(--kn-brand, var(--header_color, #1a1a1a)) !important;
+  color: var(--kn-brand, #b45309) !important;
 }
 
 @media (min-width: 992px) {
+  .kn-nav-has-dropdown:hover > .header--menu-link {
+    color: var(--kn-brand, #b45309) !important;
+  }
+
   .kn-nav-has-dropdown.kn-nav-open > .header--menu-link::after {
     content: "";
     position: absolute;
@@ -339,7 +345,7 @@ body.kn-nav-dropdown-open .header--logo-img {
 }
 
 .kn-nav-mega__links li {
-  border-radius: 4px;
+  border-radius: 0;
 }
 
 .kn-nav-mega__links a {
@@ -349,35 +355,24 @@ body.kn-nav-dropdown-open .header--logo-img {
   color: var(--text_color, #444);
   text-decoration: none;
   text-transform: capitalize;
-  padding: 5px 10px;
-  margin: 0 -2px;
-  border-radius: 4px;
-  transition:
-    color 0.15s ease,
-    background-color 0.15s ease;
+  padding: 4px 0;
+  transition: color 0.15s ease;
 }
 
 .kn-nav-mega__links a:hover,
 .kn-nav-mega__links a:focus-visible {
   color: var(--kn-brand, #b45309) !important;
-  background-color: rgba(0, 0, 0, 0.05);
   text-decoration: none;
 }
 
 a.kn-nav-mega__heading {
-  padding: 2px 4px;
-  margin: 0 -4px 10px;
-  border-radius: 4px;
-  transition:
-    color 0.15s ease,
-    background-color 0.15s ease;
+  transition: color 0.15s ease;
 }
 
 a.kn-nav-mega__heading:hover,
 a.kn-nav-mega__heading:focus-visible {
   text-decoration: none;
   color: var(--kn-brand, #b45309) !important;
-  background-color: rgba(0, 0, 0, 0.05);
 }
 
 .kn-nav-mega__links {
