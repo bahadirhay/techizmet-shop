@@ -1,0 +1,12 @@
+const url = "https://techizmet-shop.vercel.app/api/vitrin/mirror?path=theme/techizmet-shop/mirror/index-tr.html&pageKey=home";
+const res = await fetch(url);
+console.log("status", res.status, "ctype", res.headers.get("content-type"));
+const html = await res.text();
+console.log("len", html.length);
+console.log("--- first 800 chars ---");
+console.log(html.slice(0, 800));
+console.log("--- has MainContent ---", html.includes('id="MainContent"'));
+console.log("--- data-kn-footer ---", html.includes("data-kn-footer"));
+console.log("--- stylesheet count ---", (html.match(/rel=["']stylesheet["']/gi) || []).length);
+const preloadIdx = html.indexOf('rel="preload"');
+if (preloadIdx >= 0) console.log("--- preload snippet ---", html.slice(preloadIdx - 20, preloadIdx + 120));

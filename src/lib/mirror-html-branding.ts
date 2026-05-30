@@ -34,7 +34,7 @@ function patchLogoPreloads(html: string, dark: string, light: string): string {
   const lightUrl = light || dark;
   return html.replace(
     /<link([^>]*rel=["']preload["'][^>]*as=["']image["'][^>]*href=["'])([^"']*noor-(?:white|dark)-logo[^"']*)(["'][^>]*>)/gi,
-    (_m, pre, _href, post) => `${pre}${escAttr(lightUrl)}${post}`,
+    (_m, pre, _href, post) => `<link${pre}${escAttr(lightUrl)}${post}`,
   );
 }
 

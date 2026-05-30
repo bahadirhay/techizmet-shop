@@ -1,0 +1,13 @@
+const url = "https://techizmet-shop.vercel.app/";
+const res = await fetch(url);
+console.log("status", res.status);
+const html = await res.text();
+console.log("len", html.length);
+console.log("--- first 2000 ---");
+console.log(html.slice(0, 2000));
+console.log("--- iframe src ---");
+const m = html.match(/src="([^"]*mirror[^"]*)"/);
+console.log(m?.[1] ?? "not found");
+console.log("--- link preload in parent ---");
+const idx = html.indexOf('rel="preload"');
+console.log("idx", idx, idx >= 0 ? html.slice(idx - 30, idx + 150) : "none");
