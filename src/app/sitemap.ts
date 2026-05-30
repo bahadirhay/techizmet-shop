@@ -2,9 +2,16 @@ import type { MetadataRoute } from "next";
 import { getDefaultSite } from "@/lib/site";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 const base = () => process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:5555";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const root = base();
+  if (!process.env.DATABASE_URL) {
+    return [{ url: root, lastModified: new Date(), changeFrequency: "daily", priority: 1 }];
+  }
+
   const site = await getDefaultSite();
   const [products, collections, pages] = await Promise.all([
     prisma.storeProduct.findMany({
@@ -21,7 +28,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }),
   ]);
 
-  const root = base();
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: root, lastModified: new Date(), changeFrequency: "daily", priority: 1 },
     { url: `${root}/collections`, changeFrequency: "weekly", priority: 0.9 },
