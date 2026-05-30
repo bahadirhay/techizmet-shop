@@ -5,6 +5,10 @@ import { randomBytes } from "node:crypto";
 const IMAGE_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml"]);
 const VIDEO_MIME = new Set(["video/mp4", "video/webm", "video/quicktime"]);
 
+function isServerlessReadonlyFs(): boolean {
+  return process.env.VERCEL === "1" || process.cwd().startsWith("/var/task");
+}
+
 export async function saveUploadedImage(
   siteId: string,
   file: File,
@@ -57,17 +61,39 @@ async function writeUpload(
   ext: string,
   mime: string,
 ): Promise<{ url: string; filename: string; mimeType: string; sizeBytes: number }> {
-
   const token = randomBytes(8).toString("hex");
   const filename = `${Date.now()}-${token}.${ext}`;
-  const relDir = join("uploads", "shop", siteId);
-  const absDir = join(process.cwd(), "public", relDir);
-  await mkdir(absDir, { recursive: true });
+  const relPath = `uploads/shop/${siteId}/${filename}`;
 
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    const { put } = await import("@vercel/blob");
+    const blob = await put(relPath, buf, {
+      access: "public",
+      contentType: mime,
+      addRandomSuffix: false,
+    });
+    return {
+      url: blob.url,
+      filename,
+      mimeType: mime,
+      sizeBytes: file.size,
+    };
+  }
+
+  if (isServerlessReadonlyFs()) {
+    throw new Error(
+      "Canlı ortamda dosya yüklemek için Vercel Blob Storage gerekli. " +
+        "Vercel Dashboard → Storage → Blob Store oluşturun ve projeye bağlayın " +
+        "(BLOB_READ_WRITE_TOKEN otomatik eklenir).",
+    );
+  }
+
+  const absDir = join(process.cwd(), "public", "uploads", "shop", siteId);
+  await mkdir(absDir, { recursive: true });
   await writeFile(join(absDir, filename), buf);
 
   return {
-    url: `/${relDir.replace(/\\/g, "/")}/${filename}`,
+    url: `/${relPath}`,
     filename,
     mimeType: mime,
     sizeBytes: file.size,

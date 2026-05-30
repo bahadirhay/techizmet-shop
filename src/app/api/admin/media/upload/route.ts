@@ -29,9 +29,8 @@ export async function POST(req: Request) {
     });
     return NextResponse.json({ ok: true, media: row });
   } catch (e) {
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Yükleme hatası" },
-      { status: 400 },
-    );
+    const message = e instanceof Error ? e.message : "Yükleme hatası";
+    const needsBlob = message.includes("Vercel Blob");
+    return NextResponse.json({ error: message }, { status: needsBlob ? 503 : 400 });
   }
 }

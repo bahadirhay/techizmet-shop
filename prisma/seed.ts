@@ -16,6 +16,18 @@ import { allStaffPermissions } from "../src/lib/staff-permissions";
 import { SHIPPING_CARRIER_PRESETS } from "../src/lib/admin/marketplace-platforms";
 import { serializeProductBadges } from "../src/lib/product-badges";
 import { DEFAULT_STORE_NAV } from "../src/lib/store-navigation";
+import { seedVitrinHeaderMenu } from "../src/lib/nav-menu-seed";
+
+const DEFAULT_SETTINGS = {
+  theme: { homepageMode: "mirror", navItems: DEFAULT_STORE_NAV },
+  branding: {
+    logoUrl: "/theme/techizmet-shop/cdn/shop/files/noor-dark-logo34d3.svg",
+    logoUrlLight: "/theme/techizmet-shop/cdn/shop/files/noor-white-logo34d3.svg",
+    faviconUrl: "/favicon.ico",
+  },
+  payment: { codEnabled: true, bankTransferEnabled: true },
+  store: { freeShippingOverMinor: 30000 },
+};
 
 config({ path: resolve(process.cwd(), ".env") });
 config({ path: resolve(process.cwd(), ".env.local"), override: true });
@@ -31,20 +43,12 @@ async function main() {
       currency: "TRY",
       locale: "tr",
       themeId: "techizmet-shop",
+      settingsJson: JSON.stringify(DEFAULT_SETTINGS),
     },
     update: {
       name: "Techizmet Shop Demo",
       themeId: "techizmet-shop",
-      settingsJson: JSON.stringify({
-        theme: { homepageMode: "mirror", navItems: DEFAULT_STORE_NAV },
-        branding: {
-          logoUrl: "/theme/techizmet-shop/cdn/shop/files/noor-dark-logo34d3.svg",
-          logoUrlLight: "/theme/techizmet-shop/cdn/shop/files/noor-white-logo34d3.svg",
-          faviconUrl: "/favicon.ico",
-        },
-        payment: { codEnabled: true, bankTransferEnabled: true },
-        store: { freeShippingOverMinor: 30000 },
-      }),
+      settingsJson: JSON.stringify(DEFAULT_SETTINGS),
     },
   });
 
@@ -389,6 +393,9 @@ async function main() {
     update: { discountPercent: 15, active: true },
   });
   console.log("[seed] Üye grubu:", bayiGroup.name, `%${bayiGroup.discountPercent} (admin → Müşteri kartından ata)`);
+
+  const navSeed = await seedVitrinHeaderMenu(site.id, false);
+  console.log("[seed] Vitrin menüsü:", navSeed.created ? "oluşturuldu" : navSeed.reason ?? "atlandı");
 
   console.log("[seed] Tamam:", site.slug);
   console.log("[seed] Admin: admin /", plain);
