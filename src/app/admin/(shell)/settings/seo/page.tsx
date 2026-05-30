@@ -1,6 +1,6 @@
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { StoreSeoSettingsForm } from "@/components/admin/StoreSeoSettingsForm";
-import { getSiteBranding, getSiteSeo, parseSiteSettings } from "@/lib/site-settings";
+import { getEditableBranding, getSiteSeo, parseSiteSettings } from "@/lib/site-settings";
 import { prisma } from "@/lib/prisma";
 import { requireStaffPage } from "@/lib/staff-auth";
 
@@ -8,7 +8,7 @@ export default async function SeoSettingsPage() {
   const auth = await requireStaffPage();
   const site = await prisma.storeSite.findUnique({ where: { id: auth.siteId } });
   const settings = parseSiteSettings(site?.settingsJson ?? null);
-  const branding = getSiteBranding(settings);
+  const branding = getEditableBranding(settings);
   const seo = getSiteSeo(settings, site?.name ?? "Mağaza");
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:5555";
 

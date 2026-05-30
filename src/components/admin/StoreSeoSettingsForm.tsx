@@ -41,11 +41,21 @@ export function StoreSeoSettingsForm({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ branding, seo }),
     });
+    const j = (await res.json()) as {
+      error?: string;
+      branding?: { logoUrl?: string; logoUrlLight?: string; faviconUrl?: string };
+    };
     setBusy(false);
     if (!res.ok) {
-      const j = (await res.json()) as { error?: string };
       setMsg(j.error ?? "Kaydedilemedi");
       return;
+    }
+    if (j.branding) {
+      setBranding({
+        logoUrl: j.branding.logoUrl?.trim() ?? "",
+        logoUrlLight: j.branding.logoUrlLight?.trim() ?? "",
+        faviconUrl: j.branding.faviconUrl?.trim() ?? "",
+      });
     }
     setMsg("Kaydedildi.");
     router.refresh();

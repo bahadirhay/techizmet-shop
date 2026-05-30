@@ -200,8 +200,24 @@ function brandingAssetOk(url: string | undefined): boolean {
   if (!u) return false;
   if (u.startsWith("http://") || u.startsWith("https://")) return true;
   if (!u.startsWith("/")) return false;
-  const rel = u.split("?")[0]!.replace(/^\//, "");
+  const path = u.split("?")[0]!;
+  // Neon DB medya API + tema statik dosyaları — Vercel'de public/ altında yok
+  if (path.startsWith("/api/media/")) return true;
+  if (path.startsWith("/theme/")) return true;
+  if (path.startsWith("/uploads/")) return true;
+  const rel = path.replace(/^\//, "");
   return existsSync(join(process.cwd(), "public", rel));
+}
+
+/** Admin form — DB'deki ham değerler (boş alanlarda vitrin fallback) */
+export function getEditableBranding(settings: SiteSettings) {
+  const b = settings.branding ?? {};
+  const resolved = getSiteBranding(settings);
+  return {
+    logoUrl: b.logoUrl?.trim() || resolved.logoUrl,
+    logoUrlLight: b.logoUrlLight?.trim() || resolved.logoUrlLight,
+    faviconUrl: b.faviconUrl?.trim() || resolved.faviconUrl,
+  };
 }
 
 export function getSiteBranding(settings: SiteSettings) {
