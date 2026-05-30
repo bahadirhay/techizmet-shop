@@ -109,30 +109,22 @@ header.header {
   text-decoration: underline;
 }
 
-/* Mega panel — header.section-header altına yapışık (JS top yok → kopukluk yok) */
+/* Mega panel — sticky header içinde normal akış (menünün hemen altında, üst üste binmez) */
 @media (min-width: 992px) {
-  #kn-mega-host {
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 100%;
-    width: 100%;
-    max-width: 100%;
-    margin: 0;
-    margin-top: -1px;
-    padding: 0;
-    z-index: 190;
-    pointer-events: none;
-    box-sizing: border-box;
+  sticky-always.header,
+  sticky-on-scroll.header {
+    overflow: visible !important;
   }
 
-  #kn-mega-host::before {
-    content: "";
+  #kn-mega-host {
+    position: static;
     display: block;
-    height: 14px;
-    margin-top: -13px;
-    background: transparent;
-    pointer-events: auto;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    z-index: 1;
+    pointer-events: none;
+    box-sizing: border-box;
   }
 }
 
@@ -208,24 +200,19 @@ body.kn-nav-dropdown-open .header--logo-img {
 
 @media (min-width: 992px) {
   #kn-mega-host {
-    /* Tüm mega paneller üst üste; gizli olanlar akışta yer kaplamasın */
     min-height: 0;
   }
 
   #kn-mega-host .kn-nav-dropdown--fruitser {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
+    position: static;
     width: 100%;
     min-width: 0;
     max-width: none;
     margin: 0;
     padding: 0;
-    z-index: auto;
     display: none;
-    opacity: 0;
-    visibility: hidden;
+    opacity: 1;
+    visibility: visible;
     pointer-events: none;
     transform: none;
     transition: none;
@@ -233,10 +220,7 @@ body.kn-nav-dropdown-open .header--logo-img {
 
   #kn-mega-host .kn-nav-dropdown--fruitser.kn-mega-active {
     display: block;
-    opacity: 1;
-    visibility: visible;
     pointer-events: auto;
-    transition: none;
   }
 
   #kn-mega-host .kn-nav-dropdown--fruitser .kn-nav-dropdown__panel {

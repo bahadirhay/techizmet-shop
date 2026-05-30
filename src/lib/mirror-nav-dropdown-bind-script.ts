@@ -1,7 +1,7 @@
 /** Vitrin iframe — mega menü: header altına DOM ile yapışık (fixed + getBoundingClientRect yok) */
 
 export const MIRROR_NAV_DROPDOWN_BIND_SCRIPT = `function knHeaderRoot(){
-  return document.querySelector("header.section-header")||document.querySelector("sticky-always.header")||document.querySelector("[data-header-section]");
+  return document.querySelector("sticky-always.header")||document.querySelector("sticky-on-scroll.header")||document.querySelector("[data-header-section]");
 }
 function knEnsureMegaHost(){
   var root=knHeaderRoot();
@@ -17,6 +17,7 @@ function knEnsureMegaHost(){
     document.body.appendChild(host);
   }
   host.style.removeProperty("top");
+  host.style.removeProperty("position");
   return host;
 }
 function knMegaUseHost(){

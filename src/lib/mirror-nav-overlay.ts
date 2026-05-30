@@ -35,8 +35,8 @@ function navItemHtml(it: ResolvedNavItem, locale: "tr" | "en" = "tr"): string {
 
 function ensureMegaHost(doc: Document): HTMLElement {
   const root =
-    doc.querySelector("header.section-header") ??
     doc.querySelector("sticky-always.header") ??
+    doc.querySelector("sticky-on-scroll.header") ??
     doc.querySelector("[data-header-section]");
   let host = doc.getElementById("kn-mega-host");
   if (!host) {
@@ -50,6 +50,7 @@ function ensureMegaHost(doc: Document): HTMLElement {
     doc.body.appendChild(host);
   }
   host.style.removeProperty("top");
+  host.style.removeProperty("position");
   return host;
 }
 
