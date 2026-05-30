@@ -67,6 +67,7 @@ import {
 import { getCustomerSession } from "@/lib/customer-session";
 import { getSiteBranding, getSiteSettings } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
+import { rewriteLegacyThemePaths } from "@/lib/store-theme";
 
 const ALLOWED_PREFIX = "theme/techizmet-shop/mirror/";
 
@@ -196,6 +197,8 @@ export async function GET(req: Request) {
     }
     localized = applyMirrorPageOverlayToHtml(localized, pageConfig, locale);
   }
+
+  localized = rewriteLegacyThemePaths(localized);
 
   return new NextResponse(localized, {
     headers: {
