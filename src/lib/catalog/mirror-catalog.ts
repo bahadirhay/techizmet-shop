@@ -1,7 +1,7 @@
-/** King Noor mirror şablonundaki ürün ve koleksiyon tanımları */
+/** Techizmet Shop mirror şablonundaki ürün ve koleksiyon tanımları */
 
-const img = (file: string) => `/theme/king-noor/cdn/shop/files/${file}`;
-const col = (file: string) => `/theme/king-noor/cdn/shop/collections/${file}`;
+const img = (file: string) => `/theme/techizmet-shop/cdn/shop/files/${file}`;
+const col = (file: string) => `/theme/techizmet-shop/cdn/shop/collections/${file}`;
 
 export const MIRROR_COLLECTIONS = [
   { slug: "all", title: "All Products", titleTr: "Tüm ürünler" },

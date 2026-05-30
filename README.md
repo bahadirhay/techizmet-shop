@@ -1,10 +1,10 @@
 # Techizmet Shop
 
-Salon projesinden (**web-page**) bağımsız e-ticaret vitrini. King Noor referans teması.
+Salon projesinden (**web-page**) bağımsız e-ticaret vitrini. Techizmet Shop referans teması.
 
 | | URL |
 |--|-----|
-| Vitrin | http://localhost:5555 — **King Noor mirror** (indirdiğiniz klasör) |
+| Vitrin | http://localhost:5555 — **Techizmet Shop mirror** (indirdiğiniz klasör) |
 | Admin | http://localhost:5555/admin/login |
 | Giriş | `admin` / `.env` → `ADMIN_PASSWORD` (seed: `admin123`) |
 
@@ -26,7 +26,7 @@ Tema mirror kaynağı: `C:\My Web Sites\shop\theking-noor.myshopify.com`
 
 ## Yapı
 
-- `src/lib/blocks/` — shop blok şeması + King Noor preset
+- `src/lib/blocks/` — shop blok şeması + Techizmet Shop preset
 - `src/components/editor/` — tut-sürükle sayfa editörü
 - `src/app/(store)/` — müşteri vitrini
 - `src/app/admin/` — mağaza paneli

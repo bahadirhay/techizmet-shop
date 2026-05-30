@@ -39,7 +39,7 @@ export function extractScrollingCollectionsFromHtml(
     const href = chunk.match(/href="([^"]+)"/i)?.[1]?.replace(/\.html$/i, "") ?? "";
     const imageUrl =
       chunk.match(/data-original="([^"]+)"/i)?.[1]?.split("?")[0] ??
-      chunk.match(/\ssrc="(\/theme\/king-noor\/[^"?]+)/i)?.[1];
+      chunk.match(/\ssrc="(\/theme\/techizmet-shop\/[^"?]+)/i)?.[1];
     const title = stripHtml(
       chunk.match(/scrolling-collection--title[^>]*>\s*<span>([^<]*)</i)?.[1] ?? "",
     );

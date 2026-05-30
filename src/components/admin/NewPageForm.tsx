@@ -17,7 +17,7 @@ export function NewPageForm() {
     const res = await fetch("/api/admin/pages", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, slug: slug || undefined, useKingNoorPreset: usePreset }),
+      body: JSON.stringify({ title, slug: slug || undefined, useStoreHomePreset: usePreset }),
     });
     const json = (await res.json()) as { error?: string; page?: { id: string } };
     if (!res.ok) {
@@ -37,7 +37,7 @@ export function NewPageForm() {
       </AdminField>
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" checked={usePreset} onChange={(e) => setUsePreset(e.target.checked)} />
-        King Noor ana sayfa blok şablonu ile başla
+        Techizmet Shop ana sayfa blok şablonu ile başla
       </label>
       {err ? <p className="text-sm text-red-600">{err}</p> : null}
       <button type="submit" className={btnPrimary}>

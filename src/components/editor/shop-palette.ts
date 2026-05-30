@@ -1,6 +1,6 @@
 import { nanoid } from "nanoid";
 import type { ShopBlock } from "@/lib/blocks/schema";
-import { kingNoorHomePreset } from "@/lib/blocks/presets/king-noor-home";
+import { storeHomePreset } from "@/lib/blocks/presets/techizmet-shop-home";
 import { ensureEditorBlocks, type EditorShopBlock } from "@/lib/blocks/editor-ids";
 
 const nid = () => nanoid(8);
@@ -168,5 +168,5 @@ export function createBlockFromPaletteLabel(label: string): EditorShopBlock | nu
 }
 
 export function kingNoorEditorPreset(): EditorShopBlock[] {
-  return ensureEditorBlocks(kingNoorHomePreset);
+  return ensureEditorBlocks(storeHomePreset);
 }

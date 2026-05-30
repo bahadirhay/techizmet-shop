@@ -21,7 +21,7 @@ export function CollectionForm({
   imageFromMirrorOnly = false,
 }: {
   initial: CollectionFormData;
-  /** DB boş; önizleme King Noor şablonundan */
+  /** DB boş; önizleme Techizmet Shop şablonundan */
   imageFromMirrorOnly?: boolean;
 }) {
   const router = useRouter();

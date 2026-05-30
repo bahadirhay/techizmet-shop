@@ -1,4 +1,4 @@
-/** King Noor — arama sonuç sayfası (collections/all mirror şablonu) */
+/** Techizmet Shop — arama sonuç sayfası (collections/all mirror şablonu) */
 
 function escText(s: string) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");

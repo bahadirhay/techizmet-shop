@@ -3,7 +3,7 @@ import { applyMirrorTrReplacements } from "@/lib/mirror-html-locale";
 
 /** innerHTML içinde görsel yolu varsa çeviri uygulama (Skincare→Cilt Bakımı kırılması) */
 function hasAssetPath(html: string): boolean {
-  return /\/(?:theme\/king-noor|uploads\/shop)\//.test(html);
+  return /\/(?:theme\/techizmet-shop|uploads\/shop)\//.test(html);
 }
 
 /** Yalnızca düz metin — attribute / URL yok */

@@ -1,4 +1,4 @@
-/** King Noor mirror *-tr.html — toplu EN→TR çeviri sözlüğü (uzun metinler önce eklenir) */
+/** Techizmet Shop mirror *-tr.html — toplu EN→TR çeviri sözlüğü (uzun metinler önce eklenir) */
 
 export const MIRROR_TR_CATALOG: ReadonlyArray<readonly [string, string]> = [
   // —— Ana sayfa: media grid ——

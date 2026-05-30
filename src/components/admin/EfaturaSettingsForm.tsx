@@ -80,7 +80,7 @@ export function EfaturaSettingsForm({ initial }: { initial: EfaturaFormState }) 
             className={inputClass}
             value={s.sellerTitle}
             onChange={(e) => setS({ ...s, sellerTitle: e.target.value })}
-            placeholder="Örn. King Noor Kozmetik Ltd. Şti."
+            placeholder="Örn. Techizmet Shop Kozmetik Ltd. Şti."
           />
         </AdminField>
         <AdminField label="Satıcı VKN">

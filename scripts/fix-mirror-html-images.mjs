@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import { fixMirrorCdnPathsInHtml } from "../src/lib/mirror-cdn-assets.ts";
 
 const root = join(fileURLToPath(new URL(".", import.meta.url)), "..");
-const mirrorRoot = join(root, "public/theme/king-noor/mirror");
+const mirrorRoot = join(root, "public/theme/techizmet-shop/mirror");
 
 function walkHtml(dir, acc = []) {
   for (const name of readdirSync(dir)) {

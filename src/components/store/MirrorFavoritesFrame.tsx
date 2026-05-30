@@ -8,8 +8,8 @@ import { getDefaultSite } from "@/lib/site";
 
 function favoritesMirrorRel(locale: "tr" | "en") {
   return locale === "tr"
-    ? "theme/king-noor/mirror/account/favorites-tr.html"
-    : "theme/king-noor/mirror/account/favorites.html";
+    ? "theme/techizmet-shop/mirror/account/favorites-tr.html"
+    : "theme/techizmet-shop/mirror/account/favorites.html";
 }
 
 export async function MirrorFavoritesFrame() {

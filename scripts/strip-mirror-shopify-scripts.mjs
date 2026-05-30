@@ -5,7 +5,7 @@ import { join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const mirrorDir = resolve(root, "public/theme/king-noor/mirror");
+const mirrorDir = resolve(root, "public/theme/techizmet-shop/mirror");
 
 function strip(html) {
   let h = html;

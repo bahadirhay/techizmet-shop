@@ -1,6 +1,6 @@
 import { nanoid } from "nanoid";
 import type { ShopBlock } from "@/lib/blocks/schema";
-import { buildKingNoorHomePreset } from "@/lib/blocks/presets/king-noor-home";
+import { buildStoreHomePreset } from "@/lib/blocks/presets/techizmet-shop-home";
 import { readMirrorHomeHtml } from "@/lib/mirror-home-html";
 
 const nid = () => nanoid(8);
@@ -72,8 +72,8 @@ function extractHeroSlider(main: string): ShopBlock | null {
   const itemRe = /<(?:a|div)[^>]*class="media-grid--item[\s\S]*?(?=<(?:a|div)[^>]*class="media-grid--item|$)/gi;
   for (const item of chunk.match(itemRe) ?? []) {
     const imageRaw =
-      firstMatch(item, /data-original="(\/theme\/king-noor\/[^"]+)"/i) ||
-      firstMatch(item, /src="(\/theme\/king-noor\/cdn\/shop\/files\/MG[^"?]+)/i);
+      firstMatch(item, /data-original="(\/theme\/techizmet-shop\/[^"]+)"/i) ||
+      firstMatch(item, /src="(\/theme\/techizmet-shop\/cdn\/shop\/files\/MG[^"?]+)/i);
     if (!imageRaw) continue;
     const imageUrl = normalizeAssetUrl(imageRaw);
     if (seen.has(imageUrl)) continue;
@@ -86,7 +86,7 @@ function extractHeroSlider(main: string): ShopBlock | null {
     flatSlides.push({
       id: nid(),
       imageUrl,
-      headline: headlineRaw ? headingPlain(headlineRaw) : "King Noor",
+      headline: headlineRaw ? headingPlain(headlineRaw) : "Techizmet Shop",
       subline: descRaw ? stripTags(descRaw) : undefined,
       ctaLabel: "Keşfet",
       ctaHref: href ? href.replace(/\.html$/i, "") : "/collections/all",
@@ -95,14 +95,14 @@ function extractHeroSlider(main: string): ShopBlock | null {
   }
 
   if (flatSlides.length === 0) {
-    for (const [url] of allMatches(chunk, /data-original="(\/theme\/king-noor\/cdn\/shop\/files\/MG[^"]+)"/gi)) {
+    for (const [url] of allMatches(chunk, /data-original="(\/theme\/techizmet-shop\/cdn\/shop\/files\/MG[^"]+)"/gi)) {
       const imageUrl = normalizeAssetUrl(url);
       if (seen.has(imageUrl)) continue;
       seen.add(imageUrl);
       flatSlides.push({
         id: nid(),
         imageUrl,
-        headline: "King Noor",
+        headline: "Techizmet Shop",
         ctaLabel: "Keşfet",
         ctaHref: "/collections/all",
       });
@@ -215,7 +215,7 @@ function extractMarquee(main: string): ShopBlock | null {
 function extractImageWithText(main: string): ShopBlock | null {
   const chunk = firstMatch(main, /(section-image-with-text[\s\S]*?)<\/section>/i);
   if (!chunk) return null;
-  const imageUrl = firstMatch(chunk, /data-original="(\/theme\/king-noor\/[^"]+)"/i);
+  const imageUrl = firstMatch(chunk, /data-original="(\/theme\/techizmet-shop\/[^"]+)"/i);
   const title = firstMatch(chunk, /image-with-text--heading[^>]*>([\s\S]*?)<\/h[1-6]/i);
   const body = firstMatch(chunk, /image-with-text--desc[^>]*>([\s\S]*?)<\/div>/i);
   const cta = firstMatch(chunk, /<a[^>]+href="([^"]+)"[^>]*>[\s\S]*?button--text[^>]*>([^<]+)</i);
@@ -233,7 +233,7 @@ function extractImageWithText(main: string): ShopBlock | null {
   };
 }
 
-/** King Noor mirror index.html → sürükle-bırak blokları */
+/** Techizmet Shop mirror index.html → sürükle-bırak blokları */
 export function extractMirrorHomeBlocks(html: string): ShopBlock[] {
   const main = extractMainContent(html);
   const blocks: ShopBlock[] = [];
@@ -265,7 +265,7 @@ export function extractMirrorHomeBlocks(html: string): ShopBlock[] {
   if (marquee) blocks.push(marquee);
 
   if (blocks.length < 4) {
-    return buildKingNoorHomePreset("tr");
+    return buildStoreHomePreset("tr");
   }
 
   const hasNewsletter = blocks.some((b) => b.type === "newsletter");
@@ -285,6 +285,6 @@ export function extractMirrorHomeBlocks(html: string): ShopBlock[] {
 
 export function loadMirrorHomeBlocks(): ShopBlock[] {
   const html = readMirrorHomeHtml();
-  if (!html) return buildKingNoorHomePreset("tr");
+  if (!html) return buildStoreHomePreset("tr");
   return extractMirrorHomeBlocks(html);
 }

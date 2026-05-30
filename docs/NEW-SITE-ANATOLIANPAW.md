@@ -1,10 +1,10 @@
 # Yeni site: Anatolian Paw (ayrı veritabanı)
 
-King Noor (`demo`) ile **çakışmaması** için Anatolian Paw kendi PostgreSQL veritabanında ve kendi `STORE_SITE_SLUG` değeriyle çalışır. Aynı kod tabanı, farklı `.env` + farklı Neon projesi.
+Techizmet Shop (`demo`) ile **çakışmaması** için Anatolian Paw kendi PostgreSQL veritabanında ve kendi `STORE_SITE_SLUG` değeriyle çalışır. Aynı kod tabanı, farklı `.env` + farklı Neon projesi.
 
 ## Mimari (kısa)
 
-| | King Noor (mevcut) | Anatolian Paw (yeni) |
+| | Techizmet Shop (mevcut) | Anatolian Paw (yeni) |
 |--|-------------------|----------------------|
 | Neon DB | `neondb` / mevcut URL | **Yeni** proje örn. `neondb_anatolianpaw` |
 | `STORE_SITE_SLUG` | `demo` | `anatolianpaw` |
@@ -21,7 +21,7 @@ Salon / randevu (`web-page`, `randevu.techizmet.com`) bu rehberin dışındadır
 
 1. [Neon](https://neon.tech) → **New Project** (ör. `anatolianpaw-shop`).
 2. Connection string’i kopyalayın (`postgresql://...`).
-3. King Noor DB’sine **aynı connection string’i vermeyin**.
+3. Techizmet Shop DB’sine **aynı connection string’i vermeyin**.
 
 ---
 
@@ -74,7 +74,7 @@ npm run dev -- -p 5556
 
 ## 3. Canlı: anatolianpaw.com
 
-1. **Ayrı Vercel projesi** (veya ayrı sunucu) — King Noor deploy’undan farklı.
+1. **Ayrı Vercel projesi** (veya ayrı sunucu) — Techizmet Shop deploy’undan farklı.
 2. Environment variables (Production):
    - `DATABASE_URL` → Anatolian Paw Neon
    - `STORE_SITE_SLUG` → `anatolianpaw`
@@ -93,7 +93,7 @@ npm run dev -- -p 5556
 4. **Menü** → üst menü / mega menü  
 5. **Sayfa editörü** → ana sayfa blokları (slider, metin)  
 6. **Raporlar** → `/admin/reports` (satış özeti; ayrı DB = ayrı rakamlar)  
-7. Tema: **Blok modu** açık kalsın; mirror/King Noor’a geçmeyin (boş site için gerekmez)
+7. Tema: **Blok modu** açık kalsın; mirror/Techizmet Shop’a geçmeyin (boş site için gerekmez)
 
 Sunucu `.env`: `RESEND_API_KEY` + `MAIL_FROM` (tüm mağazalar aynı sunucuda paylaşabilir; gönderen adresi site ayarından override edilir).
 
@@ -103,7 +103,7 @@ Sunucu `.env`: `RESEND_API_KEY` + `MAIL_FROM` (tüm mağazalar aynı sunucuda pa
 
 | Terminal | `.env` | Port |
 |----------|--------|------|
-| King Noor | `DATABASE_URL` demo + `STORE_SITE_SLUG=demo` | 5555 |
+| Techizmet Shop | `DATABASE_URL` demo + `STORE_SITE_SLUG=demo` | 5555 |
 | Anatolian Paw | `DATABASE_URL` paw + `STORE_SITE_SLUG=anatolianpaw` | 5556 |
 
 `.env` dosyasını değiştirmeden iki süreç çalıştırmak için iki klasör klonu da kullanılabilir.

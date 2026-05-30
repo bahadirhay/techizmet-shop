@@ -4,7 +4,7 @@
 import { readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 
-const MIRROR_ROOT = join(process.cwd(), "public/theme/king-noor/mirror");
+const MIRROR_ROOT = join(process.cwd(), "public/theme/techizmet-shop/mirror");
 
 const FIXES = [
   [/URLAramaParams/g, "URLSearchParams"],

@@ -1,7 +1,7 @@
 import type { ShopLocale } from "@/lib/i18n/locale";
 import { toBrandedMirrorSrc } from "@/lib/mirror-html-branding";
 
-/** Admin + vitrinde bağlı King Noor sayfaları */
+/** Admin + vitrinde bağlı Techizmet Shop sayfaları */
 export type VitrinPageKey =
   | "home"
   | "collections"
@@ -27,32 +27,32 @@ export type VitrinPageDef = {
 
 const MIRROR_FILE: Record<VitrinPageKey, { tr: string; en: string }> = {
   home: {
-    tr: "theme/king-noor/mirror/index-tr.html",
-    en: "theme/king-noor/mirror/index.html",
+    tr: "theme/techizmet-shop/mirror/index-tr.html",
+    en: "theme/techizmet-shop/mirror/index.html",
   },
   collections: {
-    tr: "theme/king-noor/mirror/collections/index-tr.html",
-    en: "theme/king-noor/mirror/collections/index.html",
+    tr: "theme/techizmet-shop/mirror/collections/index-tr.html",
+    en: "theme/techizmet-shop/mirror/collections/index.html",
   },
   "collections-all": {
-    tr: "theme/king-noor/mirror/collections/all-tr.html",
-    en: "theme/king-noor/mirror/collections/all.html",
+    tr: "theme/techizmet-shop/mirror/collections/all-tr.html",
+    en: "theme/techizmet-shop/mirror/collections/all.html",
   },
   about: {
-    tr: "theme/king-noor/mirror/pages/about-tr.html",
-    en: "theme/king-noor/mirror/pages/about.html",
+    tr: "theme/techizmet-shop/mirror/pages/about-tr.html",
+    en: "theme/techizmet-shop/mirror/pages/about.html",
   },
   contact: {
-    tr: "theme/king-noor/mirror/pages/contact-tr.html",
-    en: "theme/king-noor/mirror/pages/contact.html",
+    tr: "theme/techizmet-shop/mirror/pages/contact-tr.html",
+    en: "theme/techizmet-shop/mirror/pages/contact.html",
   },
   faq: {
-    tr: "theme/king-noor/mirror/pages/faq-tr.html",
-    en: "theme/king-noor/mirror/pages/faq.html",
+    tr: "theme/techizmet-shop/mirror/pages/faq-tr.html",
+    en: "theme/techizmet-shop/mirror/pages/faq.html",
   },
   "blog-news": {
-    tr: "theme/king-noor/mirror/blogs/news/index-tr.html",
-    en: "theme/king-noor/mirror/blogs/news/index.html",
+    tr: "theme/techizmet-shop/mirror/blogs/news/index-tr.html",
+    en: "theme/techizmet-shop/mirror/blogs/news/index.html",
   },
 };
 

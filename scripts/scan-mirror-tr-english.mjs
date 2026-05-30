@@ -5,7 +5,7 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 
-const ROOT = join(process.cwd(), "public/theme/king-noor/mirror");
+const ROOT = join(process.cwd(), "public/theme/techizmet-shop/mirror");
 
 function walk(dir, acc = []) {
   for (const name of readdirSync(dir)) {

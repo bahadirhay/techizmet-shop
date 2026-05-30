@@ -1,4 +1,4 @@
-/** King Noor — checkout mirror (iframe → /checkout/embed) */
+/** Techizmet Shop — checkout mirror (iframe → /checkout/embed) */
 
 export const CHECKOUT_MIRROR_CSS = `<style id="kn-checkout-mirror-css">
 .kn-checkout-embed-wrap {
@@ -43,7 +43,7 @@ export function applyCheckoutPageToMirrorHtml(html: string): string {
   if (!out.includes("kn-checkout-embed.css")) {
     out = out.replace(
       /<\/head>/i,
-      '<link href="/theme/king-noor/kn-checkout-embed.css?v=1" rel="stylesheet" type="text/css" media="all" />\n</head>',
+      '<link href="/theme/techizmet-shop/kn-checkout-embed.css?v=1" rel="stylesheet" type="text/css" media="all" />\n</head>',
     );
   }
   return out;

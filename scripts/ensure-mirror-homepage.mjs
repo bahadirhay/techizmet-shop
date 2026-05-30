@@ -35,10 +35,10 @@ async function main() {
     where: { id: site.id },
     data: {
       settingsJson: JSON.stringify(settings),
-      themeId: "king-noor",
+      themeId: "techizmet-shop",
     },
   });
-  console.log("[ensure-mirror-homepage] theme.homepageMode=mirror, themeId=king-noor");
+  console.log("[ensure-mirror-homepage] theme.homepageMode=mirror, themeId=techizmet-shop");
   await prisma.$disconnect();
 }
 

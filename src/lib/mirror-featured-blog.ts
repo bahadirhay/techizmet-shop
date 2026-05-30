@@ -39,7 +39,7 @@ function postIdFromHref(href: string): string {
 function pickImageUrl(chunk: string): string | undefined {
   const raw =
     chunk.match(/data-original="([^"]+)"/i)?.[1] ??
-    chunk.match(/\ssrc="(\/theme\/king-noor\/[^"?]+)/i)?.[1];
+    chunk.match(/\ssrc="(\/theme\/techizmet-shop\/[^"?]+)/i)?.[1];
   return raw?.split("?")[0]?.trim();
 }
 

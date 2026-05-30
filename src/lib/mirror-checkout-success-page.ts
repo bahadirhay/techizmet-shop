@@ -1,4 +1,4 @@
-/** King Noor — checkout success (mirror) */
+/** Techizmet Shop — checkout success (mirror) */
 
 import { injectMirrorPageRoot } from "@/lib/mirror-page-inject";
 
@@ -116,7 +116,7 @@ export function applyCheckoutSuccessToMirrorHtml(
   if (!out.includes("kn-checkout-embed.css")) {
     out = out.replace(
       /<\/head>/i,
-      '<link href="/theme/king-noor/kn-checkout-embed.css?v=1" rel="stylesheet" type="text/css" media="all" />\n</head>',
+      '<link href="/theme/techizmet-shop/kn-checkout-embed.css?v=1" rel="stylesheet" type="text/css" media="all" />\n</head>',
     );
   }
   return injectMirrorPageRoot(out, "kn-page-root", buildCheckoutSuccessMarkup(payload));

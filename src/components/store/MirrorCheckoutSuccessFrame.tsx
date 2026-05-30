@@ -7,8 +7,8 @@ import { getDefaultSite } from "@/lib/site";
 
 function successMirrorRel(locale: "tr" | "en") {
   return locale === "tr"
-    ? "theme/king-noor/mirror/checkout/success-tr.html"
-    : "theme/king-noor/mirror/checkout/success.html";
+    ? "theme/techizmet-shop/mirror/checkout/success-tr.html"
+    : "theme/techizmet-shop/mirror/checkout/success.html";
 }
 
 export async function MirrorCheckoutSuccessFrame({

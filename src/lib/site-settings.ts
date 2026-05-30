@@ -77,7 +77,7 @@ export type HomepageMode = "mirror" | "blocks";
 
 export type SiteSettings = {
   theme?: {
-    /** mirror = HTTrack King Noor HTML, blocks = admin DnD sayfa (home) */
+    /** mirror = HTTrack Techizmet Shop HTML, blocks = admin DnD sayfa (home) */
     homepageMode?: HomepageMode;
     /** Vitrin üst menü (mirror + blok modunda) */
     navItems?: StoreNavItem[];
@@ -91,7 +91,7 @@ export type SiteSettings = {
     defaultProductPageBottom?: ProductPageBottomThemeConfig;
     /** mirror index → admin home blok içe aktarma sürümü */
     mirrorHomeImportVersion?: number;
-    /** King Noor ana sayfa — bölüm sırası / gizle / başlık */
+    /** Techizmet Shop ana sayfa — bölüm sırası / gizle / başlık */
     mirrorHome?: MirrorHomeConfig;
     /** Tüm vitrin sayfaları (home, collections, …) */
     mirrorPages?: Partial<Record<string, MirrorHomeConfig>>;
@@ -192,8 +192,8 @@ export type StoreEfaturaSettings = {
   autoSendMarketplace?: boolean;
 };
 
-const DEFAULT_LOGO = "/theme/king-noor/cdn/shop/files/noor-dark-logo34d3.svg";
-const DEFAULT_LOGO_LIGHT = "/theme/king-noor/cdn/shop/files/noor-white-logo34d3.svg";
+const DEFAULT_LOGO = "/theme/techizmet-shop/cdn/shop/files/noor-dark-logo34d3.svg";
+const DEFAULT_LOGO_LIGHT = "/theme/techizmet-shop/cdn/shop/files/noor-white-logo34d3.svg";
 
 function brandingAssetOk(url: string | undefined): boolean {
   const u = url?.trim();

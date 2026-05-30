@@ -6,7 +6,7 @@ import { readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { localizeMirrorHtml } from "../src/lib/mirror-html-locale";
 
-const MIRROR_ROOT = join(process.cwd(), "public/theme/king-noor/mirror");
+const MIRROR_ROOT = join(process.cwd(), "public/theme/techizmet-shop/mirror");
 
 function walkTrHtml(dir: string, acc: string[] = []): string[] {
   for (const name of readdirSync(dir)) {

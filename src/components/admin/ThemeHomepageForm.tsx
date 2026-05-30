@@ -47,7 +47,7 @@ export function ThemeHomepageForm({
               Admin → Ana Sayfa
             </a>
           </strong>{" "}
-          (King Noor mirror, sürükle-bırak bölümler).
+          (Techizmet Shop mirror, sürükle-bırak bölümler).
         </p>
 
         <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-4 has-[:checked]:border-[var(--kn-brand,#2d4a6f)] has-[:checked]:bg-zinc-50">
@@ -59,7 +59,7 @@ export function ThemeHomepageForm({
             onChange={() => setMode("mirror")}
           />
           <span>
-            <strong>King Noor orijinal (önerilen)</strong>
+            <strong>Techizmet Shop orijinal (önerilen)</strong>
             <br />
             <span className="text-sm text-zinc-500">
               <code>C:\My Web Sites\shop</code> mirror — duyuru, hero grid, koleksiyon sekmeleri, shop

@@ -1,4 +1,4 @@
-/** King Noor — hesap paneli HTML + iframe etkileşim köprüsü */
+/** Techizmet Shop — hesap paneli HTML + iframe etkileşim köprüsü */
 
 export type MirrorAccountAddress = {
   id: string;

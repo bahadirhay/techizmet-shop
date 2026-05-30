@@ -1,4 +1,4 @@
-/** King Noor — favoriler sayfası (mirror) */
+/** Techizmet Shop — favoriler sayfası (mirror) */
 
 import { injectMirrorPageRoot } from "@/lib/mirror-page-inject";
 

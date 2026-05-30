@@ -34,7 +34,7 @@ export function extractTestimonialFromHtml(html: string, sectionKey: string): Te
     const quote = stripHtml(chunk.match(/class="testimonial--desc[^"]*"[^>]*>([\s\S]*?)<\/p>/i)?.[1] ?? "");
     const imageUrl =
       chunk.match(/data-original="([^"]+)"/i)?.[1]?.split("?")[0] ??
-      chunk.match(/\ssrc="(\/theme\/king-noor\/[^"?]+)/i)?.[1];
+      chunk.match(/\ssrc="(\/theme\/techizmet-shop\/[^"?]+)/i)?.[1];
     if (!author && !quote) continue;
     items.push({
       blockId: m[1],

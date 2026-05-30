@@ -14,7 +14,7 @@ Bu dosya, ShopPHP benzeri hedef liste ile mevcut durumu eşleştirir. Admin sol 
 
 | Modül | Durum | Not |
 |-------|--------|-----|
-| Responsive tema | Kısmi | King Noor mirror + DnD sayfalar |
+| Responsive tema | Kısmi | Techizmet Shop mirror + DnD sayfalar |
 | Akıllı arama | Kısmi | `/search`, 2+ karakter |
 | Mega menü / breadcrumbs | Plan | |
 | Banner / slider | Kısmi | DnD blokları |

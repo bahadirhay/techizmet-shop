@@ -8,14 +8,14 @@ import { fileURLToPath } from "node:url";
 import { buildAssetResolver } from "./mirror-html.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const themeRoot = resolve(root, "public/theme/king-noor");
+const themeRoot = resolve(root, "public/theme/techizmet-shop");
 const mirrorRoot =
   process.env.THEME_MIRROR_PATH?.trim() || "C:/My Web Sites/shop/theking-noor.myshopify.com";
 const productsDir = join(mirrorRoot, "en-us/products");
 const builtProductsDir = resolve(themeRoot, "mirror/products");
 const assetResolver = buildAssetResolver(themeRoot);
 const collectionsDir = join(mirrorRoot, "en-us/collections");
-const builtCollectionsDir = resolve(root, "public/theme/king-noor/mirror/collections");
+const builtCollectionsDir = resolve(root, "public/theme/techizmet-shop/mirror/collections");
 const variantsOut = resolve(root, "src/lib/catalog/mirror-product-variants.json");
 const collectionsOut = resolve(root, "src/lib/catalog/mirror-product-collections.json");
 
@@ -175,7 +175,7 @@ for (const slug of productSlugs) {
     priceMinor: variants[0].priceMinor,
     compareAtMinor,
     imageFile,
-    imageUrl: imageFile ? `/theme/king-noor/cdn/shop/files/${imageFile}` : null,
+    imageUrl: imageFile ? `/theme/techizmet-shop/cdn/shop/files/${imageFile}` : null,
     description: extractShortDescription(html),
     descriptionHtml,
     keyFeaturesHtml,

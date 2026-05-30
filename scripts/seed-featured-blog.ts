@@ -17,7 +17,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const mirrorRoot =
   process.env.THEME_MIRROR_PATH?.trim() || "C:/My Web Sites/shop/theking-noor.myshopify.com";
 const articlesSrc = join(mirrorRoot, "cdn/shop/articles");
-const articlesDest = join(root, "public/theme/king-noor/cdn/shop/articles");
+const articlesDest = join(root, "public/theme/techizmet-shop/cdn/shop/articles");
 
 const BLOG_TR: Record<
   string,
@@ -75,7 +75,7 @@ async function main() {
     process.exit(1);
   }
 
-  const htmlPath = join(root, "public/theme/king-noor/mirror/index-tr.html");
+  const htmlPath = join(root, "public/theme/techizmet-shop/mirror/index-tr.html");
   const html = readFileSync(htmlPath, "utf8");
   const defaults = extractFeaturedBlogPostsFromHtml(html, BLOG_SECTION_KEY);
   if (!defaults.length) {

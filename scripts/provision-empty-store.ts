@@ -91,7 +91,7 @@ async function main() {
         name,
         currency: "TRY",
         locale,
-        themeId: "king-noor",
+        themeId: "techizmet-shop",
         settingsJson: JSON.stringify(settings),
       },
     });
@@ -200,7 +200,7 @@ async function main() {
     console.log(`  Site slug     : ${slug}`);
     console.log(`  Site adı      : ${name}`);
     console.log(`  Site id       : ${site.id}`);
-    console.log(`  Vitrin modu   : blocks (King Noor mirror yok)`);
+    console.log(`  Vitrin modu   : blocks (Techizmet Shop mirror yok)`);
     console.log(`  Ürün sayısı   : 0`);
     console.log(`  Admin kullanıcı: ${adminUser}`);
     console.log(`  Admin şifre   : (ADMIN_PASSWORD — .env dosyanızda)`);

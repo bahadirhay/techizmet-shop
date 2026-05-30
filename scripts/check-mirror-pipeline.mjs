@@ -3,7 +3,7 @@ import { join } from "node:path";
 import vm from "node:vm";
 
 const root = process.cwd();
-const rel = "theme/king-noor/mirror/index-tr.html";
+const rel = "theme/techizmet-shop/mirror/index-tr.html";
 let html = readFileSync(join(root, "public", rel), "utf8");
 
 const steps = [];

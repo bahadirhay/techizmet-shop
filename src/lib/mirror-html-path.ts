@@ -1,7 +1,7 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-const mirrorRoot = () => join(process.cwd(), "public/theme/king-noor/mirror");
+const mirrorRoot = () => join(process.cwd(), "public/theme/techizmet-shop/mirror");
 const productRoot = () => join(mirrorRoot(), "products");
 const collectionRoot = () => join(mirrorRoot(), "collections");
 

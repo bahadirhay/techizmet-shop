@@ -1,10 +1,10 @@
 import type { MirrorBranding } from "@/lib/mirror-branding-overlay";
 
-const NOOR_DARK = /\/theme\/king-noor\/cdn\/shop\/files\/noor-dark-logo[^"'\s]*/gi;
-const NOOR_WHITE = /\/theme\/king-noor\/cdn\/shop\/files\/noor-white-logo[^"'\s]*/gi;
+const NOOR_DARK = /\/theme\/techizmet-shop\/cdn\/shop\/files\/noor-dark-logo[^"'\s]*/gi;
+const NOOR_WHITE = /\/theme\/techizmet-shop\/cdn\/shop\/files\/noor-white-logo[^"'\s]*/gi;
 
-const FALLBACK_DARK = "/theme/king-noor/cdn/shop/files/noor-dark-logo34d3.svg";
-const FALLBACK_LIGHT = "/theme/king-noor/cdn/shop/files/noor-white-logo34d3.svg";
+const FALLBACK_DARK = "/theme/techizmet-shop/cdn/shop/files/noor-dark-logo34d3.svg";
+const FALLBACK_LIGHT = "/theme/techizmet-shop/cdn/shop/files/noor-white-logo34d3.svg";
 
 function escAttr(url: string) {
   return url.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
@@ -38,7 +38,7 @@ function patchLogoPreloads(html: string, dark: string, light: string): string {
   );
 }
 
-/** Mirror HTML — King Noor gömülü logo URL’lerini admin markası ile değiştirir (ilk boyamada flaş yok) */
+/** Mirror HTML — Techizmet Shop gömülü logo URL’lerini admin markası ile değiştirir (ilk boyamada flaş yok) */
 export function injectBrandingIntoMirrorHtml(html: string, branding: MirrorBranding): string {
   const dark = branding.logoUrl?.trim();
   const light = branding.logoUrlLight?.trim() || dark;
@@ -87,7 +87,7 @@ function buildHeadBootstrap(branding: MirrorBranding): string {
   return `<script id="kn-branding-bootstrap">(function(){var P=${payload};function bust(u){if(!u)return u;return u+(u.indexOf("?")>=0?"&":"?")+"kn=1";}function pathOf(u){return(u||"").split("?")[0];}function set(el,u,fallback){if(!el||!u)return;var n=bust(u);var fb=fallback?bust(fallback):"";el.removeAttribute("data-src");el.onerror=function(){if(fb&&pathOf(el.src)!==pathOf(fb)){el.onerror=null;set(el,fb,"");return;}el.style.visibility="hidden";};el.src=n;el.setAttribute("srcset",n+" 1x, "+n+" 2x");}function apply(){if(P.logo)document.querySelectorAll("img.header--logo-img:not(.transparent-logo-img)").forEach(function(el){set(el,P.logo,P.fallbackDark);});if(P.light)document.querySelectorAll("img.transparent-logo-img,img.footer--logo-img").forEach(function(el){set(el,P.light,P.fallbackLight);});if(P.favicon)["icon","shortcut icon","apple-touch-icon"].forEach(function(r){var l=document.querySelector('link[rel="'+r+'"]');if(!l){l=document.createElement("link");l.rel=r;document.head.appendChild(l);}l.href=bust(P.favicon);});document.querySelectorAll('link[rel="preload"][as="image"]').forEach(function(l){if(/logo/i.test(l.href))l.href=bust(P.light||P.logo);});}function boot(){apply();var moScheduled=false;new MutationObserver(function(){if(moScheduled)return;moScheduled=true;requestAnimationFrame(function(){moScheduled=false;apply();});}).observe(document.documentElement,{subtree:true,attributes:true,attributeFilter:["src","srcset","href"]});}if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot);else boot();})();</script>`;
 }
 
-/** /theme/king-noor/mirror/... → markalı API */
+/** /theme/techizmet-shop/mirror/... → markalı API */
 export function toBrandedMirrorSrc(
   publicPath: string,
   pageKey?: string,

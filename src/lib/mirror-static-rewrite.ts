@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import type { ShopLocale } from "@/lib/i18n/locale";
 
-const PUBLIC_MIRROR = "/theme/king-noor/mirror";
+const PUBLIC_MIRROR = "/theme/techizmet-shop/mirror";
 
 /** build-mirror-* script çıktıları ile uyumlu (edge middleware — fs yok) */
 const COLLECTION_SLUGS = new Set([

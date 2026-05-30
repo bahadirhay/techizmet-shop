@@ -8,11 +8,11 @@ import { getDefaultSite } from "@/lib/site";
 
 function accountMirrorRel(locale: "tr" | "en") {
   return locale === "tr"
-    ? "theme/king-noor/mirror/account/index-tr.html"
-    : "theme/king-noor/mirror/account/index.html";
+    ? "theme/techizmet-shop/mirror/account/index-tr.html"
+    : "theme/techizmet-shop/mirror/account/index.html";
 }
 
-/** King Noor mirror kabuğu + sunucuda enjekte edilen hesap paneli */
+/** Techizmet Shop mirror kabuğu + sunucuda enjekte edilen hesap paneli */
 export async function MirrorAccountFrame() {
   const site = await getDefaultSite();
   const locale = await getStoreLocale();

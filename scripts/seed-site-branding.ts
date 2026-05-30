@@ -1,5 +1,5 @@
 /**
- * King Noor (theking-noor) logolarını uploads + StoreMedia + settingsJson.branding içine yazar.
+ * Techizmet Shop (theking-noor) logolarını uploads + StoreMedia + settingsJson.branding içine yazar.
  * Kullanım: npx tsx scripts/seed-site-branding.ts
  */
 import { copyFileSync, existsSync, mkdirSync, statSync } from "node:fs";
@@ -12,13 +12,13 @@ import { parseSiteSettings } from "../src/lib/site-settings";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 const THEME_LOGOS = {
-  dark: join(root, "public/theme/king-noor/cdn/shop/files/noor-dark-logo34d3.svg"),
-  light: join(root, "public/theme/king-noor/cdn/shop/files/noor-white-logo34d3.svg"),
+  dark: join(root, "public/theme/techizmet-shop/cdn/shop/files/noor-dark-logo34d3.svg"),
+  light: join(root, "public/theme/techizmet-shop/cdn/shop/files/noor-white-logo34d3.svg"),
 } as const;
 
 const UPLOAD_NAMES = {
-  dark: "king-noor-logo-dark.svg",
-  light: "king-noor-logo-light.svg",
+  dark: "techizmet-shop-logo-dark.svg",
+  light: "techizmet-shop-logo-light.svg",
 } as const;
 
 async function ensureBrandingFile(

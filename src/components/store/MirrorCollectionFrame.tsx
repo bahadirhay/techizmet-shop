@@ -90,8 +90,8 @@ export async function MirrorCollectionFrame({
 
   const src = toBrandedMirrorSrc(
     locale === "tr"
-      ? `theme/king-noor/mirror/collections/${templateSlug}-tr.html`
-      : `theme/king-noor/mirror/collections/${templateSlug}.html`,
+      ? `theme/techizmet-shop/mirror/collections/${templateSlug}-tr.html`
+      : `theme/techizmet-shop/mirror/collections/${templateSlug}.html`,
     categorySlug || slug === "all" ? "collections-all" : undefined,
   );
 

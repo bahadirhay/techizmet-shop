@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * HTTrack mirror → public/theme/king-noor/
+ * HTTrack mirror → public/theme/techizmet-shop/
  * CSS, JS, fontlar, ürün/koleksiyon görselleri
  */
 import { cpSync, existsSync, mkdirSync, readdirSync, statSync } from "node:fs";
@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const defaultMirror = "C:/My Web Sites/shop/theking-noor.myshopify.com";
 const mirrorRoot = process.env.THEME_MIRROR_PATH?.trim() || defaultMirror;
-const outRoot = resolve(root, "public/theme/king-noor");
+const outRoot = resolve(root, "public/theme/techizmet-shop");
 
 function copyDirRecursive(src, dest) {
   if (!existsSync(src)) return 0;

@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const themeRoot = join(process.cwd(), "public/theme/king-noor");
+const themeRoot = join(process.cwd(), "public/theme/techizmet-shop");
 const builtHome = join(themeRoot, "mirror/index.html");
 const mirrorRoot =
   process.env.THEME_MIRROR_PATH?.trim() || "C:/My Web Sites/shop/theking-noor.myshopify.com";

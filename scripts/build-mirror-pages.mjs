@@ -11,7 +11,7 @@ import {
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const mirrorRoot =
   process.env.THEME_MIRROR_PATH?.trim() || "C:/My Web Sites/shop/theking-noor.myshopify.com";
-const themeRoot = resolve(root, "public/theme/king-noor");
+const themeRoot = resolve(root, "public/theme/techizmet-shop");
 const outDir = resolve(themeRoot, "mirror/pages");
 const srcDir = join(mirrorRoot, "en-us/pages");
 

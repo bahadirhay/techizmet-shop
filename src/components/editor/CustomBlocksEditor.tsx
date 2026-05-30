@@ -172,7 +172,7 @@ export function CustomBlocksEditor({
       <div className="ed-panel flex items-center justify-center border-zinc-700 p-6 lg:border-r">
         <p className="max-w-sm text-center text-sm text-zinc-400">
           Ek bloklar vitrinde <strong className="text-zinc-200">sayfa içeriğinin en üstünde</strong> görünür.
-          Ortadaki King Noor önizlemesinde de aynı sırayla yansır. Değişiklik için üstteki{" "}
+          Ortadaki Techizmet Shop önizlemesinde de aynı sırayla yansır. Değişiklik için üstteki{" "}
           <strong className="text-zinc-200">Kaydet</strong> kullanın.
         </p>
       </div>

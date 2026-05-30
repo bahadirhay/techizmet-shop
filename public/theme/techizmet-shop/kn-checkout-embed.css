@@ -1,0 +1,97 @@
+/**
+ * Checkout embed — Techizmet Shop tema değişkenleri (iframe içi)
+ */
+
+.kn-checkout-embed-root {
+  min-height: 100vh;
+  background: var(--body_background, #fff);
+}
+
+.kn-checkout-page--embed {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 20px 48px;
+}
+
+.kn-checkout-page--embed .kn-checkout {
+  max-width: none;
+  padding: 0;
+}
+
+.kn-checkout-page--embed .kn-checkout__grid {
+  gap: 40px;
+}
+
+@media (min-width: 900px) {
+  .kn-checkout-page--embed .kn-checkout__grid {
+    grid-template-columns: 1fr minmax(300px, 360px);
+    align-items: start;
+  }
+}
+
+.kn-checkout-page--embed .kn-checkout__section {
+  margin-bottom: 24px;
+  padding: 0 0 24px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--border_color, #e5e2dd);
+  border-radius: 0;
+}
+
+.kn-checkout-page--embed .kn-checkout__section:last-of-type {
+  border-bottom: 0;
+}
+
+.kn-checkout-page--embed .kn-checkout__section h2 {
+  font-size: var(--medium_text, 1.125rem);
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text_color, #1a1a1a);
+  margin: 0 0 16px;
+}
+
+.kn-checkout-page--embed .kn-checkout__summary {
+  background: var(--body_alternate_background, #f7f5f2);
+  border: 0;
+  border-radius: var(--card_radius, 8px);
+  padding: 24px;
+  position: sticky;
+  top: 20px;
+}
+
+.kn-checkout-page--embed .kn-checkout__summary h2 {
+  font-size: var(--medium_text, 1.125rem);
+  font-weight: 600;
+  margin: 0 0 16px;
+}
+
+.kn-checkout-page--embed .kn-address-pick__item,
+.kn-checkout-page--embed .kn-shipping-option,
+.kn-checkout-page--embed .kn-payment-options label {
+  background: var(--body_background, #fff);
+  border-color: var(--border_color, #e5e2dd);
+}
+
+.kn-checkout-page--embed .kn-address-pick__item:has(input:checked),
+.kn-checkout-page--embed .kn-shipping-option:has(input:checked),
+.kn-checkout-page--embed .kn-payment-options label:has(input:checked) {
+  border-color: var(--text_color, #1a1a1a);
+  background: var(--body_alternate_background, #f7f5f2);
+}
+
+.kn-checkout-page--embed .kn-checkout__account-offer {
+  background: var(--body_alternate_background, #f7f5f2);
+  border: 0;
+  border-radius: var(--card_radius, 8px);
+  padding: 16px;
+}
+
+.kn-checkout-page--embed .kn-checkout--empty {
+  text-align: center;
+  padding: 48px 20px;
+}
+
+.kn-checkout-page--embed .kn-checkout--empty .button {
+  margin-top: 16px;
+}

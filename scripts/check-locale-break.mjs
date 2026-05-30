@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 // Dynamic import of TS - use compiled approach: inline the check
 const html = readFileSync(
-  join(process.cwd(), "public/theme/king-noor/mirror/index-tr.html"),
+  join(process.cwd(), "public/theme/techizmet-shop/mirror/index-tr.html"),
   "utf8",
 );
 

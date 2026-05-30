@@ -4,7 +4,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 
-const ROOT = join(process.cwd(), "public", "theme", "king-noor", "mirror");
+const ROOT = join(process.cwd(), "public", "theme", "techizmet-shop", "mirror");
 const ABOUT_TR = join(ROOT, "pages", "about-tr.html");
 const ABOUT_EN = join(ROOT, "pages", "about.html");
 
@@ -17,13 +17,13 @@ function buildFromShell(shellPath, mainBlock, title) {
   if (!out.includes("account.css") && mainBlock.includes("account-page")) {
     out = out.replace(
       /<\/head>/i,
-      '<link href="/theme/king-noor/cdn/shop/t/5/assets/account1dbb.css?v=1" rel="stylesheet" type="text/css" media="all" />\n</head>',
+      '<link href="/theme/techizmet-shop/cdn/shop/t/5/assets/account1dbb.css?v=1" rel="stylesheet" type="text/css" media="all" />\n</head>',
     );
   }
   if (mainBlock.includes("cart-page") && !out.includes("cartcfbd.css")) {
     out = out.replace(
       /<\/head>/i,
-      '<link href="/theme/king-noor/cdn/shop/t/5/assets/cartcfbd.css?v=1" rel="stylesheet" type="text/css" media="all" />\n</head>',
+      '<link href="/theme/techizmet-shop/cdn/shop/t/5/assets/cartcfbd.css?v=1" rel="stylesheet" type="text/css" media="all" />\n</head>',
     );
   }
   out = out.replace(/<title>[^<]*<\/title>/i, `<title>${title}</title>`);

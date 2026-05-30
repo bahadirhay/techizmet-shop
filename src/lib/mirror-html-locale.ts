@@ -1,7 +1,7 @@
 import type { ShopLocale } from "@/lib/i18n/locale";
 import { MIRROR_TR_CATALOG } from "@/lib/mirror-tr-catalog";
 
-/** King Noor mirror *-tr.html — gömülü İngilizce UI metinleri */
+/** Techizmet Shop mirror *-tr.html — gömülü İngilizce UI metinleri */
 const MIRROR_TR_PAIRS_BASE: ReadonlyArray<readonly [string, string]> = [
   // Uzun paragraflar (önce)
   [
@@ -178,7 +178,7 @@ const URL_ATTR_NAMES =
 
 /** Dosya yolu, upload veya JS API adı — çeviri asla dokunmasın */
 const PRESERVE_ANYWHERE =
-  /(\/(?:theme\/king-noor|uploads\/shop)\/[^\s"'<>]+|\bURLSearchParams\b|\bURL\b\.createObjectURL)/g;
+  /(\/(?:theme\/techizmet-shop|uploads\/shop)\/[^\s"'<>]+|\bURLSearchParams\b|\bURL\b\.createObjectURL)/g;
 
 /** Görsel/JS yollarını çeviri dışında bırak (Skincare→Cilt Bakımı, Search→Arama URL kırılmasın) */
 function preserveNonTranslatable(html: string): { html: string; chunks: string[] } {

@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import vm from "node:vm";
 
-const html = readFileSync(join(process.cwd(), "public/theme/king-noor/mirror/index-tr.html"), "utf8");
+const html = readFileSync(join(process.cwd(), "public/theme/techizmet-shop/mirror/index-tr.html"), "utf8");
 const { patchMirrorStoreBridgeNavigation } = await import("../src/lib/mirror-store-bridge-nav-patch.ts");
 
 const out = patchMirrorStoreBridgeNavigation(html);

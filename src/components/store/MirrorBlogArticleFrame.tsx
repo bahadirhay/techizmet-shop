@@ -32,8 +32,8 @@ export async function MirrorBlogArticleFrame({
 
   const src = toBrandedMirrorSrc(
     locale === "tr"
-      ? `theme/king-noor/mirror/blogs/news/${templateSlug}-tr.html`
-      : `theme/king-noor/mirror/blogs/news/${templateSlug}.html`,
+      ? `theme/techizmet-shop/mirror/blogs/news/${templateSlug}-tr.html`
+      : `theme/techizmet-shop/mirror/blogs/news/${templateSlug}.html`,
     undefined,
     { blogSlug: slug },
   );

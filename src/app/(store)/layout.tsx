@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import { CartProvider } from "@/components/cart/CartContext";
 import { HtmlLang } from "@/components/store/HtmlLang";
-import { KingNoorThemeStyles } from "@/components/store/KingNoorThemeStyles";
+import { StoreThemeStyles } from "@/components/store/StoreThemeStyles";
 import { StoreFooter } from "@/components/store/StoreFooter";
 import { StoreShell } from "@/components/store/StoreShell";
 import { getStoreMessages } from "@/lib/i18n/messages";
@@ -38,7 +38,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
   return (
     <>
       <HtmlLang locale={locale} />
-      <KingNoorThemeStyles />
+      <StoreThemeStyles />
       <StoreShell siteName={site.name} logoSrc={branding.logoUrl} locale={locale} messages={messages} nav={nav}>
         <main className="kn-main">{children}</main>
         <StoreFooter siteName={site.name} messages={messages.footer} />

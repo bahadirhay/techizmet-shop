@@ -1,6 +1,6 @@
 /** Mirror HTML — tema çakışma düzeltmeleri (store-ui-fixes.css) */
 
-const FIXES_CSS_HREF = "/theme/king-noor/store-ui-fixes.css?v=6";
+const FIXES_CSS_HREF = "/theme/techizmet-shop/store-ui-fixes.css?v=6";
 
 export function injectMirrorStoreUiFix(html: string): string {
   if (html.includes("store-ui-fixes.css")) {

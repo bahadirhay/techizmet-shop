@@ -103,7 +103,7 @@ export function ProductsExcelPanel() {
           </li>
           <li>
             <strong>Kategori / Marka / Koleksiyon</strong>: admindeki slug değerleri (ör.{" "}
-            <code>cilt-bakimi</code>, <code>king-noor</code>).
+            <code>cilt-bakimi</code>, <code>techizmet-shop</code>).
           </li>
           <li>
             <strong>Etiketler</strong>: virgülle — new, bestseller, free_shipping, sale, …

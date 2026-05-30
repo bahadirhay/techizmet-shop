@@ -14,10 +14,10 @@ export default async function ThemePage() {
       <h1 className="text-2xl font-semibold">Tema & vitrin</h1>
       <p className="mt-1 text-sm text-zinc-500">
         Şu an ana sayfa:{" "}
-        <strong>{mode === "mirror" ? "King Noor orijinal (mirror HTML)" : "CMS blokları"}</strong>
+        <strong>{mode === "mirror" ? "Techizmet Shop orijinal (mirror HTML)" : "CMS blokları"}</strong>
       </p>
       <div className="mt-6">
-        <ThemeHomepageForm initial={settings} themeId={site?.themeId ?? "king-noor"} />
+        <ThemeHomepageForm initial={settings} themeId={site?.themeId ?? "techizmet-shop"} />
       </div>
     </div>
   );

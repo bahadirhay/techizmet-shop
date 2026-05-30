@@ -8,8 +8,8 @@ import { getDefaultSite } from "@/lib/site";
 
 function cartMirrorRel(locale: "tr" | "en") {
   return locale === "tr"
-    ? "theme/king-noor/mirror/cart/index-tr.html"
-    : "theme/king-noor/mirror/cart/index.html";
+    ? "theme/techizmet-shop/mirror/cart/index-tr.html"
+    : "theme/techizmet-shop/mirror/cart/index.html";
 }
 
 export async function MirrorCartFrame() {

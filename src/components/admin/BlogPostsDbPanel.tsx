@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { MirrorImageField } from "@/components/admin/MirrorImageField";
 import type { BlogPostAdminEditorRow } from "@/lib/blog/blog-posts-server";
 
-/** King Noor blog kartı (~1180×760) */
+/** Techizmet Shop blog kartı (~1180×760) */
 const BLOG_COVER_ASPECT = 1180 / 760;
 
 export function BlogPostsDbPanel({

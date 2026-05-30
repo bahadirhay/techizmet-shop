@@ -56,7 +56,7 @@ export function AdminHomePageShell({
       <div className="mx-4 mb-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-950 md:mx-8">
         <p className="font-medium">Gerçek anasayfa — sürükle bırak</p>
         <p className="mt-1">
-          Bloklar King Noor vitrin HTML&apos;inden alındı. Widget ekleyin, <strong>Yapı</strong> sekmesinde
+          Bloklar Techizmet Shop vitrin HTML&apos;inden alındı. Widget ekleyin, <strong>Yapı</strong> sekmesinde
           sıralayın, sağdan düzenleyin, <strong>Kaydet</strong> ile vitrine uygulayın.
           {homepageMode === "blocks"
             ? " Vitrin şu an bu sayfayı gösteriyor."

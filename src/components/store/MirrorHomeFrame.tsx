@@ -7,7 +7,7 @@ import { loadMirrorFooterData } from "@/lib/mirror-footer-server";
 import { loadMirrorNavItems } from "@/lib/mirror-nav-server";
 import { MirrorHomeFrameClient } from "@/components/store/MirrorHomeFrameClient";
 
-/** King Noor mirror ana sayfa — admin ayarları iframe overlay */
+/** Techizmet Shop mirror ana sayfa — admin ayarları iframe overlay */
 export async function MirrorHomeFrame({ locale }: { locale: ShopLocale }) {
   const site = await getDefaultSite();
   const settings = await getSiteSettings(site.id);
@@ -16,13 +16,13 @@ export async function MirrorHomeFrame({ locale }: { locale: ShopLocale }) {
   const nav = await loadMirrorNavItems(site.id, locale);
   const footer = await loadMirrorFooterData(site.id, locale);
   const src = toBrandedMirrorSrc(
-    locale === "tr" ? "theme/king-noor/mirror/index-tr.html" : "theme/king-noor/mirror/index.html",
+    locale === "tr" ? "theme/techizmet-shop/mirror/index-tr.html" : "theme/techizmet-shop/mirror/index.html",
   );
 
   return (
     <MirrorHomeFrameClient
       src={src}
-      title="King Noor — Ana sayfa"
+      title="Techizmet Shop — Ana sayfa"
       homeConfig={homeConfig}
       branding={branding}
       nav={nav}

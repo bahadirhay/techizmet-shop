@@ -1,7 +1,7 @@
-const NAV_DROPDOWN_CSS = "/theme/king-noor/kn-nav-dropdown.css?v=20";
-const MIRROR_HERO_CSS = "/theme/king-noor/kn-mirror-hero.css?v=1";
-const MOBILE_MENU_CSS = "/theme/king-noor/kn-mobile-menu.css?v=4";
-const BLOG_CARDS_CSS = "/theme/king-noor/kn-blog-cards.css?v=2";
+const NAV_DROPDOWN_CSS = "/theme/techizmet-shop/kn-nav-dropdown.css?v=20";
+const MIRROR_HERO_CSS = "/theme/techizmet-shop/kn-mirror-hero.css?v=1";
+const MOBILE_MENU_CSS = "/theme/techizmet-shop/kn-mobile-menu.css?v=4";
+const BLOG_CARDS_CSS = "/theme/techizmet-shop/kn-blog-cards.css?v=2";
 
 /** İstemci — vitrin iframe’e layout CSS (hero + nav) */
 export function ensureMirrorLayoutStyles(doc: Document) {

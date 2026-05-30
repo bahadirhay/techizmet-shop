@@ -1,6 +1,6 @@
 import { CartProvider } from "@/components/cart/CartContext";
 import { CheckoutForm } from "@/components/cart/CheckoutForm";
-import { KingNoorThemeStyles } from "@/components/store/KingNoorThemeStyles";
+import { StoreThemeStyles } from "@/components/store/StoreThemeStyles";
 import { getCheckoutPrefill } from "@/lib/checkout/prefill";
 import { getSiteSettings, isCardPaymentEnabled } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
@@ -12,7 +12,7 @@ export default async function CheckoutEmbedPage() {
 
   return (
     <div className="kn-checkout-embed-root">
-      <KingNoorThemeStyles />
+      <StoreThemeStyles />
       <CartProvider>
         <CheckoutForm
           embed

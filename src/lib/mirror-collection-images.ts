@@ -2,7 +2,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { MIRROR_COLLECTION_LIST } from "@/lib/catalog/mirror-catalog";
 
-const themeRoot = join(process.cwd(), "public/theme/king-noor/mirror/collections");
+const themeRoot = join(process.cwd(), "public/theme/techizmet-shop/mirror/collections");
 
 function readCollectionsIndexHtml(): string | null {
   for (const name of ["index-tr.html", "index.html"]) {

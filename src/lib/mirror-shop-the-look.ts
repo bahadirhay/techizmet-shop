@@ -69,7 +69,7 @@ function extractDrawerProducts(drawerBlock: string): ShopTheLookProductEdit[] {
       "";
     const imageUrl =
       chunk.match(/data-original="([^"]+)"/i)?.[1] ??
-      chunk.match(/\ssrc="(\/theme\/king-noor\/[^"]+)"/i)?.[1];
+      chunk.match(/\ssrc="(\/theme\/techizmet-shop\/[^"]+)"/i)?.[1];
     products.push({
       key: productKeyFromHref(href, i),
       href: href.trim(),

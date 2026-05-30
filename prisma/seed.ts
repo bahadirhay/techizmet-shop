@@ -2,7 +2,7 @@ import { config } from "dotenv";
 import { resolve } from "node:path";
 import bcrypt from "bcryptjs";
 import { PrismaClient } from "@prisma/client";
-import { buildKingNoorHomePreset } from "../src/lib/blocks/presets/king-noor-home";
+import { buildStoreHomePreset } from "../src/lib/blocks/presets/techizmet-shop-home";
 import { MIRROR_COLLECTIONS, MIRROR_COLLECTION_LIST } from "../src/lib/catalog/mirror-catalog";
 import {
   MIRROR_PRODUCT_COLLECTIONS,
@@ -27,19 +27,19 @@ async function main() {
     where: { slug: "demo" },
     create: {
       slug: "demo",
-      name: "King Noor Demo",
+      name: "Techizmet Shop Demo",
       currency: "TRY",
       locale: "tr",
-      themeId: "king-noor",
+      themeId: "techizmet-shop",
     },
     update: {
-      name: "King Noor Demo",
-      themeId: "king-noor",
+      name: "Techizmet Shop Demo",
+      themeId: "techizmet-shop",
       settingsJson: JSON.stringify({
         theme: { homepageMode: "mirror", navItems: DEFAULT_STORE_NAV },
         branding: {
-          logoUrl: "/theme/king-noor/cdn/shop/files/noor-dark-logo34d3.svg",
-          logoUrlLight: "/theme/king-noor/cdn/shop/files/noor-white-logo34d3.svg",
+          logoUrl: "/theme/techizmet-shop/cdn/shop/files/noor-dark-logo34d3.svg",
+          logoUrlLight: "/theme/techizmet-shop/cdn/shop/files/noor-white-logo34d3.svg",
           faviconUrl: "/favicon.ico",
         },
         payment: { codEnabled: true, bankTransferEnabled: true },
@@ -80,10 +80,10 @@ async function main() {
       siteId: site.id,
       slug: "home",
       title: "Ana Sayfa",
-      blocks: serializeBlocks(buildKingNoorHomePreset("tr")),
+      blocks: serializeBlocks(buildStoreHomePreset("tr")),
       published: true,
     },
-    update: { blocks: serializeBlocks(buildKingNoorHomePreset("tr")) },
+    update: { blocks: serializeBlocks(buildStoreHomePreset("tr")) },
   });
 
   await prisma.shopPage.upsert({
@@ -97,7 +97,7 @@ async function main() {
         {
           type: "text",
           props: {
-            content: "Techizmet Shop — King Noor referans teması ile e-ticaret vitrini.",
+            content: "Techizmet Shop — Techizmet Shop referans teması ile e-ticaret vitrini.",
             align: "center",
           },
         },
@@ -146,7 +146,7 @@ async function main() {
           {
             type: "text",
             props: {
-              content: `King Noor şablonundan ${slug} sayfası — admin panelden düzenleyebilirsiniz.`,
+              content: `Techizmet Shop şablonundan ${slug} sayfası — admin panelden düzenleyebilirsiniz.`,
               align: "left",
             },
           },
@@ -187,9 +187,9 @@ async function main() {
   });
 
   const brandKing = await prisma.storeBrand.upsert({
-    where: { siteId_slug: { siteId: site.id, slug: "king-noor" } },
-    create: { siteId: site.id, slug: "king-noor", name: "King Noor" },
-    update: { name: "King Noor" },
+    where: { siteId_slug: { siteId: site.id, slug: "techizmet-shop" } },
+    create: { siteId: site.id, slug: "techizmet-shop", name: "Techizmet Shop" },
+    update: { name: "Techizmet Shop" },
   });
   await prisma.storeBrand.upsert({
     where: { siteId_slug: { siteId: site.id, slug: "techizmet" } },

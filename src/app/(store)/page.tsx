@@ -15,7 +15,7 @@ export default async function HomePage() {
   const settings = await getSiteSettings(site.id);
   const homepageMode = getHomepageMode(settings);
 
-  /** Varsayılan: King Noor şablon mirror (en-us.html). Blok modu yalnızca admin’de açıkça seçilirse. */
+  /** Varsayılan: Techizmet Shop şablon mirror (en-us.html). Blok modu yalnızca admin’de açıkça seçilirse. */
   if (homepageMode === "mirror") {
     return <MirrorVitrinFrame pageKey="home" />;
   }

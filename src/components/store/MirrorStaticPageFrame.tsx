@@ -23,8 +23,8 @@ export async function MirrorStaticPageFrame({
   const footer = await loadMirrorFooterData(site.id, locale);
   const src = toBrandedMirrorSrc(
     locale === "tr"
-      ? `theme/king-noor/mirror/pages/${slug}-tr.html`
-      : `theme/king-noor/mirror/pages/${slug}.html`,
+      ? `theme/techizmet-shop/mirror/pages/${slug}-tr.html`
+      : `theme/techizmet-shop/mirror/pages/${slug}.html`,
   );
 
   return (

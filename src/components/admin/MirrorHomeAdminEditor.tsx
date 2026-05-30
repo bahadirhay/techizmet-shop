@@ -37,7 +37,7 @@ import { btnPrimary, btnSecondary } from "@/components/admin/AdminForm";
 
 import { toBrandedMirrorSrc } from "@/lib/mirror-html-branding";
 
-const MIRROR_SRC = toBrandedMirrorSrc("theme/king-noor/mirror/index-tr.html");
+const MIRROR_SRC = toBrandedMirrorSrc("theme/techizmet-shop/mirror/index-tr.html");
 
 function SortableSectionRow({
   id,

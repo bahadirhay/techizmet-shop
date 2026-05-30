@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { kingNoorHomePreset } from "@/lib/blocks/presets/king-noor-home";
+import { storeHomePreset } from "@/lib/blocks/presets/techizmet-shop-home";
 import { serializeBlocks } from "@/lib/blocks/schema";
 import { slugify } from "@/lib/admin/slug";
 import { requireStaffApi } from "@/lib/staff-auth";
@@ -13,14 +13,14 @@ export async function POST(req: Request) {
   if (!title) return NextResponse.json({ error: "Başlık gerekli" }, { status: 400 });
 
   const slug = slugify(String(body.slug ?? title));
-  const usePreset = Boolean(body.useKingNoorPreset);
+  const usePreset = Boolean(body.useStoreHomePreset);
 
   const page = await prisma.shopPage.create({
     data: {
       siteId: auth.siteId,
       title,
       slug,
-      blocks: usePreset ? serializeBlocks(kingNoorHomePreset) : "[]",
+      blocks: usePreset ? serializeBlocks(storeHomePreset) : "[]",
       published: body.published !== false,
       seoTitle: String(body.seoTitle ?? "").trim() || null,
       seoDescription: String(body.seoDescription ?? "").trim() || null,

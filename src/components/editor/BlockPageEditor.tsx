@@ -23,7 +23,7 @@ import {
   serializeBlocks,
   type ShopBlock,
 } from "@/lib/blocks/schema";
-import { kingNoorHomePreset } from "@/lib/blocks/presets/king-noor-home";
+import { storeHomePreset } from "@/lib/blocks/presets/techizmet-shop-home";
 import { nanoid } from "nanoid";
 
 function SortableRow({ id, label, selected, onSelect }: { id: string; label: string; selected: boolean; onSelect: () => void }) {
@@ -111,9 +111,9 @@ export function BlockPageEditor({
           <button
             type="button"
             className="rounded-lg border px-2 py-1 text-xs"
-            onClick={() => setBlocks(kingNoorHomePreset)}
+            onClick={() => setBlocks(storeHomePreset)}
           >
-            King Noor preset
+            Techizmet Shop preset
           </button>
           <button type="button" className="rounded-lg border px-2 py-1 text-xs" onClick={save} disabled={saving}>
             {saving ? "…" : "Kaydet"}

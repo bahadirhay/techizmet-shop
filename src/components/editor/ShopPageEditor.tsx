@@ -146,10 +146,10 @@ export function ShopPageEditor({
             className="ed-btn-secondary"
             onClick={() => {
               setBlocks(kingNoorEditorPreset());
-              setMessage("King Noor şablonu yüklendi — Kaydet ile uygulayın.");
+              setMessage("Techizmet Shop şablonu yüklendi — Kaydet ile uygulayın.");
             }}
           >
-            King Noor şablonu
+            Techizmet Shop şablonu
           </button>
           <button type="button" className="ed-btn-primary" onClick={save} disabled={saving}>
             {saving ? "Kaydediliyor…" : "Kaydet"}

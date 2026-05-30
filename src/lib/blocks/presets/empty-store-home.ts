@@ -1,7 +1,7 @@
 import type { ShopBlock } from "@/lib/blocks/schema";
 import type { ShopLocale } from "@/lib/i18n/locale";
 
-/** Yeni mağaza — King Noor mirror içeriği yok, minimal blok ana sayfa */
+/** Yeni mağaza — Techizmet Shop mirror içeriği yok, minimal blok ana sayfa */
 export function buildEmptyStoreHomePreset(
   locale: ShopLocale,
   siteName = "Mağaza",

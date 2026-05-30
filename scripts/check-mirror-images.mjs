@@ -1,9 +1,9 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-const root = join(process.cwd(), "public/theme/king-noor/cdn/shop");
-const html = readFileSync("public/theme/king-noor/mirror/index-tr.html", "utf8");
-const re = /\/theme\/king-noor\/cdn\/shop\/(files|articles)\/([^"'?]+)/g;
+const root = join(process.cwd(), "public/theme/techizmet-shop/cdn/shop");
+const html = readFileSync("public/theme/techizmet-shop/mirror/index-tr.html", "utf8");
+const re = /\/theme\/techizmet-shop\/cdn\/shop\/(files|articles)\/([^"'?]+)/g;
 const missing = new Set();
 let total = 0;
 let miss = 0;

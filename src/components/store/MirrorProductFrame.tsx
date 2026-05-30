@@ -50,8 +50,8 @@ export async function MirrorProductFrame({
 
   const src = toBrandedMirrorSrc(
     locale === "tr"
-      ? `theme/king-noor/mirror/products/${resolvedTemplateSlug}-tr.html`
-      : `theme/king-noor/mirror/products/${resolvedTemplateSlug}.html`,
+      ? `theme/techizmet-shop/mirror/products/${resolvedTemplateSlug}-tr.html`
+      : `theme/techizmet-shop/mirror/products/${resolvedTemplateSlug}.html`,
   );
 
   const overlay =

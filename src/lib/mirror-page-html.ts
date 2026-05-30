@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { getVitrinPage, type VitrinPageKey } from "@/lib/mirror-vitrin-pages";
 
-const themeRoot = join(process.cwd(), "public/theme/king-noor");
+const themeRoot = join(process.cwd(), "public/theme/techizmet-shop");
 
 /** Sunucu — mirror HTML dosyası */
 export function readMirrorPageHtml(pageKey: VitrinPageKey): string | null {

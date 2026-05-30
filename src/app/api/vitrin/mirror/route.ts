@@ -68,7 +68,7 @@ import { getCustomerSession } from "@/lib/customer-session";
 import { getSiteBranding, getSiteSettings } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
 
-const ALLOWED_PREFIX = "theme/king-noor/mirror/";
+const ALLOWED_PREFIX = "theme/techizmet-shop/mirror/";
 
 export async function GET(req: Request) {
   const url = new URL(req.url);

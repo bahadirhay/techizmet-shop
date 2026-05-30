@@ -9,7 +9,7 @@ export function extractProductGalleryImages(html: string): string[] {
 
   const urls: string[] = [];
   const re =
-    /<img[^>]+src="(\/theme\/king-noor\/cdn\/shop\/files\/[^"?]+)/gi;
+    /<img[^>]+src="(\/theme\/techizmet-shop\/cdn\/shop\/files\/[^"?]+)/gi;
   for (const m of galleryMatch[0].matchAll(re)) {
     const path = m[1].split("?")[0];
     if (!urls.includes(path)) urls.push(path);
@@ -26,6 +26,6 @@ export function loadMirrorProductImages(slug: string): string[] {
   const og = html.match(
     /property="og:image"[^>]*content="[^"]*\/files\/([^"?]+)/i,
   );
-  if (og) return [`/theme/king-noor/cdn/shop/files/${og[1].split("?")[0]}`];
+  if (og) return [`/theme/techizmet-shop/cdn/shop/files/${og[1].split("?")[0]}`];
   return [];
 }

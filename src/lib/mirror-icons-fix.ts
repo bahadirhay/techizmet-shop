@@ -1,6 +1,6 @@
 /** Mirror — SVG ikon görünürlüğü (CurrentColor + CSS) */
 
-const ICONS_CSS_HREF = "/theme/king-noor/mirror-icons-fix.css?v=4";
+const ICONS_CSS_HREF = "/theme/techizmet-shop/mirror-icons-fix.css?v=4";
 
 const EARLY_JS_CLASS = `<script id="kn-mirror-js-class">document.documentElement.className=document.documentElement.className.replace(/\\bno-js\\b/,"js");</script>`;
 

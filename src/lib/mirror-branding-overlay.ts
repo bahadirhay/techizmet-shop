@@ -6,8 +6,8 @@ export type MirrorBranding = {
   faviconUrl: string;
 };
 
-const FALLBACK_DARK = "/theme/king-noor/cdn/shop/files/noor-dark-logo34d3.svg";
-const FALLBACK_LIGHT = "/theme/king-noor/cdn/shop/files/noor-white-logo34d3.svg";
+const FALLBACK_DARK = "/theme/techizmet-shop/cdn/shop/files/noor-dark-logo34d3.svg";
+const FALLBACK_LIGHT = "/theme/techizmet-shop/cdn/shop/files/noor-white-logo34d3.svg";
 
 function bust(url: string): string {
   const u = url.trim();

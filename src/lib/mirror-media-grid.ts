@@ -50,7 +50,7 @@ export function extractMediaGridItemsFromHtml(
 
     const imageUrl =
       chunk.match(/data-original="([^"]+)"/i)?.[1] ??
-      chunk.match(/\ssrc="(\/theme\/king-noor\/[^"]+)"/i)?.[1];
+      chunk.match(/\ssrc="(\/theme\/techizmet-shop\/[^"]+)"/i)?.[1];
 
     const headingHtml = chunk.match(
       /class="media-content-heading[^"]*"[^>]*>([\s\S]*?)<\/h[1-6]>/i,

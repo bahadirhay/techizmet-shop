@@ -13,7 +13,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { resolveMirrorCollectionTexts } from "@/lib/store-static-texts";
 
-/** King Noor vitrin sayfası — admin ayarları + koleksiyon DB */
+/** Techizmet Shop vitrin sayfası — admin ayarları + koleksiyon DB */
 export async function MirrorVitrinFrame({
   pageKey,
   collectionsSync = false,

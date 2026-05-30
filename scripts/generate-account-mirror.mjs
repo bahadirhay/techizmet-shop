@@ -4,7 +4,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 
-const ROOT = join(process.cwd(), "public", "theme", "king-noor", "mirror");
+const ROOT = join(process.cwd(), "public", "theme", "techizmet-shop", "mirror");
 const ABOUT_TR = join(ROOT, "pages", "about-tr.html");
 const ABOUT_EN = join(ROOT, "pages", "about.html");
 const OUT_DIR = join(ROOT, "account");
@@ -58,7 +58,7 @@ function buildFromShell(shellPath, mainBlock, outName) {
   if (!out.includes("account.css")) {
     out = out.replace(
       /<\/head>/i,
-      '<link href="/theme/king-noor/cdn/shop/t/5/assets/account1dbb.css?v=1" rel="stylesheet" type="text/css" media="all" />\n</head>',
+      '<link href="/theme/techizmet-shop/cdn/shop/t/5/assets/account1dbb.css?v=1" rel="stylesheet" type="text/css" media="all" />\n</head>',
     );
   }
   out = out.replace(/<title>[^<]*<\/title>/i, (m) =>

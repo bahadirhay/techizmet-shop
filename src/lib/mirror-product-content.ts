@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { htmlToPlainText } from "@/lib/product-content-format";
 
-const themeRoot = join(process.cwd(), "public/theme/king-noor");
+const themeRoot = join(process.cwd(), "public/theme/techizmet-shop");
 const mirrorRoot =
   process.env.THEME_MIRROR_PATH?.trim() || "C:/My Web Sites/shop/theking-noor.myshopify.com";
 const httrackProductsDir = join(mirrorRoot, "en-us/products");

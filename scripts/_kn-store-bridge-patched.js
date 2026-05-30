@@ -12,9 +12,9 @@ function knMegaFeatured(cols){
   var tr=document.documentElement.lang&&document.documentElement.lang.indexOf("tr")===0;
   var fh=feat?feat.href:promo;
   var meta=(window.__knMegaMeta&&window.__knMegaMeta.current)||{};
-  var featuredImg=meta.featuredImageUrl||"/theme/king-noor/nav-mega-featured.jpg";
-  var secondaryImg=meta.featuredSecondaryImageUrl||meta.promoImageUrl||"/theme/king-noor/nav-mega-promo.jpg";
-  var promoImg=meta.promoImageUrl||"/theme/king-noor/nav-mega-promo.jpg";
+  var featuredImg=meta.featuredImageUrl||"/theme/techizmet-shop/nav-mega-featured.jpg";
+  var secondaryImg=meta.featuredSecondaryImageUrl||meta.promoImageUrl||"/theme/techizmet-shop/nav-mega-promo.jpg";
+  var promoImg=meta.promoImageUrl||"/theme/techizmet-shop/nav-mega-promo.jpg";
   var title1=tr?(meta.featuredTitleTr||"Yeni Gelenler"):(meta.featuredTitleEn||"New Arrivals");
   var title2=tr?"Çok Satanlar":"Best Sellers";
   return "<div class=\"col-md-6 col-sm-6 mega-img kn-nav-mega__aside\"><div class=\"row megaproimg kn-nav-mega__aside-row\"><div class=\"col-md-6 col-sm-12 kn-nav-mega__tile-col\"><a href=\""+knEscNav(fh)+"\" class=\"kn-nav-mega__tile\"><span class=\"kn-nav-mega__tile-img\" style=\"background-image:url('"+knEscNav(featuredImg)+"')\"></span><span class=\"kn-nav-mega__tile-title\">"+knEscNav(title1)+"</span></a></div><div class=\"col-md-6 col-sm-12 kn-nav-mega__tile-col kn-nav-mega__tile-col--secondary\"><a href=\""+knEscNav(promo)+"\" class=\"kn-nav-mega__tile\"><span class=\"kn-nav-mega__tile-img\" style=\"background-image:url('"+knEscNav(secondaryImg||promoImg)+"')\"></span><span class=\"kn-nav-mega__tile-title\">"+knEscNav(title2)+"</span></a></div></div></div>";

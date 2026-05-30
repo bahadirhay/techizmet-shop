@@ -44,7 +44,7 @@ export function extractTrendingProductsFromHtml(
     const priceText = stripHtml(chunk.match(/class="trending-products--price[^"]*"[^>]*>([\s\S]*?)<\//i)?.[1] ?? "");
     const imageUrl =
       chunk.match(/data-original="([^"]+)"/i)?.[1]?.split("?")[0] ??
-      chunk.match(/\ssrc="(\/theme\/king-noor\/[^"?]+)/i)?.[1];
+      chunk.match(/\ssrc="(\/theme\/techizmet-shop\/[^"?]+)/i)?.[1];
     if (!title && !desc) continue;
     items.push({
       columnId,

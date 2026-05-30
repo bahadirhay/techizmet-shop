@@ -11,8 +11,8 @@ import { resolveMirrorCollectionTexts } from "@/lib/store-static-texts";
 
 function searchMirrorRel(locale: "tr" | "en") {
   return locale === "tr"
-    ? "theme/king-noor/mirror/collections/all-tr.html"
-    : "theme/king-noor/mirror/collections/all.html";
+    ? "theme/techizmet-shop/mirror/collections/all-tr.html"
+    : "theme/techizmet-shop/mirror/collections/all.html";
 }
 
 async function loadSearchProducts(siteId: string, term: string): Promise<VitrinCollectionProductCard[]> {
@@ -50,7 +50,7 @@ async function loadSearchProducts(siteId: string, term: string): Promise<VitrinC
   return rows;
 }
 
-/** King Noor vitrin — /search?q= sonuç sayfası */
+/** Techizmet Shop vitrin — /search?q= sonuç sayfası */
 export async function MirrorSearchFrame({ q = "" }: { q?: string }) {
   const site = await getDefaultSite();
   const locale = await getStoreLocale();

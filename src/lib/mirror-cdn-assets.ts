@@ -1,10 +1,10 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-const THEME_ROOT = join(process.cwd(), "public/theme/king-noor");
+const THEME_ROOT = join(process.cwd(), "public/theme/techizmet-shop");
 
 /** Diskte bulunamayan görseller için yedek */
-const FALLBACK_REL = "theme/king-noor/cdn/shop/files/MG1_b0421d9f-5d83-4554-9ecb-3419c31cb87484b8.jpg";
+const FALLBACK_REL = "theme/techizmet-shop/cdn/shop/files/MG1_b0421d9f-5d83-4554-9ecb-3419c31cb87484b8.jpg";
 
 const CDN_SUBDIRS = ["cdn/shop/files", "cdn/shop/collections", "cdn/shop/articles"] as const;
 
@@ -55,7 +55,7 @@ export function getMirrorAssetResolver(): MirrorAssetResolver {
 /** HTTrack hash uyumsuzluklarını düzeltir (716cb → 7dcd2 vb.) */
 export function fixMirrorCdnPathsInHtml(html: string): string {
   const { pickBest } = getMirrorAssetResolver();
-  const re = /\/theme\/king-noor\/(cdn\/shop\/(?:files|collections|articles)\/)([^"'<\s]+)/g;
+  const re = /\/theme\/techizmet-shop\/(cdn\/shop\/(?:files|collections|articles)\/)([^"'<\s]+)/g;
   return html.replace(re, (full, prefix, filename) => {
     const sub = prefix.replace(/\/$/, "");
     const q = filename.indexOf("?");
@@ -76,15 +76,15 @@ export function fixMirrorCdnPathsInHtml(html: string): string {
     }
     const actual = pickBest(sub, decoded);
     if (!actual || actual === bare) return full;
-    return `/theme/king-noor/${sub}/${actual}${query}`;
+    return `/theme/techizmet-shop/${sub}/${actual}${query}`;
   });
 }
 
 export function resolveMirrorThemeFile(publicPath: string): { abs: string; rel: string } | null {
   const norm = publicPath.replace(/\\/g, "/").replace(/^\/+/, "");
-  if (!norm.startsWith("theme/king-noor/cdn/shop/")) return null;
+  if (!norm.startsWith("theme/techizmet-shop/cdn/shop/")) return null;
 
-  const rest = norm.slice("theme/king-noor/".length);
+  const rest = norm.slice("theme/techizmet-shop/".length);
   const m = rest.match(/^(cdn\/shop\/(?:files|collections|articles)\/)(.+)$/i);
   if (!m) return null;
 
@@ -99,7 +99,7 @@ export function resolveMirrorThemeFile(publicPath: string): { abs: string; rel: 
     return null;
   }
 
-  const rel = `theme/king-noor/${sub}/${actual}`;
+  const rel = `theme/techizmet-shop/${sub}/${actual}`;
   const abs = join(process.cwd(), "public", rel);
   if (!existsSync(abs)) {
     const fb = join(process.cwd(), "public", FALLBACK_REL);

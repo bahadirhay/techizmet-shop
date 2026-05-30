@@ -54,7 +54,7 @@ const TR: StoreMessages = {
   footer: {
     quickLinks: "Hızlı linkler",
     legal: "Yasal",
-    tagline: "Techizmet Shop — King Noor referans teması",
+    tagline: "Techizmet Shop — Techizmet Shop referans teması",
     home: "Ana sayfa",
     collections: "Koleksiyonlar",
     about: "Hakkımızda",
@@ -89,7 +89,7 @@ const EN: StoreMessages = {
   footer: {
     quickLinks: "Quick links",
     legal: "Legal",
-    tagline: "Techizmet Shop — King Noor reference theme",
+    tagline: "Techizmet Shop — Techizmet Shop reference theme",
     home: "Home",
     collections: "Collections",
     about: "About",

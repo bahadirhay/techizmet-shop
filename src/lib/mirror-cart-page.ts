@@ -1,4 +1,4 @@
-/** King Noor — sepet sayfası (mirror, native main-cart layout) */
+/** Techizmet Shop — sepet sayfası (mirror, native main-cart layout) */
 
 import type { CartView } from "@/lib/cart/types";
 import { injectMirrorPageRoot } from "@/lib/mirror-page-inject";
@@ -212,7 +212,7 @@ export function injectCartPageStyles(html: string): string {
   if (!out.includes("cartcfbd.css")) {
     out = out.replace(
       /<\/head>/i,
-      '<link href="/theme/king-noor/cdn/shop/t/5/assets/cartcfbd.css?v=1" rel="stylesheet" type="text/css" media="all" />\n</head>',
+      '<link href="/theme/techizmet-shop/cdn/shop/t/5/assets/cartcfbd.css?v=1" rel="stylesheet" type="text/css" media="all" />\n</head>',
     );
   }
   return out.replace(/<\/head>/i, `${CART_PAGE_CSS}</head>`);

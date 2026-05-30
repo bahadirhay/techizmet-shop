@@ -4,7 +4,7 @@
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-export const MIRROR_BASE = "/theme/king-noor/";
+export const MIRROR_BASE = "/theme/techizmet-shop/";
 
 export function buildAssetResolver(themeRoot) {
   const byDir = new Map();
@@ -46,7 +46,7 @@ export function buildAssetResolver(themeRoot) {
 
 function fixCdnAssetPaths(html, resolver, logLabel) {
   const re =
-    /\/theme\/king-noor\/(cdn\/shop\/(?:files|collections)\/)([^"'<\s]+)/g;
+    /\/theme\/techizmet-shop\/(cdn\/shop\/(?:files|collections)\/)([^"'<\s]+)/g;
   let fixes = 0;
   const out = html.replace(re, (full, prefix, filename) => {
     const sub = prefix.replace(/\/$/, "");
@@ -56,7 +56,7 @@ function fixCdnAssetPaths(html, resolver, logLabel) {
     const actual = resolver.pickBest(sub, bare);
     if (!actual || actual === bare) return full;
     fixes++;
-    return `/theme/king-noor/${sub}/${actual}${query}`;
+    return `/theme/techizmet-shop/${sub}/${actual}${query}`;
   });
   if (fixes > 0) console.log(`[${logLabel}] ${fixes} görsel yolu düzeltildi`);
   return out;
@@ -261,9 +261,9 @@ export function applyMirrorTurkishStrings(html) {
 /** Ürün sayfaları ../../cdn/ kullanır; tek ../cdn/ dönüşümü //theme/... üretir */
 function normalizeBrokenMirrorPaths(html) {
   let h = html;
-  h = h.replace(/(?:\.\.\/)+(?=\/theme\/king-noor\/)/g, "");
-  h = h.replace(/(?:\.\.\/)+theme\/king-noor\//gi, "/theme/king-noor/");
-  h = h.replace(/\/\/+theme\/king-noor\//gi, "/theme/king-noor/");
+  h = h.replace(/(?:\.\.\/)+(?=\/theme\/techizmet-shop\/)/g, "");
+  h = h.replace(/(?:\.\.\/)+theme\/techizmet-shop\//gi, "/theme/techizmet-shop/");
+  h = h.replace(/\/\/+theme\/techizmet-shop\//gi, "/theme/techizmet-shop/");
   h = h.replace(/(href|src|content|data-src)="\/\/theme/gi, '$1="/theme');
   h = h.replace(/(href|src|content|data-src)='\/\/theme/gi, "$1='/theme");
   return h;

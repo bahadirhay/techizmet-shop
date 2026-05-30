@@ -8,8 +8,8 @@ import { getDefaultSite } from "@/lib/site";
 
 function checkoutMirrorRel(locale: "tr" | "en") {
   return locale === "tr"
-    ? "theme/king-noor/mirror/checkout/index-tr.html"
-    : "theme/king-noor/mirror/checkout/index.html";
+    ? "theme/techizmet-shop/mirror/checkout/index-tr.html"
+    : "theme/techizmet-shop/mirror/checkout/index.html";
 }
 
 export async function MirrorCheckoutFrame() {

@@ -9,7 +9,7 @@ import { extractBlogPostFromMirrorHtml } from "../src/lib/blog/mirror-blog-injec
 import { prisma } from "../src/lib/prisma";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const blogDir = join(root, "public/theme/king-noor/mirror/blogs/news");
+const blogDir = join(root, "public/theme/techizmet-shop/mirror/blogs/news");
 
 async function main() {
   const site = await prisma.storeSite.findFirst({ orderBy: { createdAt: "asc" } });

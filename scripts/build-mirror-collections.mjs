@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * en-us/collections/{slug}.html → public/theme/king-noor/mirror/collections/{slug}.html
+ * en-us/collections/{slug}.html → public/theme/techizmet-shop/mirror/collections/{slug}.html
  * (collections/index.html ana liste — build-mirror-home.mjs)
  */
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
@@ -15,7 +15,7 @@ import {
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const mirrorRoot =
   process.env.THEME_MIRROR_PATH?.trim() || "C:/My Web Sites/shop/theking-noor.myshopify.com";
-const themeRoot = resolve(root, "public/theme/king-noor");
+const themeRoot = resolve(root, "public/theme/techizmet-shop");
 const outDir = resolve(themeRoot, "mirror/collections");
 const srcDir = join(mirrorRoot, "en-us/collections");
 

@@ -25,7 +25,7 @@ export function AdminHomeManageGuide() {
                 </Link>
               </td>
               <td className="py-2">
-                King Noor mirror şablonu. Soldan sürükle-bırak, sağdan başlık / gizle, <strong>Kaydet</strong>.
+                Techizmet Shop mirror şablonu. Soldan sürükle-bırak, sağdan başlık / gizle, <strong>Kaydet</strong>.
               </td>
             </tr>
             <tr>
@@ -77,7 +77,7 @@ export function AdminHomeManageGuide() {
                 </Link>
               </td>
               <td className="py-2">
-                Bu URL ayrı bir vitrin sayfasıdır; ana sayfa editörü değil. Ürünleri burada listelemek için ürün ekleyin. King Noor mirror görünümü için Tema → mirror modu.
+                Bu URL ayrı bir vitrin sayfasıdır; ana sayfa editörü değil. Ürünleri burada listelemek için ürün ekleyin. Techizmet Shop mirror görünümü için Tema → mirror modu.
               </td>
             </tr>
           </tbody>

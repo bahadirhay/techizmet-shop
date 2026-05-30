@@ -42,8 +42,8 @@ export function extractProductExploreLooks(html: string): ProductExploreLook[] {
   for (let i = 1; i < parts.length; i++) {
     const chunk = parts[i];
     const imgM =
-      chunk.match(/data-original="(\/theme\/king-noor\/cdn\/shop\/files\/[^"?]+)/i) ||
-      chunk.match(/src="(\/theme\/king-noor\/cdn\/shop\/files\/[^"?]+)/i);
+      chunk.match(/data-original="(\/theme\/techizmet-shop\/cdn\/shop\/files\/[^"?]+)/i) ||
+      chunk.match(/src="(\/theme\/techizmet-shop\/cdn\/shop\/files\/[^"?]+)/i);
     if (!imgM) continue;
 
     const imageUrl = imgM[1].split("?")[0];

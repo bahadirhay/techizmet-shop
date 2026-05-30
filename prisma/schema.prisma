@@ -14,7 +14,7 @@ model StoreSite {
   name            String
   currency        String   @default("TRY")
   locale          String   @default("tr")
-  themeId         String   @default("king-noor")
+  themeId         String   @default("techizmet-shop")
   themeTokensJson String?
   headerBlocks    String?
   footerBlocks    String?
