@@ -34,13 +34,22 @@ function navItemHtml(it: ResolvedNavItem, locale: "tr" | "en" = "tr"): string {
 }
 
 function ensureMegaHost(doc: Document): HTMLElement {
+  const root =
+    doc.querySelector("header.section-header") ??
+    doc.querySelector("sticky-always.header") ??
+    doc.querySelector("[data-header-section]");
   let host = doc.getElementById("kn-mega-host");
   if (!host) {
     host = doc.createElement("div");
     host.id = "kn-mega-host";
     host.setAttribute("aria-hidden", "true");
+  }
+  if (root instanceof HTMLElement && host.parentElement !== root) {
+    root.appendChild(host);
+  } else if (!root && host.parentElement !== doc.body) {
     doc.body.appendChild(host);
   }
+  host.style.removeProperty("top");
   return host;
 }
 
@@ -119,65 +128,13 @@ function clearActiveMega(doc: Document) {
   });
 }
 
-function cssPx(raw: string): number {
-  const n = parseFloat(String(raw ?? "").trim());
-  return Number.isFinite(n) ? n : 0;
-}
-
-function headerSeamPx(doc: Document, bar: Element | null): number {
-  if (!bar || !doc.defaultView) return 1;
-  const bw = parseFloat(doc.defaultView.getComputedStyle(bar).borderBottomWidth);
-  return Number.isFinite(bw) && bw > 0 ? bw : 1;
-}
-
-function measureHeaderBottom(doc: Document): number {
-  let bottom = 0;
-  const ann = doc.querySelector(".section-announcement-bar");
-  if (ann) {
-    const ar = ann.getBoundingClientRect();
-    if (ar.height > 0.5) bottom = ar.bottom;
-  }
-  const bar =
-    doc.querySelector("sticky-always.header") ?? doc.querySelector("[data-header-section]");
-  const wrap =
-    doc.querySelector("[data-header-wrapper]") ?? doc.querySelector(".header--wrapper");
-  if (wrap) {
-    const wr = wrap.getBoundingClientRect();
-    if (wr.height > 0.5) bottom = Math.max(bottom, wr.bottom);
-  } else if (bar) {
-    const br = bar.getBoundingClientRect();
-    if (br.height > 0.5) bottom = Math.max(bottom, br.bottom);
-  } else {
-    const hdr = doc.querySelector("header.section-header");
-    if (hdr) {
-      const hr = hdr.getBoundingClientRect();
-      if (hr.height > 0.5) bottom = Math.max(bottom, hr.bottom);
-    }
-  }
-  if (bottom > 0.5) return Math.max(0, bottom - headerSeamPx(doc, bar));
-  const cs = doc.defaultView?.getComputedStyle(doc.body);
-  if (!cs) return 0;
-  const annPx =
-    cssPx(cs.getPropertyValue("--dynamic_announcement_height")) ||
-    cssPx(cs.getPropertyValue("--announcement_height"));
-  const hdrPx =
-    cssPx(cs.getPropertyValue("--dynamic_header_height")) ||
-    cssPx(cs.getPropertyValue("--header_height"));
-  return annPx + hdrPx > 0 ? Math.max(0, annPx + hdrPx - 1) : 0;
-}
-
-function syncMegaPanelPosition(doc: Document) {
-  const topPx = measureHeaderBottom(doc);
-  doc.documentElement.style.setProperty("--kn-mega-panel-top", `${topPx}px`);
-  const host = doc.getElementById("kn-mega-host");
-  if (host) host.style.top = `${topPx}px`;
+function syncMegaContentWidth(doc: Document) {
   const container =
-    doc.querySelector(".section-header .container-fullwidth") ??
+    doc.querySelector("header.section-header .container-fullwidth") ??
     doc.querySelector(".header .container-fullwidth");
-  if (container) {
-    const w = Math.round(container.getBoundingClientRect().width);
-    if (w > 0) doc.documentElement.style.setProperty("--kn-mega-content-max", `${w}px`);
-  }
+  if (!container || !doc.defaultView) return;
+  const w = Math.round(container.getBoundingClientRect().width);
+  if (w > 0) doc.documentElement.style.setProperty("--kn-mega-content-max", `${w}px`);
 }
 
 let navCloseTimer: ReturnType<typeof setTimeout> | null = null;
@@ -195,6 +152,9 @@ function pointerInNavZone(doc: Document): boolean {
   if (host?.matches(":hover")) return true;
   const nav = doc.querySelector(".header--navigation-main");
   if (nav?.matches(":hover")) return true;
+  const headerBar =
+    doc.querySelector("sticky-always.header") ?? doc.querySelector("[data-header-section]");
+  if (headerBar?.matches(":hover")) return true;
   return false;
 }
 
@@ -211,12 +171,7 @@ function openNavDropdown(doc: Document, el: HTMLElement) {
   cancelNavClose();
   doc.body.classList.add("kn-nav-dropdown-open");
   el.classList.add("kn-nav-open");
-  syncMegaPanelPosition(doc);
   setActiveMega(doc, el);
-  doc.defaultView?.requestAnimationFrame(() => {
-    syncMegaPanelPosition(doc);
-    setActiveMega(doc, el);
-  });
 }
 
 function closeNavDropdown(doc: Document, el: HTMLElement) {
@@ -230,41 +185,23 @@ function closeNavDropdown(doc: Document, el: HTMLElement) {
 
 function bindKnNavDropdown(doc: Document) {
   initMegaPanels(doc);
-  syncMegaPanelPosition(doc);
+  syncMegaContentWidth(doc);
   const win = doc.defaultView;
-  if (win && !(win as Window & { __knMegaPosBound?: number }).__knMegaPosBound) {
-    (win as Window & { __knMegaPosBound?: number }).__knMegaPosBound = 1;
+  if (win && !(win as Window & { __knMegaLayoutBound?: number }).__knMegaLayoutBound) {
+    (win as Window & { __knMegaLayoutBound?: number }).__knMegaLayoutBound = 1;
     win.addEventListener("resize", () => {
       closeMobileDrawerOnDesktop(doc);
       initMegaPanels(doc);
-      syncMegaPanelPosition(doc);
+      syncMegaContentWidth(doc);
     });
     const mq = win.matchMedia("(min-width: 992px)");
     const onMq = () => {
       closeMobileDrawerOnDesktop(doc);
       initMegaPanels(doc);
-      syncMegaPanelPosition(doc);
+      syncMegaContentWidth(doc);
     };
     if (typeof mq.addEventListener === "function") mq.addEventListener("change", onMq);
     else if (typeof mq.addListener === "function") mq.addListener(onMq);
-    win.addEventListener("scroll", () => syncMegaPanelPosition(doc), true);
-    const roTargets = doc.querySelectorAll(
-      ".section-announcement-bar, header.section-header, sticky-always.header, sticky-on-scroll.header, [data-announcement-wrapper]",
-    );
-    if (typeof ResizeObserver !== "undefined" && roTargets.length) {
-      const ro = new ResizeObserver(() => {
-        if (doc.body.classList.contains("kn-nav-dropdown-open")) {
-          const win = doc.defaultView as Window & { __knMegaRoTimer?: number };
-          if (win.__knMegaRoTimer) win.clearTimeout(win.__knMegaRoTimer);
-          win.__knMegaRoTimer = win.setTimeout(() => syncMegaPanelPosition(doc), 32);
-          return;
-        }
-        syncMegaPanelPosition(doc);
-      });
-      roTargets.forEach((el) => ro.observe(el));
-    }
-    win.requestAnimationFrame(() => syncMegaPanelPosition(doc));
-    win.setTimeout(() => syncMegaPanelPosition(doc), 120);
   }
 
   const megaHost = doc.getElementById("kn-mega-host");
@@ -281,6 +218,13 @@ function bindKnNavDropdown(doc: Document) {
       if (e.relatedTarget instanceof Node && openLi.contains(e.relatedTarget)) return;
       scheduleNavClose(doc, openLi);
     });
+  }
+
+  const headerBar =
+    doc.querySelector("sticky-always.header") ?? doc.querySelector("[data-header-section]");
+  if (headerBar instanceof HTMLElement && headerBar.dataset.knNavZoneBound !== "1") {
+    headerBar.dataset.knNavZoneBound = "1";
+    headerBar.addEventListener("mouseenter", cancelNavClose);
   }
 
   const navMain = doc.querySelector(".header--navigation-main");

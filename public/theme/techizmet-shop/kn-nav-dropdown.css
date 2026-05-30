@@ -19,12 +19,12 @@ header.header {
 }
 
 @media (min-width: 992px) {
-  /* position: sticky kalsın — relative ile hero/slayt yüksekliği bozuluyordu */
-  .section-header {
+  /* sticky tema CSS korunur — yalnızca z-index */
+  header.section-header {
     z-index: 210;
   }
 
-  body.kn-nav-dropdown-open .section-header {
+  body.kn-nav-dropdown-open header.section-header {
     z-index: 220;
   }
 }
@@ -109,36 +109,37 @@ header.header {
   text-decoration: underline;
 }
 
-/* Mega panel — header altına yapışık; görünmez köprü ile hover kopması önlenir */
-#kn-mega-host {
-  position: fixed;
-  left: 0;
-  right: 0;
-  top: var(
-    --kn-mega-panel-top,
-    calc(
-      var(--dynamic_announcement_height, var(--announcement_height, 0px)) +
-        var(--dynamic_header_height, var(--header_height, 80px)) - 1px
-    )
-  );
-  width: 100%;
-  max-width: 100%;
-  margin: 0;
-  padding: 20px 0 0;
-  margin-top: -20px;
-  z-index: 190;
-  pointer-events: none;
-  box-sizing: border-box;
+/* Mega panel — header.section-header altına yapışık (JS top yok → kopukluk yok) */
+@media (min-width: 992px) {
+  #kn-mega-host {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    margin-top: -1px;
+    padding: 0;
+    z-index: 190;
+    pointer-events: none;
+    box-sizing: border-box;
+  }
+
+  #kn-mega-host::before {
+    content: "";
+    display: block;
+    height: 14px;
+    margin-top: -13px;
+    background: transparent;
+    pointer-events: auto;
+  }
 }
 
-#kn-mega-host::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 20px;
-  pointer-events: auto;
+@media (max-width: 991px) {
+  #kn-mega-host {
+    display: none;
+  }
 }
 
 body.kn-nav-dropdown-open #kn-mega-host {
