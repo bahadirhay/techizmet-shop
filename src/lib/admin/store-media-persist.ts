@@ -15,7 +15,7 @@ export async function persistStoreMedia(siteId: string, saved: SavedUpload) {
         url: storeMediaPublicUrl("pending"),
         mimeType: saved.mimeType,
         sizeBytes: saved.sizeBytes,
-        data: saved.dbBuffer,
+        data: new Uint8Array(saved.dbBuffer),
       },
     });
     const url = storeMediaPublicUrl(row.id);
