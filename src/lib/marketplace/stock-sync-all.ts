@@ -26,6 +26,7 @@ async function syncOnePlatform(
       ...(productIds?.length ? { id: { in: productIds } } : {}),
     },
     select: {
+      id: true,
       slug: true,
       title: true,
       barcode: true,

@@ -138,7 +138,7 @@ function patchProductMediaZoomTemplate(
   product: VitrinProductDetail,
   media: VitrinProductMedia[],
 ) {
-  const templateRoot = doc.querySelector("[data-product-media-content] template");
+  const templateRoot = doc.querySelector("[data-product-media-content] template") as HTMLTemplateElement | null;
   const wrapper = templateRoot?.content?.querySelector(".swiper-wrapper");
   if (!wrapper) return;
 

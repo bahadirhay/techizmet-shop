@@ -45,7 +45,7 @@ export async function loadMirrorAccountDashboardPayload(
 
   return {
     name,
-    email: customer.email,
+    email: customer.email ?? "",
     memberGroup:
       customer.customerGroup?.active
         ? {

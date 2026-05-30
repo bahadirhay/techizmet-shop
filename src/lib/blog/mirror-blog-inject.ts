@@ -177,7 +177,7 @@ export function injectBlogArticleIntoHtml(
   if (post.imageUrl?.trim()) {
     const bannerBlock = out.match(/<div class="page--banner-img[\s\S]*?<\/div>\s*<\/div>/i)?.[0];
     if (bannerBlock) {
-      const patched = setImgUrls(bannerBlock, post.imageUrl.trim(), title);
+      const patched = setBlogImageInHtmlChunk(bannerBlock, post.imageUrl.trim(), title);
       out = out.replace(bannerBlock, patched);
     }
   }

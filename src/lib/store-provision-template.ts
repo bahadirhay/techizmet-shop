@@ -49,7 +49,8 @@ export function buildEmptyStoreSettings(input: {
             ],
           },
         ],
-        legalLine: `© ${new Date().getFullYear()} ${input.siteName}`,
+        taglineTr: `© ${new Date().getFullYear()} ${input.siteName}`,
+        taglineEn: `© ${new Date().getFullYear()} ${input.siteName}`,
       },
     },
     branding: {

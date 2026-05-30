@@ -25,7 +25,7 @@ export async function GET() {
     });
     if (row) {
       customer = {
-        email: row.email,
+        email: row.email ?? session.email,
         id: session.customerId,
         firstName: row.firstName,
         lastName: row.lastName,

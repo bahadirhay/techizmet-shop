@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { parseCampaignBody, validateCampaignData } from "@/lib/admin/campaign-parse";
+import { parseCampaignBody, toCampaignCreateInput, validateCampaignData } from "@/lib/admin/campaign-parse";
 import { requireStaffApi } from "@/lib/staff-auth";
 import { prisma } from "@/lib/prisma";
 
@@ -23,7 +23,7 @@ export async function POST(req: Request) {
   if (validation) return NextResponse.json({ error: validation }, { status: 400 });
 
   const campaign = await prisma.storeCampaign.create({
-    data: { siteId: auth.siteId, ...data },
+    data: toCampaignCreateInput(auth.siteId, { ...data, name: data.name }),
   });
   return NextResponse.json({ campaign });
 }

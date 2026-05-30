@@ -43,7 +43,7 @@ export async function syncTrendyolPriceAndInventory(
 }
 
 /** Ürün oluşturma — legacy sapigw endpoint */
-export async function trendyolProductCreateUrl(creds: TrendyolCredentials): string {
+export function trendyolProductCreateUrl(creds: TrendyolCredentials): string {
   return `${trendyolLegacyProductBase(creds)}/sapigw/suppliers/${creds.sellerId}/v2/products`;
 }
 

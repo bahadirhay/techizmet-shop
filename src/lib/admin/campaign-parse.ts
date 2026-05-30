@@ -1,5 +1,6 @@
 import { tryToMinor } from "@/lib/admin/money";
 import { serializeCampaignScope, type CampaignScope } from "@/lib/campaign-engine";
+import type { Prisma } from "@prisma/client";
 
 export function parseScopeFromBody(body: Record<string, unknown>): CampaignScope | null {
   const scope: CampaignScope = {};
@@ -99,4 +100,29 @@ export function validateCampaignData(
     return "Otomatik kampanyada kupon kodu boş olmalı";
   }
   return null;
+}
+
+export function toCampaignCreateInput(
+  siteId: string,
+  data: ReturnType<typeof parseCampaignBody> & { name: string },
+): Prisma.StoreCampaignUncheckedCreateInput {
+  return {
+    siteId,
+    name: data.name,
+    code: data.code ?? null,
+    type: data.type ?? "percent_off",
+    percentOff: data.percentOff ?? null,
+    amountOffMinor: data.amountOffMinor ?? null,
+    buyQuantity: data.buyQuantity ?? null,
+    payQuantity: data.payQuantity ?? null,
+    scopeJson: data.scopeJson ?? null,
+    autoApply: data.autoApply ?? false,
+    minCartMinor: data.minCartMinor ?? null,
+    freeShipping: data.freeShipping ?? false,
+    maxUses: data.maxUses ?? null,
+    active: data.active ?? true,
+    startsAt: data.startsAt ?? null,
+    endsAt: data.endsAt ?? null,
+    description: data.description ?? null,
+  };
 }
