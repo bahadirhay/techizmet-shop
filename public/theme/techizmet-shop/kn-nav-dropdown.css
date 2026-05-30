@@ -19,9 +19,9 @@ header.header {
 }
 
 @media (min-width: 992px) {
-  /* sticky tema CSS korunur — yalnızca z-index */
+  /* Normalde tema z-index — lightbox (99) üstte kalabilsin */
   header.section-header {
-    z-index: 210;
+    z-index: 3;
   }
 
   body.kn-nav-dropdown-open header.section-header {

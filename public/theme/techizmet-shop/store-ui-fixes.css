@@ -369,3 +369,9 @@ account-drawer.kn-account-is-logged-in .kn-account-logout {
   min-height: 46px !important;
   width: 9rem !important;
 }
+
+/* Ürün galeri lightbox — sticky header ve mega menünün üstünde */
+.popup.product-media-popup,
+product-media-popup.popup {
+  z-index: 300 !important;
+}
