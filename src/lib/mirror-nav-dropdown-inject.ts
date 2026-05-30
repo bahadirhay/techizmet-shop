@@ -1,4 +1,4 @@
-const NAV_DROPDOWN_CSS = "/theme/techizmet-shop/kn-nav-dropdown.css?v=26";
+const NAV_DROPDOWN_CSS = "/theme/techizmet-shop/kn-nav-dropdown.css?v=27";
 const MIRROR_HERO_CSS = "/theme/techizmet-shop/kn-mirror-hero.css?v=1";
 const MOBILE_MENU_CSS = "/theme/techizmet-shop/kn-mobile-menu.css?v=4";
 const BLOG_CARDS_CSS = "/theme/techizmet-shop/kn-blog-cards.css?v=2";
@@ -40,7 +40,7 @@ export function ensureMirrorLayoutStyles(doc: Document) {
 export function injectMirrorNavDropdownStyles(html: string): string {
   let out = html;
   if (out.includes("kn-nav-dropdown.css")) {
-    out = out.replace(/kn-nav-dropdown\.css\?v=\d+/g, "kn-nav-dropdown.css?v=26");
+    out = out.replace(/kn-nav-dropdown\.css\?v=\d+/g, "kn-nav-dropdown.css?v=27");
   }
   if (out.includes("kn-mobile-menu.css")) {
     out = out.replace(/kn-mobile-menu\.css\?v=\d+/g, "kn-mobile-menu.css?v=4");

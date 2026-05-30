@@ -169,7 +169,7 @@ export function buildMegaDropdownHtml(
         ? `<a class="currentm kn-nav-mega__heading" href="${escAttr(col.href)}">${escText(col.title)}</a>`
         : `<span class="currentm kn-nav-mega__heading">${escText(col.title)}</span>`;
       const links = col.links.length
-        ? `<ul class="dropdown kn-nav-mega__links">${dropdownLinksHtml(col.links)}</ul>`
+        ? `<ul class="kn-nav-mega__links">${dropdownLinksHtml(col.links)}</ul>`
         : "";
       return `<div class="inner col-sm-6 col-xs-12 kn-nav-mega__inner">${title}${links}</div>`;
     })

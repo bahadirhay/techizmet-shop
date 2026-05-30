@@ -63,7 +63,7 @@ function knNavItemHtml(it){
       var title=col.href
         ? "<a class=\\"currentm kn-nav-mega__heading\\" href=\\""+knEscNav(col.href)+"\\">"+knEscNav(col.title)+"</a>"
         : "<span class=\\"currentm kn-nav-mega__heading\\">"+knEscNav(col.title)+"</span>";
-      var links=(col.links&&col.links.length)?("<ul class=\\"dropdown kn-nav-mega__links\\">"+knNavDropdownLinks(col.links)+"</ul>"):"";
+      var links=(col.links&&col.links.length)?("<ul class=\\"kn-nav-mega__links\\">"+knNavDropdownLinks(col.links)+"</ul>"):"";
       return"<div class=\\"inner col-sm-6 col-xs-12 kn-nav-mega__inner\\">"+title+links+"</div>";
     }).join("");
     window.__knMegaMeta={current:(it&&it.mega)||{}};

@@ -175,6 +175,44 @@ function closeNavDropdown(doc: Document, el: HTMLElement) {
   }
 }
 
+function navInternalHref(href: string): string | null {
+  if (!href || !href.startsWith("/")) return null;
+  if (/^\/(?:api|_next|theme|uploads)\//i.test(href)) return null;
+  if (/(?:^|\/)(?:blank|null|undefined)(?:$|[?#/])/i.test(href)) return null;
+  return href;
+}
+
+function bindMegaLinkClicks(doc: Document) {
+  const win = doc.defaultView;
+  if (!win || (win as Window & { __knMegaLinksBound?: number }).__knMegaLinksBound) return;
+  (win as Window & { __knMegaLinksBound?: number }).__knMegaLinksBound = 1;
+
+  doc.addEventListener(
+    "click",
+    (e) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
+        return;
+      }
+      const t = e.target;
+      if (!(t instanceof Element)) return;
+      const a = t.closest("#kn-mega-host a[href], .kn-nav-dropdown--simple a[href]");
+      if (!(a instanceof HTMLAnchorElement)) return;
+      const href = navInternalHref(a.getAttribute("href")?.trim() ?? "");
+      if (!href) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      const openLi = doc.querySelector(".kn-nav-has-dropdown.kn-nav-open") as HTMLElement | null;
+      if (openLi) closeNavDropdown(doc, openLi);
+      try {
+        (win.top ?? win).location.assign(href);
+      } catch {
+        win.location.assign(href);
+      }
+    },
+    true,
+  );
+}
+
 function bindKnNavDropdown(doc: Document) {
   initMegaPanels(doc);
   const win = doc.defaultView;
@@ -232,6 +270,8 @@ function bindKnNavDropdown(doc: Document) {
       scheduleNavClose(doc, el);
     });
   });
+
+  bindMegaLinkClicks(doc);
 }
 
 /** Sunucu menüsü varken yalnızca hover bağlantısını yenile (HTML’i silme) */
