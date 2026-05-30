@@ -158,6 +158,41 @@ body.kn-nav-dropdown-open header.section-header.is-hidden-header {
   pointer-events: auto !important;
 }
 
+/* Ana sayfa şeffaf header — mega menü açıkken koleksiyon sayfası gibi solid */
+body.kn-nav-dropdown-open sticky-always.header.desktop-transparent,
+body.kn-nav-dropdown-open sticky-always.header.mobile-transparent,
+body.kn-nav-dropdown-open sticky-on-scroll.header.desktop-transparent,
+body.kn-nav-dropdown-open sticky-on-scroll.header.mobile-transparent {
+  background-color: var(--header_background, #fff) !important;
+  color: var(--header_color, #1a1a1a) !important;
+}
+
+body.kn-nav-dropdown-open sticky-always.header.desktop-transparent::before,
+body.kn-nav-dropdown-open sticky-always.header.mobile-transparent::before,
+body.kn-nav-dropdown-open .header.desktop-transparent::before,
+body.kn-nav-dropdown-open .header.mobile-transparent::before {
+  opacity: 1 !important;
+  background: var(--header_background, #fff) !important;
+}
+
+body.kn-nav-dropdown-open .header--menu-link,
+body.kn-nav-dropdown-open .header--navigation-list .header--menu-link {
+  color: var(--header_color, #1a1a1a) !important;
+}
+
+body.kn-nav-dropdown-open .header--logo-img.transparent-logo-img {
+  display: none !important;
+}
+
+body.kn-nav-dropdown-open .header--logo-img:not(.transparent-logo-img) {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+body.kn-nav-dropdown-open .section-header {
+  background: var(--header_background, #fff) !important;
+}
+
 @media (min-width: 992px) {
   #kn-mega-host {
     /* Tüm mega paneller üst üste; gizli olanlar akışta yer kaplamasın */

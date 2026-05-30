@@ -11,6 +11,7 @@
     "postinstall": "prisma generate",
     "db:init": "prisma db execute --file scripts/create-shop-schema.sql --schema prisma/schema.prisma",
     "db:push": "npm run db:init && prisma db push",
+    "db:migrate-media": "prisma db execute --file scripts/add-media-data-column.sql --schema prisma/schema.prisma",
     "db:seed": "tsx prisma/seed.ts",
     "theme:import": "node scripts/import-theme-mirror.mjs && node scripts/build-mirror-home.mjs && node scripts/build-mirror-products.mjs && node scripts/build-mirror-collections.mjs && node scripts/build-mirror-pages.mjs && node scripts/build-mirror-blogs.mjs",
     "blog:import-mirror": "npx tsx scripts/import-blog-posts-from-mirror.ts",
