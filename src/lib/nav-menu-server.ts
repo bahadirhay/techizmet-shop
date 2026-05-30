@@ -17,7 +17,6 @@ function isCollectionsHref(href: string) {
 async function attachCollectionsDropdown(
   items: ResolvedNavItem[],
   siteId: string,
-  locale: ShopLocale,
 ): Promise<ResolvedNavItem[]> {
   const needs = items.some(
     (it) => isCollectionsHref(it.href) && !it.columns?.length && !it.children?.length,
@@ -69,7 +68,7 @@ export async function getPublishedHeaderNavTree(siteId: string, locale: ShopLoca
   const enriched = rows.map(enrichNavMenuItemHref);
   const tree = await injectCategoryColumnsIntoTree(buildNavTree(enriched), siteId);
   let resolved = navTreeToResolved(tree, locale);
-  resolved = await attachCollectionsDropdown(resolved, siteId, locale);
+  resolved = await attachCollectionsDropdown(resolved, siteId);
   resolved = await attachMegaMenuProducts(resolved, siteId);
   return resolved;
 }

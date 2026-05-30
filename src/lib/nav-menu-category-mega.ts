@@ -4,14 +4,6 @@ import { categoryProductHref, parseNavLinkTarget } from "@/lib/nav-menu-link";
 import type { NavNode } from "@/lib/navigation-shared";
 import { prisma } from "@/lib/prisma";
 
-type CategoryRow = {
-  id: string;
-  slug: string;
-  title: string;
-  parentId: string | null;
-  sortOrder: number;
-};
-
 function categorySlugFromHref(href: string): string | null {
   const q = href.indexOf("?");
   if (q < 0) return null;
