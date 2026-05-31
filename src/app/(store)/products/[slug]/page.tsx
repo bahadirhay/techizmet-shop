@@ -12,6 +12,19 @@ import { getDefaultSite } from "@/lib/site";
 
 export const revalidate = 300;
 
+export async function generateStaticParams() {
+  try {
+    const site = await getDefaultSite();
+    const rows = await prisma.storeProduct.findMany({
+      where: { siteId: site.id, published: true },
+      select: { slug: true },
+    });
+    return rows.map(({ slug }) => ({ slug }));
+  } catch {
+    return [];
+  }
+}
+
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const h = await headers();

@@ -3,7 +3,7 @@
 import { useMirrorFrameRouteSync } from "@/hooks/use-mirror-frame-route-sync";
 import { useMirrorIframeLifecycle } from "@/hooks/use-mirror-iframe-lifecycle";
 import { useMirrorLocaleMessage } from "@/hooks/use-mirror-locale-message";
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   applyExploreLooksOverlay,
   type ExploreOverlayProduct,
@@ -32,6 +32,8 @@ import {
   type ProductPageBottomSettings,
 } from "@/lib/product-page-bottom";
 
+const PATCH_RETRY_MS = [50, 200, 500] as const;
+
 export function MirrorProductFrameClient({
   src,
   title,
@@ -42,9 +44,10 @@ export function MirrorProductFrameClient({
   nav,
   footer,
   locale,
-  exploreLooks,
-  exploreProductsBySlug,
+  exploreLooks: exploreLooksInitial,
+  exploreProductsBySlug: exploreProductsInitial,
   productPageBottom,
+  productSlug,
 }: {
   src: string;
   title: string;
@@ -58,12 +61,44 @@ export function MirrorProductFrameClient({
   exploreLooks?: ProductExploreLook[];
   exploreProductsBySlug?: Record<string, ExploreOverlayProduct>;
   productPageBottom?: ProductPageBottomSettings;
+  productSlug?: string;
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const cancelBrandingRef = useRef<(() => void) | undefined>(undefined);
+  const [exploreLooks, setExploreLooks] = useState<ProductExploreLook[]>(exploreLooksInitial ?? []);
+  const [exploreProductsBySlug, setExploreProductsBySlug] = useState<
+    Record<string, ExploreOverlayProduct>
+  >(exploreProductsInitial ?? {});
 
   useMirrorLocaleMessage();
   useMirrorFrameRouteSync(iframeRef, src);
+
+  useEffect(() => {
+    const link = document.createElement("link");
+    link.rel = "preload";
+    link.as = "document";
+    link.href = src;
+    document.head.appendChild(link);
+    return () => {
+      link.remove();
+    };
+  }, [src]);
+
+  useEffect(() => {
+    if (!productSlug || (exploreLooksInitial?.length ?? 0) > 0) return;
+    let cancelled = false;
+    fetch(`/api/vitrin/product-frame?slug=${encodeURIComponent(productSlug)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { exploreLooks?: ProductExploreLook[]; exploreProductsBySlug?: Record<string, ExploreOverlayProduct> } | null) => {
+        if (cancelled || !data) return;
+        setExploreLooks(data.exploreLooks ?? []);
+        setExploreProductsBySlug(data.exploreProductsBySlug ?? {});
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [productSlug, exploreLooksInitial?.length]);
 
   const patchKey = JSON.stringify({
     overlay,
@@ -91,7 +126,7 @@ export function MirrorProductFrameClient({
         const d = iframeRef.current?.contentDocument;
         if (d?.getElementById("MainContent")) patchStickyBuyButton(d, stickyProduct);
       };
-      for (const ms of [400, 1200, 2400]) {
+      for (const ms of PATCH_RETRY_MS) {
         window.setTimeout(reapplySticky, ms);
       }
     }
@@ -113,11 +148,11 @@ export function MirrorProductFrameClient({
         if (d?.getElementById("MainContent")) applyProductPageBottomOverlay(d, bottom);
       };
       applyBottom();
-      for (const ms of [400, 1200, 2800]) {
+      for (const ms of PATCH_RETRY_MS) {
         window.setTimeout(applyBottom, ms);
       }
     }
-    applyExploreLooksOverlay(doc, exploreLooks ?? [], exploreProductsBySlug ?? {});
+    applyExploreLooksOverlay(doc, exploreLooks, exploreProductsBySlug);
   }, [
     branding,
     commerce,

@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "node scripts/prisma-generate-safe.mjs && next dev -p 5555",
     "dev:fast": "next dev -p 5555",
-    "build": "prisma generate && next build",
+    "build": "prisma generate && tsx scripts/prebuild-mirror-cache.ts && next build",
+    "mirror:prebuild": "tsx scripts/prebuild-mirror-cache.ts",
     "start": "next start -p 5555",
     "lint": "eslint",
     "postinstall": "prisma generate",

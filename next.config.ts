@@ -33,9 +33,16 @@ const nextConfig: NextConfig = {
     const noStore = [
       { key: "Cache-Control", value: "private, no-store, max-age=0, must-revalidate" },
     ] as const;
+    const prebuiltCache = [
+      {
+        key: "Cache-Control",
+        value: "public, max-age=3600, stale-while-revalidate=86400",
+      },
+    ] as const;
     return [
       { source: "/admin/:path*", headers: [...noStore] },
       { source: "/api/admin/:path*", headers: [...noStore] },
+      { source: "/_mirror-prebuilt/:path*", headers: [...prebuiltCache] },
     ];
   },
 };

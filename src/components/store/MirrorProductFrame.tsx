@@ -38,8 +38,9 @@ export async function MirrorProductFrame({
       productFromAdmin={payload.productFromAdmin}
       commerce={payload.commerce ?? undefined}
       locale={locale}
-      exploreLooks={payload.exploreLooks}
-      exploreProductsBySlug={payload.exploreProductsBySlug}
+      exploreLooks={[]}
+      exploreProductsBySlug={{}}
+      productSlug={slug}
       productPageBottom={payload.productPageBottom}
     />
   );

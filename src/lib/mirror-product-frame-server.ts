@@ -6,24 +6,16 @@ import type { ShopLocale } from "@/lib/i18n/locale";
 import { loadMirrorProductCommerce } from "@/lib/mirror-product-commerce-server";
 import type { VitrinProductDetail } from "@/lib/mirror-product-detail-sync";
 import type { ProductContentOverlay } from "@/lib/mirror-product-overlay";
-import type { ProductExploreLook } from "@/lib/product-explore-looks";
 import { productHighlightsForPatch } from "@/lib/product-highlights";
 import type { ProductPageBottomSettings } from "@/lib/product-page-bottom";
-import { loadExploreOverlayProducts } from "@/lib/explore-overlay-products";
-import { prisma } from "@/lib/prisma";
-import {
-  getProductPageBottomSettings,
-  getSiteSettings,
-  resolveProductExploreLooks,
-} from "@/lib/site-settings";
 import type { MirrorProductCommercePayload } from "@/lib/mirror-product-commerce";
+import { prisma } from "@/lib/prisma";
+import { getProductPageBottomSettings, getSiteSettings } from "@/lib/site-settings";
 
 export type MirrorProductFramePayload = {
   overlay: ProductContentOverlay;
   productFromAdmin: VitrinProductDetail;
   commerce: MirrorProductCommercePayload | null;
-  exploreLooks: ProductExploreLook[];
-  exploreProductsBySlug: Awaited<ReturnType<typeof loadExploreOverlayProducts>>;
   productPageBottom: ProductPageBottomSettings;
 };
 
@@ -45,10 +37,6 @@ async function loadMirrorProductFramePayloadUncached(
   ]);
 
   if (!product?.published) return null;
-
-  const exploreLooks = await resolveProductExploreLooks(siteId, product.exploreLooksJson ?? null);
-  const allSlugs = exploreLooks.flatMap((l) => l.productSlugs);
-  const exploreProductsBySlug = await loadExploreOverlayProducts(siteId, allSlugs);
 
   return {
     overlay: {
@@ -78,13 +66,11 @@ async function loadMirrorProductFramePayloadUncached(
       highlights: productHighlightsForPatch(product.highlightsJson) ?? undefined,
     },
     commerce,
-    exploreLooks,
-    exploreProductsBySlug,
     productPageBottom: getProductPageBottomSettings(settings),
   };
 }
 
-/** Ürün mirror kabuğu — tek önbellekli paket (nav/footer iframe HTML’de) */
+/** Ürün mirror kabuğu — iframe HTML statik; explore istemcide yüklenir */
 export function loadMirrorProductFramePayload(
   siteId: string,
   slug: string,
@@ -92,7 +78,7 @@ export function loadMirrorProductFramePayload(
 ): Promise<MirrorProductFramePayload | null> {
   return unstable_cache(
     () => loadMirrorProductFramePayloadUncached(siteId, slug, locale),
-    ["mirror-product-frame", siteId, slug, locale],
+    ["mirror-product-frame-v2", siteId, slug, locale],
     {
       revalidate: STORE_PUBLIC_REVALIDATE_SEC,
       tags: [storeMirrorTag(siteId), `product:${slug}`],
