@@ -93,7 +93,7 @@ export function MirrorProductFrameClient({
       locale,
     });
 
-    if (overlay) applyProductContentOverlay(doc, overlay);
+    applyProductContentOverlay(doc, overlay ?? {});
     if (commerce) applyMirrorProductCommerce(doc, commerce);
     if (productPageBottom) {
       const bottom = productPageBottom;

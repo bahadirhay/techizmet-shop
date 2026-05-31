@@ -23,10 +23,6 @@ function isServerProcessedMirror(doc: Document): boolean {
   return !!doc.getElementById("kn-shopify-stub");
 }
 
-function hasServerFooter(doc: Document): boolean {
-  return doc.documentElement.dataset.knFooterServer === "1";
-}
-
 /** Sunucu HTML yeterliyse istemci yaması gerekmez */
 export function isMirrorServerReady(doc: Document): boolean {
   return isServerProcessedMirror(doc) && !!doc.getElementById("kn-branding-bootstrap");
@@ -52,7 +48,7 @@ export function applyMirrorFramePatches(doc: Document, opts: MirrorFramePatchOpt
     if (serverNav) rebindMirrorNavDropdown(doc);
     else applyMirrorNavigation(doc, opts.nav, opts.locale ?? "tr");
   }
-  if (opts.footer && !hasServerFooter(doc) && !serverReady) applyMirrorFooter(doc, opts.footer);
+  if (opts.footer) applyMirrorFooter(doc, opts.footer);
 
   if (opts.locale && !isServerProcessedMirror(doc)) {
     applyMirrorLocaleOverlay(doc, opts.locale);

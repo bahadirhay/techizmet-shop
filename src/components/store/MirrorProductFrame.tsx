@@ -55,18 +55,12 @@ export async function MirrorProductFrame({
       : `theme/techizmet-shop/mirror/products/${resolvedTemplateSlug}.html`,
   );
 
-  const overlay =
-    product.description ||
-    product.descriptionHtml ||
-    product.keyFeaturesHtml ||
-    product.howToUseHtml
-      ? {
-          description: product.description,
-          descriptionHtml: product.descriptionHtml,
-          keyFeaturesHtml: product.keyFeaturesHtml,
-          howToUseHtml: product.howToUseHtml,
-        }
-      : undefined;
+  const overlay: ProductContentOverlay = {
+    description: product.description,
+    descriptionHtml: product.descriptionHtml,
+    keyFeaturesHtml: product.keyFeaturesHtml,
+    howToUseHtml: product.howToUseHtml,
+  };
 
   const productFromAdmin: VitrinProductDetail = {
     productId: product.id,
