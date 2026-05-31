@@ -1,5 +1,3 @@
-import "server-only";
-
 import { formatTry } from "@/lib/format";
 import type { MegaNavProduct } from "@/lib/mirror-nav-resolve";
 import { productHref } from "@/lib/nav-menu-link";

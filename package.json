@@ -5,8 +5,8 @@
   "scripts": {
     "dev": "node scripts/prisma-generate-safe.mjs && next dev -p 5555",
     "dev:fast": "next dev -p 5555",
-    "build": "prisma generate && tsx scripts/prebuild-mirror-cache.ts && next build",
-    "mirror:prebuild": "tsx scripts/prebuild-mirror-cache.ts",
+    "build": "prisma generate && node --require ./scripts/shim-server-only.cjs ./node_modules/tsx/dist/cli.mjs scripts/prebuild-mirror-cache.ts && next build",
+    "mirror:prebuild": "node --require ./scripts/shim-server-only.cjs ./node_modules/tsx/dist/cli.mjs scripts/prebuild-mirror-cache.ts",
     "start": "next start -p 5555",
     "lint": "eslint",
     "postinstall": "prisma generate",
@@ -51,6 +51,7 @@
     "nodemailer": "^8.0.10",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "server-only": "^0.0.1",
     "xlsx": "^0.18.5",
     "zod": "^4.4.2"
   },

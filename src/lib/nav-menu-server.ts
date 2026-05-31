@@ -1,5 +1,3 @@
-import "server-only";
-
 import type { ShopLocale } from "@/lib/i18n/locale";
 import type { MegaNavProduct, ResolvedNavItem } from "@/lib/mirror-nav-resolve";
 import { buildNavTree } from "@/lib/navigation-shared";

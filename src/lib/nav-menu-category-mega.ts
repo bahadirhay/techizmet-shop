@@ -1,5 +1,3 @@
-import "server-only";
-
 import { categoryProductHref, parseNavLinkTarget } from "@/lib/nav-menu-link";
 import type { NavNode } from "@/lib/navigation-shared";
 import { prisma } from "@/lib/prisma";

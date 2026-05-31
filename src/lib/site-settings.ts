@@ -1,7 +1,6 @@
-import { existsSync } from "node:fs";
-import { join } from "node:path";
 import { cache } from "react";
 import { getCachedParsedSiteSettings } from "@/lib/cache/store-cache";
+import { getSiteBranding as getSiteBrandingCore } from "@/lib/site-settings-branding";
 import { prisma } from "@/lib/prisma";
 import { getDefaultSite } from "@/lib/site";
 import { getPaytrConfig } from "@/lib/payments/paytr";
@@ -198,27 +197,10 @@ export type StoreEfaturaSettings = {
   autoSendMarketplace?: boolean;
 };
 
-const DEFAULT_LOGO = "/theme/techizmet-shop/cdn/shop/files/noor-dark-logo34d3.svg";
-const DEFAULT_LOGO_LIGHT = "/theme/techizmet-shop/cdn/shop/files/noor-white-logo34d3.svg";
-
-function brandingAssetOk(url: string | undefined): boolean {
-  const u = url?.trim();
-  if (!u) return false;
-  if (u.startsWith("http://") || u.startsWith("https://")) return true;
-  if (!u.startsWith("/")) return false;
-  const path = u.split("?")[0]!;
-  // Neon DB medya API + tema statik dosyaları — Vercel'de public/ altında yok
-  if (path.startsWith("/api/media/")) return true;
-  if (path.startsWith("/theme/")) return true;
-  if (path.startsWith("/uploads/")) return true;
-  const rel = path.replace(/^\//, "");
-  return existsSync(join(process.cwd(), "public", rel));
-}
-
 /** Admin form — DB'deki ham değerler (boş alanlarda vitrin fallback) */
 export function getEditableBranding(settings: SiteSettings) {
   const b = settings.branding ?? {};
-  const resolved = getSiteBranding(settings);
+  const resolved = getSiteBrandingCore(settings);
   return {
     logoUrl: b.logoUrl?.trim() || resolved.logoUrl,
     logoUrlLight: b.logoUrlLight?.trim() || resolved.logoUrlLight,
@@ -226,22 +208,7 @@ export function getEditableBranding(settings: SiteSettings) {
   };
 }
 
-export function getSiteBranding(settings: SiteSettings) {
-  const b = settings.branding ?? {};
-  const logoCandidate = b.logoUrl?.trim();
-  const lightCandidate = b.logoUrlLight?.trim();
-  const logoUrl = brandingAssetOk(logoCandidate) ? logoCandidate! : DEFAULT_LOGO;
-  const logoUrlLight = brandingAssetOk(lightCandidate)
-    ? lightCandidate!
-    : brandingAssetOk(logoCandidate)
-      ? logoCandidate!
-      : DEFAULT_LOGO_LIGHT;
-  return {
-    logoUrl,
-    logoUrlLight,
-    faviconUrl: brandingAssetOk(b.faviconUrl?.trim()) ? b.faviconUrl!.trim() : "/favicon.ico",
-  };
-}
+export { getSiteBrandingCore as getSiteBranding };
 
 export function getSiteSeo(settings: SiteSettings, siteName: string) {
   const s = settings.seo ?? {};

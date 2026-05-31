@@ -33,9 +33,9 @@ import { injectNavIntoMirrorHtml } from "@/lib/mirror-html-nav-inject";
 import { injectMirrorIconsFix } from "@/lib/mirror-icons-fix";
 import { injectMirrorLinkBridge } from "@/lib/mirror-link-bridge";
 import { injectMirrorNavDropdownStyles } from "@/lib/mirror-nav-dropdown-inject";
-import { loadMirrorFooterDataUncached } from "@/lib/mirror-footer-server";
-import { loadMirrorNavItemsUncached } from "@/lib/mirror-nav-server";
-import { loadMirrorProductCommerce } from "@/lib/mirror-product-commerce-server";
+import { loadMirrorFooterDataUncached } from "@/lib/mirror-footer-load";
+import { loadMirrorNavItemsUncached } from "@/lib/mirror-nav-load";
+import { loadMirrorProductCommerceUncached } from "@/lib/mirror-product-commerce-load";
 import { injectMirrorQuickviewBridge } from "@/lib/mirror-quickview-bridge";
 import { injectMirrorSearchBridge } from "@/lib/mirror-search-bridge";
 import { injectMirrorStoreUiFix } from "@/lib/mirror-store-ui-fix";
@@ -50,7 +50,8 @@ import {
   getProductPageBottomSettings,
   injectProductPageBottomMirrorHtml,
 } from "@/lib/product-page-bottom";
-import { getSiteBranding, getSiteSettings } from "@/lib/site-settings";
+import { getSiteBranding } from "@/lib/site-settings-branding";
+import { getSiteSettingsUncached } from "@/lib/site-settings-load";
 import { rewriteLegacyThemePaths } from "@/lib/store-theme";
 
 export type MirrorHtmlBuildParams = {
@@ -72,13 +73,13 @@ export function productSlugFromMirrorPath(normalized: string): string | null {
   return m[1].replace(/-tr$/i, "");
 }
 
-/** Mirror HTML — disk okuma + DB enjeksiyonları (build + runtime) */
+/** Mirror HTML — disk okuma + veritabanı enjeksiyonları (derleme ve çalışma zamanı) */
 export async function buildMirrorHtmlCore(params: MirrorHtmlBuildParams): Promise<string> {
   const { normalized, locale, siteId, siteName, pageKey, blogSlug } = params;
   const abs = join(process.cwd(), "public", normalized);
   let html = await readFile(abs, "utf8");
 
-  const settings = await getSiteSettings(siteId);
+  const settings = await getSiteSettingsUncached(siteId);
   const branding = getSiteBranding(settings);
 
   html = stripShopifyTrackingFromMirrorHtml(html);
@@ -93,7 +94,7 @@ export async function buildMirrorHtmlCore(params: MirrorHtmlBuildParams): Promis
   localized = injectMirrorNavDropdownStyles(localized);
 
   if (locale === "tr") {
-    const footer = await loadMirrorFooterData(siteId, locale);
+    const footer = await loadMirrorFooterDataUncached(siteId, locale);
     localized = injectFooterIntoMirrorHtml(localized, footer);
   }
 
@@ -117,7 +118,7 @@ export async function buildMirrorHtmlCore(params: MirrorHtmlBuildParams): Promis
     );
     const slug = productSlugFromMirrorPath(normalized);
     if (slug) {
-      const commerce = await loadMirrorProductCommerce(siteId, slug, locale, settings.store?.texts, {
+      const commerce = await loadMirrorProductCommerceUncached(siteId, slug, locale, settings.store?.texts, {
         skipSession: true,
       });
       if (commerce) {
