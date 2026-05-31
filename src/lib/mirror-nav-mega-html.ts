@@ -175,7 +175,7 @@ export function buildMegaDropdownHtml(
         ? `<ul class="kn-nav-mega__links">${dropdownLinksHtml(col.links)}</ul>`
         : "";
       if (!title && !links.length) return "";
-      return `<div class="inner col-sm-6 col-xs-12 kn-nav-mega__inner">${title}${links}</div>`;
+      return `<div class="inner kn-nav-mega__inner">${title}${links}</div>`;
     })
     .filter(Boolean)
     .join("");

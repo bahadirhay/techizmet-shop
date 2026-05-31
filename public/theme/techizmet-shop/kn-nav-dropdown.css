@@ -292,6 +292,10 @@ body.kn-nav-dropdown-open .header--logo-img {
   box-sizing: border-box;
 }
 
+.kn-nav-mega__left {
+  padding-left: 0;
+}
+
 .kn-nav-mega__aside {
   flex: 0 0 42%;
   max-width: 42%;
@@ -299,15 +303,34 @@ body.kn-nav-dropdown-open .header--logo-img {
 
 .kn-nav-mega__categories {
   display: flex;
-  flex-wrap: wrap;
-  margin: 0 -8px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  width: 100%;
+  margin: 0;
 }
 
 .kn-nav-mega__inner {
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: min(280px, 100%);
+  padding: 0 0 12px;
+  box-sizing: border-box;
+}
+
+/* Birden fazla sütun (ör. Kategoriler mega) — yatay ızgara */
+.kn-nav-mega__categories:has(.kn-nav-mega__inner:nth-child(2)) {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  margin: 0 -8px;
+  width: calc(100% + 16px);
+}
+
+.kn-nav-mega__categories:has(.kn-nav-mega__inner:nth-child(2)) .kn-nav-mega__inner {
   flex: 0 0 33.3333%;
   max-width: 33.3333%;
   padding: 0 8px 14px;
-  box-sizing: border-box;
 }
 
 .kn-nav-mega__heading {
@@ -538,6 +561,12 @@ a.kn-nav-mega__heading:focus-visible {
   }
 
   .kn-nav-mega__inner {
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .kn-nav-mega__categories:has(.kn-nav-mega__inner:nth-child(2)) .kn-nav-mega__inner {
     flex: 0 0 50%;
     max-width: 50%;
   }

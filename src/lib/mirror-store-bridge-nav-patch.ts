@@ -68,7 +68,7 @@ function knNavItemHtml(it){
         : "";
       var links=(col.links&&col.links.length)?("<ul class=\\"kn-nav-mega__links\\">"+knNavDropdownLinks(col.links)+"</ul>"):"";
       if(!title&&!links)return "";
-      return"<div class=\\"inner col-sm-6 col-xs-12 kn-nav-mega__inner\\">"+title+links+"</div>";
+      return"<div class=\\"inner kn-nav-mega__inner\\">"+title+links+"</div>";
     }).filter(Boolean).join("");
     window.__knMegaMeta={current:(it&&it.mega)||{}};
     var mega="<div class=\\"kn-nav-dropdown kn-nav-dropdown--mega kn-nav-dropdown--fruitser\\" data-kn-nav-dropdown><div class=\\"kn-nav-dropdown__panel\\"><div class=\\"style_1 row kn-nav-mega__row\\"><div class=\\"parent-mega-menu parent-mega-menu col-md-6 col-sm-6 kn-nav-mega__left\\"><div class=\\"row kn-nav-mega__categories\\">"+cols+"</div></div>"+knMegaFeatured(it.columns,it)+"</div></div></div>";
