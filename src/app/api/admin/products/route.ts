@@ -13,6 +13,7 @@ import { vatRateFromRequestBody } from "@/lib/admin/product-vat";
 import { serializeMarketplacePricesFromForm } from "@/lib/marketplace/product-prices";
 import { resolveProductCategorySelection, syncProductCategoryLinks } from "@/lib/store-product-categories";
 import { SITE_DEFAULT_EXPLORE_SENTINEL } from "@/lib/product-explore-looks";
+import { productAdminErrorResponse } from "@/lib/admin/product-api-errors";
 
 export async function GET(req: Request) {
   const auth = await requireStaffApi("store.products");
@@ -48,7 +49,8 @@ export async function POST(req: Request) {
     body.autoGenerateBarcode === true ||
     (body.autoGenerateBarcode !== false && barcodeSettings.autoGenerate);
 
-  const product = await prisma.$transaction(async (tx) => {
+  try {
+    const product = await prisma.$transaction(async (tx) => {
     const { primaryCategoryId, categoryIds } = await resolveProductCategorySelection(tx, auth.siteId, body);
     const barcode = await resolveProductBarcode(tx, auth.siteId, {
       barcode: String(body.barcode ?? "").trim() || null,
@@ -109,7 +111,10 @@ export async function POST(req: Request) {
       await upsertProductVariants(tx, created.id, variantOptionName, variants);
     }
     return created;
-  });
+    });
 
-  return NextResponse.json({ product });
+    return NextResponse.json({ product });
+  } catch (e) {
+    return productAdminErrorResponse(e);
+  }
 }

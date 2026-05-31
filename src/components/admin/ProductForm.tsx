@@ -147,40 +147,59 @@ export function ProductForm({
   async function save() {
     setBusy(true);
     setErr(null);
-    const items = mediaItems.filter((m) => m.url.trim());
-    const cleanedLooks = exploreLooks
-      .filter((l) => l.imageUrl.trim())
-      .map((l) => ({
-        ...l,
-        productSlugs: l.productSlugs.filter(Boolean),
-      }));
-    const payload = {
-      ...form,
-      autoGenerateBarcode,
-      imageUrl: primaryProductImageUrl(items) ?? "",
-      imageUrls: items.filter((m) => m.mediaType === "image").map((m) => m.url),
-      mediaItems: items,
-      useSiteDefaultExplore,
-      exploreLooksJson: useSiteDefaultExplore
-        ? null
-        : serializeExploreLooks(cleanedLooks),
-      highlightsJson: serializeProductHighlights(form.highlights),
-    };
-    const url = form.id ? `/api/admin/products/${form.id}` : "/api/admin/products";
-    const method = form.id ? "PATCH" : "POST";
-    const res = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const json = (await res.json()) as { error?: string; product?: { id: string } };
-    setBusy(false);
-    if (!res.ok) {
-      setErr(json.error ?? "Kayıt başarısız");
-      return;
+    try {
+      const items = mediaItems.filter((m) => m.url.trim());
+      const cleanedLooks = exploreLooks
+        .filter((l) => l.imageUrl.trim())
+        .map((l) => ({
+          ...l,
+          productSlugs: l.productSlugs.filter(Boolean),
+        }));
+      const categoryIds = [...new Set(form.categoryIds.filter(Boolean))];
+      const categoryId = categoryIds.includes(form.categoryId)
+        ? form.categoryId
+        : (categoryIds[0] ?? "");
+      const payload = {
+        ...form,
+        categoryIds,
+        categoryId,
+        autoGenerateBarcode,
+        imageUrl: primaryProductImageUrl(items) ?? "",
+        imageUrls: items.filter((m) => m.mediaType === "image").map((m) => m.url),
+        mediaItems: items,
+        useSiteDefaultExplore,
+        exploreLooksJson: useSiteDefaultExplore
+          ? null
+          : serializeExploreLooks(cleanedLooks),
+        highlightsJson: serializeProductHighlights(form.highlights),
+      };
+      const url = form.id ? `/api/admin/products/${form.id}` : "/api/admin/products";
+      const method = form.id ? "PATCH" : "POST";
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const raw = await res.text();
+      let json: { error?: string; product?: { id: string } } = {};
+      if (raw.trim()) {
+        try {
+          json = JSON.parse(raw) as { error?: string; product?: { id: string } };
+        } catch {
+          json = {};
+        }
+      }
+      if (!res.ok) {
+        setErr(json.error ?? `Kayıt başarısız (${res.status})`);
+        return;
+      }
+      router.push("/admin/products");
+      router.refresh();
+    } catch {
+      setErr("Bağlantı hatası — tekrar deneyin.");
+    } finally {
+      setBusy(false);
     }
-    router.push("/admin/products");
-    router.refresh();
   }
 
   return (

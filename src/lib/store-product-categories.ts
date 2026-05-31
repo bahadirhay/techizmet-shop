@@ -30,7 +30,12 @@ export async function resolveProductCategorySelection(
     select: { id: true },
   });
   if (categories.length !== requestedIds.length) {
-    throw new Error("Geçersiz kategori seçimi");
+    const found = new Set(categories.map((category) => category.id));
+    const missing = requestedIds.filter((id) => !found.has(id));
+    throw new Error(
+      "Geçersiz kategori seçimi. Sayfayı yenileyip kategorileri tekrar seçin." +
+        (missing.length ? ` (eksik: ${missing.length})` : ""),
+    );
   }
 
   const validIds = requestedIds.filter((id) => categories.some((category) => category.id === id));

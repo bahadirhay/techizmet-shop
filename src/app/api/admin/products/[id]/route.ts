@@ -13,6 +13,7 @@ import { vatRateFromRequestBody } from "@/lib/admin/product-vat";
 import { serializeMarketplacePricesFromForm } from "@/lib/marketplace/product-prices";
 import { resolveProductCategorySelection, syncProductCategoryLinks } from "@/lib/store-product-categories";
 import { SITE_DEFAULT_EXPLORE_SENTINEL } from "@/lib/product-explore-looks";
+import { productAdminErrorResponse } from "@/lib/admin/product-api-errors";
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const auth = await requireStaffApi("store.products");
@@ -53,7 +54,8 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       barcodeSettings.autoGenerate &&
       !existing.barcode?.trim());
 
-  await prisma.$transaction(async (tx) => {
+  try {
+    await prisma.$transaction(async (tx) => {
     const categorySelection =
       body.categoryId !== undefined || body.categoryIds !== undefined
         ? await resolveProductCategorySelection(tx, auth.siteId, {
@@ -180,15 +182,18 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     }
   });
 
-  const product = await prisma.storeProduct.findFirst({
-    where: { id },
-    include: {
-      images: { orderBy: { sortOrder: "asc" } },
-      variants: { orderBy: { sortOrder: "asc" } },
-      categoryLinks: { orderBy: { sortOrder: "asc" } },
-    },
-  });
-  return NextResponse.json({ product });
+    const product = await prisma.storeProduct.findFirst({
+      where: { id },
+      include: {
+        images: { orderBy: { sortOrder: "asc" } },
+        variants: { orderBy: { sortOrder: "asc" } },
+        categoryLinks: { orderBy: { sortOrder: "asc" } },
+      },
+    });
+    return NextResponse.json({ product });
+  } catch (e) {
+    return productAdminErrorResponse(e);
+  }
 }
 
 export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string }> }) {
