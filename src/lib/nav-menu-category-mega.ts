@@ -24,6 +24,17 @@ function hasMegaAside(linkTarget: string | null): boolean {
   );
 }
 
+/** Üst menü etiketi ile aynı sütun başlığını gösterme (ör. Saç Bakımı → SAÇ BAKIMI) */
+function megaColumnTitle(navNode: NavNode, columnTitle: string): string {
+  const col = columnTitle.trim();
+  if (!col) return "";
+  const colKey = col.toLocaleLowerCase("tr-TR");
+  const tr = navNode.labelTr.trim().toLocaleLowerCase("tr-TR");
+  const en = navNode.labelEn.trim().toLocaleLowerCase("en-US");
+  if (colKey === tr || colKey === en) return "";
+  return columnTitle;
+}
+
 function syntheticNode(
   id: string,
   title: string,
@@ -80,7 +91,7 @@ export async function injectCategoryColumnsIntoTree(
       const subs = childrenOf(parent.id);
       const column = syntheticNode(
         `syn-col-${node.id}`,
-        parent.title,
+        megaColumnTitle(node, parent.title),
         categoryProductHref(parent.slug),
         subs.map((sub) =>
           syntheticNode(`syn-link-${node.id}-${sub.slug}`, sub.title, categoryProductHref(sub.slug)),
@@ -94,14 +105,14 @@ export async function injectCategoryColumnsIntoTree(
       return {
         ...node,
         children: [
-          syntheticNode(`syn-col-${node.id}`, cat.title, categoryProductHref(cat.slug)),
+          syntheticNode(`syn-col-${node.id}`, megaColumnTitle(node, cat.title), categoryProductHref(cat.slug)),
         ],
       };
     }
 
     const column = syntheticNode(
       `syn-col-${node.id}`,
-      cat.title,
+      megaColumnTitle(node, cat.title),
       categoryProductHref(cat.slug),
       subs.map((sub) =>
         syntheticNode(`syn-link-${node.id}-${sub.slug}`, sub.title, categoryProductHref(sub.slug)),

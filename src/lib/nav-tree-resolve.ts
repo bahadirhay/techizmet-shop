@@ -7,6 +7,14 @@ function nodeLabel(node: NavNode, locale: ShopLocale): string {
   return locale === "tr" ? node.labelTr || node.labelEn : node.labelEn || node.labelTr;
 }
 
+function duplicateMegaColumnTitle(parentLabel: string, columnTitle: string): string {
+  const col = columnTitle.trim();
+  if (!col) return "";
+  const key = col.toLocaleLowerCase("tr-TR");
+  if (key === parentLabel.trim().toLocaleLowerCase("tr-TR")) return "";
+  return columnTitle;
+}
+
 /** Ağaç → vitrin mega / basit dropdown (2. seviye = sütun, 3. seviye = link) */
 export function navTreeToResolved(nodes: NavNode[], locale: ShopLocale): ResolvedNavItem[] {
   return nodes.map((node) => resolveNavNode(node, locale));
@@ -22,9 +30,10 @@ function resolveNavNode(node: NavNode, locale: ShopLocale): ResolvedNavItem {
 
   if (!node.children.length) return base;
 
+  const parentLabel = nodeLabel(node, locale);
   const columns = node.children
     .map((col) => {
-      const title = nodeLabel(col, locale);
+      const title = duplicateMegaColumnTitle(parentLabel, nodeLabel(col, locale));
       const links =
         col.children.length > 0
           ? col.children.map((link) => ({

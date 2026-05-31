@@ -60,12 +60,16 @@ function knNavItemHtml(it){
   var href=knEscNav(it.href),label=knEscNav(it.label||it.labelTr||it.labelEn||"");
   if(it.columns&&it.columns.length){
     var cols=it.columns.map(function(col){
-      var title=col.href
-        ? "<a class=\\"currentm kn-nav-mega__heading\\" href=\\""+knEscNav(col.href)+"\\">"+knEscNav(col.title)+"</a>"
-        : "<span class=\\"currentm kn-nav-mega__heading\\">"+knEscNav(col.title)+"</span>";
+      var heading=(col.title||"").trim();
+      var title=heading
+        ? (col.href
+          ? "<a class=\\"currentm kn-nav-mega__heading\\" href=\\""+knEscNav(col.href)+"\\">"+knEscNav(heading)+"</a>"
+          : "<span class=\\"currentm kn-nav-mega__heading\\">"+knEscNav(heading)+"</span>")
+        : "";
       var links=(col.links&&col.links.length)?("<ul class=\\"kn-nav-mega__links\\">"+knNavDropdownLinks(col.links)+"</ul>"):"";
+      if(!title&&!links)return "";
       return"<div class=\\"inner col-sm-6 col-xs-12 kn-nav-mega__inner\\">"+title+links+"</div>";
-    }).join("");
+    }).filter(Boolean).join("");
     window.__knMegaMeta={current:(it&&it.mega)||{}};
     var mega="<div class=\\"kn-nav-dropdown kn-nav-dropdown--mega kn-nav-dropdown--fruitser\\" data-kn-nav-dropdown><div class=\\"kn-nav-dropdown__panel\\"><div class=\\"style_1 row kn-nav-mega__row\\"><div class=\\"parent-mega-menu parent-mega-menu col-md-6 col-sm-6 kn-nav-mega__left\\"><div class=\\"row kn-nav-mega__categories\\">"+cols+"</div></div>"+knMegaFeatured(it.columns,it)+"</div></div></div>";
     return"<li class=\\"header--menu-item kn-nav-has-dropdown\\" data-kn-nav-parent><a href=\\""+href+"\\" class=\\"header--menu-link heading-font text-small\\">"+label+"</a>"+mega+"</li>";
