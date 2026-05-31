@@ -75,34 +75,66 @@ export type ExploreOverlayProduct = {
   href: string;
 };
 
-/** Vitrin iframe içinde EXPLORE kartlarını günceller */
+/** Vitrin iframe içinde EXPLORE kartlarını günceller; şablondan kalan ürünleri temizler */
 export function applyExploreLooksOverlay(
   doc: Document,
   looks: ProductExploreLook[],
   productsBySlug: Record<string, ExploreOverlayProduct>,
 ) {
+  const section = doc.querySelector(
+    "#MainContent .shopify-section.section-collections-grid, #MainContent .section-collections-grid",
+  ) as HTMLElement | null;
+
+  if (!looks.length) {
+    if (section) section.style.display = "none";
+    return;
+  }
+
+  if (section) section.style.display = "";
+
   const cards = doc.querySelectorAll(".collection-list-grid .product-grid-card");
-  looks.forEach((look, i) => {
-    const card = cards[i];
-    if (!card) return;
+  cards.forEach((card, i) => {
+    const el = card as HTMLElement;
+    const look = looks[i];
+    if (!look) {
+      el.style.display = "none";
+      return;
+    }
+
+    el.style.display = "";
 
     const lifestyleImg = card.querySelector(
       ".discover-look-wrapper > .media img, .discover-look-wrapper .media img",
     ) as HTMLImageElement | null;
-    if (lifestyleImg && look.imageUrl) {
-      lifestyleImg.src = look.imageUrl;
-      lifestyleImg.setAttribute("data-original", look.imageUrl);
+    if (lifestyleImg && look.imageUrl?.trim()) {
+      const url = look.imageUrl.trim();
+      lifestyleImg.src = url;
+      lifestyleImg.setAttribute("data-original", url);
+      lifestyleImg.removeAttribute("data-src");
+      lifestyleImg.classList.remove("lazyload");
     }
 
     const labelEl = card.querySelector(".discover_data");
     if (labelEl && look.label) labelEl.textContent = look.label;
 
-    const lists = card.querySelectorAll(".discover-list");
+    const wrapper = card.querySelector(".discover-list-wrapper");
+    if (!wrapper) return;
+
+    const slugs = look.productSlugs.filter((slug) => productsBySlug[slug]);
+    const lists = [...wrapper.querySelectorAll(".discover-list")];
+
     lists.forEach((listEl, listIdx) => {
-      const slug = look.productSlugs[listIdx];
-      if (!slug) return;
+      const slug = slugs[listIdx];
+      if (!slug) {
+        listEl.remove();
+        return;
+      }
+
       const p = productsBySlug[slug];
-      if (!p) return;
+      if (!p) {
+        listEl.remove();
+        return;
+      }
 
       const titleA = listEl.querySelector(".product--title") as HTMLAnchorElement | null;
       if (titleA) {
@@ -110,15 +142,25 @@ export function applyExploreLooksOverlay(
         titleA.textContent = p.title;
         titleA.setAttribute("aria-label", p.title);
       }
+
       const img = listEl.querySelector(".product--card-image img") as HTMLImageElement | null;
       if (img && p.imageUrl) {
         img.src = p.imageUrl;
         img.setAttribute("data-original", p.imageUrl);
+        img.removeAttribute("data-src");
+        img.classList.remove("lazyload");
+        img.alt = p.title;
       }
+
       const priceEl = listEl.querySelector(".product--actual-price");
       if (priceEl && p.priceLabel) priceEl.textContent = p.priceLabel;
-      const cardLink = listEl.querySelector("a.product--image") as HTMLAnchorElement | null;
-      if (cardLink) cardLink.href = p.href;
+
+      listEl.querySelectorAll("a.product--image, a.product--icon").forEach((anchor) => {
+        if (anchor instanceof HTMLAnchorElement) anchor.href = p.href;
+      });
+
+      const cardRoot = listEl.querySelector("[data-product-card]");
+      if (cardRoot) cardRoot.setAttribute("data-id", p.slug);
     });
   });
 }

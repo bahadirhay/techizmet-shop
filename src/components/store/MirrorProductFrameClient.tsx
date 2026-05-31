@@ -106,9 +106,7 @@ export function MirrorProductFrameClient({
         window.setTimeout(applyBottom, ms);
       }
     }
-    if (exploreLooks?.length) {
-      applyExploreLooksOverlay(doc, exploreLooks, exploreProductsBySlug ?? {});
-    }
+    applyExploreLooksOverlay(doc, exploreLooks ?? [], exploreProductsBySlug ?? {});
   }, [
     branding,
     commerce,
