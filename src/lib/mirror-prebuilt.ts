@@ -26,16 +26,22 @@ export async function readPrebuiltMirrorHtml(normalized: string): Promise<string
   return readFile(abs, "utf8");
 }
 
-/** Production’da statik dosya varsa API’yi atla */
+/** Production: build sırasında üretilen statik CDN yolu (existsSync serverless'ta güvenilmez) */
 export function resolveMirrorIframeSrc(
   normalized: string,
   pageKey?: string,
   extra?: Record<string, string | undefined>,
 ): string {
-  if (process.env.NODE_ENV === "production" && hasPrebuiltMirrorHtml(normalized)) {
-    return prebuiltMirrorPublicUrl(normalized);
-  }
   const path = normalized.startsWith("/") ? normalized.slice(1) : normalized;
+
+  if (process.env.NODE_ENV === "production") {
+    return prebuiltMirrorPublicUrl(path);
+  }
+
+  if (hasPrebuiltMirrorHtml(path)) {
+    return prebuiltMirrorPublicUrl(path);
+  }
+
   const q = new URLSearchParams({ path });
   if (pageKey) q.set("pageKey", pageKey);
   if (extra) {

@@ -33,8 +33,8 @@ import { injectNavIntoMirrorHtml } from "@/lib/mirror-html-nav-inject";
 import { injectMirrorIconsFix } from "@/lib/mirror-icons-fix";
 import { injectMirrorLinkBridge } from "@/lib/mirror-link-bridge";
 import { injectMirrorNavDropdownStyles } from "@/lib/mirror-nav-dropdown-inject";
-import { loadMirrorFooterData } from "@/lib/mirror-footer-server";
-import { loadMirrorNavItems } from "@/lib/mirror-nav-server";
+import { loadMirrorFooterDataUncached } from "@/lib/mirror-footer-server";
+import { loadMirrorNavItemsUncached } from "@/lib/mirror-nav-server";
 import { loadMirrorProductCommerce } from "@/lib/mirror-product-commerce-server";
 import { injectMirrorQuickviewBridge } from "@/lib/mirror-quickview-bridge";
 import { injectMirrorSearchBridge } from "@/lib/mirror-search-bridge";
@@ -88,7 +88,7 @@ export async function buildMirrorHtmlCore(params: MirrorHtmlBuildParams): Promis
   html = injectBrandingIntoMirrorHtml(fixMirrorCdnPathsInHtml(html), branding);
   let localized = localizeMirrorHtml(html, normalized, locale);
 
-  const nav = await loadMirrorNavItems(siteId, locale);
+  const nav = await loadMirrorNavItemsUncached(siteId, locale);
   localized = injectNavIntoMirrorHtml(localized, nav, locale);
   localized = injectMirrorNavDropdownStyles(localized);
 

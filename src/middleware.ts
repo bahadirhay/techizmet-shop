@@ -29,6 +29,7 @@ export function middleware(request: NextRequest) {
     pathname.startsWith("/admin") ||
     pathname.startsWith("/api/admin") ||
     pathname.startsWith("/_next") ||
+    pathname.startsWith("/_mirror-prebuilt") ||
     pathname.startsWith("/api/theme/cdn")
   ) {
     return NextResponse.next();
