@@ -30,15 +30,23 @@ function pickFeaturedLink(columns: ResolvedNavColumn[]) {
 
 function megaImageSlots(mega?: NavMenuMegaMeta) {
   const featuredUrl = mega?.featuredImageUrl?.trim() ?? "";
+  const featuredUrl2 = mega?.featuredImageUrl2?.trim() ?? "";
   const secondaryUrl =
     mega?.featuredSecondaryImageUrl?.trim() || mega?.promoImageUrl?.trim() || "";
+  const secondaryUrl2 = mega?.promoImageUrl2?.trim() ?? "";
   return {
     featuredUrl,
+    featuredUrl2,
     secondaryUrl,
+    secondaryUrl2,
     hasFeatured: Boolean(featuredUrl),
+    hasFeatured2: Boolean(featuredUrl2),
     hasSecondary: Boolean(secondaryUrl),
+    hasSecondary2: Boolean(secondaryUrl2),
   };
 }
+
+type MegaImageTile = { href: string; imageUrl: string; title: string };
 
 function buildMegaProductCard(p: MegaNavProduct): string {
   const img = p.imageUrl ? ` style="background-image:url('${escAttr(p.imageUrl)}')"` : "";
@@ -63,21 +71,41 @@ function buildMegaProductsStripHtml(products: MegaNavProduct[]): string {
 /** Kart yuvası — görsel yoksa ızgara ürün listesi */
 function buildMegaProductsSlotHtml(products: MegaNavProduct[]): string {
   if (!products.length) return "";
+  const quadClass = products.length >= 4 ? " kn-nav-mega__products-slot--quad" : "";
   return `<div class="kn-nav-mega__products-wrap kn-nav-mega__products-wrap--slot">
-  <div class="kn-nav-mega__products-slot" role="list">${products.map(buildMegaProductCard).join("")}</div>
+  <div class="kn-nav-mega__products-slot${quadClass}" role="list">${products.map(buildMegaProductCard).join("")}</div>
 </div>`;
 }
 
-function buildImageTileHtml(href: string, imageUrl: string, title: string, secondary = false): string {
+function buildSingleImageTileInner(href: string, imageUrl: string, title: string): string {
+  return `<a href="${escAttr(href)}" class="kn-nav-mega__tile">
+    <span class="kn-nav-mega__tile-img" aria-hidden="true" style="background-image:url('${escAttr(imageUrl)}')"></span>
+    <span class="kn-nav-mega__tile-title">${escText(title)}</span>
+  </a>`;
+}
+
+function buildImageColumnHtml(
+  tiles: MegaImageTile[],
+  secondary = false,
+): string {
+  if (!tiles.length) return "";
   const colClass = secondary
     ? "col-md-6 col-sm-12 kn-nav-mega__tile-col kn-nav-mega__tile-col--secondary"
     : "col-md-6 col-sm-12 kn-nav-mega__tile-col";
-  return `<div class="${colClass}">
-  <a href="${escAttr(href)}" class="kn-nav-mega__tile">
-    <span class="kn-nav-mega__tile-img" aria-hidden="true" style="background-image:url('${escAttr(imageUrl)}')"></span>
-    <span class="kn-nav-mega__tile-title">${escText(title)}</span>
-  </a>
-</div>`;
+  if (tiles.length === 1) {
+    const t = tiles[0]!;
+    return `<div class="${colClass}">${buildSingleImageTileInner(t.href, t.imageUrl, t.title)}</div>`;
+  }
+  const stackClass =
+    tiles.length >= 2 ? " kn-nav-mega__tile-col--stack" : "";
+  const stackHtml = tiles
+    .map((t) => buildSingleImageTileInner(t.href, t.imageUrl, t.title))
+    .join("");
+  return `<div class="${colClass}${stackClass}"><div class="kn-nav-mega__tile-stack">${stackHtml}</div></div>`;
+}
+
+function buildImageTileHtml(href: string, imageUrl: string, title: string, secondary = false): string {
+  return buildImageColumnHtml([{ href, imageUrl, title }], secondary);
 }
 
 function splitProductsForSlots(
@@ -114,28 +142,59 @@ function buildMegaAsideHtml(
     locale === "tr"
       ? mega?.featuredTitleTr?.trim() || featured?.label || "Yeni Gelenler"
       : mega?.featuredTitleEn?.trim() || featured?.label || "New Arrivals";
-  const titleSecondary = tr ? "Çok Satanlar" : "Best Sellers";
+  const titleFeatured2 =
+    locale === "tr"
+      ? mega?.featuredTitle2Tr?.trim() || "Öne Çıkanlar"
+      : mega?.featuredTitle2En?.trim() || "Highlights";
+  const titleSecondary =
+    locale === "tr"
+      ? mega?.promoTitleTr?.trim() || mega?.featuredTitleTr?.trim() || "Çok Satanlar"
+      : mega?.promoTitleEn?.trim() || mega?.featuredTitleEn?.trim() || "Best Sellers";
+  const titleSecondary2 =
+    locale === "tr"
+      ? mega?.promoTitle2Tr?.trim() || "Kampanyalar"
+      : mega?.promoTitle2En?.trim() || "Promotions";
 
-  const { featuredUrl, secondaryUrl, hasFeatured, hasSecondary } = megaImageSlots(mega);
-  const emptySlots = (!hasFeatured ? 1 : 0) + (!hasSecondary ? 1 : 0);
+  const {
+    featuredUrl,
+    featuredUrl2,
+    secondaryUrl,
+    secondaryUrl2,
+    hasFeatured,
+    hasFeatured2,
+    hasSecondary,
+    hasSecondary2,
+  } = megaImageSlots(mega);
+
+  const leftTiles: MegaImageTile[] = [];
+  if (hasFeatured) leftTiles.push({ href: featuredHref, imageUrl: featuredUrl, title: titleFeatured });
+  if (hasFeatured2) leftTiles.push({ href: featuredHref, imageUrl: featuredUrl2, title: titleFeatured2 });
+
+  const rightTiles: MegaImageTile[] = [];
+  if (hasSecondary) rightTiles.push({ href: promoHref, imageUrl: secondaryUrl, title: titleSecondary });
+  if (hasSecondary2) rightTiles.push({ href: promoHref, imageUrl: secondaryUrl2, title: titleSecondary2 });
+
+  const hasLeftImages = leftTiles.length > 0;
+  const hasRightImages = rightTiles.length > 0;
+  const emptySlots = (!hasLeftImages ? 1 : 0) + (!hasRightImages ? 1 : 0);
   const { slot1: slot1Products, slot2: slot2Products, strip: stripProducts } = splitProductsForSlots(
     products,
     emptySlots as 0 | 1 | 2,
-    !hasFeatured,
+    !hasLeftImages,
   );
 
   const cols: string[] = [];
 
-  if (hasFeatured) {
-    cols.push(buildImageTileHtml(featuredHref, featuredUrl, titleFeatured, false));
+  if (hasLeftImages) {
+    cols.push(buildImageColumnHtml(leftTiles, false));
   } else if (slot1Products.length) {
     cols.push(
       `<div class="col-md-6 col-sm-12 kn-nav-mega__tile-col kn-nav-mega__tile-col--products">${buildMegaProductsSlotHtml(slot1Products)}</div>`,
     );
   }
 
-  if (hasSecondary) {
-    cols.push(buildImageTileHtml(promoHref, secondaryUrl, titleSecondary, true));
+  if (hasRightImages) {
+    cols.push(buildImageColumnHtml(rightTiles, true));
   } else if (slot2Products.length) {
     cols.push(
       `<div class="col-md-6 col-sm-12 kn-nav-mega__tile-col kn-nav-mega__tile-col--products kn-nav-mega__tile-col--secondary">${buildMegaProductsSlotHtml(slot2Products)}</div>`,
@@ -148,8 +207,13 @@ function buildMegaAsideHtml(
     return "";
   }
 
+  const productCount = slot1Products.length || slot2Products.length;
+  const imageStackCount = Math.max(leftTiles.length, rightTiles.length);
+  const balanced =
+    productCount >= 4 && imageStackCount >= 2 ? " kn-nav-mega__aside-row--balanced" : "";
+
   return `<div class="col-md-6 col-sm-6 mega-img kn-nav-mega__aside">
-    <div class="row megaproimg kn-nav-mega__aside-row">${cols.join("")}</div>
+    <div class="row megaproimg kn-nav-mega__aside-row${balanced}">${cols.join("")}</div>
     ${stripHtml}
   </div>`;
 }

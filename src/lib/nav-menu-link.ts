@@ -4,10 +4,20 @@ import type { VitrinPageKey } from "@/lib/mirror-vitrin-pages";
 export type NavLinkType = "none" | "url" | "page" | "category" | "collection" | "product" | "collections_auto";
 export type NavMenuMegaMeta = {
   promoImageUrl?: string;
+  /** Sağ sütun — alt görsel (4 ürün ızgarasıyla denge için) */
+  promoImageUrl2?: string;
   featuredImageUrl?: string;
+  /** Sol sütun — alt görsel (4 ürün ızgarasıyla denge için) */
+  featuredImageUrl2?: string;
   featuredSecondaryImageUrl?: string;
   featuredTitleTr?: string;
   featuredTitleEn?: string;
+  featuredTitle2Tr?: string;
+  featuredTitle2En?: string;
+  promoTitleTr?: string;
+  promoTitleEn?: string;
+  promoTitle2Tr?: string;
+  promoTitle2En?: string;
   /** Sağ panelde kaydırmalı ürün kartları (slug sırası) */
   productSlugs?: string[];
 };
@@ -29,10 +39,18 @@ function cleanMeta(meta: NavMenuMegaMeta | undefined): NavMenuMegaMeta {
     : undefined;
   return {
     promoImageUrl: trimmed(meta?.promoImageUrl),
+    promoImageUrl2: trimmed(meta?.promoImageUrl2),
     featuredImageUrl: trimmed(meta?.featuredImageUrl),
+    featuredImageUrl2: trimmed(meta?.featuredImageUrl2),
     featuredSecondaryImageUrl: trimmed(meta?.featuredSecondaryImageUrl),
     featuredTitleTr: trimmed(meta?.featuredTitleTr),
     featuredTitleEn: trimmed(meta?.featuredTitleEn),
+    featuredTitle2Tr: trimmed(meta?.featuredTitle2Tr),
+    featuredTitle2En: trimmed(meta?.featuredTitle2En),
+    promoTitleTr: trimmed(meta?.promoTitleTr),
+    promoTitleEn: trimmed(meta?.promoTitleEn),
+    promoTitle2Tr: trimmed(meta?.promoTitle2Tr),
+    promoTitle2En: trimmed(meta?.promoTitle2En),
     productSlugs: productSlugs?.length ? productSlugs : undefined,
   };
 }
@@ -40,10 +58,18 @@ function cleanMeta(meta: NavMenuMegaMeta | undefined): NavMenuMegaMeta {
 function hasMeta(meta: NavMenuMegaMeta): boolean {
   return Boolean(
     meta.promoImageUrl ||
+      meta.promoImageUrl2 ||
       meta.featuredImageUrl ||
+      meta.featuredImageUrl2 ||
       meta.featuredSecondaryImageUrl ||
       meta.featuredTitleTr ||
       meta.featuredTitleEn ||
+      meta.featuredTitle2Tr ||
+      meta.featuredTitle2En ||
+      meta.promoTitleTr ||
+      meta.promoTitleEn ||
+      meta.promoTitle2Tr ||
+      meta.promoTitle2En ||
       (meta.productSlugs && meta.productSlugs.length > 0),
   );
 }

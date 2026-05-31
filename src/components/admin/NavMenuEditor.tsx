@@ -10,7 +10,7 @@ import {
   type NavMenuMegaMeta,
 } from "@/lib/nav-menu-link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from "react";
 
 type NavProductOption = { slug: string; title: string };
 
@@ -60,6 +60,87 @@ async function uploadNavImage(file: File): Promise<string> {
     throw new Error(json.error ?? "Görsel yüklenemedi");
   }
   return json.media.url;
+}
+
+function MegaImageField({
+  label,
+  urlKey,
+  titleTrKey,
+  titleEnKey,
+  mega,
+  setMega,
+  saveMega,
+  titlePlaceholderTr,
+  titlePlaceholderEn,
+}: {
+  label: string;
+  urlKey: keyof NavMenuMegaMeta;
+  titleTrKey?: keyof NavMenuMegaMeta;
+  titleEnKey?: keyof NavMenuMegaMeta;
+  mega: NavMenuMegaMeta;
+  setMega: Dispatch<SetStateAction<NavMenuMegaMeta>>;
+  saveMega: (next: NavMenuMegaMeta) => Promise<void>;
+  titlePlaceholderTr?: string;
+  titlePlaceholderEn?: string;
+}) {
+  const url = (mega[urlKey] as string | undefined) ?? "";
+  const titleTr = titleTrKey ? ((mega[titleTrKey] as string | undefined) ?? "") : "";
+  const titleEn = titleEnKey ? ((mega[titleEnKey] as string | undefined) ?? "") : "";
+
+  return (
+    <div className="grid gap-2 rounded-lg border border-zinc-200 bg-white p-3">
+      <p className="text-xs font-medium text-zinc-800">{label}</p>
+      <label className="grid gap-1 text-xs">
+        Görsel URL
+        <input
+          className="rounded border border-zinc-300 px-2 py-1 text-sm"
+          value={url}
+          onChange={(e) => setMega((m) => ({ ...m, [urlKey]: e.target.value }))}
+          onBlur={(e) => saveMega({ ...mega, [urlKey]: e.target.value })}
+          placeholder="/uploads/shop/.../banner.jpg"
+        />
+        <input
+          type="file"
+          accept="image/*"
+          className="text-xs"
+          onChange={async (e) => {
+            const input = e.currentTarget;
+            const file = input.files?.[0];
+            if (!file) return;
+            try {
+              const uploaded = await uploadNavImage(file);
+              const nextMega = { ...mega, [urlKey]: uploaded };
+              setMega(nextMega);
+              await saveMega(nextMega);
+            } catch (err) {
+              alert(err instanceof Error ? err.message : "Yükleme hatası");
+            } finally {
+              input.value = "";
+            }
+          }}
+        />
+      </label>
+      {titleTrKey && titleEnKey ? (
+        <label className="grid gap-1 text-xs">
+          Başlık (TR / EN)
+          <input
+            className="rounded border border-zinc-300 px-2 py-1 text-sm"
+            value={titleTr}
+            onChange={(e) => setMega((m) => ({ ...m, [titleTrKey]: e.target.value }))}
+            onBlur={(e) => saveMega({ ...mega, [titleTrKey]: e.target.value })}
+            placeholder={titlePlaceholderTr}
+          />
+          <input
+            className="rounded border border-zinc-300 px-2 py-1 text-sm"
+            value={titleEn}
+            onChange={(e) => setMega((m) => ({ ...m, [titleEnKey]: e.target.value }))}
+            onBlur={(e) => saveMega({ ...mega, [titleEnKey]: e.target.value })}
+            placeholder={titlePlaceholderEn}
+          />
+        </label>
+      ) : null}
+    </div>
+  );
 }
 
 function NavRow({
@@ -320,98 +401,66 @@ function NavRow({
               </div>
             ) : null}
             {depth === 0 ? (
-              <div className="grid gap-2 rounded-lg border border-zinc-200 bg-zinc-50 p-3 sm:grid-cols-2">
+              <div className="grid gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3 sm:grid-cols-2">
                 <p className="sm:col-span-2 text-xs font-medium text-zinc-700">
-                  Mega menü — sağ panel (görsel veya ürün)
+                  Mega menü — vitrin paneli (görsel veya ürün)
                 </p>
                 <p className="sm:col-span-2 text-[11px] text-zinc-600">
-                  Görsel yüklemediğiniz kart otomatik olarak ürün listesine ayrılır. İki görsel de
-                  doluysa ürünler altta kayar.
+                  Boş sütun otomatik ürün ızgarası olur. Karşı tarafta 4 ürün (2 satır) varsa denge
+                  için aynı sütuna alt alta iki görsel ekleyin. Her iki sütunda da görsel varsa
+                  ürünler altta kayar.
                 </p>
-                <label className="grid gap-1 text-xs">
-                  Sol kart görseli (boşsa ürünler)
-                  <input
-                    className="rounded border border-zinc-300 px-2 py-1 text-sm"
-                    value={mega.featuredImageUrl ?? ""}
-                    onChange={(e) => setMega((m) => ({ ...m, featuredImageUrl: e.target.value }))}
-                    onBlur={() => save()}
-                    placeholder="/uploads/shop/.../featured.jpg"
-                  />
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="text-xs"
-                    onChange={async (e) => {
-                      const input = e.currentTarget;
-                      const file = input.files?.[0];
-                      if (!file) return;
-                      try {
-                        const url = await uploadNavImage(file);
-                        const nextMega = { ...mega, featuredImageUrl: url };
-                        setMega(nextMega);
-                        await saveMega(nextMega);
-                      } catch (err) {
-                        alert(err instanceof Error ? err.message : "Yükleme hatası");
-                      } finally {
-                        input.value = "";
-                      }
-                    }}
-                  />
-                </label>
-                <label className="grid gap-1 text-xs">
-                  Sağ kart görseli (boşsa ürünler)
-                  <input
-                    className="rounded border border-zinc-300 px-2 py-1 text-sm"
-                    value={mega.promoImageUrl ?? ""}
-                    onChange={(e) => setMega((m) => ({ ...m, promoImageUrl: e.target.value }))}
-                    onBlur={() => save()}
-                    placeholder="/uploads/shop/.../promo.jpg"
-                  />
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="text-xs"
-                    onChange={async (e) => {
-                      const input = e.currentTarget;
-                      const file = input.files?.[0];
-                      if (!file) return;
-                      try {
-                        const url = await uploadNavImage(file);
-                        const nextMega = { ...mega, promoImageUrl: url };
-                        setMega(nextMega);
-                        await saveMega(nextMega);
-                      } catch (err) {
-                        alert(err instanceof Error ? err.message : "Yükleme hatası");
-                      } finally {
-                        input.value = "";
-                      }
-                    }}
-                  />
-                </label>
-                <label className="grid gap-1 text-xs">
-                  Sağ kart başlık (TR/EN)
-                  <input
-                    className="rounded border border-zinc-300 px-2 py-1 text-sm"
-                    value={mega.featuredTitleTr ?? ""}
-                    onChange={(e) => setMega((m) => ({ ...m, featuredTitleTr: e.target.value }))}
-                    onBlur={() => save()}
-                    placeholder="Çok Satan"
-                  />
-                  <input
-                    className="rounded border border-zinc-300 px-2 py-1 text-sm"
-                    value={mega.featuredTitleEn ?? ""}
-                    onChange={(e) => setMega((m) => ({ ...m, featuredTitleEn: e.target.value }))}
-                    onBlur={() => save()}
-                    placeholder="Bestseller"
-                  />
-                </label>
+                <MegaImageField
+                  label="Sol sütun — üst görsel (boşsa ürünler)"
+                  urlKey="featuredImageUrl"
+                  titleTrKey="featuredTitleTr"
+                  titleEnKey="featuredTitleEn"
+                  mega={mega}
+                  setMega={setMega}
+                  saveMega={saveMega}
+                  titlePlaceholderTr="Yeni Gelenler"
+                  titlePlaceholderEn="New Arrivals"
+                />
+                <MegaImageField
+                  label="Sol sütun — alt görsel (4 ürün karşıda ise)"
+                  urlKey="featuredImageUrl2"
+                  titleTrKey="featuredTitle2Tr"
+                  titleEnKey="featuredTitle2En"
+                  mega={mega}
+                  setMega={setMega}
+                  saveMega={saveMega}
+                  titlePlaceholderTr="Öne Çıkanlar"
+                  titlePlaceholderEn="Highlights"
+                />
+                <MegaImageField
+                  label="Sağ sütun — üst görsel (boşsa ürünler)"
+                  urlKey="promoImageUrl"
+                  titleTrKey="promoTitleTr"
+                  titleEnKey="promoTitleEn"
+                  mega={mega}
+                  setMega={setMega}
+                  saveMega={saveMega}
+                  titlePlaceholderTr="Çok Satanlar"
+                  titlePlaceholderEn="Best Sellers"
+                />
+                <MegaImageField
+                  label="Sağ sütun — alt görsel (4 ürün karşıda ise)"
+                  urlKey="promoImageUrl2"
+                  titleTrKey="promoTitle2Tr"
+                  titleEnKey="promoTitle2En"
+                  mega={mega}
+                  setMega={setMega}
+                  saveMega={saveMega}
+                  titlePlaceholderTr="Kampanyalar"
+                  titlePlaceholderEn="Promotions"
+                />
                 <div className="sm:col-span-2 rounded-lg border border-zinc-200 bg-white p-3">
                   <p className="text-xs font-medium text-zinc-800">
                     Ürünler (en fazla {NAV_MEGA_PRODUCTS_MAX})
                   </p>
                   <p className="mt-1 text-[11px] text-zinc-500">
-                    Boş kartlarda ızgara; iki kartta da görsel varsa altta yatay şerit. İki kart da
-                    boşsa ürünler ikiye bölünür.
+                    Boş sütunlarda 2×2 ızgara. Karşı sütunda 2 görsel varsa yükseklik otomatik
+                    hizalanır. Her iki sütunda görsel varsa ürünler altta kayar.
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     <select

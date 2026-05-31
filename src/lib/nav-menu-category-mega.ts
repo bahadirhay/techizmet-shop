@@ -18,8 +18,10 @@ function hasMegaAside(linkTarget: string | null): boolean {
   const mega = parseNavLinkTarget(linkTarget).mega;
   return Boolean(
     mega.featuredImageUrl ||
+      mega.featuredImageUrl2 ||
       mega.featuredSecondaryImageUrl ||
       mega.promoImageUrl ||
+      mega.promoImageUrl2 ||
       (mega.productSlugs && mega.productSlugs.length > 0),
   );
 }
