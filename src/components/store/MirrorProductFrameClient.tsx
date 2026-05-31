@@ -16,6 +16,7 @@ import type { MirrorFooterData } from "@/lib/mirror-footer-overlay";
 import type { MirrorNavItem } from "@/lib/mirror-nav-overlay";
 import {
   applyProductDetailFromAdmin,
+  patchStickyBuyButton,
   type VitrinProductDetail,
 } from "@/lib/mirror-product-detail-sync";
 import {
@@ -83,7 +84,17 @@ export function MirrorProductFrameClient({
     const doc = frame.contentDocument;
     if (!doc?.getElementById("MainContent")) return;
 
-    if (productFromAdmin) applyProductDetailFromAdmin(doc, productFromAdmin);
+    if (productFromAdmin) {
+      applyProductDetailFromAdmin(doc, productFromAdmin);
+      const stickyProduct = productFromAdmin;
+      const reapplySticky = () => {
+        const d = iframeRef.current?.contentDocument;
+        if (d?.getElementById("MainContent")) patchStickyBuyButton(d, stickyProduct);
+      };
+      for (const ms of [400, 1200, 2400]) {
+        window.setTimeout(reapplySticky, ms);
+      }
+    }
 
     cancelBrandingRef.current?.();
     cancelBrandingRef.current = scheduleMirrorFramePatches(() => iframeRef.current?.contentDocument ?? undefined, {

@@ -1,3 +1,4 @@
+import { isImageNode } from "@/lib/mirror-dom-node";
 import type { ProductHighlight } from "@/lib/product-highlights";
 
 export type VitrinProductMedia = {
@@ -53,6 +54,37 @@ function normalizedMedia(product: VitrinProductDetail): VitrinProductMedia[] {
     return [{ url: product.imageUrl.trim(), alt: product.title, mediaType: "image" }];
   }
   return [];
+}
+
+function primaryProductImageUrl(product: VitrinProductDetail): string | null {
+  const media = normalizedMedia(product);
+  const image = media.find((item) => item.mediaType === "image") ?? media[0];
+  return image?.url?.trim() || null;
+}
+
+function primaryImageFromMainGallery(doc: Document): string | null {
+  const img = doc.querySelector(
+    "#MainContent .main--product-image-slider-outer img, #MainContent .main--product-item img",
+  );
+  if (!isImageNode(img)) return null;
+  return img.getAttribute("data-original")?.trim() || img.src?.trim() || null;
+}
+
+function setMirrorProductImage(img: HTMLImageElement, url: string, alt?: string) {
+  const raw = url.trim();
+  if (!raw) return;
+  const bust = raw.includes("?") ? `${raw}&kn=1` : `${raw}?kn=1`;
+  img.src = bust;
+  img.setAttribute("data-original", raw);
+  img.setAttribute("data-src", raw);
+  img.setAttribute("srcset", `${bust} 1x, ${bust} 2x`);
+  img.removeAttribute("data-srcset");
+  img.removeAttribute("data-sizes");
+  img.removeAttribute("data-widths");
+  img.removeAttribute("lazyload");
+  img.removeAttribute("loading");
+  img.classList.remove("lazyload", "no-js-hidden");
+  if (alt) img.alt = alt;
 }
 
 /** Theme zoom popup id: product-media-content-{sectionId} */
@@ -254,26 +286,22 @@ function patchDescription(doc: Document, product: VitrinProductDetail) {
 }
 
 /** Sağ alt sabit sepet kartı — şablon ürünü yerine incelenen ürün */
-function patchStickyBuyButton(doc: Document, product: VitrinProductDetail) {
+export function patchStickyBuyButton(doc: Document, product: VitrinProductDetail) {
   const sticky = doc.querySelector(
     "sticky-buy-button.sticky-buy-button-wrapper, .sticky-buy-button-wrapper",
   );
   if (!sticky) return;
 
-  const media = normalizedMedia(product);
   const variants = product.variants ?? [];
   const defaultVariant = variants.find((variant) => variant.isDefault) ?? variants[0];
+  const imageUrl = primaryProductImageUrl(product) ?? primaryImageFromMainGallery(doc);
 
-  sticky.querySelectorAll(".sticky--product-image img").forEach((img) => {
-    if (!(img instanceof HTMLImageElement)) return;
-    const url = media[0]?.url;
-    if (!url) return;
-    img.src = url;
-    img.setAttribute("data-original", url);
-    img.setAttribute("data-src", url);
-    img.alt = product.title;
-    img.classList.remove("lazyload");
-  });
+  if (imageUrl) {
+    sticky.querySelectorAll(".sticky--product-image img").forEach((img) => {
+      if (!isImageNode(img)) return;
+      setMirrorProductImage(img, imageUrl, product.title);
+    });
+  }
 
   sticky.querySelectorAll(".sticky--product-detail .product--title").forEach((el) => {
     el.textContent = product.title;

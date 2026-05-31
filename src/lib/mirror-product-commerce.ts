@@ -95,6 +95,20 @@ function buildCommerceScript(data: MirrorProductCommercePayload): string {
     return qs('.sticky-buy-button-wrapper .product--variant-title')||
       qs('sticky-buy-button .product--variant-title');
   }
+  function syncStickyImageFromMain(){
+    var main=qs('#MainContent .main--product-image-slider-outer img, #MainContent .main--product-item img');
+    var stickyImg=qs('.sticky-buy-button-wrapper .sticky--product-image img')||
+      qs('sticky-buy-button .sticky--product-image img');
+    if(!main||!stickyImg)return;
+    var u=main.getAttribute('data-original')||main.src;
+    if(!u)return;
+    var bust=u+(u.indexOf('?')>=0?'&':'?')+'kn='+Date.now();
+    stickyImg.src=bust;
+    stickyImg.setAttribute('data-original',u);
+    stickyImg.setAttribute('data-src',u);
+    stickyImg.removeAttribute('lazyload');
+    stickyImg.classList.remove('lazyload');
+  }
   function mainCutEl(){
     return qs('#MainContent [id^="price--wrapper-template"] .product--cut-price');
   }
@@ -133,6 +147,7 @@ function buildCommerceScript(data: MirrorProductCommercePayload): string {
         else cut.style.display='none';
       }
     }
+    syncStickyImageFromMain();
     var addBtns=qsa('[data-add-to-cart], button[name="add"]');
     var stock=v?v.stockQty>0:DATA.inStock;
     addBtns.forEach(function(b){
