@@ -3,6 +3,7 @@ import { minorToTry } from "@/lib/admin/money";
 import { parseProductBadges } from "@/lib/product-badges";
 import { htmlToPlainText } from "@/lib/product-content-format";
 import {
+  isSiteDefaultExploreJson,
   parseExploreLooksJson,
   type ProductExploreLook,
 } from "@/lib/product-explore-looks";
@@ -92,7 +93,7 @@ export function emptyProductForm(): ProductFormData {
     variantOptionName: "",
     variants: [],
     exploreLooks: [],
-    useSiteDefaultExplore: true,
+    useSiteDefaultExplore: false,
     published: false,
   };
 }
@@ -168,7 +169,7 @@ export function productToForm(
       }),
     ),
     exploreLooks: parseExploreLooksJson(p.exploreLooksJson) ?? [],
-    useSiteDefaultExplore: !p.exploreLooksJson?.trim(),
+    useSiteDefaultExplore: isSiteDefaultExploreJson(p.exploreLooksJson),
     published: p.published,
   };
 }

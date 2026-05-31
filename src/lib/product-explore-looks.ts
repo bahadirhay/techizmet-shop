@@ -7,8 +7,15 @@ export type ProductExploreLook = {
 
 export const DEFAULT_EXPLORE_LABEL = "EXPLORE";
 
+/** Admin: "Mağaza varsayılanını kullan" seçiliyken DB'de saklanır (null = Keşfet kapalı) */
+export const SITE_DEFAULT_EXPLORE_SENTINEL = "__kn:site_default__";
+
+export function isSiteDefaultExploreJson(raw: string | null | undefined): boolean {
+  return raw?.trim() === SITE_DEFAULT_EXPLORE_SENTINEL;
+}
+
 export function parseExploreLooksJson(raw: string | null | undefined): ProductExploreLook[] | null {
-  if (!raw?.trim()) return null;
+  if (!raw?.trim() || isSiteDefaultExploreJson(raw)) return null;
   try {
     const arr = JSON.parse(raw) as ProductExploreLook[];
     if (!Array.isArray(arr)) return null;

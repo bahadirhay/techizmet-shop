@@ -12,6 +12,7 @@ import { parseProductMediaInput } from "@/lib/product-media";
 import { vatRateFromRequestBody } from "@/lib/admin/product-vat";
 import { serializeMarketplacePricesFromForm } from "@/lib/marketplace/product-prices";
 import { resolveProductCategorySelection, syncProductCategoryLinks } from "@/lib/store-product-categories";
+import { SITE_DEFAULT_EXPLORE_SENTINEL } from "@/lib/product-explore-looks";
 
 export async function GET(req: Request) {
   const auth = await requireStaffApi("store.products");
@@ -66,7 +67,7 @@ export async function POST(req: Request) {
         highlightsJson: String(body.highlightsJson ?? "").trim() || null,
         exploreLooksJson:
           body.useSiteDefaultExplore === true
-            ? null
+            ? SITE_DEFAULT_EXPLORE_SENTINEL
             : String(body.exploreLooksJson ?? "").trim() || null,
         sku: String(body.sku ?? "").trim() || null,
         barcode,

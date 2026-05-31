@@ -12,6 +12,7 @@ import { parseProductMediaInput } from "@/lib/product-media";
 import { vatRateFromRequestBody } from "@/lib/admin/product-vat";
 import { serializeMarketplacePricesFromForm } from "@/lib/marketplace/product-prices";
 import { resolveProductCategorySelection, syncProductCategoryLinks } from "@/lib/store-product-categories";
+import { SITE_DEFAULT_EXPLORE_SENTINEL } from "@/lib/product-explore-looks";
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const auth = await requireStaffApi("store.products");
@@ -95,7 +96,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
             : undefined,
         exploreLooksJson:
           body.useSiteDefaultExplore === true
-            ? null
+            ? SITE_DEFAULT_EXPLORE_SENTINEL
             : body.exploreLooksJson !== undefined
               ? String(body.exploreLooksJson).trim() || null
               : undefined,

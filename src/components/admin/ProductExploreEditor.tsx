@@ -25,7 +25,7 @@ export function ProductExploreEditor({
   variant?: "product" | "site";
 }) {
   const isSite = variant === "site";
-  const useDefault = isSite ? false : (useSiteDefault ?? true);
+  const useDefault = isSite ? false : (useSiteDefault ?? false);
   function updateCard(i: number, patch: Partial<ProductExploreLook>) {
     const next = looks.map((l, j) => (j === i ? { ...l, ...patch } : l));
     onLooksChange(next);
@@ -45,7 +45,7 @@ export function ProductExploreEditor({
         <p className="text-xs text-zinc-500 mt-1">
           {isSite
             ? "Tüm ürün detay sayfalarının altındaki 3 lifestyle görsel ve + ile açılan ürün listesi. Ürün formunda özel içerik tanımlanmamışsa bu varsayılan kullanılır."
-            : "Vitrinde ürün açıklamasının altındaki 3 büyük görsel ve + ile açılan ürün kartları. Mağaza varsayılanını kullanabilir veya bu ürüne özel tanımlayabilirsiniz."}
+            : "Vitrinde ürün açıklamasının altındaki Keşfet bölümü. Varsayılan olarak kapalıdır; bu ürüne özel kart ekleyebilir veya mağaza varsayılanını seçebilirsiniz."}
         </p>
       </div>
 

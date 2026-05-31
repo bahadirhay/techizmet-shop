@@ -19,7 +19,11 @@ import {
   getProductPageBottomSettings,
   type ProductPageBottomThemeConfig,
 } from "@/lib/product-page-bottom";
-import { parseExploreLooksJson, type ProductExploreLook } from "@/lib/product-explore-looks";
+import {
+  isSiteDefaultExploreJson,
+  parseExploreLooksJson,
+  type ProductExploreLook,
+} from "@/lib/product-explore-looks";
 import type { StoreTextSettings } from "@/lib/store-static-texts";
 
 export type EmailTemplateKey = "orderConfirmation" | "orderShipped" | "orderCancelled";
@@ -83,7 +87,7 @@ export type SiteSettings = {
     navItems?: StoreNavItem[];
     /** Vitrin alt bilgi / footer menüleri */
     footer?: StoreFooterConfig;
-    /** Tüm ürün PDP altı EXPLORE (exploreLooksJson null iken) */
+    /** Mağaza varsayılanı EXPLORE (yalnızca ürün exploreLooksJson sentinel iken) */
     defaultProductExploreLooks?: ProductExploreLook[];
     /** Ürün PDP kayan kampanya şeridi — geriye dönük */
     defaultProductMarqueeHtml?: string;
@@ -303,10 +307,13 @@ export async function resolveProductExploreLooks(
   siteId: string,
   productExploreLooksJson: string | null,
 ): Promise<ProductExploreLook[]> {
+  if (isSiteDefaultExploreJson(productExploreLooksJson)) {
+    const settings = await getSiteSettings(siteId);
+    return getDefaultProductExploreLooks(settings);
+  }
   const custom = parseExploreLooksJson(productExploreLooksJson);
-  if (custom?.length) return custom;
-  const settings = await getSiteSettings(siteId);
-  return getDefaultProductExploreLooks(settings);
+  if (custom !== null) return custom;
+  return [];
 }
 
 export async function getStoreFooter(siteId?: string): Promise<StoreFooterConfig> {
