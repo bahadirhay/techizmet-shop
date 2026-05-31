@@ -96,31 +96,44 @@ function NavRow({
   const save = useCallback(
     async (linkPatch?: { linkType: NavLinkType; linkTarget: string | null; href?: string }) => {
       setSaving(true);
-      await fetch(`/api/admin/nav-menu/${item.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          labelTr,
-          labelEn,
-          linkType: linkPatch?.linkType ?? linkType,
-          linkTarget: encodeNavLinkTarget(
-            linkPatch?.linkTarget !== undefined ? linkPatch.linkTarget : linkTarget,
-            depth === 0 ? mega : undefined,
-          ),
-          href: linkPatch?.href ?? href,
-          published,
-          openInNewTab,
-        }),
-      });
-      setSaving(false);
-      refresh();
+      try {
+        const res = await fetch(`/api/admin/nav-menu/${item.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            labelTr,
+            labelEn,
+            linkType: linkPatch?.linkType ?? linkType,
+            linkTarget: encodeNavLinkTarget(
+              linkPatch?.linkTarget !== undefined ? linkPatch.linkTarget : linkTarget,
+              depth === 0 ? mega : undefined,
+            ),
+            href: linkPatch?.href ?? href,
+            published,
+            openInNewTab,
+          }),
+        });
+        if (!res.ok) {
+          const d = (await res.json().catch(() => ({}))) as { error?: string };
+          if (res.status === 404) {
+            alert("Menü öğesi bulunamadı. Liste yenileniyor.");
+            refresh();
+            return;
+          }
+          alert(d.error ?? "Kaydedilemedi");
+          return;
+        }
+        refresh();
+      } finally {
+        setSaving(false);
+      }
     },
     [item.id, labelTr, labelEn, linkType, linkTarget, href, published, openInNewTab, refresh, depth, mega],
   );
 
   const saveMega = useCallback(
     async (nextMega: NavMenuMegaMeta) => {
-      await fetch(`/api/admin/nav-menu/${item.id}`, {
+      const res = await fetch(`/api/admin/nav-menu/${item.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -133,10 +146,49 @@ function NavRow({
           openInNewTab,
         }),
       });
+      if (!res.ok) {
+        const d = (await res.json().catch(() => ({}))) as { error?: string };
+        if (res.status === 404) {
+          alert("Menü öğesi bulunamadı. Liste yenileniyor.");
+          refresh();
+          return;
+        }
+        alert(d.error ?? "Kaydedilemedi");
+        return;
+      }
       refresh();
     },
     [item.id, labelTr, labelEn, linkType, linkTarget, depth, href, published, openInNewTab, refresh],
   );
+
+  const syncFromCategory = async () => {
+    if (
+      !confirm(
+        "Alt sütunlar ve linkler kategori ağacından yeniden yazılacak (mevcut alt menü silinir). Devam?",
+      )
+    ) {
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/admin/nav-menu/${item.id}/sync-category`, { method: "POST" });
+      const d = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        columnCount?: number;
+        linkCount?: number;
+      };
+      if (!res.ok) {
+        alert(d.error ?? "Senkron başarısız");
+        return;
+      }
+      alert(
+        `Kategori ağacı aktarıldı (${d.columnCount ?? "?"} sütun, ${d.linkCount ?? "?"} link). Vitrini yenileyin.`,
+      );
+      refresh();
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const move = async (dir: -1 | 1) => {
     const j = idx + dir;
@@ -190,17 +242,28 @@ function NavRow({
   return (
     <div className="space-y-2">
       <div
-        className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm"
+        className={`rounded-xl border bg-white p-3 shadow-sm ${
+          published ? "border-zinc-200" : "border-amber-300 bg-amber-50/40"
+        }`}
         style={{ marginLeft: depth * 16 }}
       >
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="flex w-full items-start justify-between gap-3 rounded-lg bg-zinc-50 px-3 py-2 text-left transition hover:bg-zinc-100"
+          className={`flex w-full items-start justify-between gap-3 rounded-lg px-3 py-2 text-left transition ${
+            published ? "bg-zinc-50 hover:bg-zinc-100" : "bg-amber-100/60 hover:bg-amber-100"
+          }`}
         >
           <div className="min-w-0">
             <p className="text-[11px] font-medium text-zinc-500">{depthHint}</p>
-            <p className="truncate text-sm font-semibold text-zinc-900">{labelTr || labelEn || "Adsız menü"}</p>
+            <p className="truncate text-sm font-semibold text-zinc-900">
+              {labelTr || labelEn || "Adsız menü"}
+              {!published ? (
+                <span className="ml-2 rounded bg-amber-200 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-amber-900">
+                  Taslak
+                </span>
+              ) : null}
+            </p>
             {summaryText ? <p className="truncate text-xs text-zinc-500">{summaryText}</p> : null}
           </div>
           <span className="shrink-0 rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-[11px] text-zinc-600">
@@ -239,6 +302,23 @@ function NavRow({
                 }}
               />
             </div>
+            {depth === 0 && linkType === "category" && linkTarget ? (
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50/80 p-3">
+                <p className="text-xs font-medium text-emerald-900">Kategori mega menü</p>
+                <p className="mt-1 text-[11px] text-emerald-800">
+                  Alt sütun yoksa vitrin otomatik doldurulur. Elle düzenlediyseniz veya ağaç
+                  değiştiyse aşağıdan yenileyin.
+                </p>
+                <button
+                  type="button"
+                  className="mt-2 rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-xs font-medium text-emerald-900"
+                  onClick={syncFromCategory}
+                  disabled={saving}
+                >
+                  Kategori ağacından yenile
+                </button>
+              </div>
+            ) : null}
             {depth === 0 ? (
               <div className="grid gap-2 rounded-lg border border-zinc-200 bg-zinc-50 p-3 sm:grid-cols-2">
                 <p className="sm:col-span-2 text-xs font-medium text-zinc-700">
@@ -560,7 +640,7 @@ export function NavMenuEditor({
         labelTr: menuSlug === "header" ? "Yeni kategori" : "Yeni alt bilgi linki",
         labelEn: menuSlug === "header" ? "New category" : "New footer link",
         href: "/",
-        published: true,
+        published: false,
         menuSlug,
       }),
     });

@@ -53,6 +53,71 @@ function syntheticNode(
 }
 
 /** Kategori bağlantılı üst menü — alt sütun yoksa kategori ağacından mega sütun üret */
+function buildColumnsFromCategory(
+  node: NavNode,
+  cat: { id: string; slug: string; title: string },
+  childrenOf: (parentId: string) => Array<{ id: string; slug: string; title: string }>,
+): NavNode[] {
+  const subs = childrenOf(cat.id);
+  if (!subs.length) {
+    return [
+      syntheticNode(
+        `syn-col-${node.id}`,
+        megaColumnTitle(node, cat.title),
+        categoryProductHref(cat.slug),
+        [
+          syntheticNode(
+            `syn-link-${node.id}-${cat.slug}`,
+            cat.title,
+            categoryProductHref(cat.slug),
+          ),
+        ],
+      ),
+    ];
+  }
+
+  const hasNested = subs.some((sub) => childrenOf(sub.id).length > 0);
+  if (!hasNested) {
+    const subLinks = subs.map((sub) =>
+      syntheticNode(`syn-link-${node.id}-${sub.slug}`, sub.title, categoryProductHref(sub.slug)),
+    );
+    return [
+      syntheticNode(
+        `syn-col-${node.id}`,
+        megaColumnTitle(node, cat.title),
+        categoryProductHref(cat.slug),
+        subLinks,
+      ),
+    ];
+  }
+
+  return subs.map((sub) => {
+    const grandchildren = childrenOf(sub.id);
+    const links =
+      grandchildren.length > 0
+        ? grandchildren.map((gc) =>
+            syntheticNode(
+              `syn-link-${node.id}-${gc.slug}`,
+              gc.title,
+              categoryProductHref(gc.slug),
+            ),
+          )
+        : [
+            syntheticNode(
+              `syn-link-${node.id}-${sub.slug}`,
+              sub.title,
+              categoryProductHref(sub.slug),
+            ),
+          ];
+    return syntheticNode(
+      `syn-col-${node.id}-${sub.slug}`,
+      sub.title,
+      categoryProductHref(sub.slug),
+      links,
+    );
+  });
+}
+
 export async function injectCategoryColumnsIntoTree(
   nodes: NavNode[],
   siteId: string,
@@ -84,27 +149,10 @@ export async function injectCategoryColumnsIntoTree(
       };
     }
 
-    /** Kategori kök menüsü — alt linkleri her zaman DB ağacından (eski/yanlış manuel alt menüyü ezme) */
-    const subs = childrenOf(cat.id);
-    const subLinks =
-      subs.length > 0
-        ? subs.map((sub) =>
-            syntheticNode(`syn-link-${node.id}-${sub.slug}`, sub.title, categoryProductHref(sub.slug)),
-          )
-        : [
-            syntheticNode(
-              `syn-link-${node.id}-${cat.slug}`,
-              cat.title,
-              categoryProductHref(cat.slug),
-            ),
-          ];
+    /** Elle yapılandırılmış sütunlar admin önceliğinde */
+    if (node.children.length > 0) return node;
 
-    const column = syntheticNode(
-      `syn-col-${node.id}`,
-      megaColumnTitle(node, cat.title),
-      categoryProductHref(cat.slug),
-      subLinks,
-    );
-    return { ...node, children: [column] };
+    const columns = buildColumnsFromCategory(node, cat, childrenOf);
+    return { ...node, children: columns };
   });
 }

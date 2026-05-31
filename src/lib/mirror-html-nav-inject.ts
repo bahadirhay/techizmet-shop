@@ -36,7 +36,10 @@ function navItemHtml(it: ResolvedNavItem, locale: "tr" | "en"): string {
   }
 
   const dropdown = it.columns?.length
-    ? buildMegaDropdownHtml(it.columns, locale, it.mega, it.products)
+    ? buildMegaDropdownHtml(it.columns, locale, it.mega, it.products, {
+        href: it.href,
+        label: locale === "tr" ? `Tüm ${it.label}` : `All ${it.label}`,
+      })
     : simpleDropdownHtml(it.children!);
 
   return `<li class="header--menu-item kn-nav-has-dropdown" data-kn-nav-parent><a href="${href}" class="header--menu-link heading-font text-small">${label}</a>${dropdown}</li>`;

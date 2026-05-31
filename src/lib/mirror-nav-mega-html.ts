@@ -160,6 +160,7 @@ export function buildMegaDropdownHtml(
   locale: "tr" | "en" = "tr",
   mega?: NavMenuMegaMeta,
   products: MegaNavProduct[] = [],
+  viewAll?: { href: string; label: string },
 ): string {
   if (!columns.length) return "";
 
@@ -180,6 +181,14 @@ export function buildMegaDropdownHtml(
     .filter(Boolean)
     .join("");
 
+  const viewAllHref = viewAll?.href?.trim() ?? columns.find((c) => c.href)?.href ?? "";
+  const viewAllLabel =
+    viewAll?.label?.trim() ??
+    (locale === "tr" ? "Tümünü gör" : "View all");
+  const viewAllHtml = viewAllHref
+    ? `<p class="kn-nav-mega__view-all"><a href="${escAttr(viewAllHref)}">${escText(viewAllLabel)} →</a></p>`
+    : "";
+
   const aside = buildMegaAsideHtml(columns, locale, mega, products);
 
   return `<div class="kn-nav-dropdown kn-nav-dropdown--mega kn-nav-dropdown--fruitser" data-kn-nav-dropdown>
@@ -187,6 +196,7 @@ export function buildMegaDropdownHtml(
     <div class="style_1 row kn-nav-mega__row">
       <div class="parent-mega-menu parent-mega-menu col-md-6 col-sm-6 kn-nav-mega__left">
         <div class="row kn-nav-mega__categories">${colBlocks}</div>
+        ${viewAllHtml}
       </div>
       ${aside}
     </div>
