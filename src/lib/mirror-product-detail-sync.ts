@@ -253,6 +253,44 @@ function patchDescription(doc: Document, product: VitrinProductDetail) {
   });
 }
 
+/** Sağ alt sabit sepet kartı — şablon ürünü yerine incelenen ürün */
+function patchStickyBuyButton(doc: Document, product: VitrinProductDetail) {
+  const sticky = doc.querySelector(
+    "sticky-buy-button.sticky-buy-button-wrapper, .sticky-buy-button-wrapper",
+  );
+  if (!sticky) return;
+
+  const media = normalizedMedia(product);
+  const variants = product.variants ?? [];
+  const defaultVariant = variants.find((variant) => variant.isDefault) ?? variants[0];
+
+  sticky.querySelectorAll(".sticky--product-image img").forEach((img) => {
+    if (!(img instanceof HTMLImageElement)) return;
+    const url = media[0]?.url;
+    if (!url) return;
+    img.src = url;
+    img.setAttribute("data-original", url);
+    img.setAttribute("data-src", url);
+    img.alt = product.title;
+    img.classList.remove("lazyload");
+  });
+
+  sticky.querySelectorAll(".sticky--product-detail .product--title").forEach((el) => {
+    el.textContent = product.title;
+  });
+
+  const variantTitle = sticky.querySelector(".sticky--product-detail .product--variant-title");
+  if (variantTitle instanceof HTMLElement) {
+    if (defaultVariant?.label) {
+      variantTitle.textContent = defaultVariant.label;
+      variantTitle.style.display = "";
+    } else {
+      variantTitle.textContent = "";
+      variantTitle.style.display = "none";
+    }
+  }
+}
+
 function patchProductHighlights(doc: Document, highlights: ProductHighlight[]) {
   const items = doc.querySelectorAll("#MainContent .custom-icons-list .custom-icons-item");
   if (!items.length) return;
@@ -398,5 +436,6 @@ export function applyProductDetailFromAdmin(doc: Document, product: VitrinProduc
   patchDescription(doc, product);
   patchMainImage(doc, product);
   patchVariants(doc, product);
+  patchStickyBuyButton(doc, product);
   if (product.highlights?.length) patchProductHighlights(doc, product.highlights);
 }

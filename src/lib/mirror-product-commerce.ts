@@ -87,22 +87,51 @@ function buildCommerceScript(data: MirrorProductCommercePayload): string {
     return qs('#MainContent [id^="price--wrapper-template"] .product--actual-price')||
       qs('#MainContent .product--pricing .product--actual-price');
   }
+  function stickyPriceEl(){
+    return qs('.sticky-buy-button-wrapper .product--actual-price')||
+      qs('sticky-buy-button .product--actual-price');
+  }
+  function stickyVariantTitleEl(){
+    return qs('.sticky-buy-button-wrapper .product--variant-title')||
+      qs('sticky-buy-button .product--variant-title');
+  }
   function mainCutEl(){
     return qs('#MainContent [id^="price--wrapper-template"] .product--cut-price');
   }
   function updatePrice(){
     var v=selectedVariant();
     var el=mainPriceEl();
-    if(!el)return;
-    if(v){
-      el.textContent=v.priceLabel;
+    if(el){
+      if(v){
+        el.textContent=v.priceLabel;
+      }else{
+        el.textContent=DATA.fromPrice?startingPriceText(DATA.priceLabel):DATA.priceLabel;
+      }
+    }
+    var stickyEl=stickyPriceEl();
+    if(stickyEl){
+      if(v){
+        stickyEl.textContent=v.priceLabel;
+      }else{
+        stickyEl.textContent=DATA.fromPrice?startingPriceText(DATA.priceLabel):DATA.priceLabel;
+      }
+    }
+    var stickyVar=stickyVariantTitleEl();
+    if(stickyVar){
+      if(v&&v.label){
+        stickyVar.textContent=v.label;
+        stickyVar.style.display='';
+      }else if(!DATA.variants.length){
+        stickyVar.textContent='';
+        stickyVar.style.display='none';
+      }
+    }
+    if(el){
       var cut=mainCutEl();
       if(cut){
-        if(v.compareLabel){cut.textContent=v.compareLabel;cut.style.display='';}
+        if(v&&v.compareLabel){cut.textContent=v.compareLabel;cut.style.display='';}
         else cut.style.display='none';
       }
-    }else{
-      el.textContent=DATA.fromPrice?startingPriceText(DATA.priceLabel):DATA.priceLabel;
     }
     var addBtns=qsa('[data-add-to-cart], button[name="add"]');
     var stock=v?v.stockQty>0:DATA.inStock;
@@ -201,6 +230,14 @@ export function applyMirrorProductCommerce(doc: Document, data: MirrorProductCom
   if (el) {
     const prefix = data.texts?.startingPricePrefix?.trim() || "Başlayan fiyat";
     el.textContent = data.fromPrice ? `${prefix}: ${data.priceLabel}` : data.priceLabel;
+  }
+
+  const stickyPrice = doc.querySelector(
+    ".sticky-buy-button-wrapper .product--actual-price, sticky-buy-button .product--actual-price",
+  );
+  if (stickyPrice) {
+    const prefix = data.texts?.startingPricePrefix?.trim() || "Başlayan fiyat";
+    stickyPrice.textContent = data.fromPrice ? `${prefix}: ${data.priceLabel}` : data.priceLabel;
   }
 
   const script = doc.createElement("script");
