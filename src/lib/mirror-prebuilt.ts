@@ -1,15 +1,13 @@
+import { buildMirrorIframeSrc, prebuiltMirrorPublicUrl, MIRROR_PREBUILT_PREFIX } from "@/lib/mirror-iframe-src";
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-export const MIRROR_PREBUILT_PREFIX = "_mirror-prebuilt";
+export { MIRROR_PREBUILT_PREFIX, prebuiltMirrorPublicUrl } from "@/lib/mirror-iframe-src";
 
 export function prebuiltMirrorRel(normalized: string): string {
-  return `${MIRROR_PREBUILT_PREFIX}/${normalized}`;
-}
-
-export function prebuiltMirrorPublicUrl(normalized: string): string {
-  return `/${prebuiltMirrorRel(normalized)}`;
+  const path = normalized.startsWith("/") ? normalized.slice(1) : normalized;
+  return `${MIRROR_PREBUILT_PREFIX}/${path}`;
 }
 
 export function prebuiltMirrorAbs(normalized: string): string {
@@ -26,7 +24,7 @@ export async function readPrebuiltMirrorHtml(normalized: string): Promise<string
   return readFile(abs, "utf8");
 }
 
-/** Production: build sırasında üretilen statik CDN yolu (existsSync serverless'ta güvenilmez) */
+/** Production: build sırasında üretilen statik CDN yolu; geliştirmede yerel prebuilt varsa onu kullan */
 export function resolveMirrorIframeSrc(
   normalized: string,
   pageKey?: string,
@@ -34,20 +32,9 @@ export function resolveMirrorIframeSrc(
 ): string {
   const path = normalized.startsWith("/") ? normalized.slice(1) : normalized;
 
-  if (process.env.NODE_ENV === "production") {
+  if (process.env.NODE_ENV !== "production" && hasPrebuiltMirrorHtml(path)) {
     return prebuiltMirrorPublicUrl(path);
   }
 
-  if (hasPrebuiltMirrorHtml(path)) {
-    return prebuiltMirrorPublicUrl(path);
-  }
-
-  const q = new URLSearchParams({ path });
-  if (pageKey) q.set("pageKey", pageKey);
-  if (extra) {
-    for (const [k, v] of Object.entries(extra)) {
-      if (v?.trim()) q.set(k, v.trim());
-    }
-  }
-  return `/api/vitrin/mirror?${q.toString()}`;
+  return buildMirrorIframeSrc(path, pageKey, extra);
 }

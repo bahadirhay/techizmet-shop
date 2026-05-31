@@ -1,5 +1,5 @@
 import type { MirrorBranding } from "@/lib/mirror-branding-overlay";
-import { resolveMirrorIframeSrc } from "@/lib/mirror-prebuilt";
+export { toBrandedMirrorSrc } from "@/lib/mirror-iframe-src";
 
 const NOOR_DARK = /\/theme\/techizmet-shop\/cdn\/shop\/files\/noor-dark-logo[^"'\s]*/gi;
 const NOOR_WHITE = /\/theme\/techizmet-shop\/cdn\/shop\/files\/noor-white-logo[^"'\s]*/gi;
@@ -86,14 +86,4 @@ function buildHeadBootstrap(branding: MirrorBranding): string {
     fallbackLight: FALLBACK_LIGHT,
   });
   return `<script id="kn-branding-bootstrap">(function(){var P=${payload};function bust(u){if(!u)return u;return u+(u.indexOf("?")>=0?"&":"?")+"kn=1";}function pathOf(u){return(u||"").split("?")[0];}function set(el,u,fallback){if(!el||!u)return;var n=bust(u);var fb=fallback?bust(fallback):"";el.removeAttribute("data-src");el.onerror=function(){if(fb&&pathOf(el.src)!==pathOf(fb)){el.onerror=null;set(el,fb,"");return;}el.style.visibility="hidden";};el.src=n;el.setAttribute("srcset",n+" 1x, "+n+" 2x");}function apply(){if(P.logo)document.querySelectorAll("img.header--logo-img:not(.transparent-logo-img)").forEach(function(el){set(el,P.logo,P.fallbackDark);});if(P.light)document.querySelectorAll("img.transparent-logo-img,img.footer--logo-img").forEach(function(el){set(el,P.light,P.fallbackLight);});if(P.favicon)["icon","shortcut icon","apple-touch-icon"].forEach(function(r){var l=document.querySelector('link[rel="'+r+'"]');if(!l){l=document.createElement("link");l.rel=r;document.head.appendChild(l);}l.href=bust(P.favicon);});document.querySelectorAll('link[rel="preload"][as="image"]').forEach(function(l){if(/logo/i.test(l.href))l.href=bust(P.light||P.logo);});}function boot(){apply();var moScheduled=false;new MutationObserver(function(){if(moScheduled)return;moScheduled=true;requestAnimationFrame(function(){moScheduled=false;apply();});}).observe(document.documentElement,{subtree:true,attributes:true,attributeFilter:["src","srcset","href"]});}if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot);else boot();})();</script>`;
-}
-
-/** /theme/techizmet-shop/mirror/... → statik prebuilt veya markalı API */
-export function toBrandedMirrorSrc(
-  publicPath: string,
-  pageKey?: string,
-  extra?: Record<string, string | undefined>,
-): string {
-  const path = publicPath.startsWith("/") ? publicPath.slice(1) : publicPath;
-  return resolveMirrorIframeSrc(path, pageKey, extra);
 }
