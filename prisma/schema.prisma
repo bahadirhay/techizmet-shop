@@ -43,6 +43,7 @@ model StoreSite {
   navMenuItems      NavMenuItem[]
   blogPosts         StoreBlogPost[]
   priceChangeBatches StorePriceChangeBatch[]
+  passwordResetTokens PasswordResetToken[]
   financeCategories FinanceCategory[]
   financeAccounts   FinanceAccount[]
   financeTransactions FinanceTransaction[]
@@ -537,6 +538,7 @@ model StoreCustomer {
   orders          StoreOrder[]
   addresses       CustomerAddress[]
   favorites       CustomerFavorite[]
+  passwordResetTokens PasswordResetToken[]
 
   @@unique([siteId, email])
   @@index([siteId, email])
@@ -556,6 +558,23 @@ model CustomerFavorite {
   @@unique([customerId, productId])
   @@index([customerId])
   @@map("customer_favorite")
+  @@schema("shop")
+}
+
+model PasswordResetToken {
+  id         String   @id @default(cuid())
+  siteId     String
+  site       StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  customerId String
+  customer   StoreCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  tokenHash  String
+  expiresAt  DateTime
+  usedAt     DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([siteId, tokenHash])
+  @@index([customerId, createdAt])
+  @@map("password_reset_token")
   @@schema("shop")
 }
 

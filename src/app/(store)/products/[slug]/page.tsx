@@ -9,6 +9,8 @@ import { getStoreHomepageMode } from "@/lib/site-settings";
 import { getLoggedInCustomerPricing } from "@/lib/store/customer-pricing";
 import { getDefaultSite } from "@/lib/site";
 
+export const revalidate = 300;
+
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const site = await getDefaultSite();

@@ -1,5 +1,6 @@
 "use client";
 
+import { AccountChangePasswordForm } from "@/components/store/AccountChangePasswordForm";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -264,6 +265,10 @@ export function AccountDashboard({
         <button type="button" className="kn-btn kn-btn--primary" onClick={saveProfile} disabled={busy}>
           Profili kaydet
         </button>
+      </section>
+
+      <section className="kn-account-section">
+        <AccountChangePasswordForm />
       </section>
 
       <section className="kn-account-section">

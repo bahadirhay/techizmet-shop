@@ -234,6 +234,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     collapsedByDefault: true,
     items: [
       { href: "/admin/settings/store", label: "Mağaza ayarları", perm: "site.settings" },
+      { href: "/admin/settings/security", label: "Güvenlik & şifre", perm: null },
       { href: "/admin/settings/menu", label: "Menü & kategoriler", perm: "site.theme" },
       { href: "/admin/settings/navigation", label: "Footer & çerez", perm: "site.theme" },
       { href: "/admin/settings/seo", label: "Logo, favicon & SEO", perm: "site.settings" },
@@ -314,6 +315,7 @@ export const ADMIN_PAGE_TITLES: Record<string, string> = {
   "/admin/theme": "Tema & vitrin",
   "/admin/settings/users": "Panel kullanıcıları",
   "/admin/settings/store": "Mağaza ayarları",
+  "/admin/settings/security": "Güvenlik & şifre",
   "/admin/settings/seo": "Logo, favicon & SEO",
   "/admin/settings/menu": "Menü & kategoriler",
   "/admin/settings/navigation": "Footer & çerez",

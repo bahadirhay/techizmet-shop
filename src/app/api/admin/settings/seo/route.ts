@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidateStorePublicCache } from "@/lib/cache/revalidate-store-public";
 import { mergeSiteSettings } from "@/lib/merge-site-settings";
 import { getSiteBranding, getSiteSeo, parseSiteSettings, type SiteSettings } from "@/lib/site-settings";
 import { requireStaffApi } from "@/lib/staff-auth";
@@ -36,5 +37,6 @@ export async function PATCH(req: Request) {
     data: { settingsJson: JSON.stringify(next) },
   });
 
+  revalidateStorePublicCache(auth.siteId);
   return NextResponse.json({ ok: true, branding: next.branding, seo: next.seo });
 }

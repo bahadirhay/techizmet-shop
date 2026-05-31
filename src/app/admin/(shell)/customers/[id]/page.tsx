@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CustomerDetailForm } from "@/components/admin/CustomerDetailForm";
 import { CustomerGroupAssign } from "@/components/admin/CustomerGroupAssign";
+import { CustomerPasswordForm } from "@/components/admin/CustomerPasswordForm";
 import { formatTry } from "@/lib/admin/money";
 import { ORDER_STATUSES } from "@/lib/admin/marketplace-platforms";
 import { prisma } from "@/lib/prisma";
@@ -94,6 +95,16 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
               groups={groups}
               currentGroupId={customer.customerGroupId}
             />
+          </div>
+          <div className="rounded-xl border bg-white p-6">
+            <h2 className="font-semibold">Üye şifresi</h2>
+            <div className="mt-3">
+              <CustomerPasswordForm
+                customerId={customer.id}
+                email={customer.email}
+                hasPassword={Boolean(customer.passwordHash)}
+              />
+            </div>
           </div>
           <div className="rounded-xl border bg-white p-6">
             <CustomerDetailForm customerId={customer.id} initialNotes={customer.notes ?? ""} />

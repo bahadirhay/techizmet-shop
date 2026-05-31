@@ -1,10 +1,12 @@
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
-import { parsePermissionsJson } from "@/lib/staff-permissions";
+import { StaffUserPasswordForm } from "@/components/admin/StaffUserPasswordForm";
+import { parsePermissionsJson, hasStaffPermission } from "@/lib/staff-permissions";
 import { requireStaffPage } from "@/lib/staff-auth";
+import { prisma } from "@/lib/prisma";
 
 export default async function StaffUsersPage() {
   const auth = await requireStaffPage();
+  const canManageUsers = hasStaffPermission(auth.permissions, "users.manage");
 
   const [users, roles, memberCount, groups] = await Promise.all([
     prisma.shopStaffUser.findMany({
@@ -46,25 +48,34 @@ export default async function StaffUsersPage() {
       </div>
 
       <h2 className="mt-10 text-lg font-semibold">Panel kullanıcıları (admin girişi)</h2>
-      <p className="text-sm text-zinc-500">Seed: <code>admin / admin123</code></p>
-      <table className="mt-4 w-full text-left text-sm">
-        <thead>
-          <tr className="border-b text-zinc-500">
-            <th className="py-2">Kullanıcı</th>
-            <th>Roller</th>
-            <th>Durum</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((u) => (
-            <tr key={u.id} className="border-b">
-              <td className="py-2 font-medium">{u.username}</td>
-              <td>{u.roleAssignments.map((a) => a.role.label).join(", ") || "—"}</td>
-              <td>{u.active ? "Aktif" : "Pasif"}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <p className="text-sm text-zinc-500">
+        Kendi şifreniz için{" "}
+        <Link href="/admin/settings/security" className="text-[var(--kn-brand)] underline">
+          Güvenlik & şifre
+        </Link>
+        .
+      </p>
+      <ul className="mt-4 space-y-3">
+        {users.map((u) => (
+          <li key={u.id} className="rounded-xl border bg-white p-4 text-sm">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <strong>{u.username}</strong>
+                {u.id === auth.staffUserId ? (
+                  <span className="ml-2 text-xs text-zinc-500">(siz)</span>
+                ) : null}
+                <p className="mt-1 text-xs text-zinc-500">
+                  {u.roleAssignments.map((a) => a.role.label).join(", ") || "—"} ·{" "}
+                  {u.active ? "Aktif" : "Pasif"}
+                </p>
+              </div>
+            </div>
+            {canManageUsers && u.id !== auth.staffUserId ? (
+              <StaffUserPasswordForm userId={u.id} username={u.username} />
+            ) : null}
+          </li>
+        ))}
+      </ul>
 
       <h2 className="mt-10 text-lg font-semibold">Mağaza üyesi → gruba atama</h2>
       <ol className="mt-2 list-decimal space-y-2 pl-5 text-sm text-zinc-700">

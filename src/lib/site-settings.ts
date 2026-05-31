@@ -1,5 +1,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { cache } from "react";
+import { getCachedParsedSiteSettings } from "@/lib/cache/store-cache";
 import { prisma } from "@/lib/prisma";
 import { getDefaultSite } from "@/lib/site";
 import { getPaytrConfig } from "@/lib/payments/paytr";
@@ -265,12 +267,10 @@ export function parseSiteSettings(raw: string | null | undefined): SiteSettings 
   }
 }
 
-export async function getSiteSettings(siteId?: string): Promise<SiteSettings> {
-  const site = siteId
-    ? await prisma.storeSite.findUnique({ where: { id: siteId } })
-    : await getDefaultSite();
-  return parseSiteSettings(site?.settingsJson ?? null);
-}
+export const getSiteSettings = cache(async (siteId?: string): Promise<SiteSettings> => {
+  const id = siteId ?? (await getDefaultSite()).id;
+  return getCachedParsedSiteSettings(id);
+});
 
 export function isCardPaymentEnabled(settings: SiteSettings): boolean {
   return getPaytrConfig(settings) !== null;

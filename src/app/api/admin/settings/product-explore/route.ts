@@ -1,5 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
+import { revalidateStorePublicCache } from "@/lib/cache/revalidate-store-public";
 import { mergeSiteSettings } from "@/lib/merge-site-settings";
 import type { ProductPageBottomSettings } from "@/lib/product-page-bottom";
 import {
@@ -124,6 +125,7 @@ export async function PATCH(req: Request) {
   });
 
   revalidatePath("/products/[slug]", "page");
+  revalidateStorePublicCache(auth.siteId);
 
   return NextResponse.json({ ok: true, looks, pageBottom });
 }

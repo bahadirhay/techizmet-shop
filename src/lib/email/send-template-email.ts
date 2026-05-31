@@ -1,6 +1,8 @@
-import type { EmailTemplateKey } from "@/lib/site-settings";
+import "server-only";
 
-/** Resend API veya konsol (geliştirme) */
+import { getSmtpTransport, smtpConfigured } from "@/lib/email/smtp-transport";
+
+/** Resend API, SMTP veya konsol (geliştirme) */
 export async function sendTemplateEmail(params: {
   to: string;
   subject: string;
@@ -10,12 +12,31 @@ export async function sendTemplateEmail(params: {
 }): Promise<{ sent: boolean; reason?: string }> {
   if (!params.to?.trim()) return { sent: false, reason: "no_email" };
 
-  const apiKey = process.env.RESEND_API_KEY?.trim();
   const from =
     params.from?.trim() ||
     process.env.MAIL_FROM?.trim() ||
     "Techizmet Shop <siparis@techizmet.local>";
 
+  if (smtpConfigured()) {
+    const transport = getSmtpTransport();
+    if (transport) {
+      try {
+        await transport.sendMail({
+          from,
+          to: params.to.trim(),
+          subject: params.subject,
+          html: params.html,
+          ...(params.replyTo?.trim() ? { replyTo: params.replyTo.trim() } : {}),
+        });
+        return { sent: true };
+      } catch (err) {
+        console.error("[email] SMTP hata:", err);
+        return { sent: false, reason: "smtp_error" };
+      }
+    }
+  }
+
+  const apiKey = process.env.RESEND_API_KEY?.trim();
   if (!apiKey) {
     if (process.env.NODE_ENV === "development") {
       console.log("[email]", params.subject, "→", params.to);
@@ -46,4 +67,4 @@ export async function sendTemplateEmail(params: {
   return { sent: true };
 }
 
-export type { EmailTemplateKey };
+export type { EmailTemplateKey } from "@/lib/site-settings";

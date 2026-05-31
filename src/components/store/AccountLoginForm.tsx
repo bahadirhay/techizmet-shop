@@ -48,6 +48,9 @@ export function AccountLoginForm() {
             onChange={(e) => setPassword(e.target.value)}
           />
         </label>
+        <p className="kn-account__hint">
+          <Link href="/account/forgot-password">Şifremi unuttum</Link>
+        </p>
         {err ? <p className="kn-form-error">{err}</p> : null}
         <button type="submit" className="kn-btn kn-btn--primary kn-btn--block" disabled={busy}>
           {busy ? "…" : "Giriş"}

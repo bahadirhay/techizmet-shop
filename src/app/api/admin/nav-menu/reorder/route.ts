@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidateStorePublicCache } from "@/lib/cache/revalidate-store-public";
 import { prisma } from "@/lib/prisma";
 import { requireStaffApi } from "@/lib/staff-auth";
 
@@ -39,5 +40,6 @@ export async function PUT(req: Request) {
       }),
     ),
   );
+  revalidateStorePublicCache(auth.siteId);
   return NextResponse.json({ ok: true });
 }

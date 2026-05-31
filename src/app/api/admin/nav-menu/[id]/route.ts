@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidateStorePublicCache } from "@/lib/cache/revalidate-store-public";
 import { resolveNavMenuHref, type NavLinkType } from "@/lib/nav-menu-link";
 import { prisma } from "@/lib/prisma";
 import { requireStaffApi } from "@/lib/staff-auth";
@@ -58,6 +59,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
 
   try {
     const row = await prisma.navMenuItem.update({ where: { id }, data });
+    revalidateStorePublicCache(auth.siteId);
     return NextResponse.json(row);
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Güncelleme başarısız";
@@ -87,5 +89,6 @@ export async function DELETE(_req: Request, ctx: Ctx) {
   }
 
   await prisma.navMenuItem.delete({ where: { id } });
+  revalidateStorePublicCache(auth.siteId);
   return NextResponse.json({ ok: true });
 }

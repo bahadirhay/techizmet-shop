@@ -88,8 +88,9 @@ export function NotificationSettingsForm({ initial }: { initial: SiteSettings })
       <section id="email" className="scroll-mt-6 rounded-xl border bg-white p-6">
         <h2 className="text-lg font-semibold">E-posta bildirimleri</h2>
         <p className="mt-1 text-sm text-zinc-500">
-          Gönderim için sunucuda <code>RESEND_API_KEY</code> gerekir. Gönderen adresi buradan veya{" "}
-          <code>MAIL_FROM</code> (.env) ile ayarlanır. Şablon metinleri:{" "}
+          Gönderim için sunucuda <code>SMTP_HOST</code> / <code>SMTP_USER</code> /{" "}
+          <code>SMTP_PASSWORD</code> (.env) tanımlayın. Alternatif: <code>RESEND_API_KEY</code>.
+          Gönderen adresi buradan veya <code>MAIL_FROM</code> ile ayarlanır. Şablon metinleri:{" "}
           <Link href="/admin/integrations/emails" className="text-[var(--kn-brand)] underline">
             E-posta şablonları
           </Link>

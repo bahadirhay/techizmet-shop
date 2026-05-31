@@ -1,3 +1,5 @@
+import { cache } from "react";
+import { getCachedStoreSiteBySlug } from "@/lib/cache/store-cache";
 import { prisma } from "@/lib/prisma";
 
 /** Hangi mağaza satırı — her deploy / .env dosyası kendi slug’ını kullanır */
@@ -5,17 +7,11 @@ function resolveSiteSlug() {
   return process.env.STORE_SITE_SLUG?.trim() || "demo";
 }
 
-/** Aktif mağaza (DATABASE_URL + STORE_SITE_SLUG) */
-export async function getDefaultSite() {
+/** Aktif mağaza (DATABASE_URL + STORE_SITE_SLUG) — istek içi + önbellek */
+export const getDefaultSite = cache(async () => {
   const slug = resolveSiteSlug();
-  const site = await prisma.storeSite.findUnique({ where: { slug } });
-  if (!site) {
-    throw new Error(
-      `Mağaza bulunamadı (slug="${slug}"). Önce: npm run db:push && npm run store:provision -- --slug=${slug}`,
-    );
-  }
-  return site;
-}
+  return getCachedStoreSiteBySlug(slug);
+});
 
 export async function getPageBySlug(slug: string) {
   const site = await getDefaultSite();

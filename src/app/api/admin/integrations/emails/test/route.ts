@@ -45,13 +45,16 @@ export async function POST(req: Request) {
   const result = await sendTemplateEmail({ to, subject: `[TEST] ${subject}`, html });
 
   if (!result.sent) {
+    const reasonMsg =
+      result.reason === "not_configured"
+        ? "SMTP veya RESEND yapılandırılmamış — .env dosyasında SMTP_HOST veya RESEND_API_KEY tanımlayın."
+        : result.reason === "smtp_error"
+          ? "SMTP sunucusu reddetti — host, port ve şifreyi kontrol edin."
+          : "E-posta gönderilemedi";
     return NextResponse.json({
       ok: false,
       reason: result.reason ?? "not_configured",
-      message:
-        result.reason === "not_configured"
-          ? "RESEND_API_KEY tanımlı değil — geliştirmede konsola log yazılır."
-          : "E-posta gönderilemedi",
+      message: reasonMsg,
     });
   }
 

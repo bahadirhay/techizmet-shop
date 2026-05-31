@@ -7,7 +7,7 @@ import { getHomepageMode, getSiteSettings } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
 import { resolveStoreBlockMessages } from "@/lib/store-static-texts";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export default async function HomePage() {
   const site = await getDefaultSite();

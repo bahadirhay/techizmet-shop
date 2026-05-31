@@ -11,7 +11,7 @@ import { isMirrorShellPath } from "@/lib/store-mirror-paths";
 import { loadMirrorNavItems } from "@/lib/mirror-nav-server";
 import { getDefaultSite } from "@/lib/site";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export default async function StoreLayout({ children }: { children: React.ReactNode }) {
   const site = await getDefaultSite();

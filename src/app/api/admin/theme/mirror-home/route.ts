@@ -1,5 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
+import { revalidateStorePublicCache } from "@/lib/cache/revalidate-store-public";
 import { sanitizeMirrorPageConfig } from "@/lib/mirror-page-config-sanitize";
 import { parseSiteSettings } from "@/lib/site-settings";
 import { requireStaffApi } from "@/lib/staff-auth";
@@ -30,5 +31,6 @@ export async function PATCH(req: Request) {
   });
 
   revalidatePath("/");
+  revalidateStorePublicCache(auth.siteId);
   return NextResponse.json({ ok: true, mirrorHome: config });
 }

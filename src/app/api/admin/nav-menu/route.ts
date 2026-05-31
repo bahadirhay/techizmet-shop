@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidateStorePublicCache } from "@/lib/cache/revalidate-store-public";
 import { resolveNavMenuHref, type NavLinkType } from "@/lib/nav-menu-link";
 import { prisma } from "@/lib/prisma";
 import { requireStaffApi } from "@/lib/staff-auth";
@@ -59,6 +60,7 @@ export async function POST(req: Request) {
         openInNewTab: body.openInNewTab ?? false,
       },
     });
+    revalidateStorePublicCache(auth.siteId);
     return NextResponse.json(row);
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Kayıt başarısız";

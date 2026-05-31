@@ -1,5 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
+import { revalidateStorePublicCache } from "@/lib/cache/revalidate-store-public";
 import { sanitizeMirrorPageConfig } from "@/lib/mirror-page-config-sanitize";
 import { parseSiteSettings } from "@/lib/site-settings";
 import { getVitrinPage, isVitrinPageKey } from "@/lib/mirror-vitrin-pages";
@@ -39,6 +40,7 @@ export async function PATCH(
 
   const def = getVitrinPage(pageKey);
   if (def) revalidatePath(def.route);
+  revalidateStorePublicCache(auth.siteId);
 
   return NextResponse.json({ ok: true, pageKey, config });
 }

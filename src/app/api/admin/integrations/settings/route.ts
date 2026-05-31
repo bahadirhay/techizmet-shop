@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidateStorePublicCache } from "@/lib/cache/revalidate-store-public";
 import { requireStaffApi } from "@/lib/staff-auth";
 import { prisma } from "@/lib/prisma";
 import { mergeSiteSettings } from "@/lib/merge-site-settings";
@@ -21,5 +22,6 @@ export async function PATCH(req: Request) {
     where: { id: auth.siteId },
     data: { settingsJson: JSON.stringify(merged) },
   });
+  revalidateStorePublicCache(auth.siteId);
   return NextResponse.json({ settings: merged });
 }
