@@ -1,6 +1,8 @@
 import type { VariantFormRow } from "@/lib/product-variants";
 import { tryToMinor } from "@/lib/admin/money";
-import type { Prisma } from "@prisma/client";
+import type { Prisma, PrismaClient } from "@prisma/client";
+
+type ProductDb = Prisma.TransactionClient | PrismaClient;
 
 export type VariantInput = {
   id?: string;
@@ -33,7 +35,7 @@ export function parseVariantInputs(raw: unknown): VariantInput[] {
 }
 
 export async function upsertProductVariants(
-  tx: Prisma.TransactionClient,
+  tx: ProductDb,
   productId: string,
   optionName: string | null,
   variants: VariantInput[],

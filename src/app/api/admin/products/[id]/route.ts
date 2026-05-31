@@ -55,24 +55,24 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       !existing.barcode?.trim());
 
   try {
-    await prisma.$transaction(async (tx) => {
     const categorySelection =
       body.categoryId !== undefined || body.categoryIds !== undefined
-        ? await resolveProductCategorySelection(tx, auth.siteId, {
+        ? await resolveProductCategorySelection(prisma, auth.siteId, {
             categoryId: body.categoryId !== undefined ? body.categoryId : existing.categoryId,
             categoryIds: body.categoryIds,
           })
         : null;
+
     let primaryImageUrl: string | null | undefined;
     if (mediaItems && mediaItems.length > 0) {
-      primaryImageUrl = await syncProductMedia(tx, id, mediaItems);
+      primaryImageUrl = await syncProductMedia(prisma, id, mediaItems);
     }
 
     let nextBarcode: string | null | undefined;
     if (body.barcode !== undefined || autoGenerate) {
       const rawBarcode =
         body.barcode !== undefined ? String(body.barcode).trim() || null : existing.barcode;
-      nextBarcode = await resolveProductBarcode(tx, auth.siteId, {
+      nextBarcode = await resolveProductBarcode(prisma, auth.siteId, {
         barcode: rawBarcode,
         autoGenerate,
         prefix: barcodeSettings.prefix,
@@ -80,7 +80,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       });
     }
 
-    await tx.storeProduct.update({
+    await prisma.storeProduct.update({
       where: { id },
       data: {
         title,
@@ -160,8 +160,9 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
             : undefined,
       },
     });
+
     if (categorySelection) {
-      await syncProductCategoryLinks(tx, id, categorySelection.categoryIds);
+      await syncProductCategoryLinks(prisma, id, categorySelection.categoryIds);
     }
 
     if (body.variants !== undefined) {
@@ -171,16 +172,15 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
           ? String(body.variantOptionName ?? "").trim() || null
           : existing.variantOptionName;
       if (variants.length) {
-        await upsertProductVariants(tx, id, optionName, variants);
+        await upsertProductVariants(prisma, id, optionName, variants);
       } else {
-        await tx.storeProductVariant.deleteMany({ where: { productId: id } });
-        await tx.storeProduct.update({
+        await prisma.storeProductVariant.deleteMany({ where: { productId: id } });
+        await prisma.storeProduct.update({
           where: { id },
           data: { variantOptionName: null },
         });
       }
     }
-  });
 
     const product = await prisma.storeProduct.findFirst({
       where: { id },

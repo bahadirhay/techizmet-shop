@@ -1,9 +1,10 @@
-import type { Prisma } from "@prisma/client";
+import type { Prisma, PrismaClient } from "@prisma/client";
 import { primaryProductImageUrl, type ProductMediaItem } from "@/lib/product-media";
 
+type ProductDb = Prisma.TransactionClient | PrismaClient;
+
 export async function syncProductMedia(
-  tx: Prisma.TransactionClient,
-  productId: string,
+  tx: ProductDb,  productId: string,
   mediaItems: ProductMediaItem[],
 ): Promise<string | null> {
   await tx.storeProductImage.deleteMany({ where: { productId } });

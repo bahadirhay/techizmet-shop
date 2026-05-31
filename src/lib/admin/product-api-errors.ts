@@ -10,6 +10,12 @@ export function productAdminErrorResponse(e: unknown) {
   if (msg.includes("Unique constraint") && msg.toLowerCase().includes("slug")) {
     return NextResponse.json({ error: "Bu URL slug zaten kullanılıyor." }, { status: 409 });
   }
+  if (msg.includes("Transaction not found") || msg.includes("Transaction API error")) {
+    return NextResponse.json(
+      { error: "Veritabanı bağlantısı zaman aşımına uğradı. Lütfen tekrar deneyin." },
+      { status: 503 },
+    );
+  }
   if (
     msg.includes("product_category") ||
     msg.includes("does not exist") ||

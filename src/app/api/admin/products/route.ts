@@ -50,14 +50,17 @@ export async function POST(req: Request) {
     (body.autoGenerateBarcode !== false && barcodeSettings.autoGenerate);
 
   try {
-    const product = await prisma.$transaction(async (tx) => {
-    const { primaryCategoryId, categoryIds } = await resolveProductCategorySelection(tx, auth.siteId, body);
-    const barcode = await resolveProductBarcode(tx, auth.siteId, {
+    const { primaryCategoryId, categoryIds } = await resolveProductCategorySelection(
+      prisma,
+      auth.siteId,
+      body,
+    );
+    const barcode = await resolveProductBarcode(prisma, auth.siteId, {
       barcode: String(body.barcode ?? "").trim() || null,
       autoGenerate,
       prefix: barcodeSettings.prefix,
     });
-    const created = await tx.storeProduct.create({
+    const created = await prisma.storeProduct.create({
       data: {
         siteId: auth.siteId,
         title,
@@ -106,14 +109,12 @@ export async function POST(req: Request) {
         },
       },
     });
-    await syncProductCategoryLinks(tx, created.id, categoryIds);
+    await syncProductCategoryLinks(prisma, created.id, categoryIds);
     if (variants.length) {
-      await upsertProductVariants(tx, created.id, variantOptionName, variants);
+      await upsertProductVariants(prisma, created.id, variantOptionName, variants);
     }
-    return created;
-    });
 
-    return NextResponse.json({ product });
+    return NextResponse.json({ product: created });
   } catch (e) {
     return productAdminErrorResponse(e);
   }

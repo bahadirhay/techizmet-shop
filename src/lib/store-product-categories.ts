@@ -1,4 +1,6 @@
-import type { Prisma } from "@prisma/client";
+import type { Prisma, PrismaClient } from "@prisma/client";
+
+export type ProductDb = Prisma.TransactionClient | PrismaClient;
 
 function parseCategoryIds(raw: unknown): string[] {
   if (!Array.isArray(raw)) return [];
@@ -12,7 +14,7 @@ function unique(ids: string[]) {
 }
 
 export async function resolveProductCategorySelection(
-  tx: Prisma.TransactionClient,
+  tx: ProductDb,
   siteId: string,
   input: {
     categoryId?: unknown;
@@ -45,7 +47,7 @@ export async function resolveProductCategorySelection(
 }
 
 export async function syncProductCategoryLinks(
-  tx: Prisma.TransactionClient,
+  tx: ProductDb,
   productId: string,
   categoryIds: string[],
 ) {
