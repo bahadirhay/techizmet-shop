@@ -4,9 +4,7 @@ import { listFeaturedBlogPostsForHome } from "@/lib/blog/blog-posts-server";
 import { mergeFeaturedBlogIntoPageConfig } from "@/lib/mirror-featured-blog";
 import { getMirrorPageConfig } from "@/lib/mirror-page-settings";
 import { getVitrinPage, type VitrinPageKey } from "@/lib/mirror-vitrin-pages";
-import { getStoreLocale } from "@/lib/i18n/server";
-import { loadMirrorFooterData } from "@/lib/mirror-footer-server";
-import { loadMirrorNavItems } from "@/lib/mirror-nav-server";
+import { getStoreLocaleFromHeaders } from "@/lib/i18n/server";
 import { getSiteBranding, getSiteSettings } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
 import { prisma } from "@/lib/prisma";
@@ -25,7 +23,7 @@ export async function MirrorVitrinFrame({
   if (!def) notFound();
 
   const site = await getDefaultSite();
-  const locale = await getStoreLocale();
+  const locale = await getStoreLocaleFromHeaders();
   const settings = await getSiteSettings(site.id);
   let pageConfig = getMirrorPageConfig(settings, pageKey);
   if (pageKey === "home") {
@@ -34,8 +32,6 @@ export async function MirrorVitrinFrame({
   }
   const branding = getSiteBranding(settings);
   const mirrorTexts = resolveMirrorCollectionTexts(locale, settings.store?.texts);
-  const nav = await loadMirrorNavItems(site.id, locale);
-  const footer = await loadMirrorFooterData(site.id, locale);
   const src = def.mirrorPath(locale);
 
   let collectionsFromAdmin: VitrinCollectionCard[] | undefined;
@@ -63,8 +59,6 @@ export async function MirrorVitrinFrame({
       title={def.label}
       pageConfig={pageConfig}
       branding={branding}
-      nav={nav}
-      footer={footer}
       locale={locale}
       collectionsFromAdmin={collectionsFromAdmin}
       categoriesFromAdmin={categoriesFromAdmin}

@@ -1,11 +1,12 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { MirrorProductFrame } from "@/components/store/MirrorProductFrame";
 import { resolveMirrorProductTemplateSlug } from "@/lib/mirror-html-path";
 import { ProductPurchasePanel } from "@/components/store/ProductPurchasePanel";
+import { localeFromCookieValue } from "@/lib/i18n/locale";
 import { prisma } from "@/lib/prisma";
-import { getStoreLocale } from "@/lib/i18n/server";
-import { getStoreHomepageMode } from "@/lib/site-settings";
+import { getHomepageMode, getSiteSettings } from "@/lib/site-settings";
 import { getLoggedInCustomerPricing } from "@/lib/store/customer-pricing";
 import { getDefaultSite } from "@/lib/site";
 
@@ -13,9 +14,11 @@ export const revalidate = 300;
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+  const h = await headers();
+  const locale = localeFromCookieValue(h.get("x-shop-locale") ?? undefined) ?? "tr";
   const site = await getDefaultSite();
-  const homepageMode = await getStoreHomepageMode(site.id);
-  const locale = await getStoreLocale();
+  const settings = await getSiteSettings(site.id);
+  const homepageMode = getHomepageMode(settings);
 
   const mirrorTemplateSlug = homepageMode === "mirror" ? resolveMirrorProductTemplateSlug(slug) : null;
   if (homepageMode === "mirror" && mirrorTemplateSlug) {

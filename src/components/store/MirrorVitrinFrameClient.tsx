@@ -320,9 +320,6 @@ export function MirrorVitrinFrameClient({
           border: "none",
           margin: 0,
           padding: 0,
-          visibility: frameReady ? "visible" : "hidden",
-          opacity: frameReady ? 1 : 0,
-          pointerEvents: frameReady ? "auto" : "none",
         }}
       />
     </div>

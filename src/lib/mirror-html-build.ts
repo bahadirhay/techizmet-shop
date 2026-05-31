@@ -39,6 +39,7 @@ import { injectMirrorLinkBridge } from "@/lib/mirror-link-bridge";
 import { injectMirrorNavDropdownStyles } from "@/lib/mirror-nav-dropdown-inject";
 import { loadMirrorFooterData } from "@/lib/mirror-footer-server";
 import { loadMirrorNavItems } from "@/lib/mirror-nav-server";
+import { loadMirrorProductCommerce } from "@/lib/mirror-product-commerce-server";
 import { injectMirrorQuickviewBridge } from "@/lib/mirror-quickview-bridge";
 import { injectMirrorSearchBridge } from "@/lib/mirror-search-bridge";
 import { injectMirrorStoreUiFix } from "@/lib/mirror-store-ui-fix";
@@ -120,6 +121,16 @@ async function buildMirrorHtmlCore(params: MirrorHtmlBuildParams): Promise<strin
       localized,
       getProductPageBottomSettings(settings),
     );
+    const slug = productSlugFromMirrorPath(normalized);
+    if (slug) {
+      const commerce = await loadMirrorProductCommerce(siteId, slug, locale, settings.store?.texts, {
+        skipSession: true,
+      });
+      if (commerce) {
+        const { injectMirrorProductCommerceHtml } = await import("@/lib/mirror-product-commerce");
+        localized = injectMirrorProductCommerceHtml(localized, commerce);
+      }
+    }
   }
 
   if (blogSlug?.trim() && normalized.includes("/mirror/blogs/news/")) {
@@ -158,7 +169,7 @@ async function buildMirrorHtmlCore(params: MirrorHtmlBuildParams): Promise<strin
 
 function cacheKeyForMirror(params: MirrorHtmlBuildParams) {
   return [
-    "mirror-html-v1",
+    "mirror-html-v2",
     params.siteId,
     params.normalized,
     params.locale,

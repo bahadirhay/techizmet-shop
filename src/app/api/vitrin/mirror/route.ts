@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getStoreLocale } from "@/lib/i18n/server";
+import { getStoreLocaleFromHeaders } from "@/lib/i18n/server";
 import {
   applyAccountDashboardToMirrorHtml,
   loadMirrorAccountDashboardPayload,
@@ -38,7 +38,7 @@ export async function GET(req: Request) {
   }
 
   const site = await getDefaultSite();
-  const locale = await getStoreLocale();
+  const locale = await getStoreLocaleFromHeaders();
   const pageKeyParam = url.searchParams.get("pageKey")?.trim() ?? "";
   const blogSlug = url.searchParams.get("blogSlug")?.trim().replace(/\.html$/i, "") ?? "";
 
@@ -51,14 +51,18 @@ export async function GET(req: Request) {
     blogSlug: blogSlug || undefined,
   });
 
-  const settings = await getSiteSettings(site.id);
-  localized = await injectProductCommerceIntoMirrorHtml(
-    localized,
-    site.id,
-    normalized,
-    locale,
-    settings,
-  );
+  const isProductMirror = /\/mirror\/products\/([^/]+)\.html$/i.test(normalized);
+  const session = await getCustomerSession();
+  if (isProductMirror && session.isLoggedIn && session.customerId) {
+    const settings = await getSiteSettings(site.id);
+    localized = await injectProductCommerceIntoMirrorHtml(
+      localized,
+      site.id,
+      normalized,
+      locale,
+      settings,
+    );
+  }
 
   if (normalized.includes("mirror/cart/")) {
     const cartPayload = await loadMirrorCartPagePayload(locale);
@@ -79,13 +83,11 @@ export async function GET(req: Request) {
   }
 
   if (normalized.includes("mirror/account/favorites")) {
-    const session = await getCustomerSession();
     if (session.isLoggedIn && session.customerId) {
       const favPayload = await loadMirrorFavoritesPayload(session.customerId, locale);
       localized = applyFavoritesPageToMirrorHtml(localized, favPayload);
     }
   } else if (normalized.match(/mirror\/account\/index(-tr)?\.html$/i)) {
-    const session = await getCustomerSession();
     if (session.isLoggedIn && session.customerId) {
       const payload = await loadMirrorAccountDashboardPayload(session.customerId, locale);
       if (payload) {

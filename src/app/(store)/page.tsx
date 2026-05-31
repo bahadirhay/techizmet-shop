@@ -1,7 +1,8 @@
 import { MirrorVitrinFrame } from "@/components/store/MirrorVitrinFrame";
 import { StorePublicBlocks } from "@/components/store/StorePublicBlocks";
+import { headers } from "next/headers";
 import { getStoreMessages } from "@/lib/i18n/messages";
-import { getStoreLocale } from "@/lib/i18n/server";
+import { localeFromCookieValue } from "@/lib/i18n/locale";
 import { getStoreHomepageBlocks } from "@/lib/store-homepage-blocks";
 import { getHomepageMode, getSiteSettings } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
@@ -11,7 +12,8 @@ export const revalidate = 300;
 
 export default async function HomePage() {
   const site = await getDefaultSite();
-  const locale = await getStoreLocale();
+  const h = await headers();
+  const locale = localeFromCookieValue(h.get("x-shop-locale") ?? undefined) ?? "tr";
   const settings = await getSiteSettings(site.id);
   const homepageMode = getHomepageMode(settings);
 

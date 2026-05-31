@@ -7,6 +7,8 @@ import { getDefaultSite } from "@/lib/site";
 import { getSiteSeo, getSiteSettings } from "@/lib/site-settings";
 import "./globals.css";
 
+export const revalidate = 300;
+
 const poppins = Poppins({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],

@@ -1,5 +1,6 @@
 import "server-only";
 
+import type { CustomerGroupPricing } from "@/lib/customer-group-pricing";
 import { formatTry } from "@/lib/format";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import type { MirrorProductCommercePayload } from "@/lib/mirror-product-commerce";
@@ -25,6 +26,7 @@ export async function loadMirrorProductCommerce(
   slug: string,
   locale: ShopLocale,
   textSettings?: StoreTextSettings,
+  options?: { skipSession?: boolean; memberPricing?: CustomerGroupPricing | null },
 ): Promise<MirrorProductCommercePayload | null> {
   const product = await prisma.storeProduct.findUnique({
     where: { siteId_slug: { siteId, slug } },
@@ -32,7 +34,9 @@ export async function loadMirrorProductCommerce(
   });
   if (!product?.published) return null;
 
-  const memberPricing = await getLoggedInCustomerPricing(siteId);
+  const memberPricing = options?.skipSession
+    ? (options.memberPricing ?? null)
+    : (options?.memberPricing ?? (await getLoggedInCustomerPricing(siteId)));
   const variants: VariantRow[] = product.variants.map((v) => ({
     id: v.id,
     label: v.label,

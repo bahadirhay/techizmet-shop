@@ -97,12 +97,12 @@ export function MirrorProductFrameClient({
     }
 
     cancelBrandingRef.current?.();
-    cancelBrandingRef.current = scheduleMirrorFramePatches(() => iframeRef.current?.contentDocument ?? undefined, {
-      branding,
-      nav,
-      footer,
-      locale,
-    });
+    if (branding || nav?.length || footer) {
+      cancelBrandingRef.current = scheduleMirrorFramePatches(
+        () => iframeRef.current?.contentDocument ?? undefined,
+        { branding, nav, footer, locale },
+      );
+    }
 
     applyProductContentOverlay(doc, overlay ?? {});
     if (commerce) applyMirrorProductCommerce(doc, commerce);
@@ -131,7 +131,7 @@ export function MirrorProductFrameClient({
     productPageBottom,
   ]);
 
-  const frameReady = useMirrorIframeLifecycle(iframeRef, src, runPatch, [patchKey, runPatch]);
+  useMirrorIframeLifecycle(iframeRef, src, runPatch, [patchKey, runPatch]);
 
   return (
     <div className="kn-home-mirror">
@@ -140,6 +140,7 @@ export function MirrorProductFrameClient({
         title={title}
         src={src}
         className="mirror-home-frame"
+        loading="eager"
         style={{
           display: "block",
           width: "100%",
@@ -147,9 +148,6 @@ export function MirrorProductFrameClient({
           border: "none",
           margin: 0,
           padding: 0,
-          visibility: frameReady ? "visible" : "hidden",
-          opacity: frameReady ? 1 : 0,
-          pointerEvents: frameReady ? "auto" : "none",
         }}
       />
     </div>

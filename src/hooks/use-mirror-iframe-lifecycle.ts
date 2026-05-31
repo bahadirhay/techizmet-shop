@@ -48,7 +48,7 @@ export function useMirrorIframeLifecycle(
       timers.clear();
     }
 
-    function schedulePatch(hideWhileLoading = true) {
+    function schedulePatch(hideWhileLoading = false) {
       const token = ++patchToken;
       const hasMain = !!iframeRef.current?.contentDocument?.getElementById("MainContent");
       if (hideWhileLoading && !hasMain) setFrameReady(false);

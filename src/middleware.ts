@@ -1,7 +1,26 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { LOCALE_COOKIE, resolveLocaleFromRequest } from "@/lib/i18n/locale";
+import { LOCALE_COOKIE, resolveLocaleFromRequest, type ShopLocale } from "@/lib/i18n/locale";
 import { mirrorStaticRewrite } from "@/lib/mirror-static-rewrite";
+
+function attachLocale(
+  response: NextResponse,
+  request: NextRequest,
+  locale: ShopLocale,
+  pathname: string,
+) {
+  const existing = request.cookies.get(LOCALE_COOKIE)?.value;
+  if (existing !== locale) {
+    response.cookies.set(LOCALE_COOKIE, locale, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax",
+    });
+  }
+  response.headers.set("x-shop-locale", locale);
+  response.headers.set("x-pathname", pathname);
+  return response;
+}
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -23,25 +42,10 @@ export function middleware(request: NextRequest) {
 
   const mirrorRewrite = mirrorStaticRewrite(request, locale);
   if (mirrorRewrite) {
-    mirrorRewrite.cookies.set(LOCALE_COOKIE, locale, {
-      path: "/",
-      maxAge: 60 * 60 * 24 * 365,
-      sameSite: "lax",
-    });
-    mirrorRewrite.headers.set("x-shop-locale", locale);
-    mirrorRewrite.headers.set("x-pathname", pathname);
-    return mirrorRewrite;
+    return attachLocale(mirrorRewrite, request, locale, pathname);
   }
 
-  const response = NextResponse.next();
-  response.cookies.set(LOCALE_COOKIE, locale, {
-    path: "/",
-    maxAge: 60 * 60 * 24 * 365,
-    sameSite: "lax",
-  });
-  response.headers.set("x-shop-locale", locale);
-  response.headers.set("x-pathname", pathname);
-  return response;
+  return attachLocale(NextResponse.next(), request, locale, pathname);
 }
 
 export const config = {

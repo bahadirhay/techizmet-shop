@@ -191,7 +191,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
         categoryLinks: { orderBy: { sortOrder: "asc" } },
       },
     });
-    revalidateStorePublicCache(auth.siteId);
+    revalidateStorePublicCache(auth.siteId, product?.slug ?? existing.slug);
     return NextResponse.json({ product });
   } catch (e) {
     return productAdminErrorResponse(e);
@@ -205,6 +205,6 @@ export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string 
   const existing = await prisma.storeProduct.findFirst({ where: { id, siteId: auth.siteId } });
   if (!existing) return NextResponse.json({ error: "Bulunamadı" }, { status: 404 });
   await prisma.storeProduct.delete({ where: { id } });
-  revalidateStorePublicCache(auth.siteId);
+  revalidateStorePublicCache(auth.siteId, existing.slug);
   return NextResponse.json({ ok: true });
 }
