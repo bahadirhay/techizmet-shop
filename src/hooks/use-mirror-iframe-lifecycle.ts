@@ -59,7 +59,9 @@ export function useMirrorIframeLifecycle(
           timers.delete(timer);
           deferMirrorFrameWork(() => {
             if (token !== patchToken) return;
-            attemptPatch();
+            if (attemptPatch()) {
+              clearTimers();
+            }
           });
         }, delay);
         timers.add(timer);

@@ -335,13 +335,18 @@ export function applyCollectionProductsFromAdmin(
     (safePage - 1) * MIRROR_COLLECTION_PAGE_SIZE,
     safePage * MIRROR_COLLECTION_PAGE_SIZE,
   );
+  const basePath = pagination?.basePath ?? "/collections/all";
+  const syncKey = `${safePage}|${basePath}|${pageItems.map((p) => `${p.slug}:${p.imageUrl ?? ""}:${p.priceMinor}:${p.compareAtMinor ?? ""}:${p.stockQty}`).join(",")}`;
 
   patchCollectionProductCount(doc, sorted.length, locale, resolved, safePage);
   patchCollectionPagination(doc, sorted.length, {
     currentPage: safePage,
-    basePath: pagination?.basePath ?? "/collections/all",
+    basePath,
   });
   if (!list) return;
+  if (list.getAttribute("data-kn-products-sync") === syncKey) return;
+  list.setAttribute("data-kn-products-sync", syncKey);
+
   if (!sorted.length) {
     const isTr = locale?.toLowerCase().startsWith("tr") ?? true;
     const empty = isTr ? "Bu listede henüz ürün yok." : "No products in this list yet.";

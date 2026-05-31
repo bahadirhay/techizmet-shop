@@ -1,6 +1,6 @@
 "use client";
 
-import { scheduleMirrorFramePatches } from "@/lib/mirror-frame-patch";
+import { applyMirrorFramePatches } from "@/lib/mirror-frame-patch";
 import type { MirrorBranding } from "@/lib/mirror-branding-overlay";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import type { MirrorFooterData } from "@/lib/mirror-footer-overlay";
@@ -49,7 +49,6 @@ export function MirrorCollectionFrameClient({
   paginationBasePath?: string;
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const cancelBrandingRef = useRef<(() => void) | undefined>(undefined);
   const patchKey = JSON.stringify({
     collectionFromAdmin,
     productsFromAdmin,
@@ -70,8 +69,7 @@ export function MirrorCollectionFrameClient({
     const doc = frame.contentDocument;
     if (!doc?.getElementById("MainContent")) return;
 
-    cancelBrandingRef.current?.();
-    cancelBrandingRef.current = scheduleMirrorFramePatches(() => iframeRef.current?.contentDocument ?? undefined, {
+    applyMirrorFramePatches(doc, {
       branding,
       nav,
       footer,
