@@ -6,6 +6,7 @@ import { toBrandedMirrorSrc } from "@/lib/mirror-html-branding";
 import { loadMirrorFooterData } from "@/lib/mirror-footer-server";
 import { loadMirrorNavItems } from "@/lib/mirror-nav-server";
 import type { VitrinProductDetail } from "@/lib/mirror-product-detail-sync";
+import type { ProductContentOverlay } from "@/lib/mirror-product-overlay";
 import { loadMirrorProductCommerce } from "@/lib/mirror-product-commerce-server";
 import { resolveMirrorProductTemplateSlug } from "@/lib/mirror-html-path";
 import {
