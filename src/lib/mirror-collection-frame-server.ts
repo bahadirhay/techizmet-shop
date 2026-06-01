@@ -24,48 +24,49 @@ import type { ResolvedMirrorCollectionTexts } from "@/lib/store-static-texts";
 import { prisma } from "@/lib/prisma";
 import { getCategoryFilterOptions, getCategoryScopeIds } from "@/lib/store-category-tree";
 
-export type CollectionFramePayload = {
+export type CollectionCatalogPayload = {
   collectionFromAdmin: VitrinCollectionDetail | null;
   productsFromAdmin: VitrinCollectionProductCard[];
   categoriesFromAdmin: VitrinCollectionCategoryOption[];
   activeCategorySlug?: string;
   mirrorTexts: ResolvedMirrorCollectionTexts;
-  branding: MirrorBranding;
-  nav: MirrorNavItem[];
-  footer: MirrorFooterData;
   paginationBasePath: string;
   title: string;
 };
 
-async function loadCollectionFramePayloadCore(
+export type CollectionFramePayload = CollectionCatalogPayload & {
+  branding: MirrorBranding;
+  nav: MirrorNavItem[];
+  footer: MirrorFooterData;
+};
+
+async function loadCollectionCatalogCore(
   siteId: string,
   slug: string,
   locale: ShopLocale,
   categorySlug?: string,
   page = 1,
   titleHint?: string,
-): Promise<CollectionFramePayload> {
+): Promise<CollectionCatalogPayload> {
   const settings = await getCachedParsedSiteSettings(siteId);
-  const branding = getSiteBranding(settings);
   const mirrorTexts = resolveMirrorCollectionTexts(locale, settings.store?.texts);
-  const nav = await loadMirrorNavItems(siteId, locale);
-  const footer = await loadMirrorFooterData(siteId, locale);
 
-  const row = categorySlug
-    ? await prisma.storeCategory.findFirst({
-        where: { siteId, slug: categorySlug, active: true },
-        select: { title: true, description: true, seoDescription: true, imageUrl: true },
-      })
-    : await prisma.storeCollection.findUnique({
-        where: { siteId_slug: { siteId, slug } },
-        select: { title: true, description: true, imageUrl: true },
-      });
-
-  const categories = await prisma.storeCategory.findMany({
-    where: { siteId, active: true },
-    orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
-    select: { id: true, slug: true, title: true, parentId: true },
-  });
+  const [row, categories] = await Promise.all([
+    categorySlug
+      ? prisma.storeCategory.findFirst({
+          where: { siteId, slug: categorySlug, active: true },
+          select: { title: true, description: true, seoDescription: true, imageUrl: true },
+        })
+      : prisma.storeCollection.findUnique({
+          where: { siteId_slug: { siteId, slug } },
+          select: { title: true, description: true, imageUrl: true },
+        }),
+    prisma.storeCategory.findMany({
+      where: { siteId, active: true },
+      orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
+      select: { id: true, slug: true, title: true, parentId: true },
+    }),
+  ]);
 
   const categoryScopeIds = getCategoryScopeIds(categories, categorySlug);
   const products = await prisma.storeProduct.findMany({
@@ -130,12 +131,47 @@ async function loadCollectionFramePayloadCore(
     })),
     activeCategorySlug: categorySlug,
     mirrorTexts,
-    branding,
-    nav,
-    footer,
     paginationBasePath,
     title: row?.title ?? titleHint ?? (slug === "all" ? "Tüm ürünler" : slug),
   };
+}
+
+export function getCollectionCatalogPayload(
+  siteId: string,
+  slug: string,
+  locale: ShopLocale,
+  categorySlug?: string,
+  page = 1,
+  titleHint?: string,
+): Promise<CollectionCatalogPayload> {
+  const cat = categorySlug?.trim() || "";
+  return unstable_cache(
+    () => loadCollectionCatalogCore(siteId, slug, locale, cat || undefined, page, titleHint),
+    ["collection-catalog-v1", siteId, slug, locale, cat, String(page), titleHint ?? ""],
+    {
+      revalidate: STORE_PUBLIC_REVALIDATE_SEC,
+      tags: [storeSettingsTag(siteId), storeMirrorTag(siteId), "store-products"],
+    },
+  )();
+}
+
+async function loadCollectionFramePayloadCore(
+  siteId: string,
+  slug: string,
+  locale: ShopLocale,
+  categorySlug?: string,
+  page = 1,
+  titleHint?: string,
+): Promise<CollectionFramePayload> {
+  const settings = await getCachedParsedSiteSettings(siteId);
+  const branding = getSiteBranding(settings);
+  const [catalog, nav, footer] = await Promise.all([
+    getCollectionCatalogPayload(siteId, slug, locale, categorySlug, page, titleHint),
+    loadMirrorNavItems(siteId, locale),
+    loadMirrorFooterData(siteId, locale),
+  ]);
+
+  return { ...catalog, branding, nav, footer };
 }
 
 export function getCollectionFramePayload(

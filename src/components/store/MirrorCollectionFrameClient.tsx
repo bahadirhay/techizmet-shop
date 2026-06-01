@@ -17,7 +17,7 @@ import {
 import { useMirrorFrameRouteSync } from "@/hooks/use-mirror-frame-route-sync";
 import { useMirrorIframeLifecycle } from "@/hooks/use-mirror-iframe-lifecycle";
 import { useMirrorLocaleMessage } from "@/hooks/use-mirror-locale-message";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ResolvedMirrorCollectionTexts } from "@/lib/store-static-texts";
 
 export function MirrorCollectionFrameClient({
@@ -34,7 +34,7 @@ export function MirrorCollectionFrameClient({
   mirrorTexts,
   currentPage = 1,
   paginationBasePath = "/collections/all",
-  hideTemplateProductsUntilSync = false,
+  productsPrebuilt = false,
 }: {
   src: string;
   title: string;
@@ -49,10 +49,11 @@ export function MirrorCollectionFrameClient({
   mirrorTexts?: ResolvedMirrorCollectionTexts;
   currentPage?: number;
   paginationBasePath?: string;
-  /** Kategori sayfası — şablon ürünleri patch öncesi gizle */
-  hideTemplateProductsUntilSync?: boolean;
+  /** Ürünler iframe HTML'inde sunucuda — istemci patch yok */
+  productsPrebuilt?: boolean;
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [productsVisible, setProductsVisible] = useState(false);
   const patchKey = JSON.stringify({
     collectionFromAdmin,
     productsFromAdmin,
@@ -65,7 +66,7 @@ export function MirrorCollectionFrameClient({
     nav,
     footer,
     locale,
-    hideTemplateProductsUntilSync,
+    productsPrebuilt,
   });
 
   const runPatch = useCallback(() => {
@@ -74,7 +75,10 @@ export function MirrorCollectionFrameClient({
     const doc = frame.contentDocument;
     if (!doc?.getElementById("MainContent")) return;
 
-    if (hideTemplateProductsUntilSync) {
+    const needsProductGuard =
+      !productsPrebuilt &&
+      (Boolean(activeCategorySlug) || productsFromAdmin !== undefined);
+    if (needsProductGuard) {
       setCollectionProductsAwaiting(doc, true);
     }
 
@@ -94,11 +98,17 @@ export function MirrorCollectionFrameClient({
         currentPage,
         basePath: paginationBasePath,
       });
-    } else if (hideTemplateProductsUntilSync) {
+      setProductsVisible(true);
+    } else if (
+      productsPrebuilt &&
+      doc.documentElement.getAttribute("data-kn-collection-catalog") === "1"
+    ) {
+      setProductsVisible(true);
+    } else if (needsProductGuard) {
       setCollectionProductsAwaiting(doc, true);
     }
   }, [
-    hideTemplateProductsUntilSync,
+    productsPrebuilt,
     activeCategorySlug,
     currentPage,
     paginationBasePath,
@@ -129,9 +139,15 @@ export function MirrorCollectionFrameClient({
   const frameReady = useMirrorIframeLifecycle(iframeRef, src, runPatch, [patchKey, runPatch]);
 
   return (
-    <div className="kn-home-mirror">
+    <div
+      className="kn-home-mirror"
+      style={{
+        opacity: productsVisible ? 1 : 0,
+        transition: productsVisible ? "opacity 0.12s ease-out" : "none",
+      }}
+    >
       <iframe
-        key={`${src}|${activeCategorySlug ?? ""}|${currentPage}|${productsFromAdmin?.length ?? 0}`}
+        key={`${src}|${activeCategorySlug ?? ""}|${currentPage}|${productsFromAdmin?.length ?? 0}|${productsPrebuilt ? "pre" : "patch"}`}
         ref={iframeRef}
         title={title}
         src={src}

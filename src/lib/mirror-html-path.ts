@@ -113,12 +113,35 @@ export function collectionMirrorFileRel(slug: string, locale: ShopLocale): strin
   return `theme/techizmet-shop/mirror/collections/${file}`;
 }
 
+/** Kategori listesi — sunucuda filtrelenmiş HTML (şablon flash yok) */
+export function buildCategoryCollectionMirrorSrc(
+  collectionSlug: string,
+  locale: ShopLocale,
+  categorySlug: string,
+  page = 1,
+  title?: string,
+): string {
+  const q = new URLSearchParams({
+    category: categorySlug.trim(),
+    slug: collectionSlug,
+    page: String(page),
+  });
+  if (title?.trim()) q.set("title", title.trim());
+  return `/api/vitrin/collection-html?${q.toString()}`;
+}
+
 /** Koleksiyon / kategori listesi iframe — prod: slug başına prebuilt */
 export function buildCollectionMirrorSrc(
   slug: string,
   locale: ShopLocale,
   templateSlug: string,
+  categorySlug?: string,
+  page = 1,
+  title?: string,
 ): string {
+  if (categorySlug?.trim()) {
+    return buildCategoryCollectionMirrorSrc(slug, locale, categorySlug, page, title);
+  }
   if (process.env.NODE_ENV === "production") {
     return toBrandedMirrorSrc(collectionMirrorFileRel(slug, locale));
   }

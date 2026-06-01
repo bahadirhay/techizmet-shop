@@ -1,13 +1,11 @@
 import { MirrorCollectionFrameHost } from "@/components/store/MirrorCollectionFrameHost";
 import type { ShopLocale } from "@/lib/i18n/locale";
-import { getCollectionFramePayload } from "@/lib/mirror-collection-frame-server";
 import {
   buildCollectionMirrorSrc,
   resolveMirrorCollectionTemplateSlug,
 } from "@/lib/mirror-html-path";
-import { getDefaultSite } from "@/lib/site";
 
-/** HTTrack mirror — prod: iframe anında + JSON; dev: sunucu payload */
+/** Koleksiyon/kategori — kategori: sunucu HTML; tüm ürünler: iframe + JSON */
 export async function MirrorCollectionFrame({
   slug,
   locale,
@@ -21,34 +19,26 @@ export async function MirrorCollectionFrame({
   categorySlug?: string;
   page?: number;
 }) {
-  const site = await getDefaultSite();
   const templateSlug = categorySlug
     ? "all"
     : (resolveMirrorCollectionTemplateSlug(slug) ?? slug);
-  const src = buildCollectionMirrorSrc(slug, locale, templateSlug);
+  const src = buildCollectionMirrorSrc(slug, locale, templateSlug, categorySlug, page, title);
   const frameTitle = title ?? `Collection — ${slug}`;
 
-  const initialPayload = await getCollectionFramePayload(
-    site.id,
-    slug,
-    locale,
-    categorySlug,
-    page,
-    title,
-  );
-
-  if (process.env.NODE_ENV === "production") {
+  if (categorySlug?.trim()) {
     return (
       <MirrorCollectionFrameHost
         src={src}
         title={frameTitle}
         locale={locale}
         currentPage={page}
-        initialPayload={initialPayload}
-        activeCategorySlug={categorySlug}
+        productsPrebuilt
       />
     );
   }
+
+  const q = new URLSearchParams({ slug, page: String(page) });
+  if (title) q.set("title", title);
 
   return (
     <MirrorCollectionFrameHost
@@ -56,8 +46,7 @@ export async function MirrorCollectionFrame({
       title={frameTitle}
       locale={locale}
       currentPage={page}
-      initialPayload={initialPayload}
-      activeCategorySlug={categorySlug}
+      fetchPayloadUrl={`/api/vitrin/collection-frame?${q.toString()}`}
     />
   );
 }
