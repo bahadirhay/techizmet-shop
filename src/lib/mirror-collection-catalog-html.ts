@@ -5,7 +5,7 @@ import {
   applyCollectionDetailFromAdmin,
   applyCollectionProductsFromAdmin,
 } from "@/lib/mirror-collections-sync";
-import { loadCollectionCatalogCore } from "@/lib/mirror-collection-frame-server";
+import { loadCollectionCatalogCore } from "@/lib/mirror-collection-catalog-data";
 import type { CollectionCatalogPayload } from "@/lib/mirror-collection-payload-types";
 import { buildMirrorHtmlCore } from "@/lib/mirror-html-processor";
 import { collectionMirrorFileRel } from "@/lib/mirror-html-path";
