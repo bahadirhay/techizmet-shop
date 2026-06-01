@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
 import { MirrorProductFrameClient } from "@/components/store/MirrorProductFrameClient";
 import type { ShopLocale } from "@/lib/i18n/locale";
+import { getCachedParsedSiteSettings } from "@/lib/cache/store-cache";
 import { buildProductMirrorSrc, resolveMirrorProductTemplateSlug } from "@/lib/mirror-html-path";
 import { loadMirrorProductFramePayload } from "@/lib/mirror-product-frame-server";
+import { getProductPageBottomSettings } from "@/lib/product-page-bottom";
 import { getDefaultSite } from "@/lib/site";
 
 /** HTTrack mirror — ürün detay; prod: iframe anında, DB yaması prebuild’de */
@@ -23,6 +25,8 @@ export async function MirrorProductFrame({
 
   const src = buildProductMirrorSrc(slug, locale, resolvedTemplateSlug);
   const frameTitle = title ?? `Product — ${slug}`;
+  const settings = await getCachedParsedSiteSettings(site.id);
+  const productPageBottom = getProductPageBottomSettings(settings);
 
   if (process.env.NODE_ENV === "production") {
     return (
@@ -31,6 +35,7 @@ export async function MirrorProductFrame({
         title={frameTitle}
         productSlug={slug}
         locale={locale}
+        productPageBottom={productPageBottom}
       />
     );
   }

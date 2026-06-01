@@ -124,6 +124,7 @@ export async function PATCH(req: Request) {
     data: { settingsJson: JSON.stringify(next) },
   });
 
+  revalidatePath("/products", "layout");
   revalidatePath("/products/[slug]", "page");
   revalidateStorePublicCache(auth.siteId);
 

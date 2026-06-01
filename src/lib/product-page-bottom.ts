@@ -59,9 +59,11 @@ function setSectionVisible(section: Element | null, visible: boolean) {
   if (visible) {
     el.style.removeProperty("display");
     el.removeAttribute("data-kn-pdp-hidden");
+    el.removeAttribute("hidden");
   } else {
-    el.style.display = "none";
+    el.style.setProperty("display", "none", "important");
     el.setAttribute("data-kn-pdp-hidden", "1");
+    el.setAttribute("hidden", "");
   }
 }
 
@@ -232,6 +234,10 @@ export function applyProductPageBottomOverlay(doc: Document, config: ProductPage
     applyRevealingTextStatic(doc, revealingSection, config.revealingText.html);
     injectRevealingStaticGuard(doc, config.revealingText.html);
   } else {
+    doc.getElementById("kn-revealing-static-guard")?.remove();
+    revealingSection
+      ?.querySelectorAll("reveal-text, .revealing-text-line, .revealing-text-char")
+      .forEach((el) => el.remove());
     setSectionVisible(revealingSection, false);
   }
 
@@ -243,6 +249,22 @@ export function applyProductPageBottomOverlay(doc: Document, config: ProductPage
     if (heading) heading.innerHTML = config.videoPromo.headingHtml;
     if (desc) desc.innerHTML = config.videoPromo.descriptionHtml;
   } else {
+    videoSection?.querySelectorAll("video").forEach((v) => {
+      try {
+        (v as HTMLVideoElement).pause();
+      } catch {
+        /* ignore */
+      }
+    });
     setSectionVisible(videoSection, false);
   }
+
+  doc.documentElement.setAttribute(
+    "data-kn-pdp-bottom",
+    JSON.stringify({
+      marquee: config.marquee.enabled,
+      revealing: config.revealingText.enabled,
+      video: config.videoPromo.enabled,
+    }),
+  );
 }
