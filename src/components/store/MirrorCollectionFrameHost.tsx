@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { MirrorCollectionFrameClient } from "@/components/store/MirrorCollectionFrameClient";
-import type { CollectionFramePayload } from "@/lib/mirror-collection-frame-server";
+import type { CollectionFramePayload } from "@/lib/mirror-collection-payload-types";
 import type { ShopLocale } from "@/lib/i18n/locale";
 
 function CollectionFrameInner({

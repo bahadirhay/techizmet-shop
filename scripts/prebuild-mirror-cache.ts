@@ -7,7 +7,7 @@ import { mkdir, readdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { listPublishedBlogPosts } from "../src/lib/blog/blog-posts-server";
 import { buildMirrorHtmlCore } from "../src/lib/mirror-html-processor";
-import { buildCategoryCollectionHtmlForPrebuild } from "../src/lib/mirror-collection-html-server";
+import { buildCategoryCollectionHtmlForPrebuild } from "../src/lib/mirror-collection-catalog-html";
 import {
   blogArticleMirrorFileRel,
   categoryCollectionMirrorFileRel,

@@ -1,11 +1,13 @@
 import "server-only";
 
 import { unstable_cache } from "next/cache";
+import type { VitrinCollectionDetail } from "@/lib/mirror-collections-sync";
 import type {
-  VitrinCollectionCategoryOption,
-  VitrinCollectionDetail,
-  VitrinCollectionProductCard,
-} from "@/lib/mirror-collections-sync";
+  CollectionCatalogPayload,
+  CollectionFramePayload,
+} from "@/lib/mirror-collection-payload-types";
+
+export type { CollectionCatalogPayload, CollectionFramePayload } from "@/lib/mirror-collection-payload-types";
 import {
   STORE_PUBLIC_REVALIDATE_SEC,
   getCachedParsedSiteSettings,
@@ -23,22 +25,6 @@ import { resolveMirrorCollectionTexts } from "@/lib/store-static-texts";
 import type { ResolvedMirrorCollectionTexts } from "@/lib/store-static-texts";
 import { prisma } from "@/lib/prisma";
 import { getCategoryFilterOptions, getCategoryScopeIds } from "@/lib/store-category-tree";
-
-export type CollectionCatalogPayload = {
-  collectionFromAdmin: VitrinCollectionDetail | null;
-  productsFromAdmin: VitrinCollectionProductCard[];
-  categoriesFromAdmin: VitrinCollectionCategoryOption[];
-  activeCategorySlug?: string;
-  mirrorTexts: ResolvedMirrorCollectionTexts;
-  paginationBasePath: string;
-  title: string;
-};
-
-export type CollectionFramePayload = CollectionCatalogPayload & {
-  branding: MirrorBranding;
-  nav: MirrorNavItem[];
-  footer: MirrorFooterData;
-};
 
 export async function loadCollectionCatalogCore(
   siteId: string,
