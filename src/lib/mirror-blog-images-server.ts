@@ -6,7 +6,6 @@ import { resolveMirrorThemeFile } from "@/lib/mirror-cdn-assets";
 const blogArticlePath = (slug: string) =>
   join(process.cwd(), "public/theme/techizmet-shop/mirror/blogs/news", `${slug}.html`);
 
-/** Diskte var olan vitrin görseli — articles/ klasörü repoda yok */
 const FEATURED_FALLBACK_BY_SLUG: Record<string, string> = {
   "top-natural-ingredients-for-glowing-skin-you-should-try":
     "/theme/techizmet-shop/cdn/shop/files/18af34f.jpg",
@@ -38,7 +37,6 @@ function extractCdnPathsFromHtml(html: string): string[] {
   return [...paths];
 }
 
-/** Blog yazısı HTML — diskte bulunan ilk kapak / kart görseli */
 export function resolveBlogImageFromArticleHtml(slug: string): string | null {
   const path = blogArticlePath(slug);
   if (!existsSync(path)) return null;
@@ -47,10 +45,7 @@ export function resolveBlogImageFromArticleHtml(slug: string): string | null {
   const banner = html.match(
     /class="page--banner-img[\s\S]*?(?:data-original|src)="([^"]+)"/i,
   )?.[1];
-  const candidates = [
-    ...(banner ? [banner] : []),
-    ...extractCdnPathsFromHtml(html),
-  ];
+  const candidates = [...(banner ? [banner] : []), ...extractCdnPathsFromHtml(html)];
 
   for (const raw of candidates) {
     const norm = normalizeBlogImageUrl(raw);
@@ -60,7 +55,7 @@ export function resolveBlogImageFromArticleHtml(slug: string): string | null {
   return null;
 }
 
-/** Ana sayfa / DB — çalışan public URL */
+/** Ana sayfa / DB — çalışan public URL (yalnızca sunucu) */
 export function resolveBlogFeaturedImageUrl(slug: string, preferred?: string | null): string | null {
   if (preferred?.trim()) {
     const fromPreferred = resolveMirrorPublicAsset(normalizeBlogImageUrl(preferred));

@@ -13,7 +13,8 @@ import type { MirrorBranding } from "@/lib/mirror-branding-overlay";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import type { MirrorFooterData } from "@/lib/mirror-footer-overlay";
 import type { MirrorNavItem } from "@/lib/mirror-nav-overlay";
-import { applyMirrorPageOverlay, hasMirrorPageEdits } from "@/lib/mirror-home-overlay";
+import { applyMirrorPageOverlay } from "@/lib/mirror-home-overlay";
+import { hasMirrorPageEdits } from "@/lib/mirror-has-page-edits";
 import {
   applyCollectionsCardsFromAdmin,
   applyCollectionCategoryFiltersFromAdmin,

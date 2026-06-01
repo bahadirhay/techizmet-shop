@@ -6,7 +6,7 @@ import { config } from "dotenv";
 import { readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { PrismaClient } from "@prisma/client";
-import { resolveBlogFeaturedImageUrl } from "../src/lib/mirror-blog-images";
+import { resolveBlogFeaturedImageUrl } from "../src/lib/mirror-blog-images-server";
 
 config({ path: resolve(process.cwd(), ".env") });
 config({ path: resolve(process.cwd(), ".env.local"), override: true });

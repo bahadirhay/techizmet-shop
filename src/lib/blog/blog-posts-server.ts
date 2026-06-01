@@ -8,7 +8,7 @@ import {
 } from "@/lib/blog/blog-post-types";
 import { blogPostsToFeaturedEdits } from "@/lib/blog/mirror-blog-inject";
 import type { FeaturedBlogPostEdit } from "@/lib/mirror-featured-blog";
-import { resolveBlogFeaturedImageUrl } from "@/lib/mirror-blog-images";
+import { resolveBlogFeaturedImageUrl } from "@/lib/mirror-blog-images-server";
 import { prisma } from "@/lib/prisma";
 
 const select = {

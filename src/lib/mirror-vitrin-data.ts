@@ -13,7 +13,7 @@ import type { ShopLocale } from "@/lib/i18n/locale";
 import type { VitrinPageKey } from "@/lib/mirror-vitrin-pages";
 import { getSiteBranding } from "@/lib/site-settings-branding";
 import type { SiteSettings } from "@/lib/site-settings";
-import { hasMirrorPageEdits } from "@/lib/mirror-home-overlay";
+import { hasMirrorPageEdits } from "@/lib/mirror-has-page-edits";
 import { resolveMirrorCollectionTexts } from "@/lib/store-static-texts";
 import type { MirrorBranding } from "@/lib/mirror-branding-overlay";
 import type { ResolvedMirrorCollectionTexts } from "@/lib/store-static-texts";

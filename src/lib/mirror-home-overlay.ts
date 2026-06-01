@@ -118,27 +118,9 @@ function sectionEl(doc: Document, key: string) {
   return doc.querySelector(`section[id$="__${key}"]`);
 }
 
-export function hasMirrorPageEdits(config: MirrorPageConfig): boolean {
-  if (Object.keys(config.elements ?? {}).length) return true;
-  if (config.customBlocks?.length) return true;
-  return Object.values(config.sections ?? {}).some((edit) => {
-    if (!edit) return false;
-    if (edit.hidden) return true;
-    if (edit.headingHtml?.trim()) return true;
-    if (edit.mediaGridItems?.length) return true;
-    if (edit.video?.url?.trim()) return true;
-    if (edit.collectionGridColumns) return true;
-    if (edit.productGridColumns) return true;
-    if (edit.collectionsTabs?.length) return true;
-    if (edit.shopTheLook?.hotspots?.length) return true;
-    if (edit.featuredBlogPosts?.length) return true;
-    if (edit.scrollingCollections?.length) return true;
-    if (edit.trendingProducts?.length) return true;
-    if (edit.testimonials?.length) return true;
-    if (edit.autoplayMs !== undefined) return true;
-    return false;
-  });
-}
+import { hasMirrorPageEdits } from "@/lib/mirror-has-page-edits";
+
+export { hasMirrorPageEdits } from "@/lib/mirror-has-page-edits";
 
 export function applyMirrorPageOverlay(
   doc: Document,
@@ -153,7 +135,8 @@ export function applyMirrorPageOverlay(
     if (banner) banner.textContent = meta.pageTitle.trim();
   }
 
-  if (!hasMirrorPageEdits(config) && !meta?.pageTitle?.trim()) return;
+  if (!hasMirrorPageEdits(config as Parameters<typeof hasMirrorPageEdits>[0]) && !meta?.pageTitle?.trim())
+    return;
 
   applyMirrorSectionLayout(doc, config, locale);
   applyMirrorElementEdits(doc, config.elements);
