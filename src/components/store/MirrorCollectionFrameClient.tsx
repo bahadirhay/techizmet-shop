@@ -9,6 +9,7 @@ import {
   applyCollectionCategoryFiltersFromAdmin,
   applyCollectionProductsFromAdmin,
   applyCollectionDetailFromAdmin,
+  setCollectionProductsAwaiting,
   type VitrinCollectionCategoryOption,
   type VitrinCollectionProductCard,
   type VitrinCollectionDetail,
@@ -33,6 +34,7 @@ export function MirrorCollectionFrameClient({
   mirrorTexts,
   currentPage = 1,
   paginationBasePath = "/collections/all",
+  hideTemplateProductsUntilSync = false,
 }: {
   src: string;
   title: string;
@@ -47,6 +49,8 @@ export function MirrorCollectionFrameClient({
   mirrorTexts?: ResolvedMirrorCollectionTexts;
   currentPage?: number;
   paginationBasePath?: string;
+  /** Kategori sayfası — şablon ürünleri patch öncesi gizle */
+  hideTemplateProductsUntilSync?: boolean;
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const patchKey = JSON.stringify({
@@ -61,6 +65,7 @@ export function MirrorCollectionFrameClient({
     nav,
     footer,
     locale,
+    hideTemplateProductsUntilSync,
   });
 
   const runPatch = useCallback(() => {
@@ -68,6 +73,10 @@ export function MirrorCollectionFrameClient({
     if (!frame) return;
     const doc = frame.contentDocument;
     if (!doc?.getElementById("MainContent")) return;
+
+    if (hideTemplateProductsUntilSync) {
+      setCollectionProductsAwaiting(doc, true);
+    }
 
     applyMirrorFramePatches(doc, {
       branding,
@@ -85,8 +94,11 @@ export function MirrorCollectionFrameClient({
         currentPage,
         basePath: paginationBasePath,
       });
+    } else if (hideTemplateProductsUntilSync) {
+      setCollectionProductsAwaiting(doc, true);
     }
   }, [
+    hideTemplateProductsUntilSync,
     activeCategorySlug,
     currentPage,
     paginationBasePath,

@@ -41,6 +41,31 @@ const EMPTY_IMAGE =
 /** Shopify mirror şablonundaki sayfa başına ürün (eski tema) */
 export const MIRROR_COLLECTION_PAGE_SIZE = 24;
 
+const COLLECTION_PRODUCTS_GUARD_ID = "kn-collection-products-guard";
+
+/** Şablon ürünleri — admin verisi gelene kadar gizle (kategori flash) */
+export function setCollectionProductsAwaiting(doc: Document, awaiting: boolean) {
+  let style = doc.getElementById(COLLECTION_PRODUCTS_GUARD_ID) as HTMLStyleElement | null;
+  if (!style) {
+    style = doc.createElement("style");
+    style.id = COLLECTION_PRODUCTS_GUARD_ID;
+    style.textContent = `
+html.kn-collection-awaiting-products #MainContent .main-collection--products-list,
+html.kn-collection-awaiting-products #MainContent [data-total-products-count],
+html.kn-collection-awaiting-products #MainContent .collection-products--count,
+html.kn-collection-awaiting-products #MainContent .collection-products--text,
+html.kn-collection-awaiting-products #MainContent ul.pagination {
+  visibility: hidden !important;
+}
+html.kn-collection-awaiting-products #MainContent .main-collection--products-list {
+  min-height: 12rem;
+}
+`;
+    doc.head.appendChild(style);
+  }
+  doc.documentElement.classList.toggle("kn-collection-awaiting-products", awaiting);
+}
+
 function defaultMirrorCollectionTexts(locale?: string): ResolvedMirrorCollectionTexts {
   const isTr = locale?.toLowerCase().startsWith("tr");
   return {
@@ -333,6 +358,8 @@ export function applyCollectionProductsFromAdmin(
   texts?: ResolvedMirrorCollectionTexts,
   pagination?: CollectionPaginationOptions,
 ) {
+  setCollectionProductsAwaiting(doc, false);
+
   const list = doc.querySelector(
     "#MainContent .main-collection--products-list[main-collection-products], #MainContent .main-collection--products-list",
   );

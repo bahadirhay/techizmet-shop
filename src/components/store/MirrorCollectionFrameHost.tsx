@@ -1,6 +1,5 @@
 "use client";
 
-import { Suspense, use, useEffect, useState } from "react";
 import { MirrorCollectionFrameClient } from "@/components/store/MirrorCollectionFrameClient";
 import type { CollectionFramePayload } from "@/lib/mirror-collection-frame-server";
 import type { ShopLocale } from "@/lib/i18n/locale";
@@ -11,92 +10,59 @@ function CollectionFrameInner({
   locale,
   currentPage,
   payload,
+  activeCategorySlug,
 }: {
   src: string;
   title: string;
   locale: ShopLocale;
   currentPage: number;
-  payload: CollectionFramePayload | null;
+  payload: CollectionFramePayload;
+  activeCategorySlug?: string;
 }) {
   return (
     <MirrorCollectionFrameClient
       src={src}
-      title={payload?.title ?? title}
-      branding={payload?.branding}
-      nav={payload?.nav}
-      footer={payload?.footer}
+      title={payload.title ?? title}
+      branding={payload.branding}
+      nav={payload.nav}
+      footer={payload.footer}
       locale={locale}
-      collectionFromAdmin={payload?.collectionFromAdmin}
-      productsFromAdmin={payload?.productsFromAdmin}
-      categoriesFromAdmin={payload?.categoriesFromAdmin}
-      activeCategorySlug={payload?.activeCategorySlug}
-      mirrorTexts={payload?.mirrorTexts}
+      collectionFromAdmin={payload.collectionFromAdmin}
+      productsFromAdmin={payload.productsFromAdmin}
+      categoriesFromAdmin={payload.categoriesFromAdmin}
+      activeCategorySlug={activeCategorySlug ?? payload.activeCategorySlug}
+      mirrorTexts={payload.mirrorTexts}
       currentPage={currentPage}
-      paginationBasePath={payload?.paginationBasePath ?? "/collections/all"}
+      paginationBasePath={payload.paginationBasePath ?? "/collections/all"}
+      hideTemplateProductsUntilSync={Boolean(activeCategorySlug ?? payload.activeCategorySlug)}
     />
   );
 }
 
-function PayloadFromPromise({
-  promise,
-  onReady,
-}: {
-  promise: Promise<CollectionFramePayload>;
-  onReady: (value: CollectionFramePayload) => void;
-}) {
-  const data = use(promise);
-  useEffect(() => {
-    onReady(data);
-  }, [data, onReady]);
-  return null;
-}
-
-/** Iframe anında; koleksiyon verisi arka planda (sunucu veya JSON API) */
+/** Iframe anında; ürün listesi sunucudan gelen payload ile patch (kategori flash yok) */
 export function MirrorCollectionFrameHost({
   src,
   title,
   locale,
   currentPage,
-  payloadPromise,
-  fetchPayloadUrl,
+  initialPayload,
+  activeCategorySlug,
 }: {
   src: string;
   title: string;
   locale: ShopLocale;
   currentPage: number;
-  payloadPromise?: Promise<CollectionFramePayload>;
-  fetchPayloadUrl?: string;
+  initialPayload: CollectionFramePayload;
+  activeCategorySlug?: string;
 }) {
-  const [payload, setPayload] = useState<CollectionFramePayload | null>(null);
-
-  useEffect(() => {
-    if (!fetchPayloadUrl || payloadPromise) return;
-    let cancelled = false;
-    fetch(fetchPayloadUrl, { credentials: "same-origin" })
-      .then((r) => r.json())
-      .then((j: CollectionFramePayload) => {
-        if (!cancelled) setPayload(j);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [fetchPayloadUrl, payloadPromise]);
-
   return (
-    <>
-      <CollectionFrameInner
-        src={src}
-        title={title}
-        locale={locale}
-        currentPage={currentPage}
-        payload={payload}
-      />
-      {payloadPromise ? (
-        <Suspense fallback={null}>
-          <PayloadFromPromise promise={payloadPromise} onReady={setPayload} />
-        </Suspense>
-      ) : null}
-    </>
+    <CollectionFrameInner
+      src={src}
+      title={title}
+      locale={locale}
+      currentPage={currentPage}
+      payload={initialPayload}
+      activeCategorySlug={activeCategorySlug}
+    />
   );
 }

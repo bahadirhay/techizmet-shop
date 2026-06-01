@@ -28,22 +28,7 @@ export async function MirrorCollectionFrame({
   const src = buildCollectionMirrorSrc(slug, locale, templateSlug);
   const frameTitle = title ?? `Collection — ${slug}`;
 
-  if (process.env.NODE_ENV === "production") {
-    const q = new URLSearchParams({ slug, page: String(page) });
-    if (categorySlug) q.set("category", categorySlug);
-    if (title) q.set("title", title);
-    return (
-      <MirrorCollectionFrameHost
-        src={src}
-        title={frameTitle}
-        locale={locale}
-        currentPage={page}
-        fetchPayloadUrl={`/api/vitrin/collection-frame?${q.toString()}`}
-      />
-    );
-  }
-
-  const payloadPromise = getCollectionFramePayload(
+  const initialPayload = await getCollectionFramePayload(
     site.id,
     slug,
     locale,
@@ -52,13 +37,27 @@ export async function MirrorCollectionFrame({
     title,
   );
 
+  if (process.env.NODE_ENV === "production") {
+    return (
+      <MirrorCollectionFrameHost
+        src={src}
+        title={frameTitle}
+        locale={locale}
+        currentPage={page}
+        initialPayload={initialPayload}
+        activeCategorySlug={categorySlug}
+      />
+    );
+  }
+
   return (
     <MirrorCollectionFrameHost
       src={src}
       title={frameTitle}
       locale={locale}
       currentPage={page}
-      payloadPromise={payloadPromise}
+      initialPayload={initialPayload}
+      activeCategorySlug={categorySlug}
     />
   );
 }
