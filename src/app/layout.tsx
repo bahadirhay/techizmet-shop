@@ -3,8 +3,9 @@ import { Poppins } from "next/font/google";
 import { CookieConsentBanner } from "@/components/store/CookieConsentBanner";
 import { ConsentAwareAnalytics } from "@/components/store/ConsentAwareAnalytics";
 import { buildSiteMetadata } from "@/lib/site-metadata";
+import { getCachedParsedSiteSettings } from "@/lib/cache/store-cache";
 import { getDefaultSite } from "@/lib/site";
-import { getSiteSeo, getSiteSettings } from "@/lib/site-settings";
+import { getSiteSeo } from "@/lib/site-settings";
 import "./globals.css";
 
 export const revalidate = 300;
@@ -21,11 +22,18 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const site = await getDefaultSite();
-  const settings = await getSiteSettings(site.id);
+  const settings = await getCachedParsedSiteSettings(site.id);
   const seo = getSiteSeo(settings, site.name);
 
   return (
     <html lang="tr">
+      <head>
+        <link
+          rel="prefetch"
+          href="/_mirror-prebuilt/theme/techizmet-shop/mirror/index-tr.html"
+          as="document"
+        />
+      </head>
       <body className={`${poppins.variable} antialiased`}>
         <ConsentAwareAnalytics
           googleAnalyticsId={seo.googleAnalyticsId}

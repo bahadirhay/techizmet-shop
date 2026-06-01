@@ -179,7 +179,18 @@ export function MirrorVitrinFrameClient({
 
       setFrameReady(true);
 
-      if (!isMirrorServerReady(doc)) {
+      const serverReady = isMirrorServerReady(doc);
+      const serverOverlay = doc.documentElement.getAttribute("data-kn-overlay-server") === "1";
+      const skipClientWork =
+        serverReady &&
+        serverOverlay &&
+        !visualEditMode &&
+        !collectionsFromAdmin?.length &&
+        !categoriesFromAdmin?.length;
+
+      if (skipClientWork) return;
+
+      if (!serverReady) {
         cancelBranding?.();
         cancelBranding = scheduleMirrorFramePatches(() => iframeRef.current?.contentDocument ?? undefined, {
           branding,
@@ -189,7 +200,6 @@ export function MirrorVitrinFrameClient({
         });
       }
 
-      const serverOverlay = doc.documentElement.getAttribute("data-kn-overlay-server") === "1";
       const needsClientOverlay =
         config &&
         hasMirrorPageEdits(config) &&
@@ -311,6 +321,7 @@ export function MirrorVitrinFrameClient({
         ref={iframeRef}
         title={title}
         src={src}
+        loading="eager"
         sandbox={visualEditMode ? "allow-same-origin allow-scripts" : undefined}
         className="mirror-home-frame"
         style={{

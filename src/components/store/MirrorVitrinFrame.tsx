@@ -1,17 +1,13 @@
-import { MirrorVitrinFrameClient } from "@/components/store/MirrorVitrinFrameClient";
+import { MirrorVitrinFrameHost } from "@/components/store/MirrorVitrinFrameHost";
 import type { VitrinCollectionCard, VitrinCollectionCategoryOption } from "@/lib/mirror-collections-sync";
-import { listFeaturedBlogPostsForHome } from "@/lib/blog/blog-posts-server";
-import { mergeFeaturedBlogIntoPageConfig } from "@/lib/mirror-featured-blog";
-import { getMirrorPageConfig } from "@/lib/mirror-page-settings";
+import { getMirrorVitrinHydration } from "@/lib/mirror-vitrin-data";
 import { getVitrinPage, type VitrinPageKey } from "@/lib/mirror-vitrin-pages";
 import { getStoreLocaleFromHeaders } from "@/lib/i18n/server";
-import { getSiteBranding, getSiteSettings } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
-import { resolveMirrorCollectionTexts } from "@/lib/store-static-texts";
 
-/** Techizmet Shop vitrin sayfası — admin ayarları + koleksiyon DB */
+/** Techizmet Shop vitrin — iframe anında, DB ayarları paralel */
 export async function MirrorVitrinFrame({
   pageKey,
   collectionsSync = false,
@@ -24,15 +20,8 @@ export async function MirrorVitrinFrame({
 
   const site = await getDefaultSite();
   const locale = await getStoreLocaleFromHeaders();
-  const settings = await getSiteSettings(site.id);
-  let pageConfig = getMirrorPageConfig(settings, pageKey);
-  if (pageKey === "home") {
-    const featured = await listFeaturedBlogPostsForHome(site.id, locale);
-    if (featured.length) pageConfig = mergeFeaturedBlogIntoPageConfig(pageConfig, featured);
-  }
-  const branding = getSiteBranding(settings);
-  const mirrorTexts = resolveMirrorCollectionTexts(locale, settings.store?.texts);
   const src = def.mirrorPath(locale);
+  const hydrationPromise = getMirrorVitrinHydration(site.id, pageKey, locale);
 
   let collectionsFromAdmin: VitrinCollectionCard[] | undefined;
   let categoriesFromAdmin: VitrinCollectionCategoryOption[] | undefined;
@@ -54,15 +43,13 @@ export async function MirrorVitrinFrame({
   }
 
   return (
-    <MirrorVitrinFrameClient
+    <MirrorVitrinFrameHost
       src={src}
       title={def.label}
-      pageConfig={pageConfig}
-      branding={branding}
       locale={locale}
+      hydrationPromise={hydrationPromise}
       collectionsFromAdmin={collectionsFromAdmin}
       categoriesFromAdmin={categoriesFromAdmin}
-      mirrorTexts={mirrorTexts}
     />
   );
 }
