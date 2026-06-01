@@ -3,7 +3,7 @@
  * Vercel build: DATABASE_URL + STORE_SITE_SLUG (Production + Build) gerekir.
  */
 import "dotenv/config";
-import { mkdir, readdir, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { listPublishedBlogPosts } from "../src/lib/blog/blog-posts-server";
 import { buildMirrorHtmlCore } from "../src/lib/mirror-html-processor";
@@ -218,11 +218,43 @@ async function main() {
     select: { slug: true },
     orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
   });
-  for (const cat of storeCategories) {
-    for (const locale of ["tr", "en"] as const) {
-      const outRel = categoryCollectionMirrorFileRel(cat.slug, locale);
-      await prebuildOnce(outRel, () =>
-        buildCategoryCollectionHtmlForPrebuild(site.id, site.name, locale, cat.slug),
+
+  const allBaseByLocale: Partial<Record<"tr" | "en", string>> = {};
+  for (const locale of ["tr", "en"] as const) {
+    const rel = collectionMirrorFileRel("all", locale);
+    const abs = prebuiltMirrorAbs(rel);
+    allBaseByLocale[locale] = await readFile(abs, "utf8");
+  }
+
+  const categoryBatchSize = 4;
+  console.log(
+    `[mirror:prebuild] ${storeCategories.length} kategori × 2 dil (all.html tabanlı, batch=${categoryBatchSize})`,
+  );
+  for (const locale of ["tr", "en"] as const) {
+    const base = allBaseByLocale[locale];
+    if (!base) {
+      throw new Error(`all.html prebuilt eksik: ${locale}`);
+    }
+    for (let i = 0; i < storeCategories.length; i += categoryBatchSize) {
+      const batch = storeCategories.slice(i, i + categoryBatchSize);
+      await Promise.all(
+        batch.map(async (cat) => {
+          const outRel = categoryCollectionMirrorFileRel(cat.slug, locale);
+          const t0 = Date.now();
+          await prebuildOnce(outRel, () =>
+            buildCategoryCollectionHtmlForPrebuild(
+              site.id,
+              site.name,
+              locale,
+              cat.slug,
+              1,
+              base,
+            ),
+          );
+          console.log(
+            `[mirror:prebuild] ${outRel} (${Date.now() - t0}ms)`,
+          );
+        }),
       );
     }
   }

@@ -7,8 +7,8 @@ import {
 } from "@/lib/mirror-collections-sync";
 import { loadCollectionCatalogCore } from "@/lib/mirror-collection-catalog-data";
 import type { CollectionCatalogPayload } from "@/lib/mirror-collection-payload-types";
-import { buildMirrorHtmlCore } from "@/lib/mirror-html-processor";
 import { collectionMirrorFileRel } from "@/lib/mirror-html-path";
+import { readPrebuiltMirrorHtml } from "@/lib/mirror-prebuilt";
 
 function serializeMirrorDocument(html: string, document: Document): string {
   const doctype = html.match(/^<!DOCTYPE[^>]*>/i)?.[0] ?? "<!DOCTYPE html>";
@@ -45,21 +45,33 @@ export function applyCollectionCatalogToMirrorHtml(
   return serializeMirrorDocument(html, document);
 }
 
-/** Deploy prebuild — tam mirror + kategori ürünleri */
+/** Prebuild — hazır all.html üzerine yalnızca kategori ürünleri (tam mirror build yok) */
+export async function buildCategoryCollectionHtmlFromBase(
+  siteId: string,
+  locale: ShopLocale,
+  categorySlug: string,
+  baseHtml: string,
+  page = 1,
+): Promise<string> {
+  const payload = await loadCollectionCatalogCore(siteId, "all", locale, categorySlug, page);
+  return applyCollectionCatalogToMirrorHtml(baseHtml, payload, locale, page);
+}
+
+/** Yedek — all prebuilt yoksa hata (deploy önce all.html üretilmeli) */
 export async function buildCategoryCollectionHtmlForPrebuild(
   siteId: string,
-  siteName: string,
+  _siteName: string,
   locale: ShopLocale,
   categorySlug: string,
   page = 1,
+  baseHtml?: string,
 ): Promise<string> {
-  const sourceRel = collectionMirrorFileRel("all", locale);
-  const html = await buildMirrorHtmlCore({
-    normalized: sourceRel,
-    locale,
-    siteId,
-    siteName,
-  });
-  const payload = await loadCollectionCatalogCore(siteId, "all", locale, categorySlug, page);
-  return applyCollectionCatalogToMirrorHtml(html, payload, locale, page);
+  const base =
+    baseHtml ?? (await readPrebuiltMirrorHtml(collectionMirrorFileRel("all", locale)));
+  if (!base) {
+    throw new Error(
+      `Prebuilt ${collectionMirrorFileRel("all", locale)} yok — önce collections/all prebuild çalıştırın.`,
+    );
+  }
+  return buildCategoryCollectionHtmlFromBase(siteId, locale, categorySlug, base, page);
 }

@@ -7,21 +7,12 @@ import {
   storeSettingsTag,
 } from "@/lib/cache/store-cache";
 import type { ShopLocale } from "@/lib/i18n/locale";
-import { buildCategoryCollectionHtmlForPrebuild } from "@/lib/mirror-collection-catalog-html";
-
-async function buildCategoryCollectionHtmlCore(
-  siteId: string,
-  siteName: string,
-  locale: ShopLocale,
-  categorySlug: string,
-  collectionSlug: string,
-  page: number,
-  titleHint?: string,
-): Promise<string> {
-  void collectionSlug;
-  void titleHint;
-  return buildCategoryCollectionHtmlForPrebuild(siteId, siteName, locale, categorySlug, page);
-}
+import {
+  buildCategoryCollectionHtmlForPrebuild,
+  buildCategoryCollectionHtmlFromBase,
+} from "@/lib/mirror-collection-catalog-html";
+import { categoryCollectionMirrorFileRel, collectionMirrorFileRel } from "@/lib/mirror-html-path";
+import { readPrebuiltMirrorHtml } from "@/lib/mirror-prebuilt";
 
 export function getCategoryCollectionMirrorHtml(
   siteId: string,
@@ -34,17 +25,22 @@ export function getCategoryCollectionMirrorHtml(
 ): Promise<string> {
   const cat = categorySlug.trim();
   return unstable_cache(
-    () =>
-      buildCategoryCollectionHtmlCore(
-        siteId,
-        siteName,
-        locale,
-        cat,
-        collectionSlug,
-        page,
-        titleHint,
-      ),
-    ["collection-html-v2", siteId, locale, cat, collectionSlug, String(page), titleHint ?? ""],
+    async () => {
+      void siteName;
+      void titleHint;
+      const categoryRel = categoryCollectionMirrorFileRel(cat, locale);
+      const prebuiltCategory = await readPrebuiltMirrorHtml(categoryRel);
+      if (prebuiltCategory && page === 1 && collectionSlug === "all") {
+        return prebuiltCategory;
+      }
+      const allRel = collectionMirrorFileRel("all", locale);
+      const base = await readPrebuiltMirrorHtml(allRel);
+      if (base) {
+        return buildCategoryCollectionHtmlFromBase(siteId, locale, cat, base, page);
+      }
+      return buildCategoryCollectionHtmlForPrebuild(siteId, siteName, locale, cat, page);
+    },
+    ["collection-html-v3", siteId, locale, cat, collectionSlug, String(page), titleHint ?? ""],
     {
       revalidate: STORE_PUBLIC_REVALIDATE_SEC,
       tags: [storeSettingsTag(siteId), storeMirrorTag(siteId), "store-products"],
