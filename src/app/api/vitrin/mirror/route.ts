@@ -9,6 +9,7 @@ import { loadMirrorFavoritesPayload } from "@/lib/mirror-favorites-page-server";
 import { applyCartPageToMirrorHtml } from "@/lib/mirror-cart-page";
 import { loadMirrorCartPagePayload } from "@/lib/mirror-cart-page-server";
 import { applyCheckoutPageToMirrorHtml } from "@/lib/mirror-checkout-page";
+import { applyAccountAuthToMirrorHtml } from "@/lib/mirror-account-auth-page";
 import {
   applyCheckoutSuccessToMirrorHtml,
   type MirrorCheckoutSuccessPayload,
@@ -69,7 +70,13 @@ export async function GET(req: Request) {
     localized = applyCartPageToMirrorHtml(localized, cartPayload);
   }
 
-  if (normalized.includes("mirror/checkout/success")) {
+  if (normalized.match(/mirror\/account\/login(-tr)?\.html$/i)) {
+    localized = applyAccountAuthToMirrorHtml(localized, { locale, mode: "login" });
+  } else if (normalized.match(/mirror\/account\/register(-tr)?\.html$/i)) {
+    localized = applyAccountAuthToMirrorHtml(localized, { locale, mode: "register" });
+  } else if (normalized.match(/mirror\/account\/forgot-password(-tr)?\.html$/i)) {
+    localized = applyAccountAuthToMirrorHtml(localized, { locale, mode: "forgot-password" });
+  } else if (normalized.includes("mirror/checkout/success")) {
     const successPayload: MirrorCheckoutSuccessPayload = {
       locale,
       orderNumber: url.searchParams.get("order")?.trim() || undefined,

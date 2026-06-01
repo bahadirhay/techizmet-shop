@@ -83,7 +83,22 @@ const BRIDGE_SCRIPT = `<script id="kn-account-bridge">(function(){
       return;
     }
     if(type==="recover_customer_password"){
-      showErr(form,"Şifre sıfırlama henüz e-posta ile aktif değil. /account/login sayfasından giriş yapın veya destek ile iletişime geçin.");
+      var fp=await postJson("/api/account/forgot-password",{
+        email:field(form,"email")
+      });
+      if(!fp.ok){showErr(form,fp.error||"İşlem başarısız");return;}
+      var ok=form.querySelector(".kn-account-success");
+      if(!ok){
+        ok=document.createElement("p");
+        ok.className="kn-account-success";
+        ok.style.cssText="color:#15803d;margin:10px 0;font-size:14px;line-height:1.4";
+        var btn=form.querySelector("button.button-block,button.medium-button,button");
+        if(btn) form.insertBefore(ok,btn);
+        else form.appendChild(ok);
+      }
+      ok.textContent=tr()
+        ? "Kayıtlı e-posta varsa sıfırlama bağlantısı gönderildi."
+        : "If this email is registered, a reset link was sent.";
       return;
     }
   }catch(err){
@@ -106,6 +121,12 @@ const BRIDGE_SCRIPT = `<script id="kn-account-bridge">(function(){
   }
   function bindAll(){
     document.querySelectorAll("account-drawer form").forEach(bindForm);
+    document.querySelectorAll(
+      'form input[name="form_type"][value="customer_login"], form input[name="form_type"][value="create_customer"], form input[name="form_type"][value="recover_customer_password"]'
+    ).forEach(function(inp){
+      var form=inp&&inp.form;
+      if(form) bindForm(form);
+    });
   }
   function tr(){
     return document.documentElement.lang&&document.documentElement.lang.indexOf("tr")===0;

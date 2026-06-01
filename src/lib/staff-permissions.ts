@@ -16,8 +16,29 @@ export const STAFF_PERMISSION_KEYS = [
 
 export type StaffPermission = (typeof STAFF_PERMISSION_KEYS)[number];
 
+/** Admin UI — izin matrisi etiketleri */
+export const STAFF_PERMISSION_LABELS: Record<StaffPermission, string> = {
+  "store.dashboard": "Özet panel & raporlar",
+  "store.products": "Ürün yönetimi & fiyat",
+  "store.collections": "Koleksiyonlar",
+  "store.orders": "Siparişler & kargo etiketi",
+  "store.campaigns": "Kampanyalar & kupon",
+  "store.customers": "Müşteriler & üye grupları",
+  "store.shipping": "Kargo firmaları",
+  "store.integrations": "Pazaryeri, ödeme, bildirimler",
+  "store.finance": "Ön muhasebe",
+  "content.pages": "Sayfalar, blog, vitrin içeriği",
+  "site.theme": "Tema, menü, footer",
+  "site.settings": "Mağaza & SEO ayarları",
+  "users.manage": "Panel kullanıcıları & roller",
+};
+
 export function allStaffPermissions(): StaffPermission[] {
   return [...STAFF_PERMISSION_KEYS];
+}
+
+export function isValidStaffPermission(key: string): key is StaffPermission {
+  return (STAFF_PERMISSION_KEYS as readonly string[]).includes(key);
 }
 
 export function parsePermissionsJson(raw: string | null | undefined): string[] {

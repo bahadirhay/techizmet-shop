@@ -139,7 +139,6 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
       { href: "/admin/customers", label: "Müşteri / üye listesi", perm: "store.customers" },
       { href: "/admin/customers?segment=members", label: "Üye listesi", perm: "store.customers" },
       { href: "/admin/customer-groups", label: "Üye grupları & indirim", perm: "store.customers" },
-      { href: "/admin/settings/users", label: "Panel kullanıcıları", perm: "users.manage" },
     ],
   },
   {
@@ -233,6 +232,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     perm: null,
     collapsedByDefault: true,
     items: [
+      { href: "/admin/settings/users", label: "Personel & panel yetkileri", perm: "users.manage" },
       { href: "/admin/settings/store", label: "Mağaza ayarları", perm: "site.settings" },
       { href: "/admin/settings/security", label: "Güvenlik & şifre", perm: null },
       { href: "/admin/settings/menu", label: "Menü & kategoriler", perm: "site.theme" },

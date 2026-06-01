@@ -22,11 +22,14 @@
 .kn-header__inner {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 0.75rem 1rem;
+  padding: 0.75rem max(1rem, env(safe-area-inset-right, 0px)) 0.75rem
+    max(1rem, env(safe-area-inset-left, 0px));
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.5rem 0.75rem;
   flex-wrap: wrap;
+  min-width: 0;
+  box-sizing: border-box;
 }
 .kn-header__logo {
   font-weight: 700;
@@ -146,8 +149,23 @@
 .kn-header__actions {
   margin-left: auto;
   display: flex;
-  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.4rem 0.65rem;
   font-size: 0.875rem;
+  max-width: 100%;
+  min-width: 0;
+}
+@media (max-width: 480px) {
+  .kn-header__actions {
+    font-size: 0.75rem;
+    gap: 0.35rem 0.5rem;
+  }
+  .kn-header__logo img {
+    max-width: 72px;
+    height: auto;
+  }
 }
 .kn-header__admin {
   color: var(--kn-muted);
@@ -171,14 +189,18 @@
 .kn-main {
   min-height: 60vh;
   background: var(--kn-bg);
+  overflow-x: clip;
+  max-width: 100%;
 }
 .kn-home-mirror {
   display: block;
   width: 100%;
+  max-width: 100%;
   min-height: 100vh;
   margin: 0;
   padding: 0;
   background: #fff;
+  overflow-x: clip;
 }
 .kn-home-mirror .mirror-home-frame {
   display: block;
@@ -269,7 +291,14 @@
 .kn-section {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 3rem 1rem;
+  padding: 3rem max(1rem, env(safe-area-inset-right, 0px)) 3rem
+    max(1rem, env(safe-area-inset-left, 0px));
+  box-sizing: border-box;
+  width: 100%;
+}
+.kn-section--account {
+  padding-top: 2rem;
+  padding-bottom: 3rem;
 }
 .kn-checkout-page-wrap {
   max-width: none;
@@ -1222,6 +1251,8 @@
   max-width: 32rem;
   margin: 0 auto;
   padding: 2rem 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 .kn-account--wide {
   max-width: 42rem;
@@ -1239,7 +1270,12 @@
 .kn-form-grid-2 {
   display: grid;
   gap: 1rem;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 480px) {
+  .kn-form-grid-2 {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 .kn-text-success {
   color: #15803d;
@@ -1322,10 +1358,15 @@
   font-size: 0.875rem;
   font-weight: 500;
 }
-.kn-account__form input {
+.kn-account__form input,
+.kn-account__form select,
+.kn-account__form textarea {
   padding: 0.55rem 0.75rem;
   border: 1px solid var(--kn-border);
   border-radius: 8px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 .kn-account__footer {
   margin-top: 1.5rem;

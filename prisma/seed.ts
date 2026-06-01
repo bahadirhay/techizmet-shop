@@ -12,7 +12,7 @@ import {
   mirrorSeedImageUrl,
 } from "../src/lib/catalog/mirror-seed";
 import { serializeBlocks } from "../src/lib/blocks/schema";
-import { allStaffPermissions } from "../src/lib/staff-permissions";
+import { ensureDefaultStaffRoles } from "../src/lib/staff-role-presets";
 import { SHIPPING_CARRIER_PRESETS } from "../src/lib/admin/marketplace-platforms";
 import { serializeProductBadges } from "../src/lib/product-badges";
 import { DEFAULT_STORE_NAV } from "../src/lib/store-navigation";
@@ -52,11 +52,9 @@ async function main() {
     },
   });
 
-  const perms = JSON.stringify(allStaffPermissions());
-  const adminRole = await prisma.shopStaffRole.upsert({
+  await ensureDefaultStaffRoles(prisma, site.id);
+  const adminRole = await prisma.shopStaffRole.findUniqueOrThrow({
     where: { siteId_slug: { siteId: site.id, slug: "admin" } },
-    create: { siteId: site.id, slug: "admin", label: "Yönetici", permissionsJson: perms },
-    update: { permissionsJson: perms },
   });
 
   const plain = process.env.ADMIN_PASSWORD?.trim() || "admin123";

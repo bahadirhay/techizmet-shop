@@ -148,5 +148,37 @@ writeFileSync(
   buildFromShell(ABOUT_EN, checkoutSuccessMainEn, "Order received"),
   "utf8",
 );
+writeFileSync(
+  join(ROOT, "account", "login-tr.html"),
+  buildFromShell(ABOUT_TR, checkoutSuccessMainTr, "Giriş yap"),
+  "utf8",
+);
+writeFileSync(
+  join(ROOT, "account", "login.html"),
+  buildFromShell(ABOUT_EN, checkoutSuccessMainEn, "Log in"),
+  "utf8",
+);
+writeFileSync(
+  join(ROOT, "account", "register-tr.html"),
+  buildFromShell(ABOUT_TR, checkoutSuccessMainTr, "Hesap oluştur"),
+  "utf8",
+);
+writeFileSync(
+  join(ROOT, "account", "register.html"),
+  buildFromShell(ABOUT_EN, checkoutSuccessMainEn, "Create account"),
+  "utf8",
+);
+writeFileSync(
+  join(ROOT, "account", "forgot-password-tr.html"),
+  buildFromShell(ABOUT_TR, checkoutSuccessMainTr, "Şifremi unuttum"),
+  "utf8",
+);
+writeFileSync(
+  join(ROOT, "account", "forgot-password.html"),
+  buildFromShell(ABOUT_EN, checkoutSuccessMainEn, "Forgot password"),
+  "utf8",
+);
 
-console.log("Generated account/, favorites, cart/, checkout/ (+ success) mirror pages");
+console.log(
+  "Generated account/, favorites, cart/, checkout/ (+ success, login, register, forgot-password) mirror pages",
+);

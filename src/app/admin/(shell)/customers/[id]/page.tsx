@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CustomerDetailForm } from "@/components/admin/CustomerDetailForm";
+import { CustomerGrantPanelAccess } from "@/components/admin/CustomerGrantPanelAccess";
 import { CustomerGroupAssign } from "@/components/admin/CustomerGroupAssign";
 import { CustomerPasswordForm } from "@/components/admin/CustomerPasswordForm";
 import { formatTry } from "@/lib/admin/money";
@@ -89,6 +90,16 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
         </div>
 
         <div className="space-y-6">
+          <CustomerGrantPanelAccess
+            auth={auth}
+            customer={{
+              id: customer.id,
+              email: customer.email,
+              firstName: customer.firstName,
+              lastName: customer.lastName,
+              passwordHash: customer.passwordHash,
+            }}
+          />
           <div className="rounded-xl border bg-white p-6">
             <CustomerGroupAssign
               customerId={customer.id}

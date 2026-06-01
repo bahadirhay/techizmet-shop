@@ -12,11 +12,11 @@ export default async function AdminSecurityPage() {
         <AdminChangePasswordForm />
       </div>
       <p className="mt-4 text-sm text-zinc-500">
-        Diğer panel kullanıcılarının şifresi için{" "}
+        Diğer panel kullanıcılarının şifresi ve rolleri:{" "}
         <a href="/admin/settings/users" className="text-[var(--kn-brand)] underline">
-          Kullanıcılar & roller
+          Ayarlar → Personel & panel yetkileri
         </a>
-        . Mağaza üyeleri için müşteri kartı.
+        . Mağaza üyesi şifresi için müşteri kartı.
       </p>
     </div>
   );

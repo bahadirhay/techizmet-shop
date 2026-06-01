@@ -9,6 +9,9 @@ export function isMirrorShellPath(pathname: string): boolean {
     pathname === "/blogs/news" ||
     pathname.startsWith("/blogs/news/") ||
     pathname === "/account" ||
+    pathname === "/account/login" ||
+    pathname === "/account/register" ||
+    pathname === "/account/forgot-password" ||
     pathname === "/account/favorites" ||
     pathname === "/cart" ||
     pathname === "/search" ||

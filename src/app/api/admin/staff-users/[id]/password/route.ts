@@ -18,7 +18,7 @@ export async function POST(req: Request, ctx: Ctx) {
   if (err) return NextResponse.json({ error: err }, { status: 400 });
 
   const user = await prisma.shopStaffUser.findFirst({
-    where: { id, siteId: auth.siteId, active: true },
+    where: { id, siteId: auth.siteId },
   });
   if (!user) return NextResponse.json({ error: "Kullanıcı bulunamadı" }, { status: 404 });
 
