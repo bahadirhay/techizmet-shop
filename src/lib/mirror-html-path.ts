@@ -101,6 +101,21 @@ export function blogArticleMirrorFileRel(slug: string, locale: ShopLocale): stri
 }
 
 /** Blog yazısı iframe — prod: slug başına prebuilt; dev: şablon + blogSlug */
+export function productMirrorFileRel(slug: string, locale: ShopLocale): string {
+  return locale === "tr"
+    ? `theme/techizmet-shop/mirror/products/${slug}-tr.html`
+    : `theme/techizmet-shop/mirror/products/${slug}.html`;
+}
+
+/** Ürün PDP iframe — prod: slug başına prebuilt */
+export function buildProductMirrorSrc(slug: string, locale: ShopLocale, templateSlug: string): string {
+  if (process.env.NODE_ENV === "production") {
+    return toBrandedMirrorSrc(productMirrorFileRel(slug, locale));
+  }
+  const diskSlug = mirrorProductHtmlExists(slug) ? slug : templateSlug;
+  return toBrandedMirrorSrc(productMirrorFileRel(diskSlug, locale));
+}
+
 export function buildBlogArticleMirrorSrc(slug: string, locale: ShopLocale): string | null {
   const templateSlug = resolveMirrorBlogArticleTemplateSlug(slug);
   if (!templateSlug) return null;

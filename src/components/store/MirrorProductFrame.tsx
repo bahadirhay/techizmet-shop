@@ -1,12 +1,11 @@
 import { notFound } from "next/navigation";
 import { MirrorProductFrameClient } from "@/components/store/MirrorProductFrameClient";
 import type { ShopLocale } from "@/lib/i18n/locale";
-import { toBrandedMirrorSrc } from "@/lib/mirror-html-branding";
-import { resolveMirrorProductTemplateSlug } from "@/lib/mirror-html-path";
+import { buildProductMirrorSrc, resolveMirrorProductTemplateSlug } from "@/lib/mirror-html-path";
 import { loadMirrorProductFramePayload } from "@/lib/mirror-product-frame-server";
 import { getDefaultSite } from "@/lib/site";
 
-/** HTTrack mirror — ürün detay; DB içeriği iframe’e yansıtılır */
+/** HTTrack mirror — ürün detay; prod: iframe anında, DB yaması prebuild’de */
 export async function MirrorProductFrame({
   slug,
   locale,
@@ -19,21 +18,30 @@ export async function MirrorProductFrame({
   templateSlug?: string;
 }) {
   const site = await getDefaultSite();
+  const resolvedTemplateSlug = templateSlug ?? resolveMirrorProductTemplateSlug(slug);
+  if (!resolvedTemplateSlug) notFound();
+
+  const src = buildProductMirrorSrc(slug, locale, resolvedTemplateSlug);
+  const frameTitle = title ?? `Product — ${slug}`;
+
+  if (process.env.NODE_ENV === "production") {
+    return (
+      <MirrorProductFrameClient
+        src={src}
+        title={frameTitle}
+        productSlug={slug}
+        locale={locale}
+      />
+    );
+  }
+
   const payload = await loadMirrorProductFramePayload(site.id, slug, locale);
   if (!payload) notFound();
-
-  const resolvedTemplateSlug = templateSlug ?? resolveMirrorProductTemplateSlug(slug) ?? slug;
-
-  const src = toBrandedMirrorSrc(
-    locale === "tr"
-      ? `theme/techizmet-shop/mirror/products/${resolvedTemplateSlug}-tr.html`
-      : `theme/techizmet-shop/mirror/products/${resolvedTemplateSlug}.html`,
-  );
 
   return (
     <MirrorProductFrameClient
       src={src}
-      title={title ?? `Product — ${slug}`}
+      title={frameTitle}
       overlay={payload.overlay}
       productFromAdmin={payload.productFromAdmin}
       commerce={payload.commerce ?? undefined}

@@ -1,5 +1,6 @@
 import { setBlogImageInHtmlChunk } from "@/lib/blog/mirror-blog-inject";
 import { blogPostHref } from "@/lib/blog/blog-post-types";
+import { resolveBlogFeaturedImageUrl } from "@/lib/mirror-blog-images";
 import {
   patchBlogLinksInChunk,
   reassembleBlogItemHtml,
@@ -145,7 +146,9 @@ export function applyFeaturedBlogPostsToSection(
     if (!post) return;
 
     const title = titleForLocale(post, locale);
-    if (post.imageUrl?.trim()) setBlogImage(item, post.imageUrl.trim(), title);
+    const img =
+    resolveBlogFeaturedImageUrl(post.postId, post.imageUrl) ?? post.imageUrl?.trim() ?? "";
+  if (img) setBlogImage(item, img, title);
 
     if (post.href?.trim()) {
       item.querySelectorAll('a.blog--title, a.blog--image').forEach((a) => {
@@ -191,7 +194,8 @@ function patchFeaturedBlogItemHtml(
   const desc = descForLocale(post, locale);
   const href = post.href?.trim() || blogPostHref(post.postId);
   let out = patchBlogLinksInChunk(chunk, href);
-  if (post.imageUrl?.trim()) out = setBlogImageInHtmlChunk(out, post.imageUrl.trim(), title);
+  const img = resolveBlogFeaturedImageUrl(post.postId, post.imageUrl) ?? post.imageUrl?.trim();
+  if (img) out = setBlogImageInHtmlChunk(out, img, title);
   if (title) {
     out = out.replace(
       /class="blog--title[^"]*"[^>]*>[\s\S]*?<\/a>/i,

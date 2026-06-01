@@ -8,6 +8,7 @@ import {
 } from "@/lib/blog/blog-post-types";
 import { blogPostsToFeaturedEdits } from "@/lib/blog/mirror-blog-inject";
 import type { FeaturedBlogPostEdit } from "@/lib/mirror-featured-blog";
+import { resolveBlogFeaturedImageUrl } from "@/lib/mirror-blog-images";
 import { prisma } from "@/lib/prisma";
 
 const select = {
@@ -67,7 +68,11 @@ export async function listFeaturedBlogPostsForHome(
       select,
     });
   }
-  return blogPostsToFeaturedEdits(rows, locale);
+  const edits = blogPostsToFeaturedEdits(rows, locale);
+  return edits.map((p) => ({
+    ...p,
+    imageUrl: resolveBlogFeaturedImageUrl(p.postId, p.imageUrl) ?? p.imageUrl,
+  }));
 }
 
 export function blogPostsToListCards(posts: BlogPostRecord[], locale: ShopLocale) {

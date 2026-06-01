@@ -67,6 +67,8 @@ export type MirrorHtmlBuildParams = {
   siteName: string;
   pageKey?: string;
   blogSlug?: string;
+  /** Şablon dosyasından farklı ürün slug (prebuild) */
+  productSlug?: string;
 };
 
 export function isProductMirrorPath(normalized: string) {
@@ -81,7 +83,7 @@ export function productSlugFromMirrorPath(normalized: string): string | null {
 
 /** Mirror HTML — disk okuma + veritabanı enjeksiyonları (derleme ve çalışma zamanı) */
 export async function buildMirrorHtmlCore(params: MirrorHtmlBuildParams): Promise<string> {
-  const { normalized, locale, siteId, siteName, pageKey, blogSlug } = params;
+  const { normalized, locale, siteId, siteName, pageKey, blogSlug, productSlug } = params;
   const abs = join(process.cwd(), "public", normalized);
   let html = await readFile(abs, "utf8");
 
@@ -122,7 +124,7 @@ export async function buildMirrorHtmlCore(params: MirrorHtmlBuildParams): Promis
       localized,
       getProductPageBottomSettings(settings),
     );
-    const slug = productSlugFromMirrorPath(normalized);
+    const slug = productSlug?.trim() || productSlugFromMirrorPath(normalized);
     if (slug) {
       localized = await injectPublishedProductIntoMirrorHtml(
         localized,

@@ -38,7 +38,7 @@ export function setBlogImageInHtmlChunk(chunk: string, url: string, alt: string)
   const safeAlt = escapeHtml(alt);
   let out = chunk;
   out = out.replace(
-    /<img[^>]*class="[^"]*lazyload[^"]*"[^>]*>/i,
+    /<img[^>]*class="[^"]*(?:lazyload|kn-blog-card-img)[^"]*"[^>]*>/i,
     `<img class="no-js-hidden kn-blog-card-img" src="${safeUrl}" data-src="${safeUrl}" data-original="${safeUrl}" alt="${safeAlt}" loading="eager">`,
   );
   out = out.replace(

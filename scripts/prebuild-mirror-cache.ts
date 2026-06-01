@@ -9,7 +9,9 @@ import { listPublishedBlogPosts } from "../src/lib/blog/blog-posts-server";
 import { buildMirrorHtmlCore } from "../src/lib/mirror-html-processor";
 import {
   blogArticleMirrorFileRel,
+  productMirrorFileRel,
   resolveMirrorBlogArticleTemplateSlug,
+  resolveMirrorProductTemplateSlug,
 } from "../src/lib/mirror-html-path";
 import { prebuiltMirrorAbs, prebuiltMirrorPublicUrl } from "../src/lib/mirror-prebuilt";
 import { VITRIN_PAGES } from "../src/lib/mirror-vitrin-pages";
@@ -131,6 +133,29 @@ async function main() {
           siteId: site.id,
           siteName: site.name,
           blogSlug: post.slug,
+        }),
+      );
+    }
+  }
+
+  const publishedProducts = await prisma.storeProduct.findMany({
+    where: { siteId: site.id, published: true },
+    select: { slug: true },
+  });
+  for (const product of publishedProducts) {
+    const templateSlug = resolveMirrorProductTemplateSlug(product.slug);
+    if (!templateSlug) continue;
+
+    for (const locale of ["tr", "en"] as const) {
+      const outRel = productMirrorFileRel(product.slug, locale);
+      const sourceRel = productMirrorFileRel(templateSlug, locale);
+      await prebuildOnce(outRel, () =>
+        buildMirrorHtmlCore({
+          normalized: sourceRel,
+          locale,
+          siteId: site.id,
+          siteName: site.name,
+          productSlug: product.slug,
         }),
       );
     }

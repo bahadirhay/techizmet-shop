@@ -6,7 +6,7 @@ import { config } from "dotenv";
 import { readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { PrismaClient } from "@prisma/client";
-import { extractBlogPostFromMirrorHtml } from "../src/lib/blog/mirror-blog-inject";
+import { resolveBlogFeaturedImageUrl } from "../src/lib/mirror-blog-images";
 
 config({ path: resolve(process.cwd(), ".env") });
 config({ path: resolve(process.cwd(), ".env.local"), override: true });
@@ -25,8 +25,7 @@ async function main() {
     if (name === "index.html" || name === "POST.html") continue;
 
     const slug = name.replace(/\.html$/i, "");
-    const html = readFileSync(join(blogDir, name), "utf8");
-    const { imageUrl } = extractBlogPostFromMirrorHtml(html, slug);
+    const imageUrl = resolveBlogFeaturedImageUrl(slug);
     if (!imageUrl?.trim()) {
       console.warn(`[skip] ${slug}: görsel yok`);
       skip++;

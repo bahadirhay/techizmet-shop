@@ -30,7 +30,12 @@ export function getMirrorAssetResolver(): MirrorAssetResolver {
 
   function pickBest(sub: string, requested: string): string | null {
     const names = byDir.get(sub);
-    if (!names) return null;
+    if (!names?.length) {
+      if (sub === "cdn/shop/articles") {
+        return pickBest("cdn/shop/files", requested) ?? pickBest("cdn/shop/collections", requested);
+      }
+      return null;
+    }
     if (fileSet.has(`${sub}/${requested}`)) return requested;
 
     const base = requested.includes(".")
