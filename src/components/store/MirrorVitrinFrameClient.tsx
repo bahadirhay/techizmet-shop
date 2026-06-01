@@ -301,7 +301,6 @@ export function MirrorVitrinFrameClient({
     collectionsFromAdmin,
     categoriesFromAdmin,
     mirrorTexts,
-    publishedProductSlugs,
     src,
     parentRouteKey,
   ]);
