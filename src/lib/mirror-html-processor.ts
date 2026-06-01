@@ -53,6 +53,10 @@ import {
 import { getSiteBranding } from "@/lib/site-settings-branding";
 import { getSiteSettingsUncached } from "@/lib/site-settings-load";
 import { rewriteLegacyThemePaths } from "@/lib/store-theme";
+import {
+  loadPublishedProductSlugSet,
+  pruneMirrorHtmlToPublishedCatalog,
+} from "@/lib/mirror-catalog-prune";
 
 export type MirrorHtmlBuildParams = {
   normalized: string;
@@ -158,6 +162,9 @@ export async function buildMirrorHtmlCore(params: MirrorHtmlBuildParams): Promis
   if (normalized.match(/mirror\/account\/index(-tr)?\.html$/i)) {
     localized = injectAccountDashboardStyles(localized);
   }
+
+  const publishedSlugs = await loadPublishedProductSlugSet(siteId);
+  localized = pruneMirrorHtmlToPublishedCatalog(localized, publishedSlugs);
 
   return rewriteLegacyThemePaths(localized);
 }

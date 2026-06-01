@@ -25,7 +25,7 @@ export async function MirrorVitrinFrame({
 
   let collectionsFromAdmin: VitrinCollectionCard[] | undefined;
   let categoriesFromAdmin: VitrinCollectionCategoryOption[] | undefined;
-  if (collectionsSync) {
+  if (collectionsSync || pageKey === "home") {
     const rows = await prisma.storeCollection.findMany({
       where: { siteId: site.id, published: true },
       orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
