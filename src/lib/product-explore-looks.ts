@@ -93,6 +93,8 @@ export function applyExploreLooksOverlay(
   ) as HTMLElement | null;
 
   if (!looks.length) {
+    // İstemci henüz JSON getirmediyse şablonu bozma (yanlışlıkla gizleme)
+    if (Object.keys(productsBySlug).length === 0) return;
     if (section) section.style.display = "none";
     return;
   }

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/session";
@@ -57,20 +58,21 @@ async function staffAccessFromSession(session: {
   return loadStaffSession(session.staffUserId, session.siteId);
 }
 
-export async function requireStaffPage(): Promise<StaffAccess> {
+/** Aynı RSC isteğinde layout + sayfa tek oturum/DB sorgusu */
+const loadStaffAccessCached = cache(async (): Promise<StaffAccess | null> => {
   const s = await getAdminSession();
-  if (!s.isLoggedIn || !s.staffUserId || !s.siteId) redirect("/admin/login");
-  const loaded = await staffAccessFromSession(s);
+  if (!s.isLoggedIn || !s.staffUserId || !s.siteId) return null;
+  return staffAccessFromSession(s);
+});
+
+export async function requireStaffPage(): Promise<StaffAccess> {
+  const loaded = await loadStaffAccessCached();
   if (!loaded) redirect("/admin/login");
   return loaded;
 }
 
 export async function requireStaffApi(perm?: string): Promise<StaffAccess | NextResponse> {
-  const s = await getAdminSession();
-  if (!s.isLoggedIn || !s.staffUserId || !s.siteId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const loaded = await staffAccessFromSession(s);
+  const loaded = await loadStaffAccessCached();
   if (!loaded) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

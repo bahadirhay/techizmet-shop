@@ -3,8 +3,7 @@ import { MirrorPageFrameClient } from "@/components/store/MirrorPageFrameClient"
 import { getPublishedBlogPostBySlug } from "@/lib/blog/blog-posts-server";
 import { blogTitle } from "@/lib/blog/blog-post-types";
 import type { ShopLocale } from "@/lib/i18n/locale";
-import { toBrandedMirrorSrc } from "@/lib/mirror-html-branding";
-import { resolveMirrorBlogArticleTemplateSlug } from "@/lib/mirror-html-path";
+import { buildBlogArticleMirrorSrc } from "@/lib/mirror-html-path";
 import { loadMirrorFooterData } from "@/lib/mirror-footer-server";
 import { loadMirrorNavItems } from "@/lib/mirror-nav-server";
 import { getSiteBranding, getSiteSettings } from "@/lib/site-settings";
@@ -22,21 +21,13 @@ export async function MirrorBlogArticleFrame({
   const post = await getPublishedBlogPostBySlug(site.id, slug);
   if (!post) notFound();
 
-  const templateSlug = resolveMirrorBlogArticleTemplateSlug(slug);
-  if (!templateSlug) notFound();
+  const src = buildBlogArticleMirrorSrc(slug, locale);
+  if (!src) notFound();
 
   const settings = await getSiteSettings(site.id);
   const branding = getSiteBranding(settings);
   const nav = await loadMirrorNavItems(site.id, locale);
   const footer = await loadMirrorFooterData(site.id, locale);
-
-  const src = toBrandedMirrorSrc(
-    locale === "tr"
-      ? `theme/techizmet-shop/mirror/blogs/news/${templateSlug}-tr.html`
-      : `theme/techizmet-shop/mirror/blogs/news/${templateSlug}.html`,
-    undefined,
-    { blogSlug: slug },
-  );
 
   return (
     <MirrorPageFrameClient

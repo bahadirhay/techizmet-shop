@@ -1,4 +1,9 @@
-import { isImageNode } from "@/lib/mirror-dom-node";
+import { parseHTML } from "linkedom";
+import { isAnchorNode, isElementNode, isImageNode, isInputNode } from "@/lib/mirror-dom-node";
+import type { MirrorProductCommercePayload } from "@/lib/mirror-product-commerce";
+import { injectMirrorProductCommerceHtml } from "@/lib/mirror-product-commerce";
+import type { ProductContentOverlay } from "@/lib/mirror-product-overlay";
+import { applyProductContentOverlay } from "@/lib/mirror-product-overlay";
 import type { ProductHighlight } from "@/lib/product-highlights";
 
 export type VitrinProductMedia = {
@@ -267,7 +272,7 @@ function patchTitle(doc: Document, product: VitrinProductDetail) {
   const href = productHref(product.slug);
   doc.querySelectorAll("#MainContent .product-title-heading").forEach((el) => {
     el.textContent = product.title;
-    if (el instanceof HTMLAnchorElement) {
+    if (isAnchorNode(el)) {
       el.href = href;
       el.setAttribute("aria-label", product.title);
     }
@@ -308,7 +313,7 @@ export function patchStickyBuyButton(doc: Document, product: VitrinProductDetail
   });
 
   const variantTitle = sticky.querySelector(".sticky--product-detail .product--variant-title");
-  if (variantTitle instanceof HTMLElement) {
+  if (isElementNode(variantTitle)) {
     if (defaultVariant?.label) {
       variantTitle.textContent = defaultVariant.label;
       variantTitle.style.display = "";
@@ -334,7 +339,7 @@ function patchProductHighlights(doc: Document, highlights: ProductHighlight[]) {
     const iconUrl = highlight.iconUrl.trim();
     if (iconUrl) {
       li.querySelectorAll(".custom-icons-icon img").forEach((img) => {
-        if (!(img instanceof HTMLImageElement)) return;
+        if (!isImageNode(img)) return;
         img.src = iconUrl;
         img.setAttribute("data-src", iconUrl);
         img.setAttribute("data-original", iconUrl);
@@ -396,7 +401,7 @@ function patchVariants(doc: Document, product: VitrinProductDetail) {
 
   const variants = product.variants ?? [];
   if (!variants.length) {
-    (wrap as HTMLElement).style.display = "none";
+    if (isElementNode(wrap)) wrap.style.display = "none";
     return;
   }
 
@@ -451,10 +456,10 @@ function patchVariants(doc: Document, product: VitrinProductDetail) {
   });
 
   doc.querySelectorAll('#MainContent input[name="product-id"]').forEach((el) => {
-    if (el instanceof HTMLInputElement) el.value = product.productId;
+    if (isInputNode(el)) el.value = product.productId;
   });
   doc.querySelectorAll('#MainContent input[name="id"]').forEach((el) => {
-    if (el instanceof HTMLInputElement) el.value = defaultVariant.id;
+    if (isInputNode(el)) el.value = defaultVariant.id;
   });
 }
 
@@ -466,4 +471,26 @@ export function applyProductDetailFromAdmin(doc: Document, product: VitrinProduc
   patchVariants(doc, product);
   patchStickyBuyButton(doc, product);
   if (product.highlights?.length) patchProductHighlights(doc, product.highlights);
+  doc.documentElement.setAttribute("data-kn-product-sync", "1");
+}
+
+const PRODUCT_SYNC_GUARD = `<style id="kn-product-sync-guard">html:not([data-kn-product-sync]) #MainContent{visibility:hidden}</style>`;
+
+/** Sunucu / prebuild — ürün başlık, galeri, fiyat HTML içine */
+export function applyProductDetailToMirrorHtml(
+  html: string,
+  product: VitrinProductDetail,
+  overlay: ProductContentOverlay = {},
+  commerce?: MirrorProductCommercePayload | null,
+): string {
+  const { document } = parseHTML(html);
+  if (!document.getElementById("kn-product-sync-guard")) {
+    document.head.insertAdjacentHTML("beforeend", PRODUCT_SYNC_GUARD);
+  }
+  applyProductDetailFromAdmin(document, product);
+  applyProductContentOverlay(document, overlay);
+  const doctype = html.match(/^<!DOCTYPE[^>]*>/i)?.[0] ?? "<!DOCTYPE html>";
+  let out = `${doctype}\n${document.documentElement.outerHTML}`;
+  if (commerce) out = injectMirrorProductCommerceHtml(out, commerce);
+  return out;
 }

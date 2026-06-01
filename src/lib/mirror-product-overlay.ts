@@ -2,6 +2,7 @@ import {
   contentForVitrinAccordion,
   contentForVitrinDescription,
 } from "@/lib/product-content-format";
+import { isElementNode } from "@/lib/mirror-dom-node";
 
 export type ProductContentOverlay = {
   description?: string | null;
@@ -56,7 +57,7 @@ export function applyProductContentOverlay(doc: Document, overlay: ProductConten
   doc.querySelectorAll("#MainContent .product--description").forEach((el) => {
     el.textContent = short;
     const wrap = el.closest(".product--description-wrapper, .product--info-block");
-    if (wrap instanceof HTMLElement) {
+    if (isElementNode(wrap)) {
       wrap.style.display = short ? "" : "none";
     }
   });

@@ -34,6 +34,7 @@ export function pruneMirrorDocToPublishedCatalog(
   removeUnknown(".horizontal--product-card");
   removeUnknown(".product--card");
   removeUnknown(".product-grid-card");
+  removeUnknown("#MainContent .section-related-products .product--card");
 
   doc.querySelectorAll("trending-set").forEach((el) => {
     const slug = slugFromProductCard(el);

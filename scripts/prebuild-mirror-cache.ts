@@ -5,13 +5,28 @@
 import "dotenv/config";
 import { mkdir, readdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { listPublishedBlogPosts } from "../src/lib/blog/blog-posts-server";
 import { buildMirrorHtmlCore } from "../src/lib/mirror-html-processor";
+import {
+  blogArticleMirrorFileRel,
+  resolveMirrorBlogArticleTemplateSlug,
+} from "../src/lib/mirror-html-path";
 import { prebuiltMirrorAbs, prebuiltMirrorPublicUrl } from "../src/lib/mirror-prebuilt";
 import { VITRIN_PAGES } from "../src/lib/mirror-vitrin-pages";
 import { prisma } from "../src/lib/prisma";
 
-const PRODUCT_DIR = join(process.cwd(), "public/theme/techizmet-shop/mirror/products");
+const MIRROR_THEME = "theme/techizmet-shop/mirror";
+const PRODUCT_DIR = join(process.cwd(), `public/${MIRROR_THEME}/products`);
+const BLOG_DIR = join(process.cwd(), `public/${MIRROR_THEME}/blogs/news`);
+const COLLECTION_DIR = join(process.cwd(), `public/${MIRROR_THEME}/collections`);
 const SKIP_PRODUCT_FILES = new Set(["POST.html", "POST-tr.html"]);
+const SKIP_BLOG_FILES = new Set(["index.html", "index-tr.html", "POST.html", "POST-tr.html"]);
+const SKIP_COLLECTION_FILES = new Set([
+  "index.html",
+  "index-tr.html",
+  "all.html",
+  "all-tr.html",
+]);
 const MANIFEST_PATH = join(process.cwd(), "public/_mirror-prebuilt/manifest.json");
 
 async function writePrebuilt(normalized: string, html: string) {
@@ -60,7 +75,7 @@ async function main() {
   const productFiles = await readdir(PRODUCT_DIR);
   for (const file of productFiles) {
     if (!file.endsWith(".html") || SKIP_PRODUCT_FILES.has(file)) continue;
-    const normalized = `theme/techizmet-shop/mirror/products/${file}`;
+    const normalized = `${MIRROR_THEME}/products/${file}`;
     const locale = file.endsWith("-tr.html") ? "tr" : "en";
     const html = await buildMirrorHtmlCore({
       normalized,
@@ -71,6 +86,69 @@ async function main() {
     await writePrebuilt(normalized, html);
     written.push(normalized);
     console.log(`[mirror:prebuild] ${normalized}`);
+  }
+
+  const prebuiltKeys = new Set(written);
+
+  async function prebuildOnce(normalized: string, build: () => Promise<string>) {
+    if (prebuiltKeys.has(normalized)) return;
+    const html = await build();
+    await writePrebuilt(normalized, html);
+    prebuiltKeys.add(normalized);
+    written.push(normalized);
+    console.log(`[mirror:prebuild] ${normalized}`);
+  }
+
+  const blogFiles = await readdir(BLOG_DIR);
+  for (const file of blogFiles) {
+    if (!file.endsWith(".html") || SKIP_BLOG_FILES.has(file)) continue;
+    const normalized = `${MIRROR_THEME}/blogs/news/${file}`;
+    const locale = file.endsWith("-tr.html") ? "tr" : "en";
+    const slug = file.replace(/-tr\.html$/i, "").replace(/\.html$/i, "");
+    await prebuildOnce(normalized, () =>
+      buildMirrorHtmlCore({
+        normalized,
+        locale,
+        siteId: site.id,
+        siteName: site.name,
+        blogSlug: slug,
+      }),
+    );
+  }
+
+  const publishedPosts = await listPublishedBlogPosts(site.id);
+  for (const post of publishedPosts) {
+    const templateSlug = resolveMirrorBlogArticleTemplateSlug(post.slug);
+    if (!templateSlug) continue;
+
+    for (const locale of ["tr", "en"] as const) {
+      const outRel = blogArticleMirrorFileRel(post.slug, locale);
+      const sourceRel = blogArticleMirrorFileRel(templateSlug, locale);
+      await prebuildOnce(outRel, () =>
+        buildMirrorHtmlCore({
+          normalized: sourceRel,
+          locale,
+          siteId: site.id,
+          siteName: site.name,
+          blogSlug: post.slug,
+        }),
+      );
+    }
+  }
+
+  const collectionFiles = await readdir(COLLECTION_DIR);
+  for (const file of collectionFiles) {
+    if (!file.endsWith(".html") || SKIP_COLLECTION_FILES.has(file)) continue;
+    const normalized = `${MIRROR_THEME}/collections/${file}`;
+    const locale = file.endsWith("-tr.html") ? "tr" : "en";
+    await prebuildOnce(normalized, () =>
+      buildMirrorHtmlCore({
+        normalized,
+        locale,
+        siteId: site.id,
+        siteName: site.name,
+      }),
+    );
   }
 
   if (written.length < 10) {

@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { safeCount } from "@/lib/admin/safe-count";
 
@@ -8,7 +9,7 @@ export type NavBadges = {
   ordersRefund: number;
 };
 
-export async function loadNavBadges(siteId: string): Promise<NavBadges> {
+async function loadNavBadgesUncached(siteId: string): Promise<NavBadges> {
   const [ordersPending, ordersPreparing, ordersShipped, ordersRefund] = await Promise.all([
     safeCount("storeOrder", { where: { siteId, status: "pending" } }),
     safeCount("storeOrder", { where: { siteId, status: "preparing" } }),
@@ -18,6 +19,15 @@ export async function loadNavBadges(siteId: string): Promise<NavBadges> {
     }),
   ]);
   return { ordersPending, ordersPreparing, ordersShipped, ordersRefund };
+}
+
+/** Admin menü rozetleri — 60 sn önbellek */
+export function loadNavBadges(siteId: string): Promise<NavBadges> {
+  return unstable_cache(
+    () => loadNavBadgesUncached(siteId),
+    ["admin-nav-badges", siteId],
+    { revalidate: 60 },
+  )();
 }
 
 export type DashboardChartPoint = { label: string; orders: number; revenueMinor: number };

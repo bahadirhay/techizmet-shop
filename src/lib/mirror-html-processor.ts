@@ -35,7 +35,11 @@ import { injectMirrorLinkBridge } from "@/lib/mirror-link-bridge";
 import { injectMirrorNavDropdownStyles } from "@/lib/mirror-nav-dropdown-inject";
 import { loadMirrorFooterDataUncached } from "@/lib/mirror-footer-load";
 import { loadMirrorNavItemsUncached } from "@/lib/mirror-nav-load";
-import { loadMirrorProductCommerceUncached } from "@/lib/mirror-product-commerce-load";
+import {
+  getProductPageBottomSettings,
+  injectProductPageBottomMirrorHtml,
+} from "@/lib/product-page-bottom";
+import { injectPublishedProductIntoMirrorHtml } from "@/lib/mirror-product-detail-load";
 import { injectMirrorQuickviewBridge } from "@/lib/mirror-quickview-bridge";
 import { injectMirrorSearchBridge } from "@/lib/mirror-search-bridge";
 import { injectMirrorStoreUiFix } from "@/lib/mirror-store-ui-fix";
@@ -46,10 +50,6 @@ import {
 import { getMirrorPageConfig } from "@/lib/mirror-page-settings";
 import { applyMirrorPageOverlayToHtml } from "@/lib/mirror-page-overlay-server";
 import { isVitrinPageKey } from "@/lib/mirror-vitrin-pages";
-import {
-  getProductPageBottomSettings,
-  injectProductPageBottomMirrorHtml,
-} from "@/lib/product-page-bottom";
 import { getSiteBranding } from "@/lib/site-settings-branding";
 import { getSiteSettingsUncached } from "@/lib/site-settings-load";
 import { rewriteLegacyThemePaths } from "@/lib/store-theme";
@@ -122,13 +122,13 @@ export async function buildMirrorHtmlCore(params: MirrorHtmlBuildParams): Promis
     );
     const slug = productSlugFromMirrorPath(normalized);
     if (slug) {
-      const commerce = await loadMirrorProductCommerceUncached(siteId, slug, locale, settings.store?.texts, {
-        skipSession: true,
-      });
-      if (commerce) {
-        const { injectMirrorProductCommerceHtml } = await import("@/lib/mirror-product-commerce");
-        localized = injectMirrorProductCommerceHtml(localized, commerce);
-      }
+      localized = await injectPublishedProductIntoMirrorHtml(
+        localized,
+        siteId,
+        slug,
+        locale,
+        settings,
+      );
     }
   }
 

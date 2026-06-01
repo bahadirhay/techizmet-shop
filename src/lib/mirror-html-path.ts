@@ -1,5 +1,7 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import { toBrandedMirrorSrc } from "@/lib/mirror-iframe-src";
+import type { ShopLocale } from "@/lib/i18n/locale";
 
 const mirrorRoot = () => join(process.cwd(), "public/theme/techizmet-shop/mirror");
 const productRoot = () => join(mirrorRoot(), "products");
@@ -83,10 +85,35 @@ export function resolveMirrorBlogArticleTemplateSlug(slug: string): string | nul
         name.endsWith(".html") &&
         !name.endsWith("-tr.html") &&
         name !== "index.html" &&
-        name !== "index-tr.html",
+        name !== "index-tr.html" &&
+        name !== "POST.html",
     );
     return first ? first.replace(/\.html$/i, "") : null;
   } catch {
     return null;
   }
+}
+
+export function blogArticleMirrorFileRel(slug: string, locale: ShopLocale): string {
+  return locale === "tr"
+    ? `theme/techizmet-shop/mirror/blogs/news/${slug}-tr.html`
+    : `theme/techizmet-shop/mirror/blogs/news/${slug}.html`;
+}
+
+/** Blog yazısı iframe — prod: slug başına prebuilt; dev: şablon + blogSlug */
+export function buildBlogArticleMirrorSrc(slug: string, locale: ShopLocale): string | null {
+  const templateSlug = resolveMirrorBlogArticleTemplateSlug(slug);
+  if (!templateSlug) return null;
+
+  if (process.env.NODE_ENV === "production") {
+    return toBrandedMirrorSrc(blogArticleMirrorFileRel(slug, locale));
+  }
+
+  if (mirrorBlogArticleHtmlExists(slug)) {
+    return toBrandedMirrorSrc(blogArticleMirrorFileRel(slug, locale));
+  }
+
+  return toBrandedMirrorSrc(blogArticleMirrorFileRel(templateSlug, locale), undefined, {
+    blogSlug: slug,
+  });
 }
