@@ -64,7 +64,7 @@ export async function getPublishedHeaderNavTree(siteId: string, locale: ShopLoca
   });
   if (!rows.length) return null;
   const enriched = rows.map(enrichNavMenuItemHref);
-  const tree = await injectCategoryColumnsIntoTree(buildNavTree(enriched), siteId);
+  const tree = await injectCategoryColumnsIntoTree(buildNavTree(enriched), siteId, locale);
   let resolved = navTreeToResolved(tree, locale);
   resolved = await attachCollectionsDropdown(resolved, siteId);
   resolved = await attachMegaMenuProducts(resolved, siteId);

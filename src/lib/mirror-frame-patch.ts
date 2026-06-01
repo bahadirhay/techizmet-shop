@@ -6,6 +6,7 @@ import {
 import type { ShopLocale } from "@/lib/i18n/locale";
 import { applyMirrorFooter, type MirrorFooterData } from "@/lib/mirror-footer-overlay";
 import { applyMirrorHeaderIconsFix } from "@/lib/mirror-header-overlay";
+import { applyMirrorEnLocaleOverlay } from "@/lib/mirror-en-locale";
 import { applyMirrorLocaleOverlay } from "@/lib/mirror-locale-overlay";
 import { installMirrorSwiperQuiet } from "@/lib/mirror-swiper-overlay";
 import { installMirrorLayoutQuiet } from "@/lib/mirror-layout-quiet-overlay";
@@ -42,15 +43,17 @@ export function applyMirrorFramePatches(doc: Document, opts: MirrorFramePatchOpt
     }
   }
 
-  /** Admin menüsü — sunucu HTML menüsünü silmeden güncelle */
+  /** Admin menüsü — locale ile güncelle (sunucu HTML olsa bile) */
+  const locale = opts.locale ?? "tr";
   if (opts.nav?.length) {
-    const serverNav = doc.documentElement.getAttribute("data-kn-nav-server") === "1";
-    if (serverNav) rebindMirrorNavDropdown(doc);
-    else applyMirrorNavigation(doc, opts.nav, opts.locale ?? "tr");
+    applyMirrorNavigation(doc, opts.nav, locale);
+    rebindMirrorNavDropdown(doc);
   }
   if (opts.footer) applyMirrorFooter(doc, opts.footer);
 
-  if (opts.locale && !isServerProcessedMirror(doc)) {
+  if (locale === "en") {
+    applyMirrorEnLocaleOverlay(doc, locale);
+  } else if (opts.locale && !isServerProcessedMirror(doc)) {
     applyMirrorLocaleOverlay(doc, opts.locale);
   }
 

@@ -1,5 +1,6 @@
 import "server-only";
 
+import { categoryDisplayTitle } from "@/lib/category-display-title";
 import { categoryProductHref, resolveNavMenuHref } from "@/lib/nav-menu-link";
 import { prisma } from "@/lib/prisma";
 
@@ -72,7 +73,7 @@ export async function syncHeaderNavFromCategories(siteId: string) {
         menuSlug: "header",
         parentId: rootNav.id,
         labelTr: cat.title,
-        labelEn: cat.title,
+        labelEn: categoryDisplayTitle(cat, "en"),
         linkType: "category",
         linkTarget: cat.slug,
         href: categoryProductHref(cat.slug),
@@ -90,7 +91,7 @@ export async function syncHeaderNavFromCategories(siteId: string) {
           menuSlug: "header",
           parentId: column.id,
           labelTr: sub.title,
-          labelEn: sub.title,
+          labelEn: categoryDisplayTitle(sub, "en"),
           linkType: "category",
           linkTarget: sub.slug,
           href: categoryProductHref(sub.slug),
@@ -153,7 +154,7 @@ export async function syncNavItemMegaFromCategory(siteId: string, navItemId: str
         menuSlug: "header",
         parentId: navItem.id,
         labelTr: cat.title,
-        labelEn: cat.title,
+        labelEn: categoryDisplayTitle(cat, "en"),
         linkType: "category",
         linkTarget: cat.slug,
         href: categoryProductHref(cat.slug),
@@ -171,7 +172,7 @@ export async function syncNavItemMegaFromCategory(siteId: string, navItemId: str
         menuSlug: "header",
         parentId: navItem.id,
         labelTr: cat.title,
-        labelEn: cat.title,
+        labelEn: categoryDisplayTitle(cat, "en"),
         linkType: "category",
         linkTarget: cat.slug,
         href: categoryProductHref(cat.slug),
@@ -187,7 +188,7 @@ export async function syncNavItemMegaFromCategory(siteId: string, navItemId: str
           menuSlug: "header",
           parentId: column.id,
           labelTr: sub.title,
-          labelEn: sub.title,
+          labelEn: categoryDisplayTitle(sub, "en"),
           linkType: "category",
           linkTarget: sub.slug,
           href: categoryProductHref(sub.slug),
@@ -226,7 +227,7 @@ export async function syncNavItemMegaFromCategory(siteId: string, navItemId: str
           menuSlug: "header",
           parentId: column.id,
           labelTr: link.title,
-          labelEn: link.title,
+          labelEn: categoryDisplayTitle(link, "en"),
           linkType: "category",
           linkTarget: link.slug,
           href: categoryProductHref(link.slug),

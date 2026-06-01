@@ -1,4 +1,5 @@
 import type { ShopLocale } from "@/lib/i18n/locale";
+import { applyMirrorEnHtml } from "@/lib/mirror-en-locale";
 import { MIRROR_TR_CATALOG } from "@/lib/mirror-tr-catalog";
 
 /** Techizmet Shop mirror *-tr.html — gömülü İngilizce UI metinleri */
@@ -181,7 +182,7 @@ const PRESERVE_ANYWHERE =
   /(\/(?:theme\/techizmet-shop|uploads\/shop)\/[^\s"'<>]+|\bURLSearchParams\b|\bURL\b\.createObjectURL)/g;
 
 /** Görsel/JS yollarını çeviri dışında bırak (Skincare→Cilt Bakımı, Search→Arama URL kırılmasın) */
-function preserveNonTranslatable(html: string): { html: string; chunks: string[] } {
+export function preserveNonTranslatable(html: string): { html: string; chunks: string[] } {
   const chunks: string[] = [];
   const mark = (chunk: string) => {
     const i = chunks.length;
@@ -205,7 +206,7 @@ function preserveNonTranslatable(html: string): { html: string; chunks: string[]
   return { html: out, chunks };
 }
 
-function restorePreserved(html: string, chunks: string[]): string {
+export function restorePreserved(html: string, chunks: string[]): string {
   return html.replace(/\x00KNPRESERVE(\d+)\x00/g, (_, i) => chunks[Number(i)] ?? "");
 }
 
@@ -233,8 +234,9 @@ export function applyMirrorTrReplacements(html: string): string {
   return restorePreserved(out, chunks);
 }
 
-/** Yalnızca vitrin dili Türkçe iken uygula; İngilizce seçiliyken HTML’e dokunma */
+/** Vitrin dili — TR/EN şablon metinlerini hedef dile çevir */
 export function localizeMirrorHtml(html: string, _mirrorPath: string, locale: ShopLocale): string {
-  if (locale !== "tr") return html;
-  return applyMirrorTrReplacements(html);
+  if (locale === "tr") return applyMirrorTrReplacements(html);
+  if (locale === "en") return applyMirrorEnHtml(html);
+  return html;
 }
