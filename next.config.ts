@@ -43,6 +43,10 @@ const nextConfig: NextConfig = {
       { source: "/admin/:path*", headers: [...noStore] },
       { source: "/api/admin/:path*", headers: [...noStore] },
       { source: "/_mirror-prebuilt/:path*", headers: [...prebuiltCache] },
+      {
+        source: "/theme/techizmet-shop/mirror/:path*",
+        headers: [...prebuiltCache],
+      },
     ];
   },
 };

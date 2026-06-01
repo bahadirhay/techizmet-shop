@@ -108,6 +108,24 @@ export function productMirrorFileRel(slug: string, locale: ShopLocale): string {
 }
 
 /** Ürün PDP iframe — prod: slug başına prebuilt */
+export function collectionMirrorFileRel(slug: string, locale: ShopLocale): string {
+  const file = locale === "tr" ? `${slug}-tr.html` : `${slug}.html`;
+  return `theme/techizmet-shop/mirror/collections/${file}`;
+}
+
+/** Koleksiyon / kategori listesi iframe — prod: slug başına prebuilt */
+export function buildCollectionMirrorSrc(
+  slug: string,
+  locale: ShopLocale,
+  templateSlug: string,
+): string {
+  if (process.env.NODE_ENV === "production") {
+    return toBrandedMirrorSrc(collectionMirrorFileRel(slug, locale));
+  }
+  const diskSlug = mirrorCollectionHtmlExists(slug) ? slug : templateSlug;
+  return toBrandedMirrorSrc(collectionMirrorFileRel(diskSlug, locale));
+}
+
 export function buildProductMirrorSrc(slug: string, locale: ShopLocale, templateSlug: string): string {
   if (process.env.NODE_ENV === "production") {
     return toBrandedMirrorSrc(productMirrorFileRel(slug, locale));

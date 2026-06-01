@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { getStoreHomepageMode } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export default async function CollectionPage({
   params,

@@ -1,4 +1,9 @@
-import { buildMirrorIframeSrc, prebuiltMirrorPublicUrl, MIRROR_PREBUILT_PREFIX } from "@/lib/mirror-iframe-src";
+import {
+  buildMirrorIframeSrc,
+  prebuiltMirrorPublicUrl,
+  rawMirrorPublicUrl,
+  MIRROR_PREBUILT_PREFIX,
+} from "@/lib/mirror-iframe-src";
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -32,9 +37,12 @@ export function resolveMirrorIframeSrc(
 ): string {
   const path = normalized.startsWith("/") ? normalized.slice(1) : normalized;
 
-  if (process.env.NODE_ENV !== "production" && hasPrebuiltMirrorHtml(path)) {
-    return prebuiltMirrorPublicUrl(path);
+  if (process.env.NODE_ENV === "production") {
+    if (hasPrebuiltMirrorHtml(path)) return prebuiltMirrorPublicUrl(path);
+    return rawMirrorPublicUrl(path);
   }
+
+  if (hasPrebuiltMirrorHtml(path)) return prebuiltMirrorPublicUrl(path);
 
   return buildMirrorIframeSrc(path, pageKey, extra);
 }

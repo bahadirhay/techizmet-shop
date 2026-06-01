@@ -7,6 +7,12 @@ export function prebuiltMirrorPublicUrl(normalized: string): string {
   return `/${MIRROR_PREBUILT_PREFIX}/${path}`;
 }
 
+/** Ham mirror HTML (public/theme/...) — yedek statik yol */
+export function rawMirrorPublicUrl(normalized: string): string {
+  const path = normalized.startsWith("/") ? normalized.slice(1) : normalized;
+  return `/${path}`;
+}
+
 /** Production: statik prebuilt; geliştirme: markalı API */
 export function buildMirrorIframeSrc(
   publicPath: string,

@@ -16,7 +16,7 @@ import {
 import { useMirrorFrameRouteSync } from "@/hooks/use-mirror-frame-route-sync";
 import { useMirrorIframeLifecycle } from "@/hooks/use-mirror-iframe-lifecycle";
 import { useMirrorLocaleMessage } from "@/hooks/use-mirror-locale-message";
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type { ResolvedMirrorCollectionTexts } from "@/lib/store-static-texts";
 
 export function MirrorCollectionFrameClient({
@@ -102,12 +102,24 @@ export function MirrorCollectionFrameClient({
 
   useMirrorLocaleMessage();
   useMirrorFrameRouteSync(iframeRef, src);
+
+  useEffect(() => {
+    const link = document.createElement("link");
+    link.rel = "preload";
+    link.as = "document";
+    link.href = src;
+    document.head.appendChild(link);
+    return () => {
+      link.remove();
+    };
+  }, [src]);
+
   const frameReady = useMirrorIframeLifecycle(iframeRef, src, runPatch, [patchKey, runPatch]);
 
   return (
     <div className="kn-home-mirror">
       <iframe
-        key={`${src}|${activeCategorySlug ?? ""}|${currentPage}`}
+        key={`${src}|${activeCategorySlug ?? ""}|${currentPage}|${productsFromAdmin?.length ?? 0}`}
         ref={iframeRef}
         title={title}
         src={src}

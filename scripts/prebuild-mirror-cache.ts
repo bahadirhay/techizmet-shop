@@ -9,8 +9,10 @@ import { listPublishedBlogPosts } from "../src/lib/blog/blog-posts-server";
 import { buildMirrorHtmlCore } from "../src/lib/mirror-html-processor";
 import {
   blogArticleMirrorFileRel,
+  collectionMirrorFileRel,
   productMirrorFileRel,
   resolveMirrorBlogArticleTemplateSlug,
+  resolveMirrorCollectionTemplateSlug,
   resolveMirrorProductTemplateSlug,
 } from "../src/lib/mirror-html-path";
 import { prebuiltMirrorAbs, prebuiltMirrorPublicUrl } from "../src/lib/mirror-prebuilt";
@@ -174,6 +176,27 @@ async function main() {
         siteName: site.name,
       }),
     );
+  }
+
+  const publishedCollections = await prisma.storeCollection.findMany({
+    where: { siteId: site.id, published: true },
+    select: { slug: true },
+  });
+  for (const col of publishedCollections) {
+    const templateSlug = resolveMirrorCollectionTemplateSlug(col.slug);
+    if (!templateSlug) continue;
+    for (const locale of ["tr", "en"] as const) {
+      const outRel = collectionMirrorFileRel(col.slug, locale);
+      const sourceRel = collectionMirrorFileRel(templateSlug, locale);
+      await prebuildOnce(outRel, () =>
+        buildMirrorHtmlCore({
+          normalized: sourceRel,
+          locale,
+          siteId: site.id,
+          siteName: site.name,
+        }),
+      );
+    }
   }
 
   if (written.length < 10) {
