@@ -7,12 +7,14 @@ import { getDefaultSite } from "@/lib/site";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 
+/** Koleksiyon kartları prebuild’de gömülür; yalnızca kategori filtresi sayfasında canlı DB */
+
 /** Techizmet Shop vitrin — iframe anında, DB ayarları paralel */
 export async function MirrorVitrinFrame({
   pageKey,
-  collectionsSync = false,
 }: {
   pageKey: VitrinPageKey;
+  /** @deprecated prebuild kullanır; artık yok sayılır */
   collectionsSync?: boolean;
 }) {
   const def = getVitrinPage(pageKey);
@@ -25,14 +27,6 @@ export async function MirrorVitrinFrame({
 
   let collectionsFromAdmin: VitrinCollectionCard[] | undefined;
   let categoriesFromAdmin: VitrinCollectionCategoryOption[] | undefined;
-  if (collectionsSync || pageKey === "home") {
-    const rows = await prisma.storeCollection.findMany({
-      where: { siteId: site.id, published: true },
-      orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
-      select: { slug: true, title: true, description: true, imageUrl: true, sortOrder: true },
-    });
-    collectionsFromAdmin = rows;
-  }
   if (pageKey === "collections-all") {
     const rows = await prisma.storeCategory.findMany({
       where: { siteId: site.id, parentId: null, active: true },

@@ -29,7 +29,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="tr">
       <head>
         <link
-          rel="prefetch"
+          rel="preload"
           href="/_mirror-prebuilt/theme/techizmet-shop/mirror/index-tr.html"
           as="document"
         />

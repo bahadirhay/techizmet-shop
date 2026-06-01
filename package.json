@@ -19,6 +19,8 @@
     "db:seed": "tsx prisma/seed.ts",
     "theme:import": "node scripts/import-theme-mirror.mjs && node scripts/build-mirror-home.mjs && node scripts/build-mirror-products.mjs && node scripts/build-mirror-collections.mjs && node scripts/build-mirror-pages.mjs && node scripts/build-mirror-blogs.mjs",
     "blog:import-mirror": "npx tsx scripts/import-blog-posts-from-mirror.ts",
+    "db:sync-blog-images": "tsx scripts/sync-blog-images.ts",
+    "db:sync-media:all": "npm run db:sync-images:all && npm run db:sync-collection-images && npm run db:sync-blog-images",
     "theme:seed-blog": "npx tsx scripts/seed-featured-blog.ts",
     "theme:seed-branding": "npx tsx scripts/seed-site-branding.ts",
     "theme:fix-tr-corruption": "node scripts/fix-mirror-tr-corruption.mjs",

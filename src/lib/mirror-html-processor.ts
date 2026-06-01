@@ -57,6 +57,8 @@ import {
   loadPublishedProductSlugSet,
   pruneMirrorHtmlToPublishedCatalog,
 } from "@/lib/mirror-catalog-prune";
+import { applyCollectionsCardsToMirrorHtml } from "@/lib/mirror-collections-sync";
+import { prisma } from "@/lib/prisma";
 
 export type MirrorHtmlBuildParams = {
   normalized: string;
@@ -148,6 +150,14 @@ export async function buildMirrorHtmlCore(params: MirrorHtmlBuildParams): Promis
     featuredForHome = await listFeaturedBlogPostsForHome(siteId, locale);
     if (featuredForHome.length) {
       localized = applyFeaturedBlogPostsToHtml(localized, featuredForHome, locale);
+    }
+    const collections = await prisma.storeCollection.findMany({
+      where: { siteId, published: true },
+      orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
+      select: { slug: true, title: true, description: true, imageUrl: true, sortOrder: true },
+    });
+    if (collections.length) {
+      localized = applyCollectionsCardsToMirrorHtml(localized, collections);
     }
   }
 

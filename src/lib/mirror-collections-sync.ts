@@ -1,3 +1,4 @@
+import { parseHTML } from "linkedom";
 import { formatTry } from "@/lib/format";
 import { formatPercentOffBadge, percentOffFromPrices } from "@/lib/product-discount";
 import type { ResolvedMirrorCollectionTexts } from "@/lib/store-static-texts";
@@ -124,6 +125,16 @@ function cloneCollectionCard(template: Element, col: VitrinCollectionCard) {
   clone.id = `container-${col.slug}`;
   applyCollectionCard(clone, col);
   return clone;
+}
+
+/** Sunucu / prebuild — ana sayfa koleksiyon kartları */
+export function applyCollectionsCardsToMirrorHtml(html: string, collections: VitrinCollectionCard[]): string {
+  if (!collections.length) return html;
+  const { document } = parseHTML(html);
+  applyCollectionsCardsFromAdmin(document, collections);
+  document.documentElement.setAttribute("data-kn-collections-server", "1");
+  const doctype = html.match(/^<!DOCTYPE[^>]*>/i)?.[0] ?? "<!DOCTYPE html>";
+  return `${doctype}\n${document.documentElement.outerHTML}`;
 }
 
 export function applyCollectionsCardsFromAdmin(doc: Document, collections: VitrinCollectionCard[]) {

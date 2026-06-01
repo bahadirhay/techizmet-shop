@@ -13,7 +13,7 @@ import type { ShopLocale } from "@/lib/i18n/locale";
 import type { VitrinPageKey } from "@/lib/mirror-vitrin-pages";
 import { getSiteBranding } from "@/lib/site-settings-branding";
 import type { SiteSettings } from "@/lib/site-settings";
-import { loadPublishedProductSlugSet } from "@/lib/mirror-catalog-prune";
+import { hasMirrorPageEdits } from "@/lib/mirror-home-overlay";
 import { resolveMirrorCollectionTexts } from "@/lib/store-static-texts";
 import type { MirrorBranding } from "@/lib/mirror-branding-overlay";
 import type { ResolvedMirrorCollectionTexts } from "@/lib/store-static-texts";
@@ -22,8 +22,6 @@ export type MirrorVitrinHydration = {
   pageConfig?: MirrorPageConfig;
   branding?: MirrorBranding;
   mirrorTexts?: ResolvedMirrorCollectionTexts;
-  /** Yayında ürün slug'ları — istemci yedek budama */
-  publishedProductSlugs?: string[];
 };
 
 export function getMirrorVitrinHydration(
@@ -34,18 +32,17 @@ export function getMirrorVitrinHydration(
   return unstable_cache(
     async () => {
       const settings: SiteSettings = await getCachedParsedSiteSettings(siteId);
-      const publishedSlugs = await loadPublishedProductSlugSet(siteId);
       let pageConfig = getMirrorPageConfig(settings, pageKey);
-      if (pageKey === "home") {
+      if (pageKey === "home" && hasMirrorPageEdits(pageConfig)) {
         const featured = await listFeaturedBlogPostsForHome(siteId, locale);
         if (featured.length) pageConfig = mergeFeaturedBlogIntoPageConfig(pageConfig, featured);
       }
-      return {
-        pageConfig,
+      const payload: MirrorVitrinHydration = {
         branding: getSiteBranding(settings),
         mirrorTexts: resolveMirrorCollectionTexts(locale, settings.store?.texts),
-        publishedProductSlugs: [...publishedSlugs],
       };
+      if (hasMirrorPageEdits(pageConfig)) payload.pageConfig = pageConfig;
+      return payload;
     },
     ["mirror-vitrin-hydration", siteId, pageKey, locale],
     {

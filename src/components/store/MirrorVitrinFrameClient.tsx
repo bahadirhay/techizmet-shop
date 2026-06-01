@@ -21,7 +21,6 @@ import {
   type VitrinCollectionCard,
 } from "@/lib/mirror-collections-sync";
 import type { ResolvedMirrorCollectionTexts } from "@/lib/store-static-texts";
-import { pruneMirrorDocToPublishedCatalog } from "@/lib/mirror-catalog-prune";
 import { stampMirrorEditableElements } from "@/lib/mirror-element-edits";
 import {
   MIRROR_VISUAL_EDITOR_SCRIPT,
@@ -51,7 +50,6 @@ export function MirrorVitrinFrameClient({
   collectionsFromAdmin,
   categoriesFromAdmin,
   mirrorTexts,
-  publishedProductSlugs,
   sectionCatalog,
   focusSectionKey,
 }: {
@@ -66,7 +64,6 @@ export function MirrorVitrinFrameClient({
   collectionsFromAdmin?: VitrinCollectionCard[];
   categoriesFromAdmin?: VitrinCollectionCategoryOption[];
   mirrorTexts?: ResolvedMirrorCollectionTexts;
-  publishedProductSlugs?: string[];
   sectionCatalog?: MirrorPageSection[];
   focusSectionKey?: string | null;
 }) {
@@ -84,7 +81,6 @@ export function MirrorVitrinFrameClient({
     collectionsFromAdmin,
     categoriesFromAdmin,
     mirrorTexts,
-    publishedProductSlugs,
     branding,
     nav,
     footer,
@@ -183,19 +179,18 @@ export function MirrorVitrinFrameClient({
 
       setFrameReady(true);
 
-      if (publishedProductSlugs?.length) {
-        pruneMirrorDocToPublishedCatalog(doc, new Set(publishedProductSlugs));
-      }
-
       const serverReady = isMirrorServerReady(doc);
       const serverOverlay = doc.documentElement.getAttribute("data-kn-overlay-server") === "1";
+      const collectionsOnServer =
+        doc.documentElement.getAttribute("data-kn-collections-server") === "1";
       const skipClientWork =
         serverReady &&
-        serverOverlay &&
         doc.documentElement.getAttribute("data-kn-catalog-pruned") === "1" &&
+        collectionsOnServer &&
         !visualEditMode &&
         !collectionsFromAdmin?.length &&
-        !categoriesFromAdmin?.length;
+        !categoriesFromAdmin?.length &&
+        (!config || !hasMirrorPageEdits(config) || serverOverlay);
 
       if (skipClientWork) return;
 
