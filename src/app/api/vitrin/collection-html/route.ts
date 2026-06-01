@@ -22,6 +22,7 @@ export async function GET(req: Request) {
 
   const html = await getCategoryCollectionMirrorHtml(
     site.id,
+    site.name,
     locale,
     categorySlug,
     slug,

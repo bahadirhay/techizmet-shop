@@ -17,7 +17,7 @@ import {
 import { useMirrorFrameRouteSync } from "@/hooks/use-mirror-frame-route-sync";
 import { useMirrorIframeLifecycle } from "@/hooks/use-mirror-iframe-lifecycle";
 import { useMirrorLocaleMessage } from "@/hooks/use-mirror-locale-message";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { ResolvedMirrorCollectionTexts } from "@/lib/store-static-texts";
 
 export function MirrorCollectionFrameClient({
@@ -53,7 +53,7 @@ export function MirrorCollectionFrameClient({
   productsPrebuilt?: boolean;
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [productsVisible, setProductsVisible] = useState(false);
+  const [productsVisible, setProductsVisible] = useState(productsPrebuilt);
   const patchKey = JSON.stringify({
     collectionFromAdmin,
     productsFromAdmin,
@@ -125,25 +125,14 @@ export function MirrorCollectionFrameClient({
   useMirrorLocaleMessage();
   useMirrorFrameRouteSync(iframeRef, src);
 
-  useEffect(() => {
-    const link = document.createElement("link");
-    link.rel = "preload";
-    link.as = "document";
-    link.href = src;
-    document.head.appendChild(link);
-    return () => {
-      link.remove();
-    };
-  }, [src]);
-
   const frameReady = useMirrorIframeLifecycle(iframeRef, src, runPatch, [patchKey, runPatch]);
 
   return (
     <div
       className="kn-home-mirror"
       style={{
-        opacity: productsVisible ? 1 : 0,
-        transition: productsVisible ? "opacity 0.12s ease-out" : "none",
+        opacity: productsPrebuilt || productsVisible ? 1 : 0,
+        transition: productsPrebuilt || productsVisible ? "opacity 0.12s ease-out" : "none",
       }}
     >
       <iframe

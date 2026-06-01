@@ -13,12 +13,12 @@ import {
   applyCollectionDetailFromAdmin,
   applyCollectionProductsFromAdmin,
 } from "@/lib/mirror-collections-sync";
-import { collectionMirrorFileRel } from "@/lib/mirror-html-path";
-import { readPrebuiltMirrorHtml } from "@/lib/mirror-prebuilt";
 import {
-  getCollectionCatalogPayload,
+  loadCollectionCatalogCore,
   type CollectionCatalogPayload,
 } from "@/lib/mirror-collection-frame-server";
+import { buildMirrorHtmlCore } from "@/lib/mirror-html-processor";
+import { collectionMirrorFileRel } from "@/lib/mirror-html-path";
 
 function serializeMirrorDocument(html: string, document: Document): string {
   const doctype = html.match(/^<!DOCTYPE[^>]*>/i)?.[0] ?? "<!DOCTYPE html>";
@@ -55,35 +55,46 @@ export function applyCollectionCatalogToMirrorHtml(
   return serializeMirrorDocument(html, document);
 }
 
+/** Deploy prebuild — tam mirror + kategori ürünleri (runtime parse yok) */
+export async function buildCategoryCollectionHtmlForPrebuild(
+  siteId: string,
+  siteName: string,
+  locale: ShopLocale,
+  categorySlug: string,
+  page = 1,
+): Promise<string> {
+  const sourceRel = collectionMirrorFileRel("all", locale);
+  const html = await buildMirrorHtmlCore({
+    normalized: sourceRel,
+    locale,
+    siteId,
+    siteName,
+  });
+  const payload = await loadCollectionCatalogCore(siteId, "all", locale, categorySlug, page);
+  return applyCollectionCatalogToMirrorHtml(html, payload, locale, page);
+}
+
 async function buildCategoryCollectionHtmlCore(
   siteId: string,
+  siteName: string,
   locale: ShopLocale,
   categorySlug: string,
   collectionSlug: string,
   page: number,
   titleHint?: string,
 ): Promise<string> {
-  const normalized = collectionMirrorFileRel(collectionSlug === "all" ? "all" : collectionSlug, locale);
-  const base =
-    (await readPrebuiltMirrorHtml(normalized)) ??
-    (await readPrebuiltMirrorHtml(collectionMirrorFileRel("all", locale)));
-  if (!base) {
-    throw new Error(`Mirror koleksiyon HTML bulunamadı: ${normalized}`);
-  }
-
-  const payload = await getCollectionCatalogPayload(
+  return buildCategoryCollectionHtmlForPrebuild(
     siteId,
-    collectionSlug,
+    siteName,
     locale,
     categorySlug,
     page,
-    titleHint,
   );
-  return applyCollectionCatalogToMirrorHtml(base, payload, locale, page);
 }
 
 export function getCategoryCollectionMirrorHtml(
   siteId: string,
+  siteName: string,
   locale: ShopLocale,
   categorySlug: string,
   collectionSlug = "all",
@@ -92,8 +103,17 @@ export function getCategoryCollectionMirrorHtml(
 ): Promise<string> {
   const cat = categorySlug.trim();
   return unstable_cache(
-    () => buildCategoryCollectionHtmlCore(siteId, locale, cat, collectionSlug, page, titleHint),
-    ["collection-html-v1", siteId, locale, cat, collectionSlug, String(page), titleHint ?? ""],
+    () =>
+      buildCategoryCollectionHtmlCore(
+        siteId,
+        siteName,
+        locale,
+        cat,
+        collectionSlug,
+        page,
+        titleHint,
+      ),
+    ["collection-html-v2", siteId, locale, cat, collectionSlug, String(page), titleHint ?? ""],
     {
       revalidate: STORE_PUBLIC_REVALIDATE_SEC,
       tags: [storeSettingsTag(siteId), storeMirrorTag(siteId), "store-products"],

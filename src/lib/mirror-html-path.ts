@@ -1,5 +1,6 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import { hasPrebuiltMirrorHtml, prebuiltMirrorPublicUrl } from "@/lib/mirror-prebuilt";
 import { toBrandedMirrorSrc } from "@/lib/mirror-iframe-src";
 import type { ShopLocale } from "@/lib/i18n/locale";
 
@@ -113,7 +114,14 @@ export function collectionMirrorFileRel(slug: string, locale: ShopLocale): strin
   return `theme/techizmet-shop/mirror/collections/${file}`;
 }
 
-/** Kategori listesi — sunucuda filtrelenmiş HTML (şablon flash yok) */
+/** Kategori listesi — deploy prebuild dosya yolu */
+export function categoryCollectionMirrorFileRel(categorySlug: string, locale: ShopLocale): string {
+  const safe = categorySlug.trim().replace(/[^a-z0-9-]+/gi, "-").replace(/^-+|-+$/g, "");
+  const file = locale === "tr" ? `category-${safe}-tr.html` : `category-${safe}.html`;
+  return `theme/techizmet-shop/mirror/collections/${file}`;
+}
+
+/** Kategori listesi — prod: statik prebuilt; dev: API (yavaş, yedek) */
 export function buildCategoryCollectionMirrorSrc(
   collectionSlug: string,
   locale: ShopLocale,
@@ -121,6 +129,10 @@ export function buildCategoryCollectionMirrorSrc(
   page = 1,
   title?: string,
 ): string {
+  const rel = categoryCollectionMirrorFileRel(categorySlug, locale);
+  if (process.env.NODE_ENV === "production" && page === 1 && hasPrebuiltMirrorHtml(rel)) {
+    return prebuiltMirrorPublicUrl(rel);
+  }
   const q = new URLSearchParams({
     category: categorySlug.trim(),
     slug: collectionSlug,

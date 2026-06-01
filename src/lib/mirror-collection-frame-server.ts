@@ -40,7 +40,7 @@ export type CollectionFramePayload = CollectionCatalogPayload & {
   footer: MirrorFooterData;
 };
 
-async function loadCollectionCatalogCore(
+export async function loadCollectionCatalogCore(
   siteId: string,
   slug: string,
   locale: ShopLocale,

@@ -7,8 +7,10 @@ import { mkdir, readdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { listPublishedBlogPosts } from "../src/lib/blog/blog-posts-server";
 import { buildMirrorHtmlCore } from "../src/lib/mirror-html-processor";
+import { buildCategoryCollectionHtmlForPrebuild } from "../src/lib/mirror-collection-html-server";
 import {
   blogArticleMirrorFileRel,
+  categoryCollectionMirrorFileRel,
   collectionMirrorFileRel,
   productMirrorFileRel,
   resolveMirrorBlogArticleTemplateSlug,
@@ -195,6 +197,32 @@ async function main() {
           siteId: site.id,
           siteName: site.name,
         }),
+      );
+    }
+  }
+
+  for (const locale of ["tr", "en"] as const) {
+    const normalized = collectionMirrorFileRel("all", locale);
+    await prebuildOnce(normalized, () =>
+      buildMirrorHtmlCore({
+        normalized,
+        locale,
+        siteId: site.id,
+        siteName: site.name,
+      }),
+    );
+  }
+
+  const storeCategories = await prisma.storeCategory.findMany({
+    where: { siteId: site.id, active: true },
+    select: { slug: true },
+    orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
+  });
+  for (const cat of storeCategories) {
+    for (const locale of ["tr", "en"] as const) {
+      const outRel = categoryCollectionMirrorFileRel(cat.slug, locale);
+      await prebuildOnce(outRel, () =>
+        buildCategoryCollectionHtmlForPrebuild(site.id, site.name, locale, cat.slug),
       );
     }
   }
