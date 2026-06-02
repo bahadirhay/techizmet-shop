@@ -8,7 +8,14 @@ const legacyProductRedirects = Object.entries(LEGACY_PRODUCT_REDIRECTS).map(([fr
 }));
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["@prisma/client", ".prisma/client"],
+  serverExternalPackages: ["@prisma/client", ".prisma/client", "linkedom"],
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      canvas: false,
+    };
+    return config;
+  },
   async redirects() {
     return [
       { source: "/products/:slug.html", destination: "/products/:slug", permanent: true },

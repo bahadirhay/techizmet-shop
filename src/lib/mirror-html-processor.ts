@@ -57,7 +57,7 @@ import {
   loadPublishedProductSlugSet,
   pruneMirrorHtmlToPublishedCatalog,
 } from "@/lib/mirror-catalog-prune";
-import { applyCollectionsCardsToMirrorHtml } from "@/lib/mirror-collections-sync";
+import { applyCollectionsCardsToMirrorHtml } from "@/lib/mirror-collections-sync-html";
 import { prisma } from "@/lib/prisma";
 
 export type MirrorHtmlBuildParams = {
