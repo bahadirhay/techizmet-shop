@@ -1,11 +1,15 @@
 /** Iframe src — prebuild ve sunucu güvenli (server-only paketi yok) */
 
 import {
-  buildMirrorIframeSrc,
+  mirrorVitrinApiSrc,
   prebuiltMirrorPublicUrl,
-  rawMirrorPublicUrl,
 } from "@/lib/mirror-iframe-src";
 import { hasPrebuiltMirrorHtml, isMirrorDevLiveRebuild } from "@/lib/mirror-prebuilt-io";
+
+/** Hesap / sepet / ödeme — oturuma göre API enjeksiyonu gerekir */
+function needsLiveMirrorApi(path: string): boolean {
+  return /\/mirror\/(?:account|cart|checkout)\//i.test(path);
+}
 
 export function resolveStoreMirrorIframeSrc(
   normalized: string,
@@ -14,16 +18,20 @@ export function resolveStoreMirrorIframeSrc(
 ): string {
   const path = normalized.startsWith("/") ? normalized.slice(1) : normalized;
 
+  if (needsLiveMirrorApi(path)) {
+    return mirrorVitrinApiSrc(path, pageKey, extra);
+  }
+
   if (process.env.NODE_ENV === "production") {
     if (hasPrebuiltMirrorHtml(path)) return prebuiltMirrorPublicUrl(path);
-    return rawMirrorPublicUrl(path);
+    return mirrorVitrinApiSrc(path, pageKey, extra);
   }
 
   if (!isMirrorDevLiveRebuild() && hasPrebuiltMirrorHtml(path)) {
     return prebuiltMirrorPublicUrl(path);
   }
 
-  return buildMirrorIframeSrc(path, pageKey, extra);
+  return mirrorVitrinApiSrc(path, pageKey, extra);
 }
 
 export function resolveMirrorIframeSrc(

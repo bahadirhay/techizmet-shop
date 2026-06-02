@@ -1,5 +1,5 @@
 import { MirrorVitrinFrameClient } from "@/components/store/MirrorVitrinFrameClient";
-import { toBrandedMirrorSrc } from "@/lib/mirror-html-branding";
+import { resolveStoreMirrorIframeSrc } from "@/lib/mirror-prebuilt-resolve";
 import { getStoreLocale } from "@/lib/i18n/server";
 import { loadMirrorFooterData } from "@/lib/mirror-footer-server";
 import { loadMirrorNavItems } from "@/lib/mirror-nav-server";
@@ -19,7 +19,7 @@ export async function MirrorCartFrame() {
   const branding = getSiteBranding(settings);
   const nav = await loadMirrorNavItems(site.id, locale);
   const footer = await loadMirrorFooterData(site.id, locale);
-  const src = toBrandedMirrorSrc(cartMirrorRel(locale));
+  const src = resolveStoreMirrorIframeSrc(cartMirrorRel(locale));
 
   return (
     <MirrorVitrinFrameClient

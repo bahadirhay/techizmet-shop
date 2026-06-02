@@ -13,18 +13,13 @@ export function rawMirrorPublicUrl(normalized: string): string {
   return `/${path}`;
 }
 
-/** Production: statik prebuilt; geliştirme: markalı API */
-export function buildMirrorIframeSrc(
+/** Markalı mirror HTML API — sunucu + istemci güvenli */
+export function mirrorVitrinApiSrc(
   publicPath: string,
   pageKey?: string,
   extra?: Record<string, string | undefined>,
 ): string {
   const path = publicPath.startsWith("/") ? publicPath.slice(1) : publicPath;
-
-  if (process.env.NODE_ENV === "production") {
-    return prebuiltMirrorPublicUrl(path);
-  }
-
   const q = new URLSearchParams({ path });
   if (pageKey) q.set("pageKey", pageKey);
   if (extra) {
@@ -33,6 +28,20 @@ export function buildMirrorIframeSrc(
     }
   }
   return `/api/vitrin/mirror?${q.toString()}`;
+}
+
+/** Production: statik prebuilt; geliştirme: markalı API */
+export function buildMirrorIframeSrc(
+  publicPath: string,
+  pageKey?: string,
+  extra?: Record<string, string | undefined>,
+): string {
+  if (process.env.NODE_ENV === "production") {
+    return prebuiltMirrorPublicUrl(
+      publicPath.startsWith("/") ? publicPath.slice(1) : publicPath,
+    );
+  }
+  return mirrorVitrinApiSrc(publicPath, pageKey, extra);
 }
 
 /** /theme/techizmet-shop/mirror/... → statik prebuilt veya markalı API */
