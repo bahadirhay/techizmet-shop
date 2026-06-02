@@ -1,4 +1,4 @@
-import "server-only";
+/** Sunucu / prebuild — linkedom (client bundle'a import edilmez) */
 
 import { parseHTML } from "linkedom";
 import {
