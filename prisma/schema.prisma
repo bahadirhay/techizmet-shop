@@ -47,6 +47,11 @@ model StoreSite {
   financeCategories FinanceCategory[]
   financeAccounts   FinanceAccount[]
   financeTransactions FinanceTransaction[]
+  financeCounterparties FinanceCounterparty[]
+  financeInvoices       FinanceInvoice[]
+  financeInvoiceApprovalLogs FinanceInvoiceApprovalLog[]
+  financePostingTemplates FinancePostingTemplate[]
+  financeInvoicePostJobs   FinanceInvoicePostJob[]
 
   @@map("site")
   @@schema("shop")
@@ -163,6 +168,13 @@ model ShopStaffUser {
   displayName     String?
   active          Boolean  @default(true)
   roleAssignments ShopStaffRoleAssignment[]
+  createdFinanceInvoices FinanceInvoice[] @relation("FinanceInvoiceCreatedBy")
+  approvedFinanceInvoices FinanceInvoice[] @relation("FinanceInvoiceApprovedBy")
+  rejectedFinanceInvoices FinanceInvoice[] @relation("FinanceInvoiceRejectedBy")
+  firstApprovedFinanceInvoices FinanceInvoice[] @relation("FinanceInvoiceFirstApprovedBy")
+  secondApprovedFinanceInvoices FinanceInvoice[] @relation("FinanceInvoiceSecondApprovedBy")
+  financeInvoiceApprovalLogs FinanceInvoiceApprovalLog[]
+  createdFinanceInvoicePostJobs FinanceInvoicePostJob[] @relation("FinanceInvoicePostJobCreatedBy")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -539,6 +551,8 @@ model StoreCustomer {
   addresses       CustomerAddress[]
   favorites       CustomerFavorite[]
   passwordResetTokens PasswordResetToken[]
+  financeInvoices   FinanceInvoice[]
+  financeCounterparties FinanceCounterparty[]
 
   @@unique([siteId, email])
   @@index([siteId, email])
@@ -763,6 +777,8 @@ model FinanceCategory {
   sortOrder    Int      @default(0)
   active       Boolean  @default(true)
   transactions FinanceTransaction[]
+  invoices     FinanceInvoice[]
+  postingTemplates FinancePostingTemplate[]
 
   @@unique([siteId, kind, name])
   @@map("finance_category")
@@ -779,6 +795,8 @@ model FinanceAccount {
   platform     String?
   active       Boolean  @default(true)
   transactions FinanceTransaction[]
+  invoices     FinanceInvoice[]
+  postingTemplates FinancePostingTemplate[]
 
   @@unique([siteId, name])
   @@map("finance_account")
@@ -799,6 +817,8 @@ model FinanceTransaction {
   account                FinanceAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
   orderId                String?
   order                  StoreOrder? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  financeInvoiceId       String?
+  financeInvoice         FinanceInvoice? @relation(fields: [financeInvoiceId], references: [id], onDelete: SetNull)
   description            String
   /** issued | received */
   invoiceDirection       String?
@@ -821,8 +841,159 @@ model FinanceTransaction {
   @@index([siteId, txDate])
   @@index([siteId, kind])
   @@index([siteId, orderId])
+  @@index([siteId, financeInvoiceId])
   @@index([siteId, reconciliationStatus])
   @@index([siteId, marketplacePlatform])
   @@map("finance_transaction")
+  @@schema("shop")
+}
+
+model FinanceCounterparty {
+  id            String   @id @default(cuid())
+  siteId        String
+  site          StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  type          String
+  customerId    String?
+  customer      StoreCustomer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  title         String
+  email         String?
+  phone         String?
+  taxId         String?
+  taxOffice     String?
+  addressLine   String?
+  city          String?
+  district      String?
+  notes         String?
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  invoices      FinanceInvoice[]
+
+  @@index([siteId, type, title])
+  @@index([siteId, customerId])
+  @@unique([siteId, taxId])
+  @@map("finance_counterparty")
+  @@schema("shop")
+}
+
+model FinanceInvoice {
+  id                    String   @id @default(cuid())
+  siteId                String
+  site                  StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  source                String
+  direction             String
+  status                String   @default("draft")
+  issueDate             DateTime
+  dueDate               DateTime?
+  counterpartyType      String
+  customerId            String?
+  customer              StoreCustomer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  counterpartyId        String?
+  counterparty          FinanceCounterparty? @relation(fields: [counterpartyId], references: [id], onDelete: SetNull)
+  title                 String?
+  description           String?
+  currency              String   @default("TRY")
+  linesJson             String
+  subtotalMinor         Int      @default(0)
+  vatMinor              Int      @default(0)
+  totalMinor            Int      @default(0)
+  gibExternalId         String?
+  gibInvoiceNumber      String?
+  gibUuid               String?
+  gibPayloadJson        String?
+  categoryId            String?
+  category              FinanceCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  accountId             String?
+  account               FinanceAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  postedTransactionId   String?
+  firstApprovedByStaffUserId String?
+  firstApprovedByStaffUser   ShopStaffUser? @relation("FinanceInvoiceFirstApprovedBy", fields: [firstApprovedByStaffUserId], references: [id], onDelete: SetNull)
+  firstApprovedAt            DateTime?
+  secondApprovedByStaffUserId String?
+  secondApprovedByStaffUser   ShopStaffUser? @relation("FinanceInvoiceSecondApprovedBy", fields: [secondApprovedByStaffUserId], references: [id], onDelete: SetNull)
+  secondApprovedAt            DateTime?
+  approvedByStaffUserId String?
+  approvedByStaffUser   ShopStaffUser? @relation("FinanceInvoiceApprovedBy", fields: [approvedByStaffUserId], references: [id], onDelete: SetNull)
+  approvedAt            DateTime?
+  rejectedByStaffUserId String?
+  rejectedByStaffUser   ShopStaffUser? @relation("FinanceInvoiceRejectedBy", fields: [rejectedByStaffUserId], references: [id], onDelete: SetNull)
+  rejectedAt            DateTime?
+  rejectionReason       String?
+  createdByStaffUserId  String?
+  createdByStaffUser    ShopStaffUser? @relation("FinanceInvoiceCreatedBy", fields: [createdByStaffUserId], references: [id], onDelete: SetNull)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  approvalLogs          FinanceInvoiceApprovalLog[]
+  linkedTransactions    FinanceTransaction[]
+  postJobs              FinanceInvoicePostJob[]
+
+  @@index([siteId, status, issueDate])
+  @@index([siteId, source, direction])
+  @@index([siteId, customerId])
+  @@index([siteId, counterpartyId])
+  @@map("finance_invoice")
+  @@schema("shop")
+}
+
+model FinanceInvoiceApprovalLog {
+  id          String   @id @default(cuid())
+  siteId      String
+  site        StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  invoiceId   String
+  invoice     FinanceInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  action      String
+  actorUserId String?
+  actorUser   ShopStaffUser? @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  note        String?
+  createdAt   DateTime @default(now())
+
+  @@index([siteId, invoiceId, createdAt])
+  @@map("finance_invoice_approval_log")
+  @@schema("shop")
+}
+
+model FinancePostingTemplate {
+  id             String   @id @default(cuid())
+  siteId         String
+  site           StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  name           String
+  direction      String?
+  source         String?
+  keyword        String
+  categoryId     String
+  category       FinanceCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  accountId      String
+  account        FinanceAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  priority       Int      @default(100)
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([siteId, active, priority])
+  @@map("finance_posting_template")
+  @@schema("shop")
+}
+
+model FinanceInvoicePostJob {
+  id              String   @id @default(cuid())
+  siteId          String
+  site            StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  invoiceId       String
+  invoice         FinanceInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  status          String   @default("queued")
+  attempts        Int      @default(0)
+  maxAttempts     Int      @default(5)
+  nextRetryAt     DateTime @default(now())
+  lastError       String?
+  lockedAt        DateTime?
+  completedAt     DateTime?
+  createdByUserId String?
+  createdByUser   ShopStaffUser? @relation("FinanceInvoicePostJobCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([siteId, status, nextRetryAt])
+  @@index([siteId, invoiceId])
+  @@map("finance_invoice_post_job")
   @@schema("shop")
 }

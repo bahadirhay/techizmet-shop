@@ -124,6 +124,8 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     perm: "store.finance",
     items: [
       { href: "/admin/finance", label: "Özet panel", perm: "store.finance" },
+      { href: "/admin/finance/invoices", label: "Faturalar & onay", perm: "store.finance" },
+      { href: "/admin/finance/master-data", label: "Karşı taraf / hesap tanımları", perm: "store.finance" },
       { href: "/admin/finance/transactions", label: "Hareketler", perm: "store.finance" },
       { href: "/admin/finance/transactions/new", label: "Yeni hareket", perm: "store.finance" },
       { href: "/admin/finance/reconciliation", label: "Pazaryeri mutabakat", perm: "store.finance" },
@@ -322,6 +324,8 @@ export const ADMIN_PAGE_TITLES: Record<string, string> = {
   "/admin/settings/cookie-consents": "Çerez onay logları",
   "/admin/finance": "Ön muhasebe",
   "/admin/finance/transactions": "Finans hareketleri",
+  "/admin/finance/invoices": "Fatura onay kuyruğu",
+  "/admin/finance/master-data": "Muhasebe tanımları",
   "/admin/finance/transactions/new": "Yeni finans hareketi",
   "/admin/finance/reconciliation": "Pazaryeri mutabakat",
   "/admin/finance/payouts": "Hakediş mutabakat",
