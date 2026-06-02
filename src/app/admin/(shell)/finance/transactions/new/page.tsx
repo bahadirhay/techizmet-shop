@@ -32,6 +32,25 @@ export default async function NewFinanceTransactionPage({
         })
       : Promise.resolve(null),
   ]);
+  const [customersRaw, counterparties] = await Promise.all([
+    prisma.storeCustomer.findMany({
+      where: { siteId: auth.siteId },
+      orderBy: { createdAt: "desc" },
+      take: 500,
+      select: { id: true, firstName: true, lastName: true, email: true },
+    }),
+    prisma.financeCounterparty.findMany({
+      where: { siteId: auth.siteId, active: true },
+      orderBy: { title: "asc" },
+      take: 500,
+      select: { id: true, title: true, taxId: true },
+    }),
+  ]);
+  const customers = customersRaw.map((c) => ({
+    id: c.id,
+    label: [c.firstName, c.lastName].filter(Boolean).join(" ") || c.email || "Müşteri",
+    taxId: null,
+  }));
 
   return (
     <div>
@@ -48,6 +67,8 @@ export default async function NewFinanceTransactionPage({
         initialKind={kind}
         categories={categories}
         accounts={accounts}
+        customers={customers}
+        counterparties={counterparties}
         orderId={order?.id}
         orderNumber={order?.orderNumber}
       />

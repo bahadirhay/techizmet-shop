@@ -11,6 +11,11 @@ import { applyMirrorLocaleOverlay } from "@/lib/mirror-locale-overlay";
 import { installMirrorSwiperQuiet } from "@/lib/mirror-swiper-overlay";
 import { installMirrorLayoutQuiet } from "@/lib/mirror-layout-quiet-overlay";
 import { ensureMirrorLayoutStyles } from "@/lib/mirror-nav-dropdown-inject";
+import {
+  applyMirrorAccountDrawerClient,
+  openAccountDrawer,
+  type AccountDrawerForm,
+} from "@/lib/mirror-account-drawer-client";
 import { applyMirrorNavigation, rebindMirrorNavDropdown, type MirrorNavItem } from "@/lib/mirror-nav-overlay";
 
 export type MirrorFramePatchOpts = {
@@ -18,6 +23,8 @@ export type MirrorFramePatchOpts = {
   nav?: MirrorNavItem[];
   footer?: MirrorFooterData;
   locale?: ShopLocale;
+  /** Ana sayfada çekmeceyi aç — ?account=create */
+  accountDrawerForm?: AccountDrawerForm;
 };
 
 function isServerProcessedMirror(doc: Document): boolean {
@@ -34,6 +41,8 @@ export function applyMirrorFramePatches(doc: Document, opts: MirrorFramePatchOpt
   const serverReady = isMirrorServerReady(doc);
   installMirrorLayoutQuiet(doc);
   ensureMirrorLayoutStyles(doc);
+  applyMirrorAccountDrawerClient(doc);
+  if (opts.accountDrawerForm) openAccountDrawer(doc, opts.accountDrawerForm);
 
   if (!serverReady) {
     applyMirrorHeaderIconsFix(doc);

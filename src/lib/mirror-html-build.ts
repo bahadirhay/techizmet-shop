@@ -5,9 +5,28 @@ import { STORE_PUBLIC_REVALIDATE_SEC, storeMirrorTag } from "@/lib/cache/store-c
 import type { MirrorHtmlBuildParams } from "@/lib/mirror-html-processor";
 import { buildMirrorHtmlCore } from "@/lib/mirror-html-processor";
 import { readPrebuiltMirrorHtml } from "@/lib/mirror-prebuilt";
+import { isMirrorDevLiveRebuild, preferPrebuiltMirrorHtml } from "@/lib/mirror-prebuilt-policy";
 import type { SiteSettings } from "@/lib/site-settings";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import { productSlugFromMirrorPath } from "@/lib/mirror-html-processor";
+
+const DEV_MIRROR_CACHE_TTL_MS = 120_000;
+const devMirrorHtmlCache = new Map<string, { html: string; at: number }>();
+
+function devMirrorCacheKey(params: MirrorHtmlBuildParams): string {
+  return [params.siteId, params.normalized, params.locale, params.pageKey ?? "", params.blogSlug ?? ""].join(
+    "\0",
+  );
+}
+
+async function buildMirrorHtmlDevCached(params: MirrorHtmlBuildParams): Promise<string> {
+  const key = devMirrorCacheKey(params);
+  const hit = devMirrorHtmlCache.get(key);
+  if (hit && Date.now() - hit.at < DEV_MIRROR_CACHE_TTL_MS) return hit.html;
+  const html = await buildMirrorHtmlCore(params);
+  devMirrorHtmlCache.set(key, { html, at: Date.now() });
+  return html;
+}
 
 export type { MirrorHtmlBuildParams } from "@/lib/mirror-html-processor";
 export {
@@ -48,13 +67,19 @@ function getCachedMirrorHtml(params: MirrorHtmlBuildParams): Promise<string> {
 
 export async function buildMirrorHtml(params: MirrorHtmlBuildParams): Promise<string> {
   if (isMirrorPathUncacheable(params.normalized, params.blogSlug)) {
-    return buildMirrorHtmlCore(params);
+    return isMirrorDevLiveRebuild() ? buildMirrorHtmlCore(params) : buildMirrorHtmlDevCached(params);
   }
 
-  const prebuilt = await readPrebuiltMirrorHtml(params.normalized);
-  if (prebuilt) return prebuilt;
+  if (preferPrebuiltMirrorHtml(params.normalized)) {
+    const prebuilt = await readPrebuiltMirrorHtml(params.normalized);
+    if (prebuilt) return prebuilt;
+  }
 
-  return getCachedMirrorHtml(params);
+  if (process.env.NODE_ENV === "production") {
+    return getCachedMirrorHtml(params);
+  }
+
+  return isMirrorDevLiveRebuild() ? buildMirrorHtmlCore(params) : buildMirrorHtmlDevCached(params);
 }
 
 export async function injectProductCommerceIntoMirrorHtml(

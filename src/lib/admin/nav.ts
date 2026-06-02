@@ -7,7 +7,8 @@ export type NavBadgeKey =
   | "ordersPending"
   | "ordersPreparing"
   | "ordersShipped"
-  | "ordersRefund";
+  | "ordersRefund"
+  | "ordersInvoicePending";
 
 export type AdminNavLink = {
   href: string;
@@ -108,6 +109,12 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
         label: "Kargoda",
         perm: "store.orders",
         badgeKey: "ordersShipped",
+      },
+      {
+        href: "/admin/orders?invoice=pending",
+        label: "Fatura bekleyen",
+        perm: "store.orders",
+        badgeKey: "ordersInvoicePending",
       },
       {
         href: "/admin/orders?status=refund_requested",
@@ -307,6 +314,7 @@ export const ADMIN_PAGE_TITLES: Record<string, string> = {
   "/admin/pages": "Sayfalar",
   "/admin/pages/new": "Yeni sayfa",
   "/admin/customers": "Müşteriler & üyeler",
+  "/admin/customers/new": "Müşteri / üye ekle",
   "/admin/customer-groups": "Üye grupları",
   "/admin/customer-groups/new": "Yeni üye grubu",
   "/admin/shipping": "Kargo",

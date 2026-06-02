@@ -1,4 +1,5 @@
 import { unstable_cache } from "next/cache";
+import { orderInvoicePendingWhere } from "@/lib/admin/order-invoice-workflow";
 import { prisma } from "@/lib/prisma";
 import { safeCount } from "@/lib/admin/safe-count";
 
@@ -7,18 +8,21 @@ export type NavBadges = {
   ordersPreparing: number;
   ordersShipped: number;
   ordersRefund: number;
+  ordersInvoicePending: number;
 };
 
 async function loadNavBadgesUncached(siteId: string): Promise<NavBadges> {
-  const [ordersPending, ordersPreparing, ordersShipped, ordersRefund] = await Promise.all([
-    safeCount("storeOrder", { where: { siteId, status: "pending" } }),
-    safeCount("storeOrder", { where: { siteId, status: "preparing" } }),
-    safeCount("storeOrder", { where: { siteId, status: "shipped" } }),
-    safeCount("storeOrder", {
-      where: { siteId, status: { in: ["refund_requested", "cancelled"] } },
-    }),
-  ]);
-  return { ordersPending, ordersPreparing, ordersShipped, ordersRefund };
+  const [ordersPending, ordersPreparing, ordersShipped, ordersRefund, ordersInvoicePending] =
+    await Promise.all([
+      safeCount("storeOrder", { where: { siteId, status: "pending" } }),
+      safeCount("storeOrder", { where: { siteId, status: "preparing" } }),
+      safeCount("storeOrder", { where: { siteId, status: "shipped" } }),
+      safeCount("storeOrder", {
+        where: { siteId, status: { in: ["refund_requested", "cancelled"] } },
+      }),
+      safeCount("storeOrder", { where: { siteId, ...orderInvoicePendingWhere() } }),
+    ]);
+  return { ordersPending, ordersPreparing, ordersShipped, ordersRefund, ordersInvoicePending };
 }
 
 /** Admin menü rozetleri — 60 sn önbellek */

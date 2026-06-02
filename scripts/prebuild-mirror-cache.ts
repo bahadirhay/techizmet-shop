@@ -7,7 +7,11 @@ import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { listPublishedBlogPosts } from "../src/lib/blog/blog-posts-server";
 import { buildMirrorHtmlCore } from "../src/lib/mirror-html-processor";
-import { buildCategoryCollectionHtmlForPrebuild } from "../src/lib/mirror-collection-catalog-html";
+import {
+  applyCollectionCatalogToMirrorHtml,
+  buildCategoryCollectionHtmlForPrebuild,
+} from "../src/lib/mirror-collection-catalog-html";
+import { loadCollectionCatalogCore } from "../src/lib/mirror-collection-catalog-data";
 import {
   blogArticleMirrorFileRel,
   categoryCollectionMirrorFileRel,
@@ -203,14 +207,16 @@ async function main() {
 
   for (const locale of ["tr", "en"] as const) {
     const normalized = collectionMirrorFileRel("all", locale);
-    await prebuildOnce(normalized, () =>
-      buildMirrorHtmlCore({
+    await prebuildOnce(normalized, async () => {
+      const base = await buildMirrorHtmlCore({
         normalized,
         locale,
         siteId: site.id,
         siteName: site.name,
-      }),
-    );
+      });
+      const catalog = await loadCollectionCatalogCore(site.id, "all", locale, undefined, 1);
+      return applyCollectionCatalogToMirrorHtml(base, catalog, locale, 1);
+    });
   }
 
   const storeCategories = await prisma.storeCategory.findMany({

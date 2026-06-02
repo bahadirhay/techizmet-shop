@@ -1,5 +1,9 @@
 import type { ResolvedNavItem } from "@/lib/mirror-nav-resolve";
 import { MIRROR_NAV_DROPDOWN_BIND_SCRIPT } from "@/lib/mirror-nav-dropdown-bind-script";
+import {
+  buildMegaImagePreloadHeadHtml,
+  collectMegaPromoImageUrls,
+} from "@/lib/mirror-nav-mega-preload";
 import { MIRROR_MOBILE_DRAWER_RESET_SCRIPT } from "@/lib/mirror-mobile-drawer-reset-script";
 import { buildMegaDropdownHtml } from "@/lib/mirror-nav-mega-html";
 import { buildMobileNavItemsHtml } from "@/lib/mirror-nav-mobile-html";
@@ -117,6 +121,15 @@ export function injectNavIntoMirrorHtml(
   }
 
   if (!injected) return html;
+
+  const promoUrls = collectMegaPromoImageUrls(nav);
+  const preloadHead = buildMegaImagePreloadHeadHtml(promoUrls);
+  if (preloadHead && !out.includes('data-kn-mega-preload="1"')) {
+    if (/<\/head>/i.test(out)) {
+      out = out.replace(/<\/head>/i, `${preloadHead}\n</head>`);
+      out = markHtmlDataset(out, "kn-mega-preload");
+    }
+  }
 
   out = markHtmlDataset(out, "kn-nav-server");
 

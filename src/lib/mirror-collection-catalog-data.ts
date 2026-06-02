@@ -4,6 +4,7 @@ import type { ShopLocale } from "@/lib/i18n/locale";
 import { prisma } from "@/lib/prisma";
 import { getSiteSettingsUncached } from "@/lib/site-settings-load";
 import { resolveMirrorCollectionTexts } from "@/lib/store-static-texts";
+import { MIRROR_COLLECTION_PAGE_SIZE } from "@/lib/mirror-collections-sync";
 import { getCategoryFilterOptions, getCategoryScopeIds } from "@/lib/store-category-tree";
 
 /** Koleksiyon/kategori ürün listesi — prebuild ve runtime (server-only değil) */
@@ -15,7 +16,7 @@ export async function loadCollectionCatalogCore(
   page = 1,
   titleHint?: string,
 ): Promise<CollectionCatalogPayload> {
-  void page;
+  const safePage = Math.max(1, page);
   const settings = await getSiteSettingsUncached(siteId);
   const mirrorTexts = resolveMirrorCollectionTexts(locale, settings.store?.texts);
 
@@ -37,35 +38,42 @@ export async function loadCollectionCatalogCore(
   ]);
 
   const categoryScopeIds = getCategoryScopeIds(categories, categorySlug);
-  const products = await prisma.storeProduct.findMany({
-    where: {
-      siteId,
-      published: true,
-      ...(categorySlug
-        ? categoryScopeIds?.length
-          ? {
-              OR: [
-                { categoryId: { in: categoryScopeIds } },
-                { categoryLinks: { some: { categoryId: { in: categoryScopeIds } } } },
-              ],
-            }
-          : { category: { is: { slug: categorySlug, active: true } } }
-        : slug === "all"
-          ? {}
-          : { collection: { slug } }),
-    },
-    orderBy: { updatedAt: "desc" },
-    select: {
-      slug: true,
-      title: true,
-      imageUrl: true,
-      priceMinor: true,
-      compareAtMinor: true,
-      stockQty: true,
-      lowStockThreshold: true,
-      badgesJson: true,
-    },
-  });
+  const productWhere = {
+    siteId,
+    published: true,
+    ...(categorySlug
+      ? categoryScopeIds?.length
+        ? {
+            OR: [
+              { categoryId: { in: categoryScopeIds } },
+              { categoryLinks: { some: { categoryId: { in: categoryScopeIds } } } },
+            ],
+          }
+        : { category: { is: { slug: categorySlug, active: true } } }
+      : slug === "all"
+        ? {}
+        : { collection: { slug } }),
+  };
+
+  const [totalProductCount, products] = await Promise.all([
+    prisma.storeProduct.count({ where: productWhere }),
+    prisma.storeProduct.findMany({
+      where: productWhere,
+      orderBy: { title: "asc" },
+      skip: (safePage - 1) * MIRROR_COLLECTION_PAGE_SIZE,
+      take: MIRROR_COLLECTION_PAGE_SIZE,
+      select: {
+        slug: true,
+        title: true,
+        imageUrl: true,
+        priceMinor: true,
+        compareAtMinor: true,
+        stockQty: true,
+        lowStockThreshold: true,
+        badgesJson: true,
+      },
+    }),
+  ]);
 
   const paginationBasePath = categorySlug
     ? `/collections/all?category=${encodeURIComponent(categorySlug)}`
@@ -93,6 +101,7 @@ export async function loadCollectionCatalogCore(
   return {
     collectionFromAdmin,
     productsFromAdmin: products,
+    totalProductCount,
     categoriesFromAdmin: getCategoryFilterOptions(categories, categorySlug).map((c) => ({
       slug: c.slug,
       title: c.title,

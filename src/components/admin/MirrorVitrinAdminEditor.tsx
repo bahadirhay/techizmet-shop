@@ -36,7 +36,7 @@ import type { MirrorElementEdit, MirrorElementPick } from "@/lib/mirror-element-
 import type { MirrorPageConfig, MirrorPageSection, MirrorPageSectionEdit } from "@/lib/mirror-home-overlay";
 import { getVitrinPage, type VitrinPageKey } from "@/lib/mirror-vitrin-pages";
 import { CustomBlocksEditor, toEditorCustomBlocks } from "@/components/editor/CustomBlocksEditor";
-import { stripBlockIds } from "@/lib/blocks/editor-ids";
+import { stripMirrorCustomBlocks, type EditorMirrorCustomBlock } from "@/lib/mirror-custom-block-types";
 import { btnPrimary, btnSecondary } from "@/components/admin/AdminForm";
 import { useClientMounted } from "@/hooks/use-client-mounted";
 import type { AdminProductOption } from "@/lib/admin-product-options";
@@ -93,6 +93,7 @@ export function MirrorVitrinAdminEditor({
   editableCatalog = {},
   sectionSwiperMs = {},
   blogPosts,
+  initialEditorMode,
 }: {
   pageKey: VitrinPageKey;
   catalog: MirrorPageSection[];
@@ -107,6 +108,7 @@ export function MirrorVitrinAdminEditor({
   editableCatalog?: Record<string, EditableFieldDef[]>;
   sectionSwiperMs?: Record<string, number | null>;
   blogPosts?: BlogPostAdminEditorRow[];
+  initialEditorMode?: "sections" | "blocks";
 }) {
   const def = getVitrinPage(pageKey)!;
   const router = useRouter();
@@ -115,9 +117,15 @@ export function MirrorVitrinAdminEditor({
     elements: initialConfig.elements ?? {},
     customBlocks: initialConfig.customBlocks,
   }));
-  const [editorMode, setEditorMode] = useState<"sections" | "blocks">("sections");
-  const [customBlocks, setCustomBlocks] = useState(() =>
+  const [editorMode, setEditorMode] = useState<"sections" | "blocks">(
+    initialEditorMode === "blocks" ? "blocks" : "sections",
+  );
+  const [customBlocks, setCustomBlocks] = useState<EditorMirrorCustomBlock[]>(() =>
     toEditorCustomBlocks(initialConfig.customBlocks),
+  );
+  const widgetSectionOptions = useMemo(
+    () => catalog.map((s) => ({ key: s.key, label: s.label })),
+    [catalog],
   );
   const [selectedKey, setSelectedKey] = useState<string | null>(() => {
     if (pageKey === "collections") {
@@ -162,8 +170,12 @@ export function MirrorVitrinAdminEditor({
         }
       }
     }
-    return { ...config, sections };
-  }, [config, catalog]);
+    return {
+      ...config,
+      sections,
+      customBlocks: customBlocks.length ? stripMirrorCustomBlocks(customBlocks) : undefined,
+    };
+  }, [config, catalog, customBlocks]);
   const ordered = useMemo(
     () =>
       config.order
@@ -239,7 +251,7 @@ export function MirrorVitrinAdminEditor({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...config,
-          customBlocks: customBlocks.length ? stripBlockIds(customBlocks) : undefined,
+          customBlocks: customBlocks.length ? stripMirrorCustomBlocks(customBlocks) : undefined,
         }),
       });
       const data = (await res.json()) as { error?: string };
@@ -290,7 +302,7 @@ export function MirrorVitrinAdminEditor({
               className={`rounded-md px-3 py-1.5 text-xs font-medium ${editorMode === "blocks" ? "bg-zinc-700 text-white" : "text-zinc-400"}`}
               onClick={() => setEditorMode("blocks")}
             >
-              Ek bloklar ({customBlocks.length})
+              Widget&apos;lar ({customBlocks.length})
             </button>
           </div>
           <a href={def.route} target="_blank" rel="noreferrer" className={btnSecondary}>
@@ -328,12 +340,31 @@ export function MirrorVitrinAdminEditor({
       ) : null}
 
       {editorMode === "blocks" ? (
-        <div className="mx-4 mb-6 min-h-[480px] flex-1 overflow-hidden rounded-xl border border-zinc-700 bg-zinc-900 md:mx-6">
-          <CustomBlocksEditor
-            blocks={customBlocks}
-            onChange={setCustomBlocks}
-            hint="Slayt, metin, buton, görsel ve ürün blokları sayfanın üstüne eklenir. Kaydet ile vitrine yansır."
-          />
+        <div className="ed-vitrin-workspace mx-4 mb-4 mt-3 md:mx-6">
+          <div className="flex min-h-[520px] min-w-0 flex-1 flex-col gap-3 overflow-hidden rounded-xl border border-zinc-700 bg-zinc-900 lg:flex-row">
+            <div className="min-h-[320px] min-w-0 flex-1 overflow-hidden">
+              <CustomBlocksEditor
+                blocks={customBlocks}
+                onChange={setCustomBlocks}
+                sectionOptions={widgetSectionOptions}
+                compact
+                hint="Konum: sağ panel. Sıra: Sıra sekmesi. Gizle: sağ paneldeki kutu veya Gizle."
+              />
+            </div>
+            <div className="ed-vitrin-preview min-h-[320px] min-w-0 flex-1 border-t border-zinc-700 lg:border-t-0 lg:border-l">
+              <MirrorVitrinFrameClient
+                key={`widgets-${previewReloadKey}-${customBlocks.map((b) => b.id).join(",")}`}
+                src={mirrorSrc}
+                title={`${def.label} widget önizleme`}
+                pageConfig={previewConfig}
+                sectionCatalog={catalog}
+                branding={branding}
+                nav={nav}
+                footer={footer}
+                locale={locale}
+              />
+            </div>
+          </div>
         </div>
       ) : (
       <div className="ed-vitrin-workspace mx-4 mb-4 mt-3 md:mx-6">
@@ -400,10 +431,7 @@ export function MirrorVitrinAdminEditor({
             key={previewReloadKey}
             src={mirrorSrc}
             title={`${def.label} önizleme`}
-            pageConfig={{
-              ...previewConfig,
-              customBlocks: customBlocks.length ? stripBlockIds(customBlocks) : undefined,
-            }}
+            pageConfig={previewConfig}
             sectionCatalog={catalog}
             focusSectionKey={selectedKey}
             branding={branding}

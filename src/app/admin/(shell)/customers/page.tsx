@@ -56,6 +56,14 @@ export default async function CustomersPage({
       <p className="mt-1 text-sm text-zinc-500">
         CRM segmentleri — müşteri kartına tıklayarak sipariş ve adres geçmişi
       </p>
+      <div className="mt-3">
+        <Link
+          href="/admin/customers/new"
+          className="inline-flex rounded-lg bg-[var(--kn-brand)] px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+        >
+          Müşteri / üye ekle
+        </Link>
+      </div>
 
       <nav className="mt-4 flex flex-wrap gap-2">
         {SEGMENTS.map((s) => (

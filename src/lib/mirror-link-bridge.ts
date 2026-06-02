@@ -55,6 +55,13 @@ const LINK_BRIDGE_SCRIPT = `<script id="kn-link-bridge">(function(){
   }
   function shouldSkip(a, rawHref){
     if(!rawHref)return true;
+    var drawer=a.closest('account-drawer');
+    if(drawer){
+      if(a.closest('.kn-account-logged-in'))return false;
+      if(a.closest('account-event[data-target]'))return true;
+      if(/^\\/account\\/(?:register|login|forgot-password)/i.test(rawHref))return true;
+      if(/index\\.html$/i.test(rawHref)&&a.closest('account-event'))return true;
+    }
     if(a.hasAttribute("download"))return true;
     var target=(a.getAttribute("target")||"").trim().toLowerCase();
     if(target&&target!=="_self")return true;

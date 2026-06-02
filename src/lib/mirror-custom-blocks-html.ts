@@ -1,4 +1,8 @@
 import type { ShopBlock } from "@/lib/blocks/schema";
+import {
+  MIRROR_WIDGET_TOP,
+  type MirrorCustomBlockEntry,
+} from "@/lib/mirror-custom-block-types";
 
 function esc(s: string): string {
   return s
@@ -9,16 +13,19 @@ function esc(s: string): string {
 }
 
 const INJECT_STYLES = `
-#kn-custom-blocks-injected{margin:0;padding:24px 16px;max-width:1200px;margin-left:auto;margin-right:auto}
-#kn-custom-blocks-injected .kn-cb-section{margin:0 0 28px}
-#kn-custom-blocks-injected .kn-cb-text{text-align:var(--kn-cb-align,left);line-height:1.6}
-#kn-custom-blocks-injected .kn-cb-text h1,#kn-custom-blocks-injected .kn-cb-text h2,#kn-custom-blocks-injected .kn-cb-text h3{margin:0 0 .5em}
-#kn-custom-blocks-injected .kn-cb-actions{text-align:var(--kn-cb-align,center);margin:16px 0}
-#kn-custom-blocks-injected .kn-cb-img{display:block;max-width:100%;height:auto;margin:0 auto}
-#kn-custom-blocks-injected .kn-cb-img--round{border-radius:12px}
-#kn-custom-blocks-injected .kn-cb-slider{position:relative;overflow:hidden;border-radius:8px}
-#kn-custom-blocks-injected .kn-cb-slide img{width:100%;display:block;aspect-ratio:16/9;object-fit:cover}
-#kn-custom-blocks-injected .kn-cb-slide-caption{padding:16px;background:#111;color:#fff}
+#kn-custom-blocks-root .kn-cb-section{margin:0 0 28px;padding:0 16px;max-width:1200px;margin-left:auto;margin-right:auto}
+#kn-custom-blocks-root .kn-cb-section.kn-cb-hidden{display:none!important}
+#kn-custom-blocks-root .kn-cb-text{text-align:var(--kn-cb-align,left);line-height:1.6}
+#kn-custom-blocks-root .kn-cb-text h1,#kn-custom-blocks-root .kn-cb-text h2,#kn-custom-blocks-root .kn-cb-text h3{margin:0 0 .5em}
+#kn-custom-blocks-root .kn-cb-actions{text-align:var(--kn-cb-align,center);margin:16px 0}
+#kn-custom-blocks-root .kn-cb-img{display:block;max-width:100%;height:auto;margin:0 auto}
+#kn-custom-blocks-root .kn-cb-img--round{border-radius:12px}
+#kn-custom-blocks-root .kn-cb-slider{position:relative;overflow:hidden;border-radius:8px}
+#kn-custom-blocks-root .kn-cb-slide img{width:100%;display:block;aspect-ratio:16/9;object-fit:cover}
+#kn-custom-blocks-root .kn-cb-slide-caption{padding:16px;background:#111;color:#fff}
+#kn-custom-blocks-root .kn-cb-split{display:grid;gap:20px;align-items:center}
+@media(min-width:768px){#kn-custom-blocks-root .kn-cb-split{grid-template-columns:1fr 1fr}}
+#kn-custom-blocks-root .kn-cb-marquee{overflow:hidden;white-space:nowrap;padding:12px 0;background:#111;color:#fff;text-align:center}
 `;
 
 function blockToHtml(block: ShopBlock): string {
@@ -39,6 +46,7 @@ function blockToHtml(block: ShopBlock): string {
     }
     case "image": {
       const src = esc(block.props.src);
+      if (!src) return "";
       const alt = esc(block.props.alt ?? "");
       const round = block.props.rounded !== false ? " kn-cb-img--round" : "";
       const img = `<img class="kn-cb-img${round}" src="${src}" alt="${alt}" loading="lazy" />`;
@@ -59,31 +67,106 @@ function blockToHtml(block: ShopBlock): string {
           : "";
       return `<div class="kn-cb-section kn-cb-slider"><div class="kn-cb-slide">${img}<div class="kn-cb-slide-caption"><h2>${esc(slide.headline)}</h2>${slide.subline ? `<p>${esc(slide.subline)}</p>` : ""}${cta}</div></div></div>`;
     }
+    case "announcementBar":
+      return `<div class="kn-cb-section kn-cb-text" style="--kn-cb-align:center;background:#111;color:#fff;padding:12px 16px;border-radius:8px"><p>${esc(block.props.text)}${block.props.linkHref && block.props.linkLabel ? ` — <a href="${esc(block.props.linkHref)}" style="color:#fff;text-decoration:underline">${esc(block.props.linkLabel)}</a>` : ""}</p></div>`;
+    case "promoMarquee":
+      return `<div class="kn-cb-section kn-cb-marquee">${esc(block.props.text)}</div>`;
+    case "imageTextSplit": {
+      const img = block.props.imageUrl
+        ? `<img class="kn-cb-img kn-cb-img--round" src="${esc(block.props.imageUrl)}" alt="${esc(block.props.imageAlt ?? "")}" loading="lazy" />`
+        : "";
+      const cta =
+        block.props.ctaHref && block.props.ctaLabel
+          ? `<a href="${esc(block.props.ctaHref)}" class="button button--primary"><span class="button--text">${esc(block.props.ctaLabel)}</span></a>`
+          : "";
+      const bodyFirst = block.props.imagePosition === "right";
+      return `<div class="kn-cb-section kn-cb-split">${bodyFirst ? `<div><h2>${esc(block.props.title)}</h2><p>${esc(block.props.body)}</p>${cta}</div>${img}` : `${img}<div><h2>${esc(block.props.title)}</h2><p>${esc(block.props.body)}</p>${cta}</div>`}</div>`;
+    }
+    case "testimonials": {
+      const item = block.props.items[0];
+      if (!item) return "";
+      return `<div class="kn-cb-section kn-cb-text" style="--kn-cb-align:center"><h3>${esc(block.props.title ?? "Yorumlar")}</h3><blockquote><p>“${esc(item.quote)}”</p><footer>— ${esc(item.name)}</footer></blockquote></div>`;
+    }
+    case "newsletter":
+      return `<div class="kn-cb-section kn-cb-text" style="--kn-cb-align:center;padding:24px;background:#f7f5f2;border-radius:12px"><h3>${esc(block.props.title)}</h3>${block.props.subtitle ? `<p>${esc(block.props.subtitle)}</p>` : ""}<p><em>${esc(block.props.buttonLabel ?? "Kaydol")}</em></p></div>`;
+    case "collectionGrid":
     case "productGrid":
-      return `<div class="kn-cb-section kn-cb-text" style="--kn-cb-align:center"><p><strong>${esc(block.props.title ?? "Ürünler")}</strong> — vitrinde ürün listesi için /collections veya blok modu ana sayfayı kullanın.</p></div>`;
+      return `<div class="kn-cb-section kn-cb-text" style="--kn-cb-align:center"><p><strong>${esc(block.props.title ?? (block.type === "productGrid" ? "Ürünler" : "Koleksiyonlar"))}</strong> — liste için ilgili vitrin bölümünü kullanın.</p></div>`;
     default:
       return "";
   }
 }
 
-/** Mirror #MainContent üstüne enjekte edilecek HTML */
-export function buildMirrorCustomBlocksHtml(blocks: ShopBlock[]): string {
-  if (!blocks.length) return "";
-  const parts = blocks.map(blockToHtml).filter(Boolean);
-  if (!parts.length) return "";
-  return `<style>${INJECT_STYLES}</style><div id="kn-custom-blocks-injected">${parts.join("")}</div>`;
+function sectionAnchorEl(doc: Document, anchor: string): Element | null {
+  if (anchor === MIRROR_WIDGET_TOP) return null;
+  return doc.querySelector(`section[id$="__${anchor}"]`);
 }
 
-export function applyCustomBlocksInject(doc: Document, blocks: ShopBlock[]) {
+function createWidgetElement(doc: Document, entry: MirrorCustomBlockEntry): HTMLElement | null {
+  const inner = blockToHtml(entry.block);
+  if (!inner) return null;
+  const wrap = doc.createElement("div");
+  wrap.innerHTML = inner;
+  const section = wrap.querySelector(".kn-cb-section");
+  if (!(section instanceof HTMLElement)) return null;
+  section.classList.add("kn-custom-block-root");
+  section.dataset.knCustomBlock = entry.id;
+  if (entry.hidden) section.classList.add("kn-cb-hidden");
+  return section;
+}
+
+/** Widget'ları seçilen bölüm konumlarına göre enjekte eder */
+export function applyCustomBlocksInject(doc: Document, entries: MirrorCustomBlockEntry[]) {
   const main = doc.getElementById("MainContent");
   if (!main) return;
-  main.querySelector("#kn-custom-blocks-injected")?.remove();
-  const html = buildMirrorCustomBlocksHtml(blocks);
-  if (!html) return;
-  const wrap = doc.createElement("div");
-  wrap.innerHTML = html;
-  const injected = wrap.querySelector("#kn-custom-blocks-injected");
-  if (injected) main.insertBefore(injected, main.firstChild);
-  const style = wrap.querySelector("style");
-  if (style) doc.head.appendChild(style);
+
+  main.querySelectorAll(".kn-custom-block-root").forEach((el) => el.remove());
+  if (!doc.getElementById("kn-custom-blocks-css")) {
+    const style = doc.createElement("style");
+    style.id = "kn-custom-blocks-css";
+    style.textContent = INJECT_STYLES;
+    doc.head.appendChild(style);
+  }
+
+  const chainAfter = new Map<string, Element>();
+
+  for (const entry of entries) {
+    const el = createWidgetElement(doc, entry);
+    if (!el) continue;
+
+    const anchor = entry.insertAfterSection?.trim() || MIRROR_WIDGET_TOP;
+    const chainKey = anchor === MIRROR_WIDGET_TOP ? MIRROR_WIDGET_TOP : anchor;
+
+    const prev = chainAfter.get(chainKey);
+    if (prev?.parentNode) {
+      prev.parentNode.insertBefore(el, prev.nextSibling);
+      chainAfter.set(chainKey, el);
+      continue;
+    }
+
+    if (anchor === MIRROR_WIDGET_TOP) {
+      const firstSection = main.querySelector("section.shopify-section");
+      if (firstSection?.parentNode) {
+        firstSection.parentNode.insertBefore(el, firstSection);
+      } else {
+        main.appendChild(el);
+      }
+      chainAfter.set(chainKey, el);
+      continue;
+    }
+
+    const section = sectionAnchorEl(doc, anchor);
+    if (section?.parentNode) {
+      section.parentNode.insertBefore(el, section.nextSibling);
+      chainAfter.set(chainKey, el);
+    } else {
+      main.appendChild(el);
+      chainAfter.set(chainKey, el);
+    }
+  }
+}
+
+/** @deprecated — tek kapsayıcı; artık bölüm bazlı kökler kullanılıyor */
+export function buildMirrorCustomBlocksHtml(_blocks: ShopBlock[]): string {
+  return "";
 }

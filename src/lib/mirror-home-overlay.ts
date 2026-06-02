@@ -85,9 +85,9 @@ import {
 export type { MirrorElementEdit, MirrorElementKind, MirrorElementPick } from "@/lib/mirror-element-edits";
 
 import type { ShopLocale } from "@/lib/i18n/locale";
-import type { ShopBlock } from "@/lib/blocks/schema";
 import { applyCollectionsTabToSection } from "@/lib/mirror-collections-tab";
 import { applyCustomBlocksInject } from "@/lib/mirror-custom-blocks-html";
+import type { MirrorCustomBlockEntry } from "@/lib/mirror-custom-block-types";
 import { applyShopTheLookToSection } from "@/lib/mirror-shop-the-look";
 import { applyFeaturedBlogPostsToSection } from "@/lib/mirror-featured-blog";
 import { applyScrollingCollectionsToSection } from "@/lib/mirror-scrolling-collections-section";
@@ -99,8 +99,8 @@ export type MirrorPageConfig = {
   sections: Record<string, MirrorPageSectionEdit>;
   /** Tıkla-düzenle — id: data-kn-edit */
   elements?: Record<string, MirrorElementEdit>;
-  /** Randevu tarzı ek bloklar — sayfa içeriğinin üstünde */
-  customBlocks?: ShopBlock[];
+  /** Vitrin widget'ları — bölüm arasına yerleştirilebilir */
+  customBlocks?: MirrorCustomBlockEntry[];
 };
 
 /** @deprecated */

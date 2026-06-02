@@ -4,6 +4,7 @@ import { OrderFinancePanel } from "@/components/admin/OrderFinancePanel";
 import { OrderDetailForm } from "@/components/admin/OrderDetailForm";
 import { MarketplaceOrderPanel } from "@/components/admin/MarketplaceOrderPanel";
 import { OrderInvoicePanel } from "@/components/admin/OrderInvoicePanel";
+import { isOrderInvoiceComplete } from "@/lib/admin/order-invoice-workflow";
 import { efaturaReady, getEfaturaConfig } from "@/lib/efatura/settings";
 import { orderSourceLabel, orderSourceBadgeClass } from "@/lib/marketplace/order-source";
 import { parseOrderFinanceSnapshot } from "@/lib/finance/order-economics";
@@ -16,9 +17,17 @@ function statusLabel(id: string) {
   return ORDER_STATUSES.find((s) => s.id === id)?.label ?? id;
 }
 
-export default async function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function OrderDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ focus?: string }>;
+}) {
   const auth = await requireStaffPage();
   const { id } = await params;
+  const { focus } = await searchParams;
+  const focusInvoice = focus === "invoice";
   const order = await prisma.storeOrder.findFirst({
     where: { id, siteId: auth.siteId },
     include: { lines: true, carrier: true, customer: true },
@@ -106,6 +115,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           initialTracking={order.trackingNumber ?? ""}
           initialNotes={order.adminNotes ?? ""}
           carriers={carriers}
+          invoiceComplete={isOrderInvoiceComplete(order.invoiceStatus)}
         />
       </div>
       <OrderInvoicePanel
@@ -118,6 +128,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
         invoiceIssuedAt={order.invoiceIssuedAt}
         efaturaEnabled={efaturaConfig.enabled}
         efaturaReady={efaturaReady(efaturaConfig)}
+        focusInvoice={focusInvoice}
       />
       <OrderFinancePanel
         orderId={order.id}

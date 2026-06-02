@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { isOrderInvoiceComplete } from "@/lib/admin/order-invoice-workflow";
 import { useRouter } from "next/navigation";
 import { AdminField, btnPrimary, btnSecondary, inputClass } from "@/components/admin/AdminForm";
 import { InvoicePreviewModal } from "@/components/admin/InvoicePreviewModal";
@@ -21,6 +22,7 @@ export function OrderInvoicePanel({
   invoiceIssuedAt,
   efaturaEnabled,
   efaturaReady,
+  focusInvoice = false,
 }: {
   orderId: string;
   orderNumber: string;
@@ -33,13 +35,17 @@ export function OrderInvoicePanel({
   efaturaEnabled: boolean;
   /** GİB kullanıcı + parola tamam mı (kesim için) */
   efaturaReady: boolean;
+  /** Kargo kaydı sonrası — panele kaydır ve ön izlemeyi aç */
+  focusInvoice?: boolean;
 }) {
   const router = useRouter();
+  const panelRef = useRef<HTMLDivElement>(null);
   const [recipientTaxId, setRecipientTaxId] = useState("");
   const [sendToMarketplace, setSendToMarketplace] = useState(Boolean(marketplacePlatform));
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [highlight, setHighlight] = useState(false);
 
   async function resendMarketplace() {
     if (!invoiceLink) return;
@@ -58,9 +64,31 @@ export function OrderInvoicePanel({
 
   const hasInvoice = Boolean(invoiceStatus && invoiceStatus !== "none");
   const canIssueNew = efaturaReady && (!hasInvoice || invoiceStatus === "draft");
+  const invoiceComplete = isOrderInvoiceComplete(invoiceStatus);
+
+  useEffect(() => {
+    if (!focusInvoice) return;
+    const el = panelRef.current;
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    setHighlight(true);
+    const t = window.setTimeout(() => setHighlight(false), 2400);
+    if (!invoiceComplete && canIssueNew) {
+      setPreviewOpen(true);
+    }
+    return () => window.clearTimeout(t);
+  }, [focusInvoice, invoiceComplete, canIssueNew]);
 
   return (
-    <div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+    <div
+      id="kn-order-invoice"
+      ref={panelRef}
+      className={`mt-6 scroll-mt-24 rounded-xl border p-4 transition-shadow ${
+        highlight
+          ? "border-[var(--kn-brand)] bg-emerald-50 ring-2 ring-[var(--kn-brand)]/40"
+          : "border-emerald-200 bg-emerald-50"
+      }`}
+    >
       <h2 className="font-semibold text-emerald-950">e-Arşiv fatura</h2>
       <p className="mt-1 text-xs text-emerald-900">
         Önce ön izlemede kontrol edin; GİB bağlantısı hazırsa onaylayıp gönderin veya yazdırın.

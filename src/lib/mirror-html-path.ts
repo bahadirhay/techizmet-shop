@@ -1,6 +1,11 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { hasPrebuiltMirrorHtml, prebuiltMirrorPublicUrl } from "@/lib/mirror-prebuilt";
+import {
+  hasPrebuiltMirrorHtml,
+  prebuiltMirrorPublicUrl,
+  resolveStoreMirrorIframeSrc,
+} from "@/lib/mirror-prebuilt";
+import { preferPrebuiltMirrorHtml } from "@/lib/mirror-prebuilt-policy";
 import { toBrandedMirrorSrc } from "@/lib/mirror-iframe-src";
 import type { ShopLocale } from "@/lib/i18n/locale";
 
@@ -130,7 +135,7 @@ export function buildCategoryCollectionMirrorSrc(
   title?: string,
 ): string {
   const rel = categoryCollectionMirrorFileRel(categorySlug, locale);
-  if (process.env.NODE_ENV === "production" && page === 1 && hasPrebuiltMirrorHtml(rel)) {
+  if (page === 1 && preferPrebuiltMirrorHtml(rel) && hasPrebuiltMirrorHtml(rel)) {
     return prebuiltMirrorPublicUrl(rel);
   }
   const q = new URLSearchParams({
@@ -154,34 +159,29 @@ export function buildCollectionMirrorSrc(
   if (categorySlug?.trim()) {
     return buildCategoryCollectionMirrorSrc(slug, locale, categorySlug, page, title);
   }
-  if (process.env.NODE_ENV === "production") {
-    return toBrandedMirrorSrc(collectionMirrorFileRel(slug, locale));
-  }
   const diskSlug = mirrorCollectionHtmlExists(slug) ? slug : templateSlug;
-  return toBrandedMirrorSrc(collectionMirrorFileRel(diskSlug, locale));
+  return resolveStoreMirrorIframeSrc(collectionMirrorFileRel(diskSlug, locale));
 }
 
 export function buildProductMirrorSrc(slug: string, locale: ShopLocale, templateSlug: string): string {
-  if (process.env.NODE_ENV === "production") {
-    return toBrandedMirrorSrc(productMirrorFileRel(slug, locale));
-  }
   const diskSlug = mirrorProductHtmlExists(slug) ? slug : templateSlug;
-  return toBrandedMirrorSrc(productMirrorFileRel(diskSlug, locale));
+  return resolveStoreMirrorIframeSrc(productMirrorFileRel(diskSlug, locale));
 }
 
 export function buildBlogArticleMirrorSrc(slug: string, locale: ShopLocale): string | null {
   const templateSlug = resolveMirrorBlogArticleTemplateSlug(slug);
   if (!templateSlug) return null;
 
-  if (process.env.NODE_ENV === "production") {
-    return toBrandedMirrorSrc(blogArticleMirrorFileRel(slug, locale));
+  const slugRel = blogArticleMirrorFileRel(slug, locale);
+  if (preferPrebuiltMirrorHtml(slugRel) && mirrorBlogArticleHtmlExists(slug)) {
+    return resolveStoreMirrorIframeSrc(slugRel);
   }
 
   if (mirrorBlogArticleHtmlExists(slug)) {
-    return toBrandedMirrorSrc(blogArticleMirrorFileRel(slug, locale));
+    return resolveStoreMirrorIframeSrc(slugRel);
   }
 
-  return toBrandedMirrorSrc(blogArticleMirrorFileRel(templateSlug, locale), undefined, {
+  return resolveStoreMirrorIframeSrc(blogArticleMirrorFileRel(templateSlug, locale), undefined, {
     blogSlug: slug,
   });
 }

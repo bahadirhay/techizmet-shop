@@ -2,6 +2,10 @@
 
 import type { ResolvedNavItem } from "@/lib/mirror-nav-resolve";
 import { buildMegaDropdownHtml } from "@/lib/mirror-nav-mega-html";
+import {
+  preloadMegaForNavItem,
+  warmAllMegaImages,
+} from "@/lib/mirror-nav-mega-preload";
 import { buildMobileNavItemsHtml } from "@/lib/mirror-nav-mobile-html";
 
 export type MirrorNavItem = ResolvedNavItem;
@@ -226,43 +230,25 @@ function bindMegaLinkClicks(doc: Document) {
   );
 }
 
-function extractBgUrl(styleValue: string): string | null {
-  const m = styleValue.match(/url\((['"]?)(.*?)\1\)/i);
-  const raw = m?.[2]?.trim();
-  if (!raw) return null;
-  return raw;
-}
+function warmMegaImagesSoon(doc: Document) {
+  const win = doc.defaultView as (Window & { __knMegaWarmScheduled?: number }) | null;
+  if (!win || win.__knMegaWarmScheduled) return;
+  win.__knMegaWarmScheduled = 1;
 
-function preloadMegaTileImages(doc: Document) {
-  const win = doc.defaultView as (Window & {
-    __knMegaImagePreloaded?: Set<string>;
-  }) | null;
-  if (!win) return;
-  if (!win.__knMegaImagePreloaded) {
-    win.__knMegaImagePreloaded = new Set<string>();
+  const run = () => warmAllMegaImages(doc);
+  const ric = (win as Window & { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number })
+    .requestIdleCallback;
+  if (typeof ric === "function") {
+    ric(run, { timeout: 400 });
+  } else {
+    win.setTimeout(run, 80);
   }
-  const seen = win.__knMegaImagePreloaded;
-
-  doc.querySelectorAll(".kn-nav-mega__tile-img[style]").forEach((el) => {
-    const style = el.getAttribute("style") ?? "";
-    const src = extractBgUrl(style);
-    if (!src || seen.has(src)) return;
-    seen.add(src);
-    const img = new Image();
-    img.decoding = "async";
-    img.loading = "eager";
-    try {
-      img.fetchPriority = "high";
-    } catch {
-      // Eski tarayıcılar fetchPriority desteklemeyebilir.
-    }
-    img.src = src;
-  });
 }
 
 function bindKnNavDropdown(doc: Document) {
   initMegaPanels(doc);
-  preloadMegaTileImages(doc);
+  warmAllMegaImages(doc);
+  warmMegaImagesSoon(doc);
   const win = doc.defaultView;
   if (win && !(win as Window & { __knMegaLayoutBound?: number }).__knMegaLayoutBound) {
     (win as Window & { __knMegaLayoutBound?: number }).__knMegaLayoutBound = 1;
@@ -312,7 +298,10 @@ function bindKnNavDropdown(doc: Document) {
     const el = li as HTMLElement;
     if (el.dataset.knNavBound === "1") return;
     el.dataset.knNavBound = "1";
-    el.addEventListener("mouseenter", () => openNavDropdown(doc, el));
+    el.addEventListener("mouseenter", () => {
+      preloadMegaForNavItem(doc, el);
+      openNavDropdown(doc, el);
+    });
     el.addEventListener("mouseleave", (e) => {
       if (megaHost && e.relatedTarget instanceof Node && megaHost.contains(e.relatedTarget)) return;
       scheduleNavClose(doc, el);

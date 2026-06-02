@@ -43,10 +43,15 @@ export function orderSourcePrismaFilter(
   return { marketplacePlatform: source };
 }
 
-export function ordersListHref(params: { status?: string; source?: string }): string {
+export function ordersListHref(params: {
+  status?: string;
+  source?: string;
+  invoice?: "pending";
+}): string {
   const q = new URLSearchParams();
   if (params.status) q.set("status", params.status);
   if (params.source && params.source !== "all") q.set("source", params.source);
+  if (params.invoice === "pending") q.set("invoice", "pending");
   const s = q.toString();
   return s ? `/admin/orders?${s}` : "/admin/orders";
 }

@@ -1,5 +1,5 @@
 import type { ShopLocale } from "@/lib/i18n/locale";
-import { buildMirrorIframeSrc } from "@/lib/mirror-iframe-src";
+import { resolveStoreMirrorIframeSrc } from "@/lib/mirror-prebuilt";
 
 /** Admin + vitrinde bağlı Techizmet Shop sayfaları */
 export type VitrinPageKey =
@@ -68,7 +68,7 @@ export const VITRIN_PAGES: VitrinPageDef[] = [
     route: "/",
     adminPath: "/admin/pages/vitrin/home",
     mirrorFileRel: (locale) => vitrinMirrorFileRel("home", locale),
-    mirrorPath: (locale) => buildMirrorIframeSrc(vitrinMirrorFileRel("home", locale), "home"),
+    mirrorPath: (locale) => resolveStoreMirrorIframeSrc(vitrinMirrorFileRel("home", locale), "home"),
   },
   {
     key: "collections",
@@ -76,7 +76,7 @@ export const VITRIN_PAGES: VitrinPageDef[] = [
     route: "/collections",
     adminPath: "/admin/pages/vitrin/collections",
     mirrorFileRel: (locale) => vitrinMirrorFileRel("collections", locale),
-    mirrorPath: (locale) => buildMirrorIframeSrc(vitrinMirrorFileRel("collections", locale), "collections"),
+    mirrorPath: (locale) => resolveStoreMirrorIframeSrc(vitrinMirrorFileRel("collections", locale), "collections"),
   },
   {
     key: "collections-all",
@@ -84,7 +84,7 @@ export const VITRIN_PAGES: VitrinPageDef[] = [
     route: "/collections/all",
     adminPath: "/admin/pages/vitrin/collections-all",
     mirrorFileRel: (locale) => vitrinMirrorFileRel("collections-all", locale),
-    mirrorPath: (locale) => buildMirrorIframeSrc(vitrinMirrorFileRel("collections-all", locale), "collections-all"),
+    mirrorPath: (locale) => resolveStoreMirrorIframeSrc(vitrinMirrorFileRel("collections-all", locale), "collections-all"),
   },
   {
     key: "about",
@@ -92,7 +92,7 @@ export const VITRIN_PAGES: VitrinPageDef[] = [
     route: "/pages/about",
     adminPath: "/admin/pages/vitrin/about",
     mirrorFileRel: (locale) => vitrinMirrorFileRel("about", locale),
-    mirrorPath: (locale) => buildMirrorIframeSrc(vitrinMirrorFileRel("about", locale), "about"),
+    mirrorPath: (locale) => resolveStoreMirrorIframeSrc(vitrinMirrorFileRel("about", locale), "about"),
   },
   {
     key: "contact",
@@ -100,7 +100,7 @@ export const VITRIN_PAGES: VitrinPageDef[] = [
     route: "/pages/contact",
     adminPath: "/admin/pages/vitrin/contact",
     mirrorFileRel: (locale) => vitrinMirrorFileRel("contact", locale),
-    mirrorPath: (locale) => buildMirrorIframeSrc(vitrinMirrorFileRel("contact", locale), "contact"),
+    mirrorPath: (locale) => resolveStoreMirrorIframeSrc(vitrinMirrorFileRel("contact", locale), "contact"),
   },
   {
     key: "faq",
@@ -108,7 +108,7 @@ export const VITRIN_PAGES: VitrinPageDef[] = [
     route: "/pages/faq",
     adminPath: "/admin/pages/vitrin/faq",
     mirrorFileRel: (locale) => vitrinMirrorFileRel("faq", locale),
-    mirrorPath: (locale) => buildMirrorIframeSrc(vitrinMirrorFileRel("faq", locale), "faq"),
+    mirrorPath: (locale) => resolveStoreMirrorIframeSrc(vitrinMirrorFileRel("faq", locale), "faq"),
   },
   {
     key: "blog-news",
@@ -116,7 +116,7 @@ export const VITRIN_PAGES: VitrinPageDef[] = [
     route: "/blogs/news",
     adminPath: "/admin/pages/vitrin/blog-news",
     mirrorFileRel: (locale) => vitrinMirrorFileRel("blog-news", locale),
-    mirrorPath: (locale) => buildMirrorIframeSrc(vitrinMirrorFileRel("blog-news", locale), "blog-news"),
+    mirrorPath: (locale) => resolveStoreMirrorIframeSrc(vitrinMirrorFileRel("blog-news", locale), "blog-news"),
   },
 ];
 

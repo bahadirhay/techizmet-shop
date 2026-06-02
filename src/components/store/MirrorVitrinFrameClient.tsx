@@ -8,6 +8,11 @@ import {
 import { mergeScrollingCollectionEdits, applyScrollingCollectionsToSection } from "@/lib/mirror-scrolling-collections-section";
 import { mergeTrendingProductEdits, applyTrendingProductsToSection } from "@/lib/mirror-trending-products-section";
 import { mergeTestimonialEdits, applyTestimonialToSection } from "@/lib/mirror-testimonial-section";
+import {
+  applyMirrorAccountDrawerClient,
+  openAccountDrawer,
+  type AccountDrawerForm,
+} from "@/lib/mirror-account-drawer-client";
 import { scheduleMirrorFramePatches, isMirrorServerReady } from "@/lib/mirror-frame-patch";
 import type { MirrorBranding } from "@/lib/mirror-branding-overlay";
 import type { ShopLocale } from "@/lib/i18n/locale";
@@ -75,6 +80,11 @@ export function MirrorVitrinFrameClient({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const parentRouteKey = `${pathname}?${searchParams.toString()}`;
+  const accountRaw = searchParams.get("account");
+  const accountDrawerForm: AccountDrawerForm | undefined =
+    accountRaw === "create" || accountRaw === "login" || accountRaw === "reset"
+      ? accountRaw
+      : undefined;
 
   const overlaySig = JSON.stringify(pageConfig ?? null);
   const patchSig = JSON.stringify({
@@ -193,6 +203,9 @@ export function MirrorVitrinFrameClient({
         !categoriesFromAdmin?.length &&
         (!config || !hasMirrorPageEdits(config) || serverOverlay);
 
+      applyMirrorAccountDrawerClient(doc);
+      if (accountDrawerForm) openAccountDrawer(doc, accountDrawerForm);
+
       if (skipClientWork) return;
 
       if (!serverReady) {
@@ -202,6 +215,7 @@ export function MirrorVitrinFrameClient({
           nav,
           footer,
           locale,
+          accountDrawerForm,
         });
       }
 

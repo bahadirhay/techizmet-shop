@@ -1,6 +1,9 @@
 /** Vitrin iframe — mega menü: header altına DOM ile yapışık (fixed + getBoundingClientRect yok) */
 
-export const MIRROR_NAV_DROPDOWN_BIND_SCRIPT = `function knHeaderRoot(){
+import { MIRROR_NAV_MEGA_PRELOAD_SCRIPT } from "@/lib/mirror-nav-mega-preload-script";
+
+export const MIRROR_NAV_DROPDOWN_BIND_SCRIPT = `${MIRROR_NAV_MEGA_PRELOAD_SCRIPT}
+function knHeaderRoot(){
   return document.querySelector("sticky-always.header")||document.querySelector("sticky-on-scroll.header")||document.querySelector("[data-header-section]");
 }
 function knEnsureMegaHost(){
@@ -134,6 +137,8 @@ function knBindMegaLinkClicks(){
 }
 function knBindNavDropdown(){
   knInitMegaPanels();
+  knPreloadMegaInRoot(document,"low");
+  knScheduleMegaWarm();
   if(!window.__knMegaLayoutBound){
     window.__knMegaLayoutBound=1;
     window.addEventListener("resize",function(){
@@ -174,7 +179,7 @@ function knBindNavDropdown(){
     if(li.dataset.knNavBound==="1")return;
     li.dataset.knNavBound="1";
     var megaHost=document.getElementById("kn-mega-host");
-    li.addEventListener("mouseenter",function(){knOpenNavDropdown(li);});
+    li.addEventListener("mouseenter",function(){knPreloadMegaForLi(li);knOpenNavDropdown(li);});
     li.addEventListener("mouseleave",function(e){
       if(megaHost&&e.relatedTarget&&megaHost.contains(e.relatedTarget))return;
       knScheduleNavClose(li);

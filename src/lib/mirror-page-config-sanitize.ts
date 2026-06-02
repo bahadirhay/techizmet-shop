@@ -1,4 +1,4 @@
-import { sanitizeShopBlocks } from "@/lib/blocks/schema";
+import { normalizeMirrorCustomBlocks } from "@/lib/mirror-custom-block-types";
 import type { MirrorElementEdit, MirrorElementKind } from "@/lib/mirror-element-edits";
 import type { CollectionsTabItemEdit } from "@/lib/mirror-collections-tab";
 import type { MediaGridItemEdit } from "@/lib/mirror-media-grid";
@@ -125,7 +125,7 @@ export function sanitizeMirrorPageConfig(
     if (!order.includes(k)) order.push(k);
   }
 
-  const customBlocks = sanitizeShopBlocks(raw.customBlocks);
+  const customBlocks = normalizeMirrorCustomBlocks(raw.customBlocks);
 
   return {
     order,

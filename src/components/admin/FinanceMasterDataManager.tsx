@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { inputClass, AdminField, btnPrimary } from "@/components/admin/AdminForm";
 
@@ -37,14 +38,6 @@ export function FinanceMasterDataManager({
   const [cpForm, setCpForm] = useState({ title: "", taxId: "", type: "external_manual" });
   const [catForm, setCatForm] = useState({ name: "", kind: "expense" });
   const [accForm, setAccForm] = useState({ name: "", kind: "bank" });
-  const [custForm, setCustForm] = useState({
-    type: "guest",
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    password: "",
-  });
   const [tplForm, setTplForm] = useState({
     name: "",
     keyword: "",
@@ -70,6 +63,16 @@ export function FinanceMasterDataManager({
 
   return (
     <div className="space-y-6">
+      <section className="admin-card admin-card-pad">
+        <div className="mb-4 rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
+          Müşteri / üye ekleme işlemi artık{" "}
+          <Link href="/admin/customers/new" className="font-medium text-[var(--kn-brand)] underline">
+            Müşteriler & üyeler
+          </Link>{" "}
+          bölümündedir.
+        </div>
+      </section>
+
       <section className="admin-card admin-card-pad grid gap-4 md:grid-cols-2">
         <div>
           <h2 className="font-semibold">Karşı taraf ekle</h2>
@@ -106,43 +109,7 @@ export function FinanceMasterDataManager({
           </div>
         </div>
 
-        <div>
-          <h2 className="font-semibold">Müşteri / üye ekle</h2>
-          <div className="mt-3 space-y-3">
-            <AdminField label="Tip">
-              <select className={inputClass} value={custForm.type} onChange={(e) => setCustForm((f) => ({ ...f, type: e.target.value }))}>
-                <option value="guest">Site müşterisi (misafir)</option>
-                <option value="member">Site üyesi (şifreli)</option>
-              </select>
-            </AdminField>
-            <div className="grid gap-3 md:grid-cols-2">
-              <input className={inputClass} placeholder="Ad" value={custForm.firstName} onChange={(e) => setCustForm((f) => ({ ...f, firstName: e.target.value }))} />
-              <input className={inputClass} placeholder="Soyad" value={custForm.lastName} onChange={(e) => setCustForm((f) => ({ ...f, lastName: e.target.value }))} />
-            </div>
-            <input className={inputClass} placeholder="E-posta" value={custForm.email} onChange={(e) => setCustForm((f) => ({ ...f, email: e.target.value }))} />
-            <input className={inputClass} placeholder="Telefon" value={custForm.phone} onChange={(e) => setCustForm((f) => ({ ...f, phone: e.target.value }))} />
-            {custForm.type === "member" ? (
-              <input className={inputClass} placeholder="Şifre" value={custForm.password} onChange={(e) => setCustForm((f) => ({ ...f, password: e.target.value }))} />
-            ) : null}
-            <button
-              className={btnPrimary}
-              onClick={async () => {
-                setMsg(null);
-                const res = await fetch("/api/admin/finance/customers", {
-                  method: "POST",
-                  headers: { "content-type": "application/json" },
-                  body: JSON.stringify(custForm),
-                });
-                const j = (await res.json()) as { error?: string };
-                if (!res.ok) return setMsg(j.error ?? "Müşteri eklenemedi.");
-                setCustForm({ type: "guest", firstName: "", lastName: "", email: "", phone: "", password: "" });
-                setMsg("Müşteri/üye eklendi.");
-              }}
-            >
-              Müşteri / üye ekle
-            </button>
-          </div>
-        </div>
+        <div />
       </section>
 
       <section className="admin-card admin-card-pad grid gap-4 md:grid-cols-2">

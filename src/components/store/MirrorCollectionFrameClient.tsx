@@ -29,12 +29,14 @@ export function MirrorCollectionFrameClient({
   locale,
   collectionFromAdmin,
   productsFromAdmin,
+  totalProductCount,
   categoriesFromAdmin,
   activeCategorySlug,
   mirrorTexts,
   currentPage = 1,
   paginationBasePath = "/collections/all",
   productsPrebuilt = false,
+  hasInitialPayload = false,
 }: {
   src: string;
   title: string;
@@ -44,6 +46,7 @@ export function MirrorCollectionFrameClient({
   locale?: ShopLocale;
   collectionFromAdmin?: VitrinCollectionDetail | null;
   productsFromAdmin?: VitrinCollectionProductCard[];
+  totalProductCount?: number;
   categoriesFromAdmin?: VitrinCollectionCategoryOption[];
   activeCategorySlug?: string;
   mirrorTexts?: ResolvedMirrorCollectionTexts;
@@ -51,9 +54,12 @@ export function MirrorCollectionFrameClient({
   paginationBasePath?: string;
   /** Ürünler iframe HTML'inde sunucuda — istemci patch yok */
   productsPrebuilt?: boolean;
+  hasInitialPayload?: boolean;
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [productsVisible, setProductsVisible] = useState(productsPrebuilt);
+  const [productsVisible, setProductsVisible] = useState(
+    productsPrebuilt || hasInitialPayload,
+  );
   const patchKey = JSON.stringify({
     collectionFromAdmin,
     productsFromAdmin,
@@ -77,6 +83,7 @@ export function MirrorCollectionFrameClient({
 
     const needsProductGuard =
       !productsPrebuilt &&
+      !hasInitialPayload &&
       (Boolean(activeCategorySlug) || productsFromAdmin !== undefined);
     if (needsProductGuard) {
       setCollectionProductsAwaiting(doc, true);
@@ -97,6 +104,7 @@ export function MirrorCollectionFrameClient({
       applyCollectionProductsFromAdmin(doc, productsFromAdmin, locale, mirrorTexts, {
         currentPage,
         basePath: paginationBasePath,
+        totalCount: totalProductCount,
       });
       setProductsVisible(true);
     } else if (
@@ -109,6 +117,7 @@ export function MirrorCollectionFrameClient({
     }
   }, [
     productsPrebuilt,
+    hasInitialPayload,
     activeCategorySlug,
     currentPage,
     paginationBasePath,
@@ -120,6 +129,7 @@ export function MirrorCollectionFrameClient({
     mirrorTexts,
     nav,
     productsFromAdmin,
+    totalProductCount,
   ]);
 
   useMirrorLocaleMessage();
@@ -131,8 +141,9 @@ export function MirrorCollectionFrameClient({
     <div
       className="kn-home-mirror"
       style={{
-        opacity: productsPrebuilt || productsVisible ? 1 : 0,
-        transition: productsPrebuilt || productsVisible ? "opacity 0.12s ease-out" : "none",
+        opacity: productsPrebuilt || productsVisible || hasInitialPayload ? 1 : 0,
+        transition:
+          productsPrebuilt || productsVisible || hasInitialPayload ? "opacity 0.12s ease-out" : "none",
       }}
     >
       <iframe

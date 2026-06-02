@@ -29,8 +29,12 @@ export async function readPrebuiltMirrorHtml(normalized: string): Promise<string
   return readFile(abs, "utf8");
 }
 
-/** Production: build sırasında üretilen statik CDN yolu; geliştirmede yerel prebuilt varsa onu kullan */
-export function resolveMirrorIframeSrc(
+function isMirrorDevLiveRebuild(): boolean {
+  return process.env.NODE_ENV !== "production" && process.env.MIRROR_DEV_LIVE === "1";
+}
+
+/** Vitrin iframe — prod + local prebuilt (hızlı); yoksa API */
+export function resolveStoreMirrorIframeSrc(
   normalized: string,
   pageKey?: string,
   extra?: Record<string, string | undefined>,
@@ -42,7 +46,18 @@ export function resolveMirrorIframeSrc(
     return rawMirrorPublicUrl(path);
   }
 
-  if (hasPrebuiltMirrorHtml(path)) return prebuiltMirrorPublicUrl(path);
+  if (!isMirrorDevLiveRebuild() && hasPrebuiltMirrorHtml(path)) {
+    return prebuiltMirrorPublicUrl(path);
+  }
 
   return buildMirrorIframeSrc(path, pageKey, extra);
+}
+
+/** @deprecated resolveStoreMirrorIframeSrc kullanın */
+export function resolveMirrorIframeSrc(
+  normalized: string,
+  pageKey?: string,
+  extra?: Record<string, string | undefined>,
+): string {
+  return resolveStoreMirrorIframeSrc(normalized, pageKey, extra);
 }

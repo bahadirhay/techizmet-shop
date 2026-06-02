@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { shouldFocusInvoiceAfterSave } from "@/lib/admin/order-invoice-workflow";
 import { ORDER_STATUSES } from "@/lib/admin/marketplace-platforms";
 import { AdminField, btnPrimary, inputClass } from "@/components/admin/AdminForm";
 
@@ -14,6 +15,7 @@ export function OrderDetailForm({
   initialTracking,
   initialNotes,
   carriers,
+  invoiceComplete,
 }: {
   orderId: string;
   initialStatus: string;
@@ -21,6 +23,7 @@ export function OrderDetailForm({
   initialTracking: string;
   initialNotes: string;
   carriers: CarrierOpt[];
+  invoiceComplete: boolean;
 }) {
   const router = useRouter();
   const [status, setStatus] = useState(initialStatus);
@@ -30,13 +33,30 @@ export function OrderDetailForm({
   const [msg, setMsg] = useState<string | null>(null);
 
   async function save() {
+    const previousStatus = initialStatus;
+    const previousTracking = initialTracking;
     const res = await fetch(`/api/admin/orders/${orderId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status, carrierId: carrierId || null, trackingNumber, adminNotes }),
     });
-    setMsg(res.ok ? "Kaydedildi" : "Hata");
-    if (res.ok) router.refresh();
+    if (!res.ok) {
+      setMsg("Hata");
+      return;
+    }
+    setMsg("Kaydedildi");
+    const focus = shouldFocusInvoiceAfterSave({
+      status,
+      trackingNumber,
+      previousStatus,
+      previousTracking,
+      invoiceComplete,
+    });
+    if (focus) {
+      router.push(`/admin/orders/${orderId}?focus=invoice`);
+    } else {
+      router.refresh();
+    }
   }
 
   return (
@@ -76,8 +96,13 @@ export function OrderDetailForm({
           onChange={(e) => setAdminNotes(e.target.value)}
         />
       </AdminField>
+      {status === "shipped" && !invoiceComplete ? (
+        <p className="text-sm text-amber-900">
+          Kaydettikten sonra <strong>e-Arşiv fatura</strong> paneline yönlendirilirsiniz (takip no dolu olmalı).
+        </p>
+      ) : null}
       {msg ? <p className="text-sm text-green-700">{msg}</p> : null}
-      <button type="button" className={btnPrimary} onClick={save}>
+      <button type="button" className={btnPrimary} onClick={() => void save()}>
         Kaydet
       </button>
     </div>

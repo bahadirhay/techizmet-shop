@@ -24,11 +24,14 @@ function stripHtml(html: string | null | undefined) {
 
 export default async function VitrinPageEditRoute({
   params,
+  searchParams,
 }: {
   params: Promise<{ pageKey: string }>;
+  searchParams: Promise<{ tab?: string }>;
 }) {
   const auth = await requireStaffPage();
   const { pageKey } = await params;
+  const { tab } = await searchParams;
   if (!isVitrinPageKey(pageKey)) notFound();
 
   const site = await getDefaultSite();
@@ -96,6 +99,7 @@ export default async function VitrinPageEditRoute({
       editableCatalog={editableCatalog}
       sectionSwiperMs={sectionSwiperMs}
       blogPosts={blogPostsForEditor}
+      initialEditorMode={tab === "widgets" ? "blocks" : "sections"}
     />
   );
 }

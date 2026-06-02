@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { MirrorCollectionFrameClient } from "@/components/store/MirrorCollectionFrameClient";
 import type { CollectionFramePayload } from "@/lib/mirror-collection-payload-types";
 import type { ShopLocale } from "@/lib/i18n/locale";
@@ -30,12 +30,14 @@ function CollectionFrameInner({
       locale={locale}
       collectionFromAdmin={payload?.collectionFromAdmin}
       productsFromAdmin={productsPrebuilt ? undefined : payload?.productsFromAdmin}
+      totalProductCount={payload?.totalProductCount}
       categoriesFromAdmin={productsPrebuilt ? undefined : payload?.categoriesFromAdmin}
       activeCategorySlug={payload?.activeCategorySlug}
       mirrorTexts={payload?.mirrorTexts}
       currentPage={currentPage}
       paginationBasePath={payload?.paginationBasePath ?? "/collections/all"}
       productsPrebuilt={productsPrebuilt}
+      hasInitialPayload={Boolean(payload)}
     />
   );
 }
@@ -45,31 +47,18 @@ export function MirrorCollectionFrameHost({
   title,
   locale,
   currentPage,
-  fetchPayloadUrl,
+  initialPayload = null,
   productsPrebuilt,
 }: {
   src: string;
   title: string;
   locale: ShopLocale;
   currentPage: number;
-  fetchPayloadUrl?: string;
+  /** Sunucuda hazırlanmış menü + ürün verisi (ek istek yok) */
+  initialPayload?: CollectionFramePayload | null;
   productsPrebuilt?: boolean;
 }) {
-  const [payload, setPayload] = useState<CollectionFramePayload | null>(null);
-
-  useEffect(() => {
-    if (!fetchPayloadUrl || productsPrebuilt) return;
-    let cancelled = false;
-    fetch(fetchPayloadUrl, { credentials: "same-origin" })
-      .then((r) => r.json())
-      .then((j: CollectionFramePayload) => {
-        if (!cancelled) setPayload(j);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [fetchPayloadUrl, productsPrebuilt]);
+  const [payload, setPayload] = useState<CollectionFramePayload | null>(initialPayload);
 
   return (
     <CollectionFrameInner

@@ -9,6 +9,10 @@ import {
 } from "@/lib/marketplace/order-source";
 import { formatTry } from "@/lib/admin/money";
 import { ORDER_STATUSES } from "@/lib/admin/marketplace-platforms";
+import {
+  isOrderInvoiceComplete,
+  orderInvoicePendingWhere,
+} from "@/lib/admin/order-invoice-workflow";
 import { prisma } from "@/lib/prisma";
 import { requireStaffPage } from "@/lib/staff-auth";
 
@@ -19,17 +23,20 @@ function statusLabel(id: string) {
 export default async function OrdersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; source?: string }>;
+  searchParams: Promise<{ status?: string; source?: string; invoice?: string }>;
 }) {
   const auth = await requireStaffPage();
-  const { status, source } = await searchParams;
+  const { status, source, invoice } = await searchParams;
+  const invoicePending = invoice === "pending";
   const where = {
     siteId: auth.siteId,
-    ...(status === "refund_requested"
-      ? { status: { in: ["refund_requested", "cancelled"] } }
-      : status
-        ? { status }
-        : {}),
+    ...(invoicePending
+      ? orderInvoicePendingWhere()
+      : status === "refund_requested"
+        ? { status: { in: ["refund_requested", "cancelled"] } }
+        : status
+          ? { status }
+          : {}),
     ...orderSourcePrismaFilter(source),
   };
 
@@ -42,8 +49,9 @@ export default async function OrdersPage({
 
   const activeSource = source ?? "all";
 
-  const title =
-    status === "pending"
+  const title = invoicePending
+    ? "Fatura bekleyen siparişler"
+    : status === "pending"
       ? "Onay bekleyen siparişler"
       : status === "preparing"
         ? "Hazırlanan siparişler"
@@ -58,7 +66,11 @@ export default async function OrdersPage({
       <AdminPageHeader
         breadcrumb={[{ label: "Siparişler" }]}
         title={title}
-        description="Durum, ödeme ve kargo takibi."
+        description={
+          invoicePending
+            ? "Kargoya verilmiş veya teslim edilmiş; e-Arşiv faturası henüz kesilmemiş siparişler."
+            : "Durum, ödeme ve kargo takibi."
+        }
         actions={
           <Link
             href="/admin/orders/labels"
@@ -70,10 +82,21 @@ export default async function OrdersPage({
       />
       <div className="mb-3 flex flex-wrap gap-2 text-sm">
         <Link
-          href={ordersListHref({ source: activeSource === "all" ? undefined : activeSource })}
-          className={`rounded-lg px-3 py-1.5 ${!status ? "bg-[var(--kn-brand)] text-white" : "border bg-white"}`}
+          href={ordersListHref({
+            source: activeSource === "all" ? undefined : activeSource,
+          })}
+          className={`rounded-lg px-3 py-1.5 ${!status && !invoicePending ? "bg-[var(--kn-brand)] text-white" : "border bg-white"}`}
         >
           Tümü
+        </Link>
+        <Link
+          href={ordersListHref({
+            invoice: "pending",
+            source: activeSource === "all" ? undefined : activeSource,
+          })}
+          className={`rounded-lg px-3 py-1.5 ${invoicePending ? "bg-[var(--kn-brand)] text-white" : "border bg-white"}`}
+        >
+          Fatura bekleyen
         </Link>
         {(["pending", "preparing", "shipped", "refund_requested"] as const).map((s) => (
           <Link
@@ -82,7 +105,7 @@ export default async function OrdersPage({
               status: s,
               source: activeSource === "all" ? undefined : activeSource,
             })}
-            className={`rounded-lg px-3 py-1.5 ${status === s ? "bg-[var(--kn-brand)] text-white" : "border bg-white"}`}
+            className={`rounded-lg px-3 py-1.5 ${status === s && !invoicePending ? "bg-[var(--kn-brand)] text-white" : "border bg-white"}`}
           >
             {statusLabel(s)}
           </Link>
@@ -120,6 +143,7 @@ export default async function OrdersPage({
                 <th>Durum</th>
                 <th>Ödeme</th>
                 <th>Kargo</th>
+                <th>Fatura</th>
                 <th>Tarih</th>
                 <th></th>
               </tr>
@@ -140,10 +164,29 @@ export default async function OrdersPage({
                   <td>{statusLabel(o.status)}</td>
                   <td className="text-zinc-600">{o.paymentMethod ?? "—"}</td>
                   <td>{o.carrier?.name ?? "—"}</td>
+                  <td>
+                    {isOrderInvoiceComplete(o.invoiceStatus) ? (
+                      <span className="text-xs text-emerald-700">Kesildi</span>
+                    ) : o.invoiceStatus === "draft" ? (
+                      <span className="text-xs text-amber-700">Taslak</span>
+                    ) : (
+                      <span className="text-xs font-medium text-amber-800">Bekliyor</span>
+                    )}
+                  </td>
                   <td className="text-zinc-500">{o.createdAt.toLocaleDateString("tr-TR")}</td>
                   <td>
-                    <Link href={`/admin/orders/${o.id}`} className="text-[var(--kn-brand)]">
-                      Detay
+                    <Link
+                      href={
+                        !isOrderInvoiceComplete(o.invoiceStatus) &&
+                        (o.status === "shipped" || o.status === "delivered")
+                          ? `/admin/orders/${o.id}?focus=invoice`
+                          : `/admin/orders/${o.id}`
+                      }
+                      className="text-[var(--kn-brand)]"
+                    >
+                      {invoicePending || !isOrderInvoiceComplete(o.invoiceStatus)
+                        ? "Fatura →"
+                        : "Detay"}
                     </Link>
                   </td>
                 </tr>

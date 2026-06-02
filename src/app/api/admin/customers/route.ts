@@ -4,9 +4,8 @@ import { requireStaffApi } from "@/lib/staff-auth";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
-  const auth = await requireStaffApi("store.finance");
+  const auth = await requireStaffApi("store.customers");
   if (auth instanceof NextResponse) return auth;
-
   const body = (await req.json()) as {
     type?: string;
     firstName?: string;
@@ -17,15 +16,15 @@ export async function POST(req: Request) {
     notes?: string;
   };
   const type = body.type === "member" ? "member" : "guest";
-  const email = body.email?.trim().toLowerCase() || null;
+  const email = body.email?.trim().toLowerCase();
   if (!email) {
     return NextResponse.json({ error: "E-posta zorunlu." }, { status: 400 });
   }
+
   const existing = await prisma.storeCustomer.findFirst({
     where: { siteId: auth.siteId, email },
     select: { id: true, passwordHash: true },
   });
-
   if (existing && type === "member" && existing.passwordHash) {
     return NextResponse.json({ error: "Bu e-posta zaten üye." }, { status: 400 });
   }

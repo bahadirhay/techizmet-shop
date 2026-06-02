@@ -39,7 +39,7 @@ export default async function PagesListPage() {
       <section className="mt-8">
         <h2 className="text-lg font-semibold text-zinc-900">Vitrin sayfaları (canlı sitedeki içerik)</h2>
         <p className="mt-1 text-sm text-zinc-600">
-          Ana sayfa, koleksiyonlar, blog listesi, hakkımızda, iletişim ve SSS — bölüm düzenleme + ek bloklar.
+          Ana sayfa, koleksiyonlar, blog listesi, hakkımızda, iletişim ve SSS — bölüm düzenleme + widget ekleme (slayt, metin, görsel).
           Ana sayfadaki blog kartları: <Link href="/admin/blog" className="font-medium underline">Blog yazıları</Link>{" "}
           (öne çıkar işareti).
         </p>
@@ -59,6 +59,9 @@ export default async function PagesListPage() {
                 >
                   Vitrin ↗
                 </a>
+                <Link href={`${p.adminPath}?tab=widgets`} className="text-sm text-zinc-600 hover:text-zinc-900">
+                  Widget&apos;lar
+                </Link>
                 <Link href={p.adminPath} className="text-sm font-medium text-[var(--kn-brand)]">
                   Düzenle
                 </Link>

@@ -268,6 +268,8 @@ function productCardHtml(
 export type CollectionPaginationOptions = {
   currentPage?: number;
   basePath?: string;
+  /** Veritabanından sayfalanmış liste — products dizisi yalnızca bu sayfa */
+  totalCount?: number;
 };
 
 function collectionPageHref(basePath: string, page: number) {
@@ -364,20 +366,24 @@ export function applyCollectionProductsFromAdmin(
     "#MainContent .main-collection--products-list[main-collection-products], #MainContent .main-collection--products-list",
   );
 
-  const sorted = [...products].sort((a, b) => a.title.localeCompare(b.title));
+  const dbPaginated = pagination?.totalCount != null;
+  const sorted = dbPaginated ? products : [...products].sort((a, b) => a.title.localeCompare(b.title));
   const resolved = texts ?? defaultMirrorCollectionTexts(locale);
   const currentPage = Math.max(1, pagination?.currentPage ?? 1);
-  const totalPages = Math.max(1, Math.ceil(sorted.length / MIRROR_COLLECTION_PAGE_SIZE));
+  const totalCount = pagination?.totalCount ?? sorted.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / MIRROR_COLLECTION_PAGE_SIZE));
   const safePage = Math.min(currentPage, totalPages);
-  const pageItems = sorted.slice(
-    (safePage - 1) * MIRROR_COLLECTION_PAGE_SIZE,
-    safePage * MIRROR_COLLECTION_PAGE_SIZE,
-  );
+  const pageItems = dbPaginated
+    ? sorted
+    : sorted.slice(
+        (safePage - 1) * MIRROR_COLLECTION_PAGE_SIZE,
+        safePage * MIRROR_COLLECTION_PAGE_SIZE,
+      );
   const basePath = pagination?.basePath ?? "/collections/all";
-  const syncKey = `${safePage}|${basePath}|${pageItems.map((p) => `${p.slug}:${p.imageUrl ?? ""}:${p.priceMinor}:${p.compareAtMinor ?? ""}:${p.stockQty}`).join(",")}`;
+  const syncKey = `${safePage}|${basePath}|${totalCount}|${pageItems.map((p) => `${p.slug}:${p.imageUrl ?? ""}:${p.priceMinor}:${p.compareAtMinor ?? ""}:${p.stockQty}`).join(",")}`;
 
-  patchCollectionProductCount(doc, sorted.length, locale, resolved, safePage);
-  patchCollectionPagination(doc, sorted.length, {
+  patchCollectionProductCount(doc, totalCount, locale, resolved, safePage);
+  patchCollectionPagination(doc, totalCount, {
     currentPage: safePage,
     basePath,
   });

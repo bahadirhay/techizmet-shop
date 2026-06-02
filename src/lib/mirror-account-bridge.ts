@@ -1,6 +1,31 @@
 /** Mirror iframe — hesap çekmecesi → /api/account (Prisma StoreCustomer) */
 
 import { patchMirrorStoreBridgeNavigation } from "@/lib/mirror-store-bridge-nav-patch";
+import { patchMirrorStoreBridgeDrawerClickGuard } from "@/lib/mirror-store-bridge-drawer-patch";
+
+/** Hesap çekmecesi tab linkleri — kn-store-bridge "#" → search-drawer eşlemesinden kaçın */
+export const MIRROR_ACCOUNT_DRAWER_LINK_HREF = "#kn-account";
+
+/** Çekmece içi account-event — sayfa değil, çekmece formu değişsin */
+export function patchMirrorAccountDrawerNavLinks(html: string): string {
+  if (!html.includes('data-drawer="account-drawer"')) return html;
+  const m = html.match(/<account-drawer[\s\S]*?<\/account-drawer>/i);
+  if (!m) return html;
+
+  let drawer = m[0];
+  const tabHref = MIRROR_ACCOUNT_DRAWER_LINK_HREF;
+  drawer = drawer.replace(
+    /(<account-event[^>]*data-target="(?:create|login|reset)"[^>]*>[\s\S]*?<a\b[^>]*\shref=")[^"]*(")/gi,
+    `$1${tabHref}$2`,
+  );
+  drawer = drawer.replace(
+    /\shref="\/account\/(?:register|login|forgot-password)[^"]*"/gi,
+    ` href="${tabHref}"`,
+  );
+  drawer = drawer.replace(/\shref="index\.html"/gi, ` href="${tabHref}"`);
+
+  return html.replace(m[0], drawer);
+}
 
 const BRIDGE_SCRIPT = `<script id="kn-account-bridge">(function(){
   function relocateAccountDrawer(){
@@ -191,11 +216,38 @@ const BRIDGE_SCRIPT = `<script id="kn-account-bridge">(function(){
   if(document.readyState==="loading"){
     document.addEventListener("DOMContentLoaded",init);
   }else{init();}
+  function switchAccountDrawerForm(drawer,target){
+    drawer.querySelectorAll("[data-form],[data-heading]").forEach(function(item){
+      item.classList.add("hidden");
+      item.classList.remove("active");
+      if(item.hasAttribute("data-form")) item.setAttribute("hidden","");
+    });
+    var targetForm=drawer.querySelector('[data-form="'+target+'"]');
+    var targetHeading=drawer.querySelector('[data-heading="'+target+'"]');
+    if(targetForm){
+      targetForm.classList.remove("hidden");
+      targetForm.classList.add("active");
+      targetForm.removeAttribute("hidden");
+    }
+    if(targetHeading){
+      targetHeading.classList.remove("hidden");
+      targetHeading.classList.add("active");
+      targetHeading.removeAttribute("hidden");
+    }
+  }
   document.addEventListener("click",function(e){
-    var ev=e.target&&e.target.closest?e.target.closest("account-event[data-target='create'],account-event[data-target='login']"):null;
+    var ev=e.target&&e.target.closest?e.target.closest("account-event[data-target]"):null;
     if(!ev)return;
+    var drawer=ev.closest('[data-drawer="account-drawer"]');
+    if(!drawer)return;
+    var target=ev.getAttribute("data-target");
+    if(!target)return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    switchAccountDrawerForm(drawer,target);
     setTimeout(bindAll,50);
-  });
+  },true);
   document.addEventListener("click",function(e){
     var t=e.target&&e.target.closest?e.target.closest('[data-source="account-drawer"],[aria-label*="account" i],[aria-label*="hesap" i]'):null;
     if(!t)return;
@@ -225,8 +277,10 @@ export function patchMirrorStoreBridgeAccountDrawer(html: string): string {
 }
 
 export function injectMirrorAccountBridge(html: string): string {
-  let out = patchMirrorStoreBridgeNavigation(html);
+  let out = patchMirrorAccountDrawerNavLinks(html);
+  out = patchMirrorStoreBridgeNavigation(out);
   out = patchMirrorStoreBridgeAccountDrawer(out);
-  if (out.includes('id="kn-account-bridge"')) return out;
+  out = patchMirrorStoreBridgeDrawerClickGuard(out);
+  out = out.replace(/<script id="kn-account-bridge">[\s\S]*?<\/script>\s*/i, "");
   return out.replace(/<\/body>/i, `${BRIDGE_SCRIPT}</body>`);
 }

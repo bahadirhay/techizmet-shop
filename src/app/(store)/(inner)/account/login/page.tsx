@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { MirrorAccountAuthFrame } from "@/components/store/MirrorAccountAuthFrame";
 import { AccountLoginForm } from "@/components/store/AccountLoginForm";
 import { getCustomerSession } from "@/lib/customer-session";
 import { getDefaultSite } from "@/lib/site";
@@ -12,7 +11,7 @@ export default async function AccountLoginPage() {
   const site = await getDefaultSite();
   const homepageMode = await getStoreHomepageMode(site.id);
   if (homepageMode === "mirror") {
-    return <MirrorAccountAuthFrame mode="login" />;
+    redirect("/?account=login");
   }
 
   return (

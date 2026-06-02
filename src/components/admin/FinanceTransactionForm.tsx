@@ -8,17 +8,23 @@ import { MARKETPLACE_PLATFORMS } from "@/lib/admin/marketplace-platforms";
 
 type CategoryOption = { id: string; name: string; kind: string };
 type AccountOption = { id: string; name: string; kind: string };
+type CustomerOption = { id: string; label: string; taxId?: string | null };
+type CounterpartyOption = { id: string; title: string; taxId?: string | null };
 
 export function FinanceTransactionForm({
   initialKind,
   categories,
   accounts,
+  customers,
+  counterparties,
   orderId,
   orderNumber,
 }: {
   initialKind?: string;
   categories: CategoryOption[];
   accounts: AccountOption[];
+  customers: CustomerOption[];
+  counterparties: CounterpartyOption[];
   orderId?: string;
   orderNumber?: string;
 }) {
@@ -31,8 +37,9 @@ export function FinanceTransactionForm({
   const [accountId, setAccountId] = useState("");
   const [invoiceDirection, setInvoiceDirection] = useState("");
   const [invoiceNumber, setInvoiceNumber] = useState("");
-  const [counterpartyName, setCounterpartyName] = useState("");
-  const [counterpartyTaxId, setCounterpartyTaxId] = useState("");
+  const [counterpartyType, setCounterpartyType] = useState<"customer" | "counterparty">("customer");
+  const [customerId, setCustomerId] = useState("");
+  const [counterpartyId, setCounterpartyId] = useState("");
   const [vat, setVat] = useState("");
   const [marketplacePlatform, setMarketplacePlatform] = useState("");
   const [marketplaceRef, setMarketplaceRef] = useState("");
@@ -67,8 +74,9 @@ export function FinanceTransactionForm({
         orderId: orderId || undefined,
         invoiceDirection: invoiceDirection || undefined,
         invoiceNumber: invoiceNumber || undefined,
-        counterpartyName: counterpartyName || undefined,
-        counterpartyTaxId: counterpartyTaxId || undefined,
+        counterpartyType,
+        customerId: counterpartyType === "customer" ? customerId || undefined : undefined,
+        counterpartyId: counterpartyType === "counterparty" ? counterpartyId || undefined : undefined,
         vat: vat || undefined,
         marketplacePlatform: marketplacePlatform || undefined,
         marketplaceRef: marketplaceRef || undefined,
@@ -124,6 +132,50 @@ export function FinanceTransactionForm({
         </AdminField>
       </div>
 
+      <div className="grid gap-4 sm:grid-cols-2">
+        <AdminField label="Karşı taraf tipi">
+          <select
+            className={inputClass}
+            value={counterpartyType}
+            onChange={(e) => {
+              const next = e.target.value === "counterparty" ? "counterparty" : "customer";
+              setCounterpartyType(next);
+              setCustomerId("");
+              setCounterpartyId("");
+            }}
+          >
+            <option value="customer">Müşteri / üye listesinden</option>
+            <option value="counterparty">Manuel karşı taraf kayıtlarından</option>
+          </select>
+        </AdminField>
+        <AdminField
+          label={counterpartyType === "customer" ? "Müşteri / üye" : "Karşı taraf"}
+          hint="Bu alana manuel giriş kapalıdır; yalnızca kayıt seçilir."
+        >
+          {counterpartyType === "customer" ? (
+            <select className={inputClass} value={customerId} onChange={(e) => setCustomerId(e.target.value)} required>
+              <option value="">— Seçin —</option>
+              {customers.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.label}
+                  {c.taxId ? ` · ${c.taxId}` : ""}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <select className={inputClass} value={counterpartyId} onChange={(e) => setCounterpartyId(e.target.value)} required>
+              <option value="">— Seçin —</option>
+              {counterparties.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.title}
+                  {c.taxId ? ` · ${c.taxId}` : ""}
+                </option>
+              ))}
+            </select>
+          )}
+        </AdminField>
+      </div>
+
       <AdminField label="Açıklama">
         <input
           className={inputClass}
@@ -175,22 +227,6 @@ export function FinanceTransactionForm({
                 className={inputClass}
                 value={invoiceNumber}
                 onChange={(e) => setInvoiceNumber(e.target.value)}
-              />
-            </AdminField>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <AdminField label="Karşı taraf">
-              <input
-                className={inputClass}
-                value={counterpartyName}
-                onChange={(e) => setCounterpartyName(e.target.value)}
-              />
-            </AdminField>
-            <AdminField label="VKN / TCKN">
-              <input
-                className={inputClass}
-                value={counterpartyTaxId}
-                onChange={(e) => setCounterpartyTaxId(e.target.value)}
               />
             </AdminField>
           </div>

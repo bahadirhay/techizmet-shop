@@ -11,6 +11,8 @@ import type { ResolvedMirrorCollectionTexts } from "@/lib/store-static-texts";
 export type CollectionCatalogPayload = {
   collectionFromAdmin: VitrinCollectionDetail | null;
   productsFromAdmin: VitrinCollectionProductCard[];
+  /** Tüm liste boyutu (ürünler yalnızca mevcut sayfa kadar gelir) */
+  totalProductCount: number;
   categoriesFromAdmin: VitrinCollectionCategoryOption[];
   activeCategorySlug?: string;
   mirrorTexts: ResolvedMirrorCollectionTexts;

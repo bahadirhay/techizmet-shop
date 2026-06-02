@@ -179,6 +179,7 @@ const STORE_BRIDGE = `<script id="kn-store-bridge">
     }
     var a = e.target && e.target.closest ? e.target.closest("a[href]") : null;
     if (!a) return;
+    if (a.closest("account-drawer")) return;
     var href = a.getAttribute("href") || "";
     if (href === "#" || href.indexOf("search.html") >= 0) {
       e.preventDefault();

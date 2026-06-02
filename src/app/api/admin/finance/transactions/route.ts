@@ -42,8 +42,9 @@ export async function POST(req: Request) {
     orderId?: string;
     invoiceDirection?: string;
     invoiceNumber?: string;
-    counterpartyName?: string;
-    counterpartyTaxId?: string;
+    counterpartyType?: "customer" | "counterparty";
+    customerId?: string;
+    counterpartyId?: string;
     vat?: string | number;
     marketplacePlatform?: string;
     marketplaceRef?: string;
@@ -63,6 +64,33 @@ export async function POST(req: Request) {
   }
 
   const isDeduction = kind === "marketplace_deduction";
+  const selectedType = body.counterpartyType === "counterparty" ? "counterparty" : "customer";
+
+  let counterpartyName: string | null = null;
+  let counterpartyTaxId: string | null = null;
+  if (selectedType === "customer") {
+    const customer = await prisma.storeCustomer.findFirst({
+      where: { id: body.customerId, siteId: auth.siteId },
+      select: { firstName: true, lastName: true, email: true },
+    });
+    if (!customer) {
+      return NextResponse.json({ error: "Müşteri / üye listesinden geçerli kayıt seçin." }, { status: 400 });
+    }
+    counterpartyName =
+      [customer.firstName, customer.lastName].filter(Boolean).join(" ") ||
+      customer.email ||
+      "Müşteri";
+  } else {
+    const cp = await prisma.financeCounterparty.findFirst({
+      where: { id: body.counterpartyId, siteId: auth.siteId, active: true },
+      select: { title: true, taxId: true },
+    });
+    if (!cp) {
+      return NextResponse.json({ error: "Karşı taraf kayıtlarından geçerli kayıt seçin." }, { status: 400 });
+    }
+    counterpartyName = cp.title;
+    counterpartyTaxId = cp.taxId || null;
+  }
 
   const row = await prisma.financeTransaction.create({
     data: {
@@ -76,8 +104,8 @@ export async function POST(req: Request) {
       description: body.description?.trim() || kind,
       invoiceDirection: body.invoiceDirection || null,
       invoiceNumber: body.invoiceNumber?.trim() || null,
-      counterpartyName: body.counterpartyName?.trim() || null,
-      counterpartyTaxId: body.counterpartyTaxId?.trim() || null,
+      counterpartyName,
+      counterpartyTaxId,
       vatMinor: tryToMinor(body.vat),
       marketplacePlatform: body.marketplacePlatform || null,
       marketplaceRef: body.marketplaceRef?.trim() || null,

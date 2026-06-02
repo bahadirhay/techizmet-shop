@@ -40,7 +40,11 @@ export function applyCollectionCatalogToMirrorHtml(
     payload.productsFromAdmin,
     locale,
     payload.mirrorTexts,
-    { currentPage: page, basePath: payload.paginationBasePath },
+    {
+      currentPage: page,
+      basePath: payload.paginationBasePath,
+      totalCount: payload.totalProductCount,
+    },
   );
   return serializeMirrorDocument(html, document);
 }

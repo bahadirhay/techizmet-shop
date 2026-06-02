@@ -1,9 +1,13 @@
 import { MirrorCollectionFrameHost } from "@/components/store/MirrorCollectionFrameHost";
 import type { ShopLocale } from "@/lib/i18n/locale";
+import { getCollectionFramePayload } from "@/lib/mirror-collection-frame-server";
 import {
   buildCollectionMirrorSrc,
+  collectionMirrorFileRel,
   resolveMirrorCollectionTemplateSlug,
 } from "@/lib/mirror-html-path";
+import { hasPrebuiltMirrorHtml } from "@/lib/mirror-prebuilt";
+import { getDefaultSite } from "@/lib/site";
 
 /** Koleksiyon/kategori — kategori: sunucu HTML; tüm ürünler: iframe + JSON */
 export async function MirrorCollectionFrame({
@@ -37,8 +41,21 @@ export async function MirrorCollectionFrame({
     );
   }
 
-  const q = new URLSearchParams({ slug, page: String(page) });
-  if (title) q.set("title", title);
+  const site = await getDefaultSite();
+  const initialPayload = await getCollectionFramePayload(
+    site.id,
+    slug,
+    locale,
+    undefined,
+    page,
+    title,
+  );
+  const allPrebuiltRel = collectionMirrorFileRel("all", locale);
+  const productsPrebuiltAll =
+    page === 1 &&
+    slug === "all" &&
+    !categorySlug?.trim() &&
+    hasPrebuiltMirrorHtml(allPrebuiltRel);
 
   return (
     <MirrorCollectionFrameHost
@@ -46,7 +63,8 @@ export async function MirrorCollectionFrame({
       title={frameTitle}
       locale={locale}
       currentPage={page}
-      fetchPayloadUrl={`/api/vitrin/collection-frame?${q.toString()}`}
+      initialPayload={initialPayload}
+      productsPrebuilt={productsPrebuiltAll}
     />
   );
 }
