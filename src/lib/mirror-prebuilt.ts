@@ -10,6 +10,6 @@ export {
   MIRROR_PREBUILT_PREFIX,
 } from "@/lib/mirror-prebuilt-io";
 
-export { prebuiltMirrorPublicUrl, MIRROR_PREBUILT_PREFIX } from "@/lib/mirror-iframe-src";
+export { prebuiltMirrorPublicUrl } from "@/lib/mirror-iframe-src";
 
 export { resolveMirrorIframeSrc, resolveStoreMirrorIframeSrc } from "@/lib/mirror-prebuilt-resolve";
