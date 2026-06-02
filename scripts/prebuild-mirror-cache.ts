@@ -21,7 +21,8 @@ import {
   resolveMirrorCollectionTemplateSlug,
   resolveMirrorProductTemplateSlug,
 } from "../src/lib/mirror-html-path";
-import { prebuiltMirrorAbs, prebuiltMirrorPublicUrl } from "../src/lib/mirror-prebuilt";
+import { prebuiltMirrorAbs } from "../src/lib/mirror-prebuilt-io";
+import { prebuiltMirrorPublicUrl } from "../src/lib/mirror-iframe-src";
 import { VITRIN_PAGES } from "../src/lib/mirror-vitrin-pages";
 import { prisma } from "../src/lib/prisma";
 

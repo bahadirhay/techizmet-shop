@@ -1,73 +1,15 @@
 import "server-only";
 
-import {
-  buildMirrorIframeSrc,
-  prebuiltMirrorPublicUrl,
-  rawMirrorPublicUrl,
+export {
+  hasPrebuiltMirrorHtml,
+  isMirrorDevLiveRebuild,
+  preferPrebuiltMirrorHtml,
+  prebuiltMirrorAbs,
+  prebuiltMirrorRel,
+  readPrebuiltMirrorHtml,
   MIRROR_PREBUILT_PREFIX,
-} from "@/lib/mirror-iframe-src";
-import { existsSync } from "node:fs";
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+} from "@/lib/mirror-prebuilt-io";
 
-export { MIRROR_PREBUILT_PREFIX, prebuiltMirrorPublicUrl } from "@/lib/mirror-iframe-src";
+export { prebuiltMirrorPublicUrl, MIRROR_PREBUILT_PREFIX } from "@/lib/mirror-iframe-src";
 
-export function prebuiltMirrorRel(normalized: string): string {
-  const path = normalized.startsWith("/") ? normalized.slice(1) : normalized;
-  return `${MIRROR_PREBUILT_PREFIX}/${path}`;
-}
-
-export function prebuiltMirrorAbs(normalized: string): string {
-  return join(process.cwd(), "public", prebuiltMirrorRel(normalized));
-}
-
-export function hasPrebuiltMirrorHtml(normalized: string): boolean {
-  return existsSync(prebuiltMirrorAbs(normalized));
-}
-
-export async function readPrebuiltMirrorHtml(normalized: string): Promise<string | null> {
-  const abs = prebuiltMirrorAbs(normalized);
-  if (!existsSync(abs)) return null;
-  return readFile(abs, "utf8");
-}
-
-/** true → her istekte buildMirrorHtmlCore (yavaş, mirror inject kodu geliştirirken) */
-export function isMirrorDevLiveRebuild(): boolean {
-  return process.env.NODE_ENV !== "production" && process.env.MIRROR_DEV_LIVE === "1";
-}
-
-/** Canlı ile aynı statik HTML — dosya varsa ve live mod kapalıysa */
-export function preferPrebuiltMirrorHtml(normalized: string): boolean {
-  if (isMirrorDevLiveRebuild()) return false;
-  if (process.env.NODE_ENV === "production") return true;
-  return hasPrebuiltMirrorHtml(normalized);
-}
-
-/** Vitrin iframe — prod + local prebuilt (hızlı); yoksa API */
-export function resolveStoreMirrorIframeSrc(
-  normalized: string,
-  pageKey?: string,
-  extra?: Record<string, string | undefined>,
-): string {
-  const path = normalized.startsWith("/") ? normalized.slice(1) : normalized;
-
-  if (process.env.NODE_ENV === "production") {
-    if (hasPrebuiltMirrorHtml(path)) return prebuiltMirrorPublicUrl(path);
-    return rawMirrorPublicUrl(path);
-  }
-
-  if (!isMirrorDevLiveRebuild() && hasPrebuiltMirrorHtml(path)) {
-    return prebuiltMirrorPublicUrl(path);
-  }
-
-  return buildMirrorIframeSrc(path, pageKey, extra);
-}
-
-/** @deprecated resolveStoreMirrorIframeSrc kullanın */
-export function resolveMirrorIframeSrc(
-  normalized: string,
-  pageKey?: string,
-  extra?: Record<string, string | undefined>,
-): string {
-  return resolveStoreMirrorIframeSrc(normalized, pageKey, extra);
-}
+export { resolveMirrorIframeSrc, resolveStoreMirrorIframeSrc } from "@/lib/mirror-prebuilt-resolve";

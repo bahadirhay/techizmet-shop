@@ -2,7 +2,7 @@ import { MirrorVitrinFrameHost } from "@/components/store/MirrorVitrinFrameHost"
 import type { VitrinCollectionCard, VitrinCollectionCategoryOption } from "@/lib/mirror-collections-sync";
 import { getMirrorVitrinHydration } from "@/lib/mirror-vitrin-data";
 import { getVitrinPage, vitrinMirrorFileRel, type VitrinPageKey } from "@/lib/mirror-vitrin-pages";
-import { resolveStoreMirrorIframeSrc } from "@/lib/mirror-prebuilt";
+import { resolveStoreMirrorIframeSrc } from "@/lib/mirror-prebuilt-resolve";
 import { getStoreLocaleFromHeaders } from "@/lib/i18n/server";
 import { getDefaultSite } from "@/lib/site";
 import { prisma } from "@/lib/prisma";

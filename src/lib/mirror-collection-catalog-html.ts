@@ -8,7 +8,7 @@ import {
 import { loadCollectionCatalogCore } from "@/lib/mirror-collection-catalog-data";
 import type { CollectionCatalogPayload } from "@/lib/mirror-collection-payload-types";
 import { collectionMirrorFileRel } from "@/lib/mirror-html-path";
-import { readPrebuiltMirrorHtml } from "@/lib/mirror-prebuilt";
+import { readPrebuiltMirrorHtml } from "@/lib/mirror-prebuilt-io";
 
 function serializeMirrorDocument(html: string, document: Document): string {
   const doctype = html.match(/^<!DOCTYPE[^>]*>/i)?.[0] ?? "<!DOCTYPE html>";

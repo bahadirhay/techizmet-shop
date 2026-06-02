@@ -1,11 +1,11 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import { prebuiltMirrorPublicUrl } from "@/lib/mirror-iframe-src";
 import {
   hasPrebuiltMirrorHtml,
-  prebuiltMirrorPublicUrl,
-  resolveStoreMirrorIframeSrc,
-} from "@/lib/mirror-prebuilt";
-import { preferPrebuiltMirrorHtml } from "@/lib/mirror-prebuilt";
+  preferPrebuiltMirrorHtml,
+} from "@/lib/mirror-prebuilt-io";
+import { resolveStoreMirrorIframeSrc } from "@/lib/mirror-prebuilt-resolve";
 import { toBrandedMirrorSrc } from "@/lib/mirror-iframe-src";
 import type { ShopLocale } from "@/lib/i18n/locale";
 
