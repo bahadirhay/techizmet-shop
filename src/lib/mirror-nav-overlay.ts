@@ -226,8 +226,43 @@ function bindMegaLinkClicks(doc: Document) {
   );
 }
 
+function extractBgUrl(styleValue: string): string | null {
+  const m = styleValue.match(/url\((['"]?)(.*?)\1\)/i);
+  const raw = m?.[2]?.trim();
+  if (!raw) return null;
+  return raw;
+}
+
+function preloadMegaTileImages(doc: Document) {
+  const win = doc.defaultView as (Window & {
+    __knMegaImagePreloaded?: Set<string>;
+  }) | null;
+  if (!win) return;
+  if (!win.__knMegaImagePreloaded) {
+    win.__knMegaImagePreloaded = new Set<string>();
+  }
+  const seen = win.__knMegaImagePreloaded;
+
+  doc.querySelectorAll(".kn-nav-mega__tile-img[style]").forEach((el) => {
+    const style = el.getAttribute("style") ?? "";
+    const src = extractBgUrl(style);
+    if (!src || seen.has(src)) return;
+    seen.add(src);
+    const img = new Image();
+    img.decoding = "async";
+    img.loading = "eager";
+    try {
+      img.fetchPriority = "high";
+    } catch {
+      // Eski tarayıcılar fetchPriority desteklemeyebilir.
+    }
+    img.src = src;
+  });
+}
+
 function bindKnNavDropdown(doc: Document) {
   initMegaPanels(doc);
+  preloadMegaTileImages(doc);
   const win = doc.defaultView;
   if (win && !(win as Window & { __knMegaLayoutBound?: number }).__knMegaLayoutBound) {
     (win as Window & { __knMegaLayoutBound?: number }).__knMegaLayoutBound = 1;
