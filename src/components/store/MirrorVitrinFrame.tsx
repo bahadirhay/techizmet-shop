@@ -1,7 +1,8 @@
 import { MirrorVitrinFrameHost } from "@/components/store/MirrorVitrinFrameHost";
 import type { VitrinCollectionCard, VitrinCollectionCategoryOption } from "@/lib/mirror-collections-sync";
 import { getMirrorVitrinHydration } from "@/lib/mirror-vitrin-data";
-import { getVitrinPage, type VitrinPageKey } from "@/lib/mirror-vitrin-pages";
+import { getVitrinPage, vitrinMirrorFileRel, type VitrinPageKey } from "@/lib/mirror-vitrin-pages";
+import { resolveStoreMirrorIframeSrc } from "@/lib/mirror-prebuilt";
 import { getStoreLocaleFromHeaders } from "@/lib/i18n/server";
 import { getDefaultSite } from "@/lib/site";
 import { prisma } from "@/lib/prisma";
@@ -22,7 +23,7 @@ export async function MirrorVitrinFrame({
 
   const site = await getDefaultSite();
   const locale = await getStoreLocaleFromHeaders();
-  const src = def.mirrorPath(locale);
+  const src = resolveStoreMirrorIframeSrc(vitrinMirrorFileRel(pageKey, locale), pageKey);
   const hydrationPromise = getMirrorVitrinHydration(site.id, pageKey, locale);
 
   let collectionsFromAdmin: VitrinCollectionCard[] | undefined;
