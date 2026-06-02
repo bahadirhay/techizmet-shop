@@ -10,17 +10,23 @@ export async function resolveMegaMenuProductsBySlug(
   const unique = [...new Set(slugs.map((s) => s.trim()).filter(Boolean))];
   if (!unique.length) return new Map();
 
-  const rows = await prisma.storeProduct.findMany({
-    where: { siteId, published: true, slug: { in: unique } },
-    select: {
-      slug: true,
-      title: true,
-      priceMinor: true,
-      compareAtMinor: true,
-      imageUrl: true,
-      images: { orderBy: { sortOrder: "asc" }, take: 1, select: { url: true } },
-    },
-  });
+  let rows: Awaited<ReturnType<typeof prisma.storeProduct.findMany>>;
+  try {
+    rows = await prisma.storeProduct.findMany({
+      where: { siteId, published: true, slug: { in: unique } },
+      select: {
+        slug: true,
+        title: true,
+        priceMinor: true,
+        compareAtMinor: true,
+        imageUrl: true,
+        images: { orderBy: { sortOrder: "asc" }, take: 1, select: { url: true } },
+      },
+    });
+  } catch (err) {
+    console.warn("[nav-mega-products] ürünler yüklenemedi, mega menü ürünleri atlanıyor:", err);
+    return new Map();
+  }
 
   const map = new Map<string, MegaNavProduct>();
   for (const p of rows) {

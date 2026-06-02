@@ -24,7 +24,11 @@ export async function loadMirrorNavItemsUncached(
   siteId: string,
   locale: ShopLocale,
 ): Promise<ResolvedNavItem[]> {
-  const fromDb = await getPublishedHeaderNavTree(siteId, locale);
-  if (fromDb?.length) return fromDb;
+  try {
+    const fromDb = await getPublishedHeaderNavTree(siteId, locale);
+    if (fromDb?.length) return fromDb;
+  } catch (err) {
+    console.warn("[mirror-nav] DB menüsü yüklenemedi, site ayarlarına düşülüyor:", err);
+  }
   return navFromSiteSettings(siteId, locale);
 }
