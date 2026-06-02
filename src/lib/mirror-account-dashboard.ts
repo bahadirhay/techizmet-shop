@@ -134,11 +134,53 @@ export const ACCOUNT_DASHBOARD_CSS = `<style id="kn-account-dashboard-css">
 .kn-account-dashboard .kn-account-address-edit-form[hidden] {
   display: none !important;
 }
+.kn-account-dashboard .address--card {
+  border: 1px solid var(--border_color, #e5e2dd);
+  border-radius: 12px;
+  padding: 16px;
+  background: #fff;
+}
 .kn-account-dashboard .address--footer {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 12px;
-  margin-top: 12px;
+  gap: 8px 10px;
+  margin-top: 14px;
+}
+.kn-account-dashboard .kn-addr-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 8px 16px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.2;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.22);
+  background: #fff;
+  color: #1a1a1a !important;
+  cursor: pointer;
+  text-decoration: none !important;
+}
+.kn-account-dashboard .kn-addr-btn:hover {
+  background: #f3f3f3;
+}
+.kn-account-dashboard .kn-addr-btn--danger {
+  border-color: #dc2626;
+  color: #dc2626 !important;
+}
+.kn-account-dashboard .kn-addr-btn--danger:hover {
+  background: #fef2f2;
+}
+.kn-account-dashboard .payment--status {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 2px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 999px;
+  background: #1a1a1a;
+  color: #fff;
 }
 .kn-account-dashboard .account--text-info.text-center {
   max-width: 640px;
@@ -178,7 +220,7 @@ function addressEditFormHtml(a: MirrorAccountAddress, tr: boolean): string {
     <div class="form-group kn-account-checkbox"><label><input type="checkbox" name="isDefault"${a.isDefault ? " checked" : ""} /> ${tr ? "Varsayılan adres" : "Default address"}</label></div>
     <p class="kn-account-msg" data-kn-addr-edit-msg hidden></p>
     <button type="submit" class="button medium-button">${tr ? "Kaydet" : "Save"}</button>
-    <button type="button" class="button text-button" data-kn-addr-cancel="${esc(a.id)}">${tr ? "İptal" : "Cancel"}</button>
+    <button type="button" class="button kn-addr-btn" data-kn-addr-cancel="${esc(a.id)}">${tr ? "İptal" : "Cancel"}</button>
   </form>`;
 }
 
@@ -205,9 +247,9 @@ export function buildAccountDashboardMarkup(p: MirrorAccountDashboardPayload): s
             <p>${esc(a.district)} / ${esc(a.city)}</p>
           </address></div>
           <div class="address--footer">
-            <button type="button" class="button text-button" data-kn-addr-edit="${esc(a.id)}">${tr ? "Düzenle" : "Edit"}</button>
-            ${!a.isDefault ? ` <button type="button" class="button text-button" data-kn-addr-default="${esc(a.id)}">${tr ? "Varsayılan yap" : "Set default"}</button>` : ""}
-            <button type="button" class="button text-button" data-kn-addr-delete="${esc(a.id)}">${tr ? "Sil" : "Delete"}</button>
+            <button type="button" class="button kn-addr-btn" data-kn-addr-edit="${esc(a.id)}">${tr ? "Düzenle" : "Edit"}</button>
+            ${!a.isDefault ? `<button type="button" class="button kn-addr-btn" data-kn-addr-default="${esc(a.id)}">${tr ? "Varsayılan yap" : "Set default"}</button>` : ""}
+            <button type="button" class="button kn-addr-btn kn-addr-btn--danger" data-kn-addr-delete="${esc(a.id)}">${tr ? "Sil" : "Delete"}</button>
           </div>
         </div>
         ${addressEditFormHtml(a, tr)}
@@ -279,12 +321,14 @@ export function buildAccountDashboardMarkup(p: MirrorAccountDashboardPayload): s
   <div class="address--list">${addressCards || `<p class="text-medium">${tr ? "Kayıtlı adres yok." : "No saved addresses."}</p>`}</div>
   <form class="account--form kn-account-address-form" data-kn-address-form>
     <h3 class="heading-font h5">${tr ? "Yeni adres" : "New address"}</h3>
-    <div class="form-group"><label for="kn-addr-label">${tr ? "Etiket" : "Label"}</label><input class="form-control" id="kn-addr-label" name="label" value="${tr ? "Ev" : "Home"}" /></div>
+    <p class="kn-account-msg" data-kn-address-form-msg hidden></p>
+    <div class="form-group"><label for="kn-addr-label">${tr ? "Etiket" : "Label"}</label><input class="form-control" id="kn-addr-label" name="label" placeholder="${tr ? "Ev, İş…" : "Home, Work…"}" autocomplete="off" /></div>
     <div class="input-form--fields">
-      <div class="form-group"><label for="kn-addr-city">${tr ? "İl" : "City"}</label><input class="form-control" id="kn-addr-city" name="city" required /></div>
-      <div class="form-group"><label for="kn-addr-district">${tr ? "İlçe" : "District"}</label><input class="form-control" id="kn-addr-district" name="district" required /></div>
+      <div class="form-group"><label for="kn-addr-city">${tr ? "İl" : "City"}</label><input class="form-control" id="kn-addr-city" name="city" required autocomplete="address-level1" /></div>
+      <div class="form-group"><label for="kn-addr-district">${tr ? "İlçe" : "District"}</label><input class="form-control" id="kn-addr-district" name="district" required autocomplete="address-level2" /></div>
     </div>
-    <div class="form-group"><label for="kn-addr-line">${tr ? "Adres" : "Address line"}</label><input class="form-control" id="kn-addr-line" name="line1" required /></div>
+    <div class="form-group"><label for="kn-addr-line">${tr ? "Adres" : "Address line"}</label><input class="form-control" id="kn-addr-line" name="line1" required autocomplete="street-address" /></div>
+    <div class="form-group"><label for="kn-addr-postal">${tr ? "Posta kodu" : "Postal code"}</label><input class="form-control" id="kn-addr-postal" name="postalCode" autocomplete="postal-code" /></div>
     <div class="form-group kn-account-checkbox"><label><input type="checkbox" name="isDefault" /> ${tr ? "Varsayılan adres" : "Default address"}</label></div>
     <button type="submit" class="button medium-button">${tr ? "Adres ekle" : "Add address"}</button>
   </form>
@@ -347,32 +391,41 @@ export function injectAccountDashboardIntoMirrorHtml(html: string, markup: strin
 export function buildAccountDashboardBridgeScript(): string {
   return `(function(){
   function qs(s,r){return (r||document).querySelector(s);}
+  function qsa(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s));}
   function tr(){return document.documentElement.lang&&document.documentElement.lang.indexOf("tr")===0;}
   function field(form,name){var el=form.querySelector('[name="'+name+'"]');return el?String(el.value||"").trim():"";}
   function chk(form,name){var el=form.querySelector('[name="'+name+'"]');return !!(el&&el.checked);}
   function msg(el,text,ok){if(!el)return;el.hidden=!text;el.textContent=text||"";el.style.color=ok?"#166534":"#b91c1c";}
   function welcomeName(first,last){return [first,last].filter(Boolean).join(" ").trim();}
   function setWelcome(name){var w=qs("#kn-account-welcome");if(!w||!name)return;w.innerHTML=(tr()?"Hoş geldiniz, ":"Welcome, ")+"<strong>"+name.replace(/&/g,"&amp;").replace(/</g,"&lt;")+"</strong>";}
+  function resetNewAddressForm(form){if(!form)return;form.reset();var cb=form.querySelector('[name="isDefault"]');if(cb)cb.checked=false;}
+  function hideAllAddrEditForms(except){qsa("[data-kn-addr-edit-form]").forEach(function(f){if(f!==except)f.hidden=true;});}
+  function reloadDashboard(){try{var u=new URL(window.location.href);u.searchParams.set("_kn",String(Date.now()));window.location.replace(u.toString());}catch(e){window.location.reload();}}
   async function post(url,body){var r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:JSON.stringify(body||{})});var j={};try{j=await r.json();}catch(e){}return {ok:r.ok,json:j};}
   async function patch(url,body){var r=await fetch(url,{method:"PATCH",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:JSON.stringify(body||{})});var j={};try{j=await r.json();}catch(e){}return {ok:r.ok,json:j};}
   function addrBody(form){return {label:field(form,"label"),city:field(form,"city"),district:field(form,"district"),line1:field(form,"line1"),postalCode:field(form,"postalCode"),isDefault:chk(form,"isDefault")};}
-  var pf=qs("[data-kn-profile-form]");if(pf){pf.addEventListener("submit",async function(e){e.preventDefault();var m=qs("[data-kn-profile-msg]",pf);var fn=field(pf,"firstName"),ln=field(pf,"lastName");var r=await patch("/api/account/profile",{firstName:fn,lastName:ln,phone:field(pf,"phone")});msg(m,r.ok?(tr()?"Kaydedildi":"Saved"):(r.json.error||(tr()?"Hata":"Error")),r.ok);if(r.ok){var n=welcomeName(fn,ln);if(n)setWelcome(n);}});}
-  var af=qs("[data-kn-address-form]");if(af){af.addEventListener("submit",async function(e){e.preventDefault();var r=await post("/api/account/addresses",addrBody(af));if(r.ok)(window.top||window).location.reload();else alert(r.json.error||(tr()?"Adres eklenemedi":"Could not add address"));});}
-  document.querySelectorAll("[data-kn-addr-edit-form]").forEach(function(form){
-    form.addEventListener("submit",async function(e){e.preventDefault();var id=form.getAttribute("data-kn-addr-edit-form");var m=qs("[data-kn-addr-edit-msg]",form);var r=await patch("/api/account/addresses/"+id,addrBody(form));msg(m,r.ok?(tr()?"Kaydedildi":"Saved"):(r.json.error||(tr()?"Hata":"Error")),r.ok);if(r.ok)(window.top||window).location.reload();});
-  });
+  function bindDashboard(){
+    var pf=qs("[data-kn-profile-form]");if(pf&&!pf.dataset.knBound){pf.dataset.knBound="1";pf.addEventListener("submit",async function(e){e.preventDefault();var m=qs("[data-kn-profile-msg]",pf);var fn=field(pf,"firstName"),ln=field(pf,"lastName");var r=await patch("/api/account/profile",{firstName:fn,lastName:ln,phone:field(pf,"phone")});msg(m,r.ok?(tr()?"Kaydedildi":"Saved"):(r.json.error||(tr()?"Hata":"Error")),r.ok);if(r.ok){var n=welcomeName(fn,ln);if(n)setWelcome(n);}});}
+    var af=qs("[data-kn-address-form]");if(af&&!af.dataset.knBound){af.dataset.knBound="1";af.addEventListener("submit",async function(e){e.preventDefault();var fm=qs("[data-kn-address-form-msg]",af);var btn=af.querySelector('button[type="submit"]');if(btn)btn.disabled=true;var r=await post("/api/account/addresses",addrBody(af));if(btn)btn.disabled=false;if(r.ok){resetNewAddressForm(af);msg(fm,tr()?"Adres eklendi":"Address added",true);reloadDashboard();}else{msg(fm,r.json.error||(tr()?"Adres eklenemedi":"Could not add address"),false);}});
+    qsa("[data-kn-addr-edit-form]").forEach(function(form){
+      if(form.dataset.knBound)return;form.dataset.knBound="1";
+      form.addEventListener("submit",async function(e){e.preventDefault();var id=form.getAttribute("data-kn-addr-edit-form");var m=qs("[data-kn-addr-edit-msg]",form);var btn=form.querySelector('button[type="submit"]');if(btn)btn.disabled=true;var r=await patch("/api/account/addresses/"+id,addrBody(form));if(btn)btn.disabled=false;msg(m,r.ok?(tr()?"Kaydedildi":"Saved"):(r.json.error||(tr()?"Hata":"Error")),r.ok);if(r.ok)reloadDashboard();});
+    });
+    var w=qs("#kn-account-welcome");var wi=qs("#kn-account-welcome-inline");if(w&&wi)w.innerHTML=wi.innerHTML;
+    fetch("/api/account/profile",{credentials:"same-origin"}).then(function(r){return r.json();}).then(function(d){var p=d&&d.profile;if(!p)return;var n=welcomeName(p.firstName||"",p.lastName||"");if(n)setWelcome(n);}).catch(function(){});
+  }
+  if(!document.documentElement.dataset.knAddrClickBound){document.documentElement.dataset.knAddrClickBound="1";
   document.addEventListener("click",async function(e){
     var t=e.target;if(!t||!t.closest)return;
-    var lo=t.closest("[data-kn-logout]");if(lo){e.preventDefault();await post("/api/account/logout",{});(window.top||window).location.href="/";}
-    var edit=t.closest("[data-kn-addr-edit]");if(edit){e.preventDefault();var card=edit.closest("[data-address-id]");var form=card&&card.querySelector("[data-kn-addr-edit-form]");if(form)form.hidden=false;return;}
+    var lo=t.closest("[data-kn-logout]");if(lo){e.preventDefault();await post("/api/account/logout",{});try{window.top.location.href="/";}catch(err){window.location.href="/";}return;}
+    var edit=t.closest("[data-kn-addr-edit]");if(edit){e.preventDefault();var card=edit.closest("[data-address-id]");var form=card&&card.querySelector("[data-kn-addr-edit-form]");if(form){hideAllAddrEditForms(form);form.hidden=false;form.scrollIntoView({behavior:"smooth",block:"nearest"});}return;}
     var cancel=t.closest("[data-kn-addr-cancel]");if(cancel){e.preventDefault();var form=cancel.closest("[data-kn-addr-edit-form]");if(form)form.hidden=true;return;}
-    var def=t.closest("[data-kn-addr-default]");if(def){e.preventDefault();await patch("/api/account/addresses/"+def.getAttribute("data-kn-addr-default"),{isDefault:true});(window.top||window).location.reload();}
-    var del=t.closest("[data-kn-addr-delete]");if(del){e.preventDefault();if(!confirm(tr()?"Bu adresi silmek istiyor musunuz?":"Delete this address?"))return;var res=await fetch("/api/account/addresses/"+del.getAttribute("data-kn-addr-delete"),{method:"DELETE",credentials:"same-origin"});if(!res.ok){var j={};try{j=await res.json();}catch(err){}alert(j.error||(tr()?"Silinemedi":"Could not delete"));return;}(window.top||window).location.reload();}
-    var oc=t.closest("[data-kn-order-cancel]");if(oc){e.preventDefault();var reason=prompt(tr()?"İptal nedeni (isteğe bağlı):":"Cancel reason (optional):")||"";var r=await post("/api/account/orders/"+encodeURIComponent(oc.getAttribute("data-kn-order-cancel"))+"/request",{type:"cancel",reason:reason});alert(r.json.message||r.json.error||"");if(r.ok)(window.top||window).location.reload();}
-    var orf=t.closest("[data-kn-order-refund]");if(orf){e.preventDefault();var reason2=prompt(tr()?"İade nedeni (isteğe bağlı):":"Refund reason (optional):")||"";var r2=await post("/api/account/orders/"+encodeURIComponent(orf.getAttribute("data-kn-order-refund"))+"/request",{type:"refund",reason:reason2});alert(r2.json.message||r2.json.error||"");if(r2.ok)(window.top||window).location.reload();}
-  });
-  var w=qs("#kn-account-welcome");var wi=qs("#kn-account-welcome-inline");if(w&&wi)w.innerHTML=wi.innerHTML;
-  fetch("/api/account/profile",{credentials:"same-origin"}).then(function(r){return r.json();}).then(function(d){var p=d&&d.profile;if(!p)return;var n=welcomeName(p.firstName||"",p.lastName||"");if(n)setWelcome(n);}).catch(function(){});
+    var def=t.closest("[data-kn-addr-default]");if(def){e.preventDefault();var r=await patch("/api/account/addresses/"+def.getAttribute("data-kn-addr-default"),{isDefault:true});if(r.ok)reloadDashboard();else alert(r.json.error||(tr()?"Hata":"Error"));return;}
+    var del=t.closest("[data-kn-addr-delete]");if(del){e.preventDefault();if(!confirm(tr()?"Bu adresi silmek istiyor musunuz?":"Delete this address?"))return;var res=await fetch("/api/account/addresses/"+del.getAttribute("data-kn-addr-delete"),{method:"DELETE",credentials:"same-origin"});if(!res.ok){var j={};try{j=await res.json();}catch(err){}alert(j.error||(tr()?"Silinemedi":"Could not delete"));return;}reloadDashboard();return;}
+    var oc=t.closest("[data-kn-order-cancel]");if(oc){e.preventDefault();var reason=prompt(tr()?"İptal nedeni (isteğe bağlı):":"Cancel reason (optional):")||"";var r=await post("/api/account/orders/"+encodeURIComponent(oc.getAttribute("data-kn-order-cancel"))+"/request",{type:"cancel",reason:reason});alert(r.json.message||r.json.error||"");if(r.ok)reloadDashboard();return;}
+    var orf=t.closest("[data-kn-order-refund]");if(orf){e.preventDefault();var reason2=prompt(tr()?"İade nedeni (isteğe bağlı):":"Refund reason (optional):")||"";var r2=await post("/api/account/orders/"+encodeURIComponent(orf.getAttribute("data-kn-order-refund"))+"/request",{type:"refund",reason:reason2});alert(r2.json.message||r2.json.error||"");if(r2.ok)reloadDashboard();return;}
+  },true);}
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",bindDashboard);else bindDashboard();
 })();`;
 }
 
