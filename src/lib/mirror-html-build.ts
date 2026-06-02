@@ -5,7 +5,7 @@ import { STORE_PUBLIC_REVALIDATE_SEC, storeMirrorTag } from "@/lib/cache/store-c
 import type { MirrorHtmlBuildParams } from "@/lib/mirror-html-processor";
 import { buildMirrorHtmlCore } from "@/lib/mirror-html-processor";
 import { readPrebuiltMirrorHtml } from "@/lib/mirror-prebuilt";
-import { isMirrorDevLiveRebuild, preferPrebuiltMirrorHtml } from "@/lib/mirror-prebuilt-policy";
+import { isMirrorDevLiveRebuild, preferPrebuiltMirrorHtml } from "@/lib/mirror-prebuilt";
 import type { SiteSettings } from "@/lib/site-settings";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import { productSlugFromMirrorPath } from "@/lib/mirror-html-processor";

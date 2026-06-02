@@ -5,7 +5,7 @@ import {
   prebuiltMirrorPublicUrl,
   resolveStoreMirrorIframeSrc,
 } from "@/lib/mirror-prebuilt";
-import { preferPrebuiltMirrorHtml } from "@/lib/mirror-prebuilt-policy";
+import { preferPrebuiltMirrorHtml } from "@/lib/mirror-prebuilt";
 import { toBrandedMirrorSrc } from "@/lib/mirror-iframe-src";
 import type { ShopLocale } from "@/lib/i18n/locale";
 
