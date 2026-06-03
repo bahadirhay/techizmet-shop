@@ -1,4 +1,10 @@
-import { isCardPaymentEnabled, type SiteSettings } from "@/lib/site-settings";
+import type { SiteSettings } from "@/lib/site-settings";
+
+/** İstemci güvenli — paytr.ts (node:crypto) kullanılmaz */
+function isPaytrConfigured(settings: SiteSettings): boolean {
+  const p = settings.payment?.paytr;
+  return Boolean(p?.merchantId?.trim() && p?.merchantKey?.trim() && p?.merchantSalt?.trim());
+}
 
 export type CheckoutPaymentFlags = {
   codEnabled: boolean;
@@ -14,7 +20,7 @@ export function getCheckoutPaymentFlags(settings: SiteSettings): CheckoutPayment
   return {
     codEnabled: settings.payment?.codEnabled === true,
     bankTransferEnabled: settings.payment?.bankTransferEnabled === true,
-    cardEnabled: isCardPaymentEnabled(settings),
+    cardEnabled: isPaytrConfigured(settings),
     bankAccounts: settings.payment?.bankAccounts ?? [],
   };
 }

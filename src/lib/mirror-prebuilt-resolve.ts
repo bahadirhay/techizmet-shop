@@ -1,14 +1,20 @@
-/** Iframe src — prebuild ve sunucu güvenli (server-only paketi yok) */
+/** Iframe src — prebuild ve sunucu; node:fs yok (istemci paketine karışmaz) */
 
 import {
   mirrorVitrinApiSrc,
   prebuiltMirrorPublicUrl,
+  rawMirrorPublicUrl,
 } from "@/lib/mirror-iframe-src";
 import { hasPrebuiltMirrorHtml, isMirrorDevLiveRebuild } from "@/lib/mirror-prebuilt-io";
 
-/** Hesap / sepet / ödeme — oturuma göre API enjeksiyonu gerekir */
+/** Hesap / sepet — oturuma göre API enjeksiyonu gerekir */
 function needsLiveMirrorApi(path: string): boolean {
-  return /\/mirror\/(?:account|cart|checkout)\//i.test(path);
+  return /\/mirror\/(?:account|cart)\//i.test(path);
+}
+
+/** Statik public/theme HTML — generate script ile her zaman üretilir */
+function isFastStaticMirrorShell(path: string): boolean {
+  return /\/mirror\/(?:checkout\/index(?:-tr)?|orders\/track(?:-tr)?)\.html$/i.test(path);
 }
 
 export function resolveStoreMirrorIframeSrc(
@@ -20,6 +26,10 @@ export function resolveStoreMirrorIframeSrc(
 
   if (needsLiveMirrorApi(path)) {
     return mirrorVitrinApiSrc(path, pageKey, extra);
+  }
+
+  if (isFastStaticMirrorShell(path)) {
+    return rawMirrorPublicUrl(path);
   }
 
   if (process.env.NODE_ENV === "production") {

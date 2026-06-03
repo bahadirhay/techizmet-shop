@@ -2149,6 +2149,11 @@ first.parentNode.insertBefore(script, first);
 .localization-form-popup{display:none!important}
 .side-drawer.show{display:flex!important;pointer-events:all!important}
 </style>
+<style id="kn-checkout-mirror-css">
+.kn-checkout-embed-wrap { width: 100%; max-width: 100%; }
+.kn-checkout-embed { display: block; width: 100%; min-height: min(720px, 85vh); border: 0; background: transparent; overflow: hidden; }
+</style>
+<link href="/theme/techizmet-shop/kn-checkout-embed.css?v=4" rel="stylesheet" type="text/css" media="all" />
 </head>
 
   <body class="king" id="king-body">
@@ -5630,7 +5635,7 @@ Instead of masking imperfections, it focuses on nurturing and highlighting your 
   });
 })();
 </script>
-</body>
+<script id="kn-checkout-embed-bridge">(function(){var iframe=document.getElementById("kn-checkout-embed");if(!iframe)return;function fit(){var top=iframe.getBoundingClientRect().top;var h=Math.max(520,window.innerHeight-top-12);iframe.style.height=Math.ceil(h)+"px";}fit();window.addEventListener("resize",fit);iframe.addEventListener("load",fit);})();</script></body>
 
 <!-- Mirrored from theking-noor.myshopify.com/en-us/pages/about by HTTrack Website Copier/3.x [XR&CO'2014], Thu, 21 May 2026 20:55:05 GMT -->
 </html>

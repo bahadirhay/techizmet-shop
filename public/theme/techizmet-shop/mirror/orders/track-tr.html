@@ -13,7 +13,7 @@
         rel="preconnect"
         href="https://fonts.shopifycdn.com/"
         crossorigin
-      ><title>Hesap oluştur</title>
+      ><title>Sipariş takip</title>
 
     
 
@@ -2149,6 +2149,11 @@ first.parentNode.insertBefore(script, first);
 .localization-form-popup{display:none!important}
 .side-drawer.show{display:flex!important;pointer-events:all!important}
 </style>
+<style id="kn-order-track-mirror-css">
+.kn-order-track-embed-wrap { width: 100%; max-width: 100%; }
+.kn-order-track-embed { display: block; width: 100%; min-height: min(520px, 75vh); border: 0; background: transparent; overflow: hidden; }
+</style>
+<link href="/theme/techizmet-shop/kn-order-track-embed.css?v=1" rel="stylesheet" type="text/css" media="all" />
 </head>
 
   <body class="king" id="king-body">
@@ -4421,10 +4426,18 @@ customElements.define('quick-short-menu', QuickShortMenu);
 <!-- END sections: header-group -->
       <div class="pinned-content">
         <main id="MainContent" class="content-for-layout focus-none" role="main" tabindex="-1">
-<section class="shopify-section checkout-success-page">
+<section class="shopify-section section-order-track order-track-page">
   <div class="section-wrapper section-spacing scheme-primary section-solid">
     <div class="container-narrow">
-      <div id="kn-page-root"></div>
+      <div class="kn-order-track-embed-wrap">
+        <iframe
+          id="kn-order-track-embed"
+          class="kn-order-track-embed"
+          src="/orders/track/embed"
+          title="Sipariş takip"
+          loading="eager"
+        ></iframe>
+      </div>
     </div>
   </div>
 </section>
@@ -5622,7 +5635,7 @@ Instead of masking imperfections, it focuses on nurturing and highlighting your 
   });
 })();
 </script>
-</body>
+<script id="kn-order-track-embed-bridge">(function(){var iframe=document.getElementById("kn-order-track-embed");if(!iframe)return;function fit(){var top=iframe.getBoundingClientRect().top;var h=Math.max(420,window.innerHeight-top-12);iframe.style.height=Math.ceil(h)+"px";}fit();window.addEventListener("resize",fit);iframe.addEventListener("load",fit);})();</script></body>
 
 <!-- Mirrored from theking-noor.myshopify.com/en-us/pages/about by HTTrack Website Copier/3.x [XR&CO'2014], Thu, 21 May 2026 20:55:05 GMT -->
 </html>

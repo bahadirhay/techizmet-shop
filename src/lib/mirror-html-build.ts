@@ -40,6 +40,7 @@ export function isMirrorPathUncacheable(normalized: string, blogSlug?: string) {
   if (blogSlug?.trim()) return true;
   if (normalized.includes("mirror/cart/")) return true;
   if (normalized.includes("mirror/checkout/")) return true;
+  if (normalized.includes("mirror/orders/")) return true;
   if (normalized.includes("mirror/account/")) return true;
   return false;
 }

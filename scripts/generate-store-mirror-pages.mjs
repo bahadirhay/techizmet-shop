@@ -30,6 +30,30 @@ function buildFromShell(shellPath, mainBlock, title) {
   return out;
 }
 
+function injectCheckoutMirrorAssets(html) {
+  let out = html;
+  const css = `<style id="kn-checkout-mirror-css">
+.kn-checkout-embed-wrap { width: 100%; max-width: 100%; }
+.kn-checkout-embed { display: block; width: 100%; min-height: min(720px, 85vh); border: 0; background: transparent; overflow: hidden; }
+</style>`;
+  const bridge = `<script id="kn-checkout-embed-bridge">(function(){var iframe=document.getElementById("kn-checkout-embed");if(!iframe)return;function fit(){var top=iframe.getBoundingClientRect().top;var h=Math.max(520,window.innerHeight-top-12);iframe.style.height=Math.ceil(h)+"px";}fit();window.addEventListener("resize",fit);iframe.addEventListener("load",fit);})();</script>`;
+  if (!out.includes('id="kn-checkout-mirror-css"')) out = out.replace(/<\/head>/i, `${css}\n<link href="/theme/techizmet-shop/kn-checkout-embed.css?v=4" rel="stylesheet" type="text/css" media="all" />\n</head>`);
+  if (!out.includes('id="kn-checkout-embed-bridge"')) out = out.replace(/<\/body>/i, `${bridge}</body>`);
+  return out;
+}
+
+function injectOrderTrackMirrorAssets(html) {
+  let out = html;
+  const css = `<style id="kn-order-track-mirror-css">
+.kn-order-track-embed-wrap { width: 100%; max-width: 100%; }
+.kn-order-track-embed { display: block; width: 100%; min-height: min(520px, 75vh); border: 0; background: transparent; overflow: hidden; }
+</style>`;
+  const bridge = `<script id="kn-order-track-embed-bridge">(function(){var iframe=document.getElementById("kn-order-track-embed");if(!iframe)return;function fit(){var top=iframe.getBoundingClientRect().top;var h=Math.max(420,window.innerHeight-top-12);iframe.style.height=Math.ceil(h)+"px";}fit();window.addEventListener("resize",fit);iframe.addEventListener("load",fit);})();</script>`;
+  if (!out.includes('id="kn-order-track-mirror-css"')) out = out.replace(/<\/head>/i, `${css}\n<link href="/theme/techizmet-shop/kn-order-track-embed.css?v=1" rel="stylesheet" type="text/css" media="all" />\n</head>`);
+  if (!out.includes('id="kn-order-track-embed-bridge"')) out = out.replace(/<\/body>/i, `${bridge}</body>`);
+  return out;
+}
+
 const accountMainTr = `<main id="MainContent" class="content-for-layout focus-none" role="main" tabindex="-1">
 <section class="shopify-section page-banner">
 <div class="section-wrapper section-spacing scheme-primary section-solid">
@@ -114,6 +138,26 @@ const checkoutMainTr = `<main id="MainContent" class="content-for-layout focus-n
 
 const checkoutMainEn = checkoutMainTr.replace('title="Ödeme"', 'title="Checkout"');
 
+const orderTrackMainTr = `<main id="MainContent" class="content-for-layout focus-none" role="main" tabindex="-1">
+<section class="shopify-section section-order-track order-track-page">
+  <div class="section-wrapper section-spacing scheme-primary section-solid">
+    <div class="container-narrow">
+      <div class="kn-order-track-embed-wrap">
+        <iframe
+          id="kn-order-track-embed"
+          class="kn-order-track-embed"
+          src="/orders/track/embed"
+          title="Sipariş takip"
+          loading="eager"
+        ></iframe>
+      </div>
+    </div>
+  </div>
+</section>
+</main>`;
+
+const orderTrackMainEn = orderTrackMainTr.replace('title="Sipariş takip"', 'title="Track order"');
+
 const checkoutSuccessMainTr = `<main id="MainContent" class="content-for-layout focus-none" role="main" tabindex="-1">
 <section class="shopify-section checkout-success-page">
   <div class="section-wrapper section-spacing scheme-primary section-solid">
@@ -129,6 +173,7 @@ const checkoutSuccessMainEn = checkoutSuccessMainTr;
 mkdirSync(join(ROOT, "account"), { recursive: true });
 mkdirSync(join(ROOT, "cart"), { recursive: true });
 mkdirSync(join(ROOT, "checkout"), { recursive: true });
+mkdirSync(join(ROOT, "orders"), { recursive: true });
 
 writeFileSync(join(ROOT, "account", "index-tr.html"), buildFromShell(ABOUT_TR, accountMainTr, "Hesabım"), "utf8");
 writeFileSync(join(ROOT, "account", "index.html"), buildFromShell(ABOUT_EN, accountMainEn, "My account"), "utf8");
@@ -136,8 +181,26 @@ writeFileSync(join(ROOT, "account", "favorites-tr.html"), buildFromShell(ABOUT_T
 writeFileSync(join(ROOT, "account", "favorites.html"), buildFromShell(ABOUT_EN, favMainEn, "Favorites"), "utf8");
 writeFileSync(join(ROOT, "cart", "index-tr.html"), buildFromShell(ABOUT_TR, cartMainTr, "Sepetim"), "utf8");
 writeFileSync(join(ROOT, "cart", "index.html"), buildFromShell(ABOUT_EN, cartMainEn, "Cart"), "utf8");
-writeFileSync(join(ROOT, "checkout", "index-tr.html"), buildFromShell(ABOUT_TR, checkoutMainTr, "Ödeme"), "utf8");
-writeFileSync(join(ROOT, "checkout", "index.html"), buildFromShell(ABOUT_EN, checkoutMainEn, "Checkout"), "utf8");
+writeFileSync(
+  join(ROOT, "checkout", "index-tr.html"),
+  injectCheckoutMirrorAssets(buildFromShell(ABOUT_TR, checkoutMainTr, "Ödeme")),
+  "utf8",
+);
+writeFileSync(
+  join(ROOT, "checkout", "index.html"),
+  injectCheckoutMirrorAssets(buildFromShell(ABOUT_EN, checkoutMainEn, "Checkout")),
+  "utf8",
+);
+writeFileSync(
+  join(ROOT, "orders", "track-tr.html"),
+  injectOrderTrackMirrorAssets(buildFromShell(ABOUT_TR, orderTrackMainTr, "Sipariş takip")),
+  "utf8",
+);
+writeFileSync(
+  join(ROOT, "orders", "track.html"),
+  injectOrderTrackMirrorAssets(buildFromShell(ABOUT_EN, orderTrackMainEn, "Track order")),
+  "utf8",
+);
 writeFileSync(
   join(ROOT, "checkout", "success-tr.html"),
   buildFromShell(ABOUT_TR, checkoutSuccessMainTr, "Siparişiniz alındı"),
@@ -180,5 +243,5 @@ writeFileSync(
 );
 
 console.log(
-  "Generated account/, favorites, cart/, checkout/ (+ success, login, register, forgot-password) mirror pages",
+  "Generated account/, favorites, cart/, checkout/, orders/ (+ success, login, register, forgot-password) mirror pages",
 );

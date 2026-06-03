@@ -9,6 +9,7 @@ import { loadMirrorFavoritesPayload } from "@/lib/mirror-favorites-page-server";
 import { applyCartPageToMirrorHtml } from "@/lib/mirror-cart-page";
 import { loadMirrorCartPagePayload } from "@/lib/mirror-cart-page-server";
 import { applyCheckoutPageToMirrorHtml } from "@/lib/mirror-checkout-page";
+import { applyOrderTrackPageToMirrorHtml } from "@/lib/mirror-order-track-page";
 import { applyAccountAuthToMirrorHtml } from "@/lib/mirror-account-auth-page";
 import {
   applyCheckoutSuccessToMirrorHtml,
@@ -86,6 +87,11 @@ export async function GET(req: Request) {
       loggedIn: url.searchParams.get("loggedIn") === "1",
     };
     localized = applyCheckoutSuccessToMirrorHtml(localized, successPayload);
+  } else if (normalized.includes("mirror/orders/")) {
+    localized = applyOrderTrackPageToMirrorHtml(
+      localized,
+      url.searchParams.get("order")?.trim() || undefined,
+    );
   } else if (normalized.includes("mirror/checkout/")) {
     localized = applyCheckoutPageToMirrorHtml(localized);
   }

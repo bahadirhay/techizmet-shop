@@ -1,0 +1,135 @@
+/**
+ * Sipariş takip embed — iframe içi (hafif, vitrin değişkenleri)
+ */
+
+.kn-order-track-embed-root {
+  min-height: 100vh;
+  background: var(--body_background, #fff);
+  --kn-border: #e5e2dd;
+  --kn-muted: #6b6b6b;
+  --kn-brand: #1a1a1a;
+  --kn-surface: #f7f5f2;
+  --kn-radius: 8px;
+  --body_background: #ffffff;
+  --body_alternate_background: #f7f5f2;
+  --text_color: #1a1a1a;
+  padding: 24px 20px 48px;
+  box-sizing: border-box;
+}
+
+.kn-order-track-embed-root .kn-account {
+  max-width: 32rem;
+  margin: 0 auto;
+  padding: 0;
+  width: 100%;
+}
+
+.kn-order-track-embed-root .kn-account h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem;
+}
+
+.kn-order-track-embed-root .kn-account__lead {
+  color: var(--kn-muted);
+  font-size: 0.9375rem;
+  margin: 0 0 1.5rem;
+}
+
+.kn-order-track-embed-root .kn-account__form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.kn-order-track-embed-root .kn-account__form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.kn-order-track-embed-root .kn-account__form input {
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--kn-border);
+  border-radius: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+}
+
+.kn-order-track-embed-root .kn-form-error {
+  color: #b91c1c;
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.kn-order-track-embed-root .kn-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.625rem 1.25rem;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+}
+
+.kn-order-track-embed-root .kn-btn--primary {
+  background: var(--kn-brand);
+  color: #fff;
+}
+
+.kn-order-track-embed-root .kn-btn--outline {
+  background: transparent;
+  border: 1px solid var(--kn-brand);
+  color: var(--kn-brand);
+}
+
+.kn-order-track-embed-root .kn-order-track-result {
+  margin-top: 2rem;
+  padding: 1.25rem;
+  border: 1px solid var(--kn-border);
+  border-radius: var(--kn-radius);
+  background: var(--kn-surface);
+}
+
+.kn-order-track-embed-root .kn-order-track-meta {
+  display: grid;
+  gap: 0.5rem;
+  margin: 1rem 0;
+  font-size: 0.875rem;
+}
+
+.kn-order-track-embed-root .kn-order-track-meta div {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.kn-order-track-embed-root .kn-order-track-meta dt {
+  color: var(--kn-muted);
+  min-width: 5rem;
+}
+
+.kn-order-track-embed-root .kn-order-track-lines {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border-top: 1px solid var(--kn-border);
+}
+
+.kn-order-track-embed-root .kn-order-track-lines li {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--kn-border);
+  font-size: 0.875rem;
+}
+
+.kn-order-track-embed-root .kn-order-track-total {
+  margin-top: 1rem;
+  text-align: right;
+}
