@@ -27,7 +27,7 @@ export function StoreThemeStyles() {
         <link key={href} rel="stylesheet" href={href} />
       ))}
       <link rel="stylesheet" href="/theme/techizmet-shop/store-bridge.css" />
-      <link rel="stylesheet" href="/theme/techizmet-shop/store-ui-fixes.css?v=6" />
+      <link rel="stylesheet" href="/theme/techizmet-shop/store-ui-fixes.css?v=8" />
       <link rel="stylesheet" href="/theme/techizmet-shop/mirror-icons-fix.css?v=4" />
       <link rel="stylesheet" href="/theme/techizmet-shop/kn-checkout-embed.css?v=3" />
     </>

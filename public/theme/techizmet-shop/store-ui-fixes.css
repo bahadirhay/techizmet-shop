@@ -370,6 +370,99 @@ account-drawer.kn-account-is-logged-in .kn-account-logout {
   width: 9rem !important;
 }
 
+/* Mobil — header ikonları ekrana sığsın, hesap ikonu görünsün */
+@media (max-width: 991px) {
+  html,
+  body,
+  .body-main,
+  #MainContent {
+    overflow-x: clip !important;
+    max-width: 100% !important;
+  }
+
+  .container-fullwidth,
+  .header .container-fullwidth {
+    padding-left: max(10px, env(safe-area-inset-left, 0px)) !important;
+    padding-right: max(10px, env(safe-area-inset-right, 0px)) !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .header--wrapper {
+    grid-template-columns: auto minmax(0, 1fr) auto !important;
+    column-gap: 6px !important;
+    min-height: 52px !important;
+  }
+
+  .header--logo {
+    max-width: min(var(--logo_width, 130px), 36vw) !important;
+    margin: 4px 0 !important;
+    justify-self: center;
+  }
+
+  .header--logo-img,
+  .header--logo .transparent-logo-img {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  .header--right {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+  }
+
+  .header--icons-list {
+    gap: 0 !important;
+    flex-wrap: nowrap !important;
+    justify-content: flex-end !important;
+    max-width: 100% !important;
+  }
+
+  .header--icons-list > .header--icon-item {
+    padding: 0 1px !important;
+    flex: 0 0 auto !important;
+  }
+
+  /* Türkçe/English pill header'da taşır — dil mobil menüde */
+  .header--icons-list .kn-locale-icon-item {
+    display: none !important;
+  }
+
+  .header--icons-list .header--icon-link-text {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+  }
+
+  .header--icons-list .header--icon-item.account,
+  .header--icons-list .header--icon-item.cart,
+  .header--icons-list .header--icon-item.search {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  .section-announcement-bar,
+  .announcement-bar--main,
+  .announcement-bar--wrapper,
+  .announcement-bar--middle,
+  .announcement-bar--slide-outer {
+    overflow: hidden !important;
+    max-width: 100% !important;
+  }
+
+  .announcement-bar--text {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    max-width: 100% !important;
+    padding-left: max(8px, env(safe-area-inset-left, 0px)) !important;
+    padding-right: max(8px, env(safe-area-inset-right, 0px)) !important;
+  }
+}
+
 /* Ürün galeri lightbox — sticky header ve mega menünün üstünde */
 .popup.product-media-popup,
 product-media-popup.popup {

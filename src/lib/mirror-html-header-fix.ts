@@ -25,6 +25,14 @@ const HEADER_ICONS_CSS = `
 }
 .header--icons-list .kn-locale-icon-item .kn-iframe-locale{font-size:10px}
 .header--icons-list .kn-locale-icon-item .kn-iframe-locale button{padding:4px 8px}
+@media (max-width:991px){
+.header--wrapper{grid-template-columns:auto minmax(0,1fr) auto!important;column-gap:6px!important}
+.header--logo{max-width:min(var(--logo_width,130px),36vw)!important;margin:4px 0!important}
+.header--icons-list .kn-locale-icon-item{display:none!important}
+.header--icons-list .header--icon-item{padding:0 1px!important}
+.header--icons-list .header--icon-link-text{width:36px!important;height:36px!important;min-width:36px!important}
+.header--icons-list .header--icon-item.account{display:flex!important;visibility:visible!important}
+}
 `;
 
 const HEADER_ICONS_STYLE = `<style id="kn-mirror-header-icons-style">${HEADER_ICONS_CSS}
