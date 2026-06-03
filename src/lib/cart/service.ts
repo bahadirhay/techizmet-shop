@@ -125,9 +125,11 @@ export async function buildCartView(
   const items: CartLineView[] = [];
   const promoLines: PromoLineMeta[] = [];
 
-  const settings = await getSiteSettings(sid);
+  const [settings, memberPricing] = await Promise.all([
+    getSiteSettings(sid),
+    getCustomerGroupPricing(customerId, sid),
+  ]);
   const thresholdMinor = settings.store?.freeShippingOverMinor ?? 0;
-  const memberPricing = await getCustomerGroupPricing(customerId, sid);
 
   const emptyCart: CartView = {
     items: [],

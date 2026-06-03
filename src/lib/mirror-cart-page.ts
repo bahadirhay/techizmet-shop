@@ -218,6 +218,17 @@ export function injectCartPageStyles(html: string): string {
   return out.replace(/<\/head>/i, `${CART_PAGE_CSS}</head>`);
 }
 
+/** Prebuild — oturumsuz kabuk; sepet /api/cart ile istemcide dolar */
+export function applyCartShellForPrebuild(html: string, locale: "tr" | "en"): string {
+  const tr = locale === "tr";
+  const loading = `<p class="kn-cart-loading" style="margin:0;padding:48px 16px;text-align:center;opacity:.85">${
+    tr ? "Sepet yükleniyor…" : "Loading cart…"
+  }</p>`;
+  let out = injectCartPageStyles(html);
+  out = injectMirrorPageRoot(out, "kn-page-root", loading);
+  return injectCartPageBridge(out, locale);
+}
+
 export function applyCartPageToMirrorHtml(html: string, payload: MirrorCartPagePayload): string {
   let out = injectCartPageStyles(html);
   out = injectMirrorPageRoot(out, "kn-page-root", buildCartPageMarkup(payload));
@@ -384,6 +395,20 @@ export function buildCartPageBridgeScript(locale: "tr" | "en"): string {
       }finally{setPageBusy(false);}
     }
   },true);
+  async function hydrateCartPage(){
+    var root=document.getElementById("kn-page-root");
+    if(!root)return;
+    try{
+      var res=await fetch("/api/cart",{credentials:"same-origin"});
+      var j={};try{j=await res.json();}catch(e){}
+      if(res.ok&&j.cart)applyCartToPage(j.cart);
+    }catch(e){}
+  }
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded",hydrateCartPage);
+  }else{
+    hydrateCartPage();
+  }
 })();`;
 }
 

@@ -175,8 +175,7 @@ function buildCommerceScript(data: MirrorProductCommercePayload): string {
   }
   bindVariantUi();
   updatePrice();
-  async function openCart(){
-    if(window.__knRefreshCart)await window.__knRefreshCart();
+  function openDrawerUi(){
     if(window.__knOpenCart){window.__knOpenCart();return;}
     var drawer=document.querySelector('[data-drawer="cart-drawer"]');
     if(drawer){
@@ -188,6 +187,15 @@ function buildCommerceScript(data: MirrorProductCommercePayload): string {
       return;
     }
     (window.top||window).location.href='/cart';
+  }
+  async function openCart(prefetched){
+    openDrawerUi();
+    if(prefetched&&window.__knRenderCartDrawer){
+      window.__knCartCache=prefetched;
+      window.__knRenderCartDrawer(prefetched);
+      return;
+    }
+    if(window.__knRefreshCart)await window.__knRefreshCart();
   }
   async function addToCart(e){
     if(e){e.preventDefault();e.stopImmediatePropagation();}
@@ -204,8 +212,7 @@ function buildCommerceScript(data: MirrorProductCommercePayload): string {
       });
       var j=await res.json();
       if(!res.ok){alert(j.error||'Sepete eklenemedi');return;}
-      if(window.__knRefreshCart)await window.__knRefreshCart();
-      await openCart();
+      await openCart(j.cart);
     }catch(err){alert('Bağlantı hatası');}
   }
   qsa('[data-add-to-cart], button[name="add"]').forEach(function(btn){

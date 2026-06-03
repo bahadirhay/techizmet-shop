@@ -195,10 +195,13 @@ const CART_BRIDGE_SCRIPT = `<script id="kn-cart-bridge">(function(){
       patchQty(qb.getAttribute("data-product-id"),qb.getAttribute("data-variant-id"),next).then(renderCart).catch(function(){});
     }
   },true);
+  function isCartPage(){
+    return !!document.getElementById("kn-page-root")&&!!document.querySelector("[data-kn-cart-wrapper],[data-kn-cart-outer]");
+  }
   if(document.readyState==="loading"){
-    document.addEventListener("DOMContentLoaded",refreshCart);
+    document.addEventListener("DOMContentLoaded",function(){if(!isCartPage())refreshCart();});
   }else{
-    refreshCart();
+    if(!isCartPage())refreshCart();
   }
 })();</script>`;
 

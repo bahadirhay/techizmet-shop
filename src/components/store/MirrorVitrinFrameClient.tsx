@@ -89,6 +89,9 @@ export function MirrorVitrinFrameClient({
       : undefined;
 
   const overlaySig = JSON.stringify(pageConfig ?? null);
+  const isCartOrCheckoutShell =
+    pathname === "/cart" || pathname === "/checkout" || pathname.startsWith("/checkout/");
+
   const patchSig = JSON.stringify({
     overlaySig,
     collectionsFromAdmin,
@@ -100,6 +103,7 @@ export function MirrorVitrinFrameClient({
     locale,
     visualEditMode,
     src,
+    isCartOrCheckoutShell,
   });
 
   useMirrorLocaleMessage();
@@ -199,15 +203,16 @@ export function MirrorVitrinFrameClient({
       const hasWidgets = (config?.customBlocks?.length ?? 0) > 0;
       const mustApplyPageConfig = Boolean(pageConfig && hasMirrorPageEdits(pageConfig));
       const skipClientWork =
-        !mustApplyPageConfig &&
-        !hasWidgets &&
-        serverReady &&
-        doc.documentElement.getAttribute("data-kn-catalog-pruned") === "1" &&
-        collectionsOnServer &&
-        !visualEditMode &&
-        !collectionsFromAdmin?.length &&
-        !categoriesFromAdmin?.length &&
-        (!config || !hasMirrorPageEdits(config) || serverOverlay);
+        isCartOrCheckoutShell ||
+        (!mustApplyPageConfig &&
+          !hasWidgets &&
+          serverReady &&
+          doc.documentElement.getAttribute("data-kn-catalog-pruned") === "1" &&
+          collectionsOnServer &&
+          !visualEditMode &&
+          !collectionsFromAdmin?.length &&
+          !categoriesFromAdmin?.length &&
+          (!config || !hasMirrorPageEdits(config) || serverOverlay));
 
       applyMirrorAccountDrawerClient(doc, locale);
       if (pathname === "/account") {
@@ -354,7 +359,7 @@ export function MirrorVitrinFrameClient({
         ref={iframeRef}
         title={title}
         src={src}
-        loading="eager"
+        loading={isCartOrCheckoutShell ? "eager" : "lazy"}
         sandbox={visualEditMode ? "allow-same-origin allow-scripts" : undefined}
         className="mirror-home-frame"
         style={{

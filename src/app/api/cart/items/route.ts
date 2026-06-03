@@ -15,13 +15,15 @@ export async function POST(req: Request) {
   };
 
   const site = await getDefaultSite();
-  const resolved = await resolveAddToCartInput(site.id, body);
+  const [resolved, session] = await Promise.all([
+    resolveAddToCartInput(site.id, body),
+    getCartSession(),
+  ]);
   if (!resolved.ok) {
     return NextResponse.json({ error: resolved.error }, { status: resolved.status });
   }
 
   const { productId, variantId, qty } = resolved.data;
-  const session = await getCartSession();
   const next = await addToCart(
     { items: session.items, couponCode: session.couponCode },
     productId,

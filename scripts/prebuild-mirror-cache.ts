@@ -6,6 +6,7 @@ import "dotenv/config";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { listPublishedBlogPosts } from "../src/lib/blog/blog-posts-server";
+import { applyCartShellForPrebuild } from "../src/lib/mirror-cart-page";
 import { buildMirrorHtmlCore } from "../src/lib/mirror-html-processor";
 import {
   applyCollectionCatalogToMirrorHtml,
@@ -66,6 +67,31 @@ async function main() {
   }
 
   const written: string[] = [];
+
+  for (const locale of ["tr", "en"] as const) {
+    const cartRel = `theme/techizmet-shop/mirror/cart/index${locale === "tr" ? "-tr" : ""}.html`;
+    await prebuildOnce(cartRel, async () => {
+      const base = await buildMirrorHtmlCore({
+        normalized: cartRel,
+        locale,
+        siteId: site.id,
+        siteName: site.name,
+      });
+      return applyCartShellForPrebuild(base, locale);
+    });
+  }
+
+  for (const locale of ["tr", "en"] as const) {
+    const checkoutRel = `theme/techizmet-shop/mirror/checkout/index${locale === "tr" ? "-tr" : ""}.html`;
+    await prebuildOnce(checkoutRel, () =>
+      buildMirrorHtmlCore({
+        normalized: checkoutRel,
+        locale,
+        siteId: site.id,
+        siteName: site.name,
+      }),
+    );
+  }
 
   for (const page of VITRIN_PAGES) {
     for (const locale of ["tr", "en"] as const) {

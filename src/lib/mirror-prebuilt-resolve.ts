@@ -12,16 +12,17 @@ export function mirrorIframePrefersLiveApi(opts?: { hasCustomBlocks?: boolean })
   return Boolean(opts?.hasCustomBlocks);
 }
 
-/** Sepet + hesap auth/favoriler — oturuma göre API; hesap ana sayfa prebuilt + /api/account/panel */
+/** Hesap auth/favoriler — oturuma göre API; sepet artık prebuild + /api/cart hidrasyon */
 function needsLiveMirrorApi(path: string): boolean {
-  if (/\/mirror\/cart\//i.test(path)) return true;
   if (/\/mirror\/account\/(?:favorites|login|register|forgot-password)/i.test(path)) return true;
   return false;
 }
 
-/** Statik public/theme HTML — generate script ile her zaman üretilir */
+/** Statik / prebuild kabuk — sepet ve ödeme içerik API ile doldurulur */
 function isFastStaticMirrorShell(path: string): boolean {
-  return /\/mirror\/(?:checkout\/index(?:-tr)?|orders\/track(?:-tr)?)\.html$/i.test(path);
+  return /\/mirror\/(?:cart\/index(?:-tr)?|checkout\/index(?:-tr)?|orders\/track(?:-tr)?)\.html$/i.test(
+    path,
+  );
 }
 
 export function resolveStoreMirrorIframeSrc(
@@ -37,6 +38,10 @@ export function resolveStoreMirrorIframeSrc(
   }
 
   if (isFastStaticMirrorShell(path)) {
+    if (hasPrebuiltMirrorHtml(path)) return prebuiltMirrorPublicUrl(path);
+    if (/\/mirror\/cart\//i.test(path)) {
+      return mirrorVitrinApiSrc(path, pageKey, extra);
+    }
     return rawMirrorPublicUrl(path);
   }
 

@@ -61,8 +61,7 @@ export const MIRROR_LISTING_CART_BRIDGE_SCRIPT = `<script id="kn-listing-cart-br
     }
     return isListingCard(btn)||!!btn.closest("product-form-context, .product--card-form, .product-checkout-buttons");
   }
-  async function openCart(){
-    if(window.__knRefreshCart)try{await window.__knRefreshCart();}catch(e){}
+  function openDrawerUi(){
     if(window.__knOpenCart){window.__knOpenCart();return;}
     var drawer=document.querySelector('[data-drawer="cart-drawer"]');
     if(drawer){
@@ -72,6 +71,15 @@ export const MIRROR_LISTING_CART_BRIDGE_SCRIPT = `<script id="kn-listing-cart-br
       return;
     }
     try{(window.top||window).location.href="/cart";}catch(e){window.location.href="/cart";}
+  }
+  async function openCart(prefetched){
+    openDrawerUi();
+    if(prefetched&&window.__knRenderCartDrawer){
+      window.__knCartCache=prefetched;
+      window.__knRenderCartDrawer(prefetched);
+      return;
+    }
+    if(window.__knRefreshCart)try{await window.__knRefreshCart();}catch(e){}
   }
   async function addFromListing(btn){
     if(!shouldHandle(btn))return;
@@ -98,7 +106,7 @@ export const MIRROR_LISTING_CART_BRIDGE_SCRIPT = `<script id="kn-listing-cart-br
       });
       var j={};try{j=await res.json();}catch(e){}
       if(!res.ok){alert(j.error||(tr()?"Sepete eklenemedi":"Could not add to cart"));return;}
-      await openCart();
+      await openCart(j.cart);
     }catch(err){alert(tr()?"Bağlantı hatası":"Connection error");}
     finally{btn.disabled=false;}
   }
