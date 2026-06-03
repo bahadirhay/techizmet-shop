@@ -25,8 +25,7 @@ import { patchMirrorPerformance } from "@/lib/mirror-html-perf";
 import { patchMirrorProductPageHtml } from "@/lib/mirror-html-product-fix";
 import {
   patchMirrorFormAutocomplete,
-  rewriteShopifyLinksInMirrorHtml,
-  stripShopifyTrackingFromMirrorHtml,
+  sanitizeLegacyStoreMirrorHtml,
 } from "@/lib/mirror-html-shopify-strip";
 import { patchMirrorSwiperHtml } from "@/lib/mirror-html-swiper-patch";
 import { injectNavIntoMirrorHtml } from "@/lib/mirror-html-nav-inject";
@@ -91,8 +90,7 @@ export async function buildMirrorHtmlCore(params: MirrorHtmlBuildParams): Promis
   const settings = await getSiteSettingsUncached(siteId);
   const branding = getSiteBranding(settings);
 
-  html = stripShopifyTrackingFromMirrorHtml(html);
-  html = rewriteShopifyLinksInMirrorHtml(html);
+  html = sanitizeLegacyStoreMirrorHtml(html);
   html = patchMirrorPerformance(html);
   html = patchMirrorProductPageHtml(html);
   html = injectBrandingIntoMirrorHtml(fixMirrorCdnPathsInHtml(html), branding);

@@ -3,7 +3,7 @@
 export const MIRROR_ADMIN_PREVIEW_STYLE_ID = "kn-admin-preview-layout";
 
 export const MIRROR_ADMIN_PREVIEW_CSS = `
-html.kn-visual-edit-mode section.shopify-section.kn-section-focus {
+html.kn-visual-edit-mode section.kn-mirror-section.kn-section-focus {
   outline: 3px solid rgba(225, 29, 72, 0.55);
   outline-offset: -3px;
 }
@@ -22,7 +22,7 @@ export function scrollMirrorSectionIntoView(doc: Document, sectionKey: string) {
   const esc = sectionKey.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const el = doc.querySelector(`section[id$="__${esc}"]`);
   if (!el) return;
-  doc.querySelectorAll("section.shopify-section.kn-section-focus").forEach((s) => {
+  doc.querySelectorAll("section.kn-mirror-section.kn-section-focus").forEach((s) => {
     s.classList.remove("kn-section-focus");
   });
   el.classList.add("kn-section-focus");

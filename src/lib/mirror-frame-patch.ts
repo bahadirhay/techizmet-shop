@@ -17,6 +17,7 @@ import {
   openAccountDrawer,
   type AccountDrawerForm,
 } from "@/lib/mirror-account-drawer-client";
+import { KN_LEGACY_STUB_IDS } from "@/lib/mirror-html-shopify-strip";
 import { applyMirrorNavigation, rebindMirrorNavDropdown, type MirrorNavItem } from "@/lib/mirror-nav-overlay";
 
 export type MirrorFramePatchOpts = {
@@ -29,7 +30,7 @@ export type MirrorFramePatchOpts = {
 };
 
 function isServerProcessedMirror(doc: Document): boolean {
-  return !!doc.getElementById("kn-shopify-stub");
+  return KN_LEGACY_STUB_IDS.some((id) => !!doc.getElementById(id));
 }
 
 /** Sunucu HTML yeterliyse istemci yaması gerekmez */

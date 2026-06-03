@@ -39,7 +39,10 @@ export function serializeExploreLooks(looks: ProductExploreLook[]): string {
 
 /** Mirror PDP — collections_grid / discover-look bölümü */
 export function extractProductExploreLooks(html: string): ProductExploreLook[] {
-  const gridStart = html.indexOf('class="shopify-section section-collections-grid"');
+  const gridStart =
+    html.indexOf('class="kn-mirror-section section-collections-grid"') >= 0
+      ? html.indexOf('class="kn-mirror-section section-collections-grid"')
+      : html.indexOf('class="shopify-section section-collections-grid"');
   if (gridStart < 0) return [];
   const gridEnd = html.indexOf("</collection-product-grid>", gridStart);
   const block = gridEnd > gridStart ? html.slice(gridStart, gridEnd) : html.slice(gridStart);
@@ -89,7 +92,7 @@ export function applyExploreLooksOverlay(
   productsBySlug: Record<string, ExploreOverlayProduct>,
 ) {
   const section = doc.querySelector(
-    "#MainContent .shopify-section.section-collections-grid, #MainContent .section-collections-grid",
+    "#MainContent .kn-mirror-section.section-collections-grid, #MainContent .section-collections-grid",
   ) as HTMLElement | null;
 
   if (!looks.length) {

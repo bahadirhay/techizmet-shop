@@ -35,6 +35,8 @@
     "db:sync-home:mirror": "tsx scripts/sync-mirror-home-page.ts",
     "db:ensure-mirror": "node scripts/ensure-mirror-homepage.mjs",
     "theme:strip-scripts": "node scripts/strip-mirror-shopify-scripts.mjs",
+    "mirror:sanitize": "npx tsx scripts/sanitize-mirror-html.mjs",
+    "mirror:audit-shopify": "npx tsx scripts/audit-shopify-remnants.mjs",
     "db:sync-content": "node scripts/sync-product-content.mjs",
     "db:sync-content:all": "tsx scripts/sync-all-mirror-content.ts",
     "reset:admin": "tsx scripts/reset-admin.ts",

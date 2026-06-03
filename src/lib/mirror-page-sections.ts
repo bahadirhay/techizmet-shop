@@ -49,7 +49,7 @@ export function extractMirrorPageSections(html: string, pageKey: VitrinPageKey):
     mainStart >= 0 && mainEnd > mainStart ? html.slice(mainStart, mainEnd) : html;
 
   const re =
-    /id="shopify-section-template--[^"]+__([^"]+)"[^>]*class="shopify-section\s+([^"]+)"/g;
+    /id="kn-section-template--[^"]+__([^"]+)"[^>]*class="kn-mirror-section\s+([^"]+)"/g;
   const sections: MirrorPageSection[] = [];
   const seen = new Set<string>();
   let m: RegExpExecArray | null;
@@ -60,7 +60,7 @@ export function extractMirrorPageSections(html: string, pageKey: VitrinPageKey):
     const classAttr = m[2];
     const type =
       classAttr.match(/\bsection-([^\s]+)/)?.[1] ??
-      classAttr.split(/\s+/).find((c) => c !== "shopify-section") ??
+      classAttr.split(/\s+/).find((c) => c !== "kn-mirror-section") ??
       classAttr;
     const section: MirrorPageSection = { key, type, label: labelForType(type) };
     if (type === "media-grid") {

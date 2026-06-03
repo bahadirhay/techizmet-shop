@@ -179,7 +179,7 @@ export function stampMirrorEditableElements(doc: Document): number {
         n += 1;
         return;
       }
-      const section = el.closest("section.shopify-section");
+      const section = el.closest("section.kn-mirror-section");
       const sectionKey =
         section?.id?.match(/__([a-zA-Z0-9_]+)$/)?.[1] ??
         section?.id?.replace(/[^a-zA-Z0-9_]/g, "_").slice(-24) ??

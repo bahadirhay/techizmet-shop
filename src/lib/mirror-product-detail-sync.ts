@@ -101,10 +101,10 @@ function detectProductMediaSectionId(doc: Document): string | null {
   }
 
   const section = doc.querySelector(
-    '#MainContent .shopify-section.section-main-product, #MainContent [id^="shopify-section-template--"][id$="__main"]',
+    '#MainContent .kn-mirror-section.section-main-product, #MainContent [id^="kn-section-template--"][id$="__main"]',
   );
-  if (section?.id?.startsWith("shopify-section-")) {
-    return section.id.slice("shopify-section-".length);
+  if (section?.id?.startsWith("kn-section-")) {
+    return section.id.slice("kn-section-".length);
   }
 
   const legacyBtn = doc.querySelector('#MainContent media-zoom-button[data-section]');
@@ -371,7 +371,7 @@ function mainVariantScripts(product: VitrinProductDetail, optionName: string) {
         price: 0,
         weight: 0,
         compare_at_price: null,
-        inventory_management: "shopify",
+        inventory_management: null,
         barcode: "",
         requires_selling_plan: false,
         selling_plan_allocations: [],
@@ -387,7 +387,7 @@ function mainVariantScripts(product: VitrinProductDetail, optionName: string) {
     inventoriesJson: JSON.stringify(
       variants.map((variant) => ({
         id: variant.id,
-        inventory_management: "shopify",
+        inventory_management: null,
         inventory_policy: "deny",
         inventory_quantity: String(variant.stockQty),
       })),

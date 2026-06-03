@@ -258,7 +258,8 @@ function extractFieldsFromSectionBlock(sectionKey: string, block: string): Edita
 
 export function buildEditableCatalogFromHtml(html: string): Record<string, EditableFieldDef[]> {
   const catalog: Record<string, EditableFieldDef[]> = {};
-  const sectionRe = /id="shopify-section-template--[^"]+__([^"]+)"[^>]*class="shopify-section\s+([^"]+)"/g;
+  const sectionRe =
+    /id="kn-section-template--[^"]+__([^"]+)"[^>]*class="kn-mirror-section\s+([^"]+)"/g;
   let m: RegExpExecArray | null;
   while ((m = sectionRe.exec(html))) {
     const sectionKey = m[1];

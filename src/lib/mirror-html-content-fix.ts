@@ -1,7 +1,7 @@
 /** Mirror vitrin — boş sayfa / görünmeyen bölümler (hafif, reflow yok) */
 
 const VISIBLE_STYLE = `<style id="kn-mirror-visible-fallback">
-#MainContent .shopify-section,
+#MainContent .kn-mirror-section,
 #MainContent [data-saos],
 #MainContent .revealing-text--content,
 #MainContent .revealing-text--line {

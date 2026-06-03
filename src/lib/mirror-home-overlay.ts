@@ -156,7 +156,7 @@ function applyMirrorSectionLayout(doc: Document, config: MirrorPageConfig, local
   const main = doc.getElementById("MainContent");
   if (!main) return;
 
-  main.querySelectorAll("section.shopify-section").forEach((el) => {
+  main.querySelectorAll("section.kn-mirror-section").forEach((el) => {
     (el as HTMLElement).style.display = "";
   });
 

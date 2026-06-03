@@ -148,7 +148,7 @@ export function applyCustomBlocksInject(doc: Document, entries: MirrorCustomBloc
     }
 
     if (anchor === MIRROR_WIDGET_TOP) {
-      const firstSection = main.querySelector("section.shopify-section");
+      const firstSection = main.querySelector("section.kn-mirror-section");
       if (firstSection?.parentNode) {
         firstSection.parentNode.insertBefore(el, firstSection);
       } else {

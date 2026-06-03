@@ -10,7 +10,7 @@ const ABOUT_EN = join(ROOT, "pages", "about.html");
 const OUT_DIR = join(ROOT, "account");
 
 const MAIN_TR = `<main id="MainContent" class="content-for-layout focus-none" role="main" tabindex="-1">
-          <section class="shopify-section page-banner">
+          <section class="kn-mirror-section page-banner">
 <div class="section-wrapper section-spacing scheme-primary section-solid">
   <div class="container">
     <div class="section--header with--arrow text-center">
@@ -20,7 +20,7 @@ const MAIN_TR = `<main id="MainContent" class="content-for-layout focus-none" ro
   </div>
 </div>
 </section>
-<section class="shopify-section account-page">
+<section class="kn-mirror-section account-page">
   <div class="section-wrapper section-spacing scheme-primary">
     <div class="container container-narrow">
       <div class="main-account--content" id="kn-account-dashboard-root"></div>
@@ -30,7 +30,7 @@ const MAIN_TR = `<main id="MainContent" class="content-for-layout focus-none" ro
         </main>`;
 
 const MAIN_EN = `<main id="MainContent" class="content-for-layout focus-none" role="main" tabindex="-1">
-          <section class="shopify-section page-banner">
+          <section class="kn-mirror-section page-banner">
 <div class="section-wrapper section-spacing scheme-primary section-solid">
   <div class="container">
     <div class="section--header with--arrow text-center">
@@ -40,7 +40,7 @@ const MAIN_EN = `<main id="MainContent" class="content-for-layout focus-none" ro
   </div>
 </div>
 </section>
-<section class="shopify-section account-page">
+<section class="kn-mirror-section account-page">
   <div class="section-wrapper section-spacing scheme-primary">
     <div class="container container-narrow">
       <div class="main-account--content" id="kn-account-dashboard-root"></div>

@@ -9,8 +9,9 @@ let html = readFileSync(join(root, "public", rel), "utf8");
 const steps = [];
 
 async function run() {
-  const { stripShopifyTrackingFromMirrorHtml, rewriteShopifyLinksInMirrorHtml, patchMirrorFormAutocomplete } =
-    await import("../src/lib/mirror-html-shopify-strip.ts");
+  const { sanitizeLegacyStoreMirrorHtml, patchMirrorFormAutocomplete } = await import(
+    "../src/lib/mirror-html-shopify-strip.ts",
+  );
   const { localizeMirrorHtml } = await import("../src/lib/mirror-html-locale.ts");
   const { injectBrandingIntoMirrorHtml } = await import("../src/lib/mirror-html-branding.ts");
   const { fixMirrorCdnPathsInHtml } = await import("../src/lib/mirror-cdn-assets.ts");
@@ -24,8 +25,7 @@ async function run() {
   const branding = { logoUrl: "/x.png", logoUrlLight: "/x.png", faviconUrl: "/f.ico" };
 
   const pipeline = [
-    ["stripShopify", () => stripShopifyTrackingFromMirrorHtml(html)],
-    ["rewriteShopify", (h) => rewriteShopifyLinksInMirrorHtml(h)],
+    ["sanitizeLegacy", () => sanitizeLegacyStoreMirrorHtml(html)],
     ["cdn", (h) => fixMirrorCdnPathsInHtml(h)],
     ["brand", (h) => injectBrandingIntoMirrorHtml(h, branding)],
     ["locale", (h) => localizeMirrorHtml(h, rel, "tr")],

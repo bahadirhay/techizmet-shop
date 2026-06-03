@@ -55,7 +55,7 @@ function injectOrderTrackMirrorAssets(html) {
 }
 
 const accountMainTr = `<main id="MainContent" class="content-for-layout focus-none" role="main" tabindex="-1">
-<section class="shopify-section page-banner">
+<section class="kn-mirror-section page-banner">
 <div class="section-wrapper section-spacing scheme-primary section-solid">
   <div class="container">
     <div class="section--header with--arrow text-center">
@@ -65,7 +65,7 @@ const accountMainTr = `<main id="MainContent" class="content-for-layout focus-no
   </div>
 </div>
 </section>
-<section class="shopify-section account-page">
+<section class="kn-mirror-section account-page">
   <div class="section-wrapper section-spacing scheme-primary">
     <div class="container container-narrow">
       <div class="main-account--content" id="kn-account-dashboard-root"></div>
@@ -79,7 +79,7 @@ const accountMainEn = accountMainTr
   .replace('id="kn-account-welcome"', 'id="kn-account-welcome"');
 
 const favMainTr = `<main id="MainContent" class="content-for-layout focus-none" role="main" tabindex="-1">
-<section class="shopify-section page-banner">
+<section class="kn-mirror-section page-banner">
 <div class="section-wrapper section-spacing scheme-primary section-solid">
   <div class="container">
     <div class="section--header with--arrow text-center">
@@ -88,7 +88,7 @@ const favMainTr = `<main id="MainContent" class="content-for-layout focus-none" 
   </div>
 </div>
 </section>
-<section class="shopify-section account-page">
+<section class="kn-mirror-section account-page">
   <div class="section-wrapper section-spacing scheme-primary">
     <div class="container container-narrow">
       <div class="main-account--content" id="kn-page-root"></div>
@@ -100,7 +100,7 @@ const favMainTr = `<main id="MainContent" class="content-for-layout focus-none" 
 const favMainEn = favMainTr.replace("Favorilerim", "Favorites");
 
 const cartMainTr = `<main id="MainContent" class="content-for-layout focus-none" role="main" tabindex="-1">
-<section class="shopify-section section-main-cart cart-page">
+<section class="kn-mirror-section section-main-cart cart-page">
   <div class="section-wrapper section-spacing scheme-primary section-solid">
     <div class="container-narrow">
       <div class="main-cart--outer" data-kn-cart-outer>
@@ -119,7 +119,7 @@ const cartMainTr = `<main id="MainContent" class="content-for-layout focus-none"
 const cartMainEn = cartMainTr;
 
 const checkoutMainTr = `<main id="MainContent" class="content-for-layout focus-none" role="main" tabindex="-1">
-<section class="shopify-section section-checkout checkout-page">
+<section class="kn-mirror-section section-checkout checkout-page">
   <div class="section-wrapper section-spacing scheme-primary section-solid">
     <div class="container-narrow">
       <div class="kn-checkout-embed-wrap">
@@ -139,7 +139,7 @@ const checkoutMainTr = `<main id="MainContent" class="content-for-layout focus-n
 const checkoutMainEn = checkoutMainTr.replace('title="Ödeme"', 'title="Checkout"');
 
 const orderTrackMainTr = `<main id="MainContent" class="content-for-layout focus-none" role="main" tabindex="-1">
-<section class="shopify-section section-order-track order-track-page">
+<section class="kn-mirror-section section-order-track order-track-page">
   <div class="section-wrapper section-spacing scheme-primary section-solid">
     <div class="container-narrow">
       <div class="kn-order-track-embed-wrap">
@@ -159,7 +159,7 @@ const orderTrackMainTr = `<main id="MainContent" class="content-for-layout focus
 const orderTrackMainEn = orderTrackMainTr.replace('title="Sipariş takip"', 'title="Track order"');
 
 const checkoutSuccessMainTr = `<main id="MainContent" class="content-for-layout focus-none" role="main" tabindex="-1">
-<section class="shopify-section checkout-success-page">
+<section class="kn-mirror-section checkout-success-page">
   <div class="section-wrapper section-spacing scheme-primary section-solid">
     <div class="container-narrow">
       <div id="kn-page-root"></div>
