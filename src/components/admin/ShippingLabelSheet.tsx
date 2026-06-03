@@ -1,9 +1,9 @@
 "use client";
 
+import { ShippingLabelBarcode } from "@/components/admin/ShippingLabelBarcode";
 import {
   formatShipFromLines,
   formatShippingAddressLines,
-  paymentMethodShort,
   type ShipFromAddress,
   type ShippingLabelData,
 } from "@/lib/admin/shipping-label";
@@ -65,14 +65,11 @@ export function ShippingLabelSheet({
         </div>
         {label.trackingNumber ? (
           <div className="shipping-label__tracking">
-            <span>Takip no</span>
-            <strong>{label.trackingNumber}</strong>
+            <span className="shipping-label__tracking-label">Takip no</span>
+            <ShippingLabelBarcode value={label.trackingNumber} />
+            <strong className="shipping-label__tracking-value">{label.trackingNumber}</strong>
           </div>
         ) : null}
-        <div className="shipping-label__row">
-          <span>Ödeme</span>
-          <strong>{paymentMethodShort(label.paymentMethod)}</strong>
-        </div>
         <div className="shipping-label__row">
           <span>İçerik</span>
           <strong>

@@ -508,16 +508,40 @@
 
 .shipping-label__tracking {
   margin: 2mm 0;
-  padding: 2mm;
+  padding: 2.5mm 2mm;
   border: 1px solid #111;
   text-align: center;
 }
 
-.shipping-label__tracking strong {
+.shipping-label__tracking-label {
   display: block;
-  font-size: 13pt;
-  letter-spacing: 0.04em;
-  margin-top: 1mm;
+  font-size: 7pt;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #52525b;
+  margin-bottom: 1.5mm;
+}
+
+.shipping-label__barcode {
+  display: block;
+  width: 100%;
+  max-width: 88mm;
+  height: auto;
+  margin: 0 auto 1.5mm;
+}
+
+.shipping-label__barcode rect,
+.shipping-label__barcode path {
+  shape-rendering: crispEdges;
+}
+
+.shipping-label__tracking-value {
+  display: block;
+  font-size: 12pt;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
 }
 
 .shipping-label__items {
