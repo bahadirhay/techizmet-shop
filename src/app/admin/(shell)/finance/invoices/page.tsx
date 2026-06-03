@@ -47,8 +47,8 @@ export default async function FinanceInvoicesPage() {
   return (
     <div>
       <AdminPageHeader
-        breadcrumb={[{ label: "Ön muhasebe", href: "/admin/finance" }, { label: "Faturalar & onay" }]}
-        title="Faturalar & onay kuyruğu"
+        breadcrumb={[{ label: "Ön Muhasebe", href: "/admin/finance" }, { label: "Faturalar & Onay" }]}
+        title="Faturalar & Onay Kuyruğu"
         description="GİB veya manuel faturaları önce onaylayın, sonra muhasebe hareketine işlensin."
       />
       <FinanceInvoicesManager

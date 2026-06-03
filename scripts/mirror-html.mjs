@@ -71,6 +71,18 @@ const LOCALE_STYLE = `<style id="kn-mirror-locale-style">
 .header--icons-list>.header--icon-item{flex:0 0 auto}
 .header--icons-list .kn-locale-icon-item .kn-iframe-locale{font-size:10px}
 .header--icons-list .kn-locale-icon-item .kn-iframe-locale button{padding:4px 8px}
+@media (max-width:991px){
+.header--icons-list .kn-locale-icon-item{display:flex!important;align-items:center;margin-right:2px}
+.header--icons-list .kn-locale-icon-item .kn-iframe-locale{font-size:0;line-height:1;max-height:32px}
+.header--icons-list .kn-locale-icon-item .kn-iframe-locale button{
+  position:relative;width:30px;height:30px;min-width:30px;padding:0;
+  display:inline-flex;align-items:center;justify-content:center;
+  overflow:hidden;color:transparent;font-size:0;
+}
+.header--icons-list .kn-locale-icon-item .kn-iframe-locale button[data-locale="tr"]::before{content:"🇹🇷";font-size:15px;line-height:1}
+.header--icons-list .kn-locale-icon-item .kn-iframe-locale button[data-locale="en"]::before{content:"🇬🇧";font-size:15px;line-height:1}
+.header--icons-list .kn-locale-icon-item .kn-iframe-locale button.is-active{background:#111}
+}
 .header--right{overflow:visible;min-width:0}
 .header:not(.is-sticky).desktop-transparent:not(:hover) .header--icons-list .header--icon-link-text,
 .header:not(.is-sticky).mobile-transparent:not(:hover) .header--icons-list .header--icon-link-text{color:var(--header_icon_color,#111);background:rgba(255,255,255,.92);box-shadow:0 1px 6px rgba(0,0,0,.08)}
@@ -80,8 +92,8 @@ const LOCALE_STYLE = `<style id="kn-mirror-locale-style">
 </style>`;
 
 const LOCALE_MARKUP = `<div class="kn-iframe-locale localization-form" data-kn-locale-root role="group" aria-label="Dil">
-  <button type="button" data-locale="tr">Türkçe</button>
-  <button type="button" data-locale="en">English</button>
+  <button type="button" data-locale="tr" aria-label="Türkçe" title="Türkçe">Türkçe</button>
+  <button type="button" data-locale="en" aria-label="English" title="English">English</button>
 </div>`;
 
 const STORE_BRIDGE = `<script id="kn-store-bridge">
@@ -91,7 +103,7 @@ const STORE_BRIDGE = `<script id="kn-store-bridge">
     return (m && m[1]) || "en";
   }
   function localeMarkup() {
-    return '<div class="kn-iframe-locale localization-form" data-kn-locale-root role="group" aria-label="Dil"><button type="button" data-locale="tr">Türkçe</button><button type="button" data-locale="en">English</button></div>';
+    return '<div class="kn-iframe-locale localization-form" data-kn-locale-root role="group" aria-label="Dil"><button type="button" data-locale="tr" aria-label="Türkçe" title="Türkçe">Türkçe</button><button type="button" data-locale="en" aria-label="English" title="English">English</button></div>';
   }
   function relocateAccountDrawer() {
     var drawer = document.querySelector('account-drawer[data-drawer="account-drawer"]');

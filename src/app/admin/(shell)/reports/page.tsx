@@ -22,7 +22,7 @@ export default async function ReportsPage({
   return (
     <div>
       <AdminPageHeader
-        title="Raporlar & analitik"
+        title="Raporlar & Analitik"
         description="Satış, ürün performansı ve ödeme dağılımı — seçili dönem için bu mağazanın veritabanı kayıtları."
       />
       <ReportsView report={report} />

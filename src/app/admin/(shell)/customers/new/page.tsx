@@ -8,7 +8,7 @@ export default async function NewCustomerPage() {
     <div>
       <AdminPageHeader
         breadcrumb={[
-          { label: "Müşteriler & üyeler", href: "/admin/customers" },
+          { label: "Müşteriler & Üyeler", href: "/admin/customers" },
           { label: "Yeni kayıt" },
         ]}
         title="Müşteri / üye ekle"

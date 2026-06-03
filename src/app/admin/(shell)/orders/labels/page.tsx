@@ -19,7 +19,7 @@ export default async function ShippingLabelsPage({
     <div>
       <AdminPageHeader
         breadcrumb={[{ label: "Siparişler", href: "/admin/orders" }, { label: "Kargo etiketleri" }]}
-        title="Kargo etiketi bas"
+        title="Kargo Etiketi Yazdır"
         description="Siparişleri seçin, gönderici adresini kontrol edin ve termal veya A4 yazıcıdan etiket alın."
         actions={
           <Link href="/admin/orders" className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm hover:bg-zinc-50">

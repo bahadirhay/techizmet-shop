@@ -42,7 +42,7 @@ export function applyMirrorFramePatches(doc: Document, opts: MirrorFramePatchOpt
   const serverReady = isMirrorServerReady(doc);
   installMirrorLayoutQuiet(doc);
   ensureMirrorLayoutStyles(doc);
-  applyMirrorAccountDrawerClient(doc);
+  applyMirrorAccountDrawerClient(doc, opts.locale);
   applyMirrorAccountDashboardClient(doc);
   if (opts.accountDrawerForm) openAccountDrawer(doc, opts.accountDrawerForm);
 

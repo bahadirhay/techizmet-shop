@@ -57,28 +57,28 @@ export async function loadOperationsChecklist(siteId: string): Promise<Operation
   const items: OperationsChecklistItem[] = [
     {
       id: "carriers",
-      label: "Kargo firması tanımlı",
+      label: "Kargo Firması Tanımlı",
       description: "Sipariş detayında firma seçebilmek için en az bir aktif kargo firması ekleyin.",
       done: carrierCount > 0,
       href: "/admin/shipping",
     },
     {
       id: "shipFrom",
-      label: "Gönderici adresi kayıtlı",
+      label: "Gönderici Adresi Kayıtlı",
       description: "Kargo etiketlerinde görünecek depo / mağaza adresi.",
       done: shipFromComplete(settings),
       href: "/admin/settings/store#kn-ship-from",
     },
     {
       id: "efaturaSeller",
-      label: "Fatura satıcı bilgileri",
+      label: "Fatura Satıcı Bilgileri",
       description: "Unvan, VKN ve vergi dairesi e-Arşiv faturada kullanılır.",
       done: efaturaSellerComplete(settings),
       href: "/admin/settings/efatura",
     },
     {
       id: "efaturaGib",
-      label: "GİB bağlantısı hazır",
+      label: "GİB Bağlantısı Hazır",
       description: "e-Arşiv kesimi için kullanıcı kodu ve parola (veya GIB_PASSWORD ortam değişkeni).",
       done: efaturaConfig.enabled && efaturaReady(efaturaConfig),
       href: "/admin/settings/efatura",
@@ -87,10 +87,10 @@ export async function loadOperationsChecklist(siteId: string): Promise<Operation
 
   const completedCount = items.filter((i) => i.done).length;
   const quickLinks = [
-    { href: "/admin/orders?status=pending", label: "Onay bekleyen", count: pendingCount || undefined },
+    { href: "/admin/orders?status=pending", label: "Onay Bekleyen", count: pendingCount || undefined },
     { href: "/admin/orders?status=preparing", label: "Hazırlanan", count: preparingCount || undefined },
-    { href: "/admin/orders/labels", label: "Kargo etiketi bas" },
-    { href: "/admin/orders?invoice=pending", label: "Fatura bekleyen", count: invoicePendingCount || undefined },
+    { href: "/admin/orders/labels", label: "Kargo Etiketi Yazdır" },
+    { href: "/admin/orders?invoice=pending", label: "Fatura Bekleyen", count: invoicePendingCount || undefined },
   ];
 
   return {

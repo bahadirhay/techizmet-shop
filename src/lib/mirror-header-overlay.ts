@@ -19,6 +19,18 @@ const CSS = `
 }
 .header--icons-list .kn-locale-icon-item .kn-iframe-locale{font-size:10px}
 .header--icons-list .kn-locale-icon-item .kn-iframe-locale button{padding:4px 8px}
+@media (max-width:991px){
+.header--icons-list .kn-locale-icon-item{display:flex!important;align-items:center;margin-right:2px}
+.header--icons-list .kn-locale-icon-item .kn-iframe-locale{font-size:0;line-height:1;max-height:32px}
+.header--icons-list .kn-locale-icon-item .kn-iframe-locale button{
+  position:relative;width:30px;height:30px;min-width:30px;padding:0;
+  display:inline-flex;align-items:center;justify-content:center;
+  overflow:hidden;color:transparent;font-size:0;
+}
+.header--icons-list .kn-locale-icon-item .kn-iframe-locale button[data-locale="tr"]::before{content:"🇹🇷";font-size:15px;line-height:1}
+.header--icons-list .kn-locale-icon-item .kn-iframe-locale button[data-locale="en"]::before{content:"🇬🇧";font-size:15px;line-height:1}
+.header--icons-list .kn-locale-icon-item .kn-iframe-locale button.is-active{background:#111}
+}
 `;
 
 export function applyMirrorHeaderIconsFix(doc: Document) {

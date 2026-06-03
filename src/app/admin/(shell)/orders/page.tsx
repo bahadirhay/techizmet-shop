@@ -50,16 +50,16 @@ export default async function OrdersPage({
   const activeSource = source ?? "all";
 
   const title = invoicePending
-    ? "Fatura bekleyen siparişler"
+    ? "Fatura Bekleyen Siparişler"
     : status === "pending"
-      ? "Onay bekleyen siparişler"
+      ? "Onay Bekleyen Siparişler"
       : status === "preparing"
-        ? "Hazırlanan siparişler"
+        ? "Hazırlanan Siparişler"
         : status === "shipped"
-          ? "Kargodaki siparişler"
+          ? "Kargodaki Siparişler"
           : status === "refund_requested"
-            ? "İade talepleri"
-            : "Tüm siparişler";
+            ? "İade Talepleri"
+            : "Tüm Siparişler";
 
   return (
     <div>
@@ -76,7 +76,7 @@ export default async function OrdersPage({
             href="/admin/orders/labels"
             className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm hover:bg-zinc-50"
           >
-            Kargo etiketi bas
+            Kargo Etiketi Yazdır
           </Link>
         }
       />
@@ -96,7 +96,7 @@ export default async function OrdersPage({
           })}
           className={`rounded-lg px-3 py-1.5 ${invoicePending ? "bg-[var(--kn-brand)] text-white" : "border bg-white"}`}
         >
-          Fatura bekleyen
+          Fatura Bekleyen
         </Link>
         {(["pending", "preparing", "shipped", "refund_requested"] as const).map((s) => (
           <Link

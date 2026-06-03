@@ -11,7 +11,7 @@ export default async function CookieConsentsAdminPage() {
         <p className="mt-1 text-sm text-zinc-600">
           Ziyaretçilerin çerez tercih kayıtları (son 200). Ayarlar:{" "}
           <a href="/admin/settings/navigation" className="underline">
-            Footer & çerez ayarları
+            Footer & Çerez Ayarları
           </a>
         </p>
       </div>

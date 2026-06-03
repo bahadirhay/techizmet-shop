@@ -172,7 +172,7 @@ export function StoreSettingsForm({ initial }: { initial: SiteSettings }) {
         <p className="text-sm text-zinc-600">
           Kargo etiketlerinde &quot;Gönderen&quot; olarak görünür.{" "}
           <Link href="/admin/orders/labels" className="text-[var(--kn-brand)] underline">
-            Kargo etiketi bas
+            Kargo Etiketi Yazdır
           </Link>{" "}
           ekranında da düzenlenebilir; buradan kaydettiğiniz adres varsayılan olur.
         </p>

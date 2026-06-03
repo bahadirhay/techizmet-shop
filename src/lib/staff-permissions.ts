@@ -18,19 +18,19 @@ export type StaffPermission = (typeof STAFF_PERMISSION_KEYS)[number];
 
 /** Admin UI — izin matrisi etiketleri */
 export const STAFF_PERMISSION_LABELS: Record<StaffPermission, string> = {
-  "store.dashboard": "Özet panel & raporlar",
-  "store.products": "Ürün yönetimi & fiyat",
+  "store.dashboard": "Özet Panel & Raporlar",
+  "store.products": "Ürün Yönetimi & Fiyat",
   "store.collections": "Koleksiyonlar",
-  "store.orders": "Siparişler & kargo etiketi",
-  "store.campaigns": "Kampanyalar & kupon",
-  "store.customers": "Müşteriler & üye grupları",
-  "store.shipping": "Kargo firmaları",
-  "store.integrations": "Pazaryeri, ödeme, bildirimler",
-  "store.finance": "Ön muhasebe",
-  "content.pages": "Sayfalar, blog, vitrin içeriği",
-  "site.theme": "Tema, menü, footer",
-  "site.settings": "Mağaza & SEO ayarları",
-  "users.manage": "Panel kullanıcıları & roller",
+  "store.orders": "Siparişler & Kargo Etiketi",
+  "store.campaigns": "Kampanyalar & Kupon",
+  "store.customers": "Müşteriler & Üye Grupları",
+  "store.shipping": "Kargo Firmaları",
+  "store.integrations": "Pazaryeri, Ödeme, Bildirimler",
+  "store.finance": "Ön Muhasebe",
+  "content.pages": "Sayfalar, Blog, Vitrin İçeriği",
+  "site.theme": "Tema, Menü, Footer",
+  "site.settings": "Mağaza & SEO Ayarları",
+  "users.manage": "Panel Kullanıcıları & Roller",
 };
 
 export function allStaffPermissions(): StaffPermission[] {

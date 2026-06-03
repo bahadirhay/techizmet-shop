@@ -28,7 +28,20 @@ const HEADER_ICONS_CSS = `
 @media (max-width:991px){
 .header--wrapper{grid-template-columns:auto minmax(0,1fr) auto!important;column-gap:6px!important}
 .header--logo{max-width:min(var(--logo_width,130px),36vw)!important;margin:4px 0!important}
-.header--icons-list .kn-locale-icon-item{display:none!important}
+.header--icons-list .kn-locale-icon-item{display:flex!important;align-items:center;margin-right:2px}
+.header--icons-list .kn-locale-icon-item .kn-iframe-locale{font-size:0;line-height:1;max-height:32px}
+.header--icons-list .kn-locale-icon-item .kn-iframe-locale button{
+  position:relative;width:30px;height:30px;min-width:30px;padding:0;
+  display:inline-flex;align-items:center;justify-content:center;
+  overflow:hidden;color:transparent;font-size:0;
+}
+.header--icons-list .kn-locale-icon-item .kn-iframe-locale button[data-locale="tr"]::before{
+  content:"🇹🇷";font-size:15px;line-height:1;
+}
+.header--icons-list .kn-locale-icon-item .kn-iframe-locale button[data-locale="en"]::before{
+  content:"🇬🇧";font-size:15px;line-height:1;
+}
+.header--icons-list .kn-locale-icon-item .kn-iframe-locale button.is-active{background:#111}
 .header--icons-list .header--icon-item{padding:0 1px!important}
 .header--icons-list .header--icon-link-text{width:36px!important;height:36px!important;min-width:36px!important}
 .header--icons-list .header--icon-item.account{display:flex!important;visibility:visible!important}

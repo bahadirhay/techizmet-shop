@@ -74,7 +74,7 @@ export default async function DashboardPage() {
   return (
     <div>
       <AdminPageHeader
-        title="Özet panel"
+        title="Özet Panel"
         description="Mağaza performansı ve hızlı yönetim kısayolları."
       />
 
@@ -91,14 +91,14 @@ export default async function DashboardPage() {
           <p className="admin-kpi-value">{orders}</p>
           <p className="admin-kpi-meta">{pendingOrders} işlem bekliyor</p>
           <Link href="/admin/orders?status=pending" className="admin-kpi-link">
-            Onay bekleyenler →
+            Onay Bekleyenler →
           </Link>
         </div>
         <div className="admin-kpi" style={{ ["--kpi-accent" as string]: "var(--kn-brand)" }}>
           <p className="admin-kpi-label">Ürün</p>
           <p className="admin-kpi-value">{products}</p>
           <Link href="/admin/products" className="admin-kpi-link">
-            Ürün yönetimi →
+            Ürün Yönetimi →
           </Link>
         </div>
         <div className="admin-kpi" style={{ ["--kpi-accent" as string]: "#ea580c" }}>
@@ -201,7 +201,7 @@ export default async function DashboardPage() {
               href="/admin/integrations"
               className="rounded-lg border border-zinc-200 p-3 hover:border-[var(--kn-brand)]"
             >
-              <p className="font-medium">Pazaryeri & ödeme</p>
+              <p className="font-medium">Pazaryeri & Ödeme</p>
               <p className="text-xs text-zinc-500">{integrations} aktif entegrasyon</p>
             </Link>
             <Link

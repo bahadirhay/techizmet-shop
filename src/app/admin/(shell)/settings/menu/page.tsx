@@ -15,7 +15,7 @@ export default async function StoreMenuAdminPage() {
   return (
     <div className="max-w-4xl space-y-4">
       <div>
-        <h1 className="text-2xl font-semibold">Menü & kategoriler</h1>
+        <h1 className="text-2xl font-semibold">Menü & Kategoriler</h1>
         <p className="mt-1 text-sm text-zinc-600">
           Her satır: Türkçe / English etiket, sonra <strong>Sayfa</strong> veya{" "}
           <strong>Kategori</strong> seçin. Kategori seçince o kategorideki ürünler listelenir.

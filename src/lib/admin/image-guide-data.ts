@@ -102,7 +102,7 @@ export const IMAGE_GUIDE_ROWS: ImageGuideRow[] = [
   {
     name: "Mega menü kart",
     adminPath: "/admin/settings/menu",
-    adminLabel: "Menü & kategoriler → mega menü",
+    adminLabel: "Menü & Kategoriler → Mega Menü",
     size: "875 × 500 veya 1050 × 600",
     ratio: "1,75:1",
     where: "Üst menü açılır panel — sol/sağ kart",

@@ -11,7 +11,7 @@ export default async function ThemePage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold">Tema & vitrin</h1>
+      <h1 className="text-2xl font-semibold">Tema & Vitrin Modu</h1>
       <p className="mt-1 text-sm text-zinc-500">
         Şu an ana sayfa:{" "}
         <strong>{mode === "mirror" ? "Techizmet Shop orijinal (mirror HTML)" : "CMS blokları"}</strong>

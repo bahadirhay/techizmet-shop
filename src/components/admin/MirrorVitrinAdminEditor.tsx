@@ -213,7 +213,7 @@ export function MirrorVitrinAdminEditor({
         );
       } else {
         setMessage(
-          "Linkler düzenleme modunda kapalı. Menü: Ayarlar → Menü & kategoriler. Footer: Footer & çerez. Metin alanlarına doğrudan tıklayın.",
+          "Linkler düzenleme modunda kapalı. Menü: Ayarlar → Menü & Kategoriler. Footer: Footer & Çerez. Metin alanlarına doğrudan tıklayın.",
         );
       }
     }

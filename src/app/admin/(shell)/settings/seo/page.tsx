@@ -19,7 +19,7 @@ export default async function SeoSettingsPage() {
           { label: "Ayarlar & Sistem", href: "/admin/theme" },
           { label: "Logo, favicon & SEO" },
         ]}
-        title="Logo, favicon & SEO"
+        title="Logo, Favicon & SEO"
         description="Vitrinde görünen logo ve SEO değerleri buradan yönetilir. Alanlar vitrindeki güncel görünümle doldurulur."
       />
       <StoreSeoSettingsForm

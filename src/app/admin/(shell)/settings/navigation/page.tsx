@@ -19,11 +19,11 @@ export default async function StoreNavigationAdminPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-semibold">Footer & çerez</h1>
+        <h1 className="text-2xl font-semibold">Footer & Çerez</h1>
         <p className="mt-1 text-sm text-zinc-600">
           Üst menü ve mega menü için{" "}
           <a href="/admin/settings/menu" className="underline">
-            Ayarlar → Menü & kategoriler
+            Ayarlar → Menü & Kategoriler
           </a>
           .
         </p>

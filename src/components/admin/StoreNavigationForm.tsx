@@ -302,7 +302,7 @@ export function StoreNavigationForm({ initial }: { initial: SiteSettings }) {
         <p className="mt-2 text-sm text-zinc-600">
           Mega menü ve kategori ağacı artık{" "}
           <a href="/admin/settings/menu" className="font-medium underline">
-            Ayarlar & Sistem → Menü & kategoriler
+            Ayarlar & Sistem → Menü & Kategoriler
           </a>{" "}
           sayfasından yönetilir (web-page ile aynı yapı: üst öğe → sütun → alt link).
         </p>

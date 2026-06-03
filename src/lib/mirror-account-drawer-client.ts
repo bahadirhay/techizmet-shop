@@ -1,6 +1,8 @@
 /** Mirror iframe — hesap çekmecesi (kayıt/giriş sayfasına gitmeden) */
 
+import type { ShopLocale } from "@/lib/i18n/locale";
 import { MIRROR_ACCOUNT_DRAWER_LINK_HREF } from "@/lib/mirror-account-bridge";
+import { localizeAccountDrawerTr } from "@/lib/mirror-account-drawer-locale";
 
 export type AccountDrawerForm = "login" | "create" | "reset";
 
@@ -101,10 +103,17 @@ function bindAccountDrawerSwitch(doc: Document) {
   );
 }
 
+function shouldLocalizeAccountDrawerTr(doc: Document, locale?: ShopLocale): boolean {
+  if (locale === "tr") return true;
+  const lang = doc.documentElement.lang?.toLowerCase() ?? "";
+  return lang.startsWith("tr");
+}
+
 /** Eski prebuild HTML + canlı DOM — çekmece içi linkler sayfaya gitmesin */
-export function applyMirrorAccountDrawerClient(doc: Document) {
+export function applyMirrorAccountDrawerClient(doc: Document, locale?: ShopLocale) {
   if (!doc.querySelector('[data-drawer="account-drawer"]')) return;
   relocateAccountDrawer(doc);
   patchAccountDrawerNavLinks(doc);
+  if (shouldLocalizeAccountDrawerTr(doc, locale)) localizeAccountDrawerTr(doc);
   bindAccountDrawerSwitch(doc);
 }

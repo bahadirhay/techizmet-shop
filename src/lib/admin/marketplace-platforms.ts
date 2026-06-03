@@ -22,9 +22,9 @@ export const ORDER_STATUSES = [
   { id: "pending", label: "Beklemede" },
   { id: "confirmed", label: "Onaylandı" },
   { id: "preparing", label: "Hazırlanıyor" },
-  { id: "shipped", label: "Kargoya verildi" },
-  { id: "delivered", label: "Teslim edildi" },
+  { id: "shipped", label: "Kargoya Verildi" },
+  { id: "delivered", label: "Teslim Edildi" },
   { id: "cancelled", label: "İptal" },
-  { id: "refund_requested", label: "İade talebi" },
-  { id: "refunded", label: "İade edildi" },
+  { id: "refund_requested", label: "İade Talebi" },
+  { id: "refunded", label: "İade Edildi" },
 ] as const;

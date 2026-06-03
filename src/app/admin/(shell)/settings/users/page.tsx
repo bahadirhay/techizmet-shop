@@ -136,7 +136,7 @@ export default async function StaffUsersPage({
 
     <div>
 
-      <h1 className="text-2xl font-semibold">Personel & panel yetkileri</h1>
+      <h1 className="text-2xl font-semibold">Personel & Panel Yetkileri</h1>
 
       <p className="mt-2 text-sm text-zinc-600">
 
@@ -218,7 +218,7 @@ export default async function StaffUsersPage({
 
         <Link href="/admin/settings/security" className="text-[var(--kn-brand)] underline">
 
-          Güvenlik & şifre
+          Güvenlik & Şifre
 
         </Link>
 

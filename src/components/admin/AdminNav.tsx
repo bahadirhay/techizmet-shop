@@ -141,7 +141,7 @@ function NavLinkRow({
     >
       <span>{item.label}</span>
       <span className="flex shrink-0 items-center gap-1">
-        {item.soon ? <span className="admin-badge admin-badge--muted">yakında</span> : null}
+        {item.soon ? <span className="admin-badge admin-badge--muted">Yakında</span> : null}
         {item.badgeKey && badges[item.badgeKey as NavBadgeKey] > 0 ? (
           <span className="admin-badge">{badges[item.badgeKey as NavBadgeKey]}</span>
         ) : null}
