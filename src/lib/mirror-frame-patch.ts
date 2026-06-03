@@ -46,8 +46,8 @@ export function applyMirrorFramePatches(doc: Document, opts: MirrorFramePatchOpt
   applyMirrorAccountDashboardClient(doc);
   if (opts.accountDrawerForm) openAccountDrawer(doc, opts.accountDrawerForm);
 
+  applyMirrorHeaderIconsFix(doc);
   if (!serverReady) {
-    applyMirrorHeaderIconsFix(doc);
     if (opts.branding) {
       applyMirrorBranding(doc, opts.branding);
       installMirrorBrandingGuard(doc, opts.branding);

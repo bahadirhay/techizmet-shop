@@ -424,9 +424,64 @@ account-drawer.kn-account-is-logged-in .kn-account-logout {
     flex: 0 0 auto !important;
   }
 
-  /* Türkçe/English pill header'da taşır — dil mobil menüde */
+  /* Kompakt dil — TR / EN (iPhone dahil, taşmayı önler) */
   .header--icons-list .kn-locale-icon-item {
-    display: none !important;
+    display: flex !important;
+    align-items: center !important;
+    flex: 0 0 auto !important;
+    margin-right: 2px !important;
+  }
+
+  .header--icons-list .kn-locale-icon-item .kn-iframe-locale {
+    font-size: 0 !important;
+    line-height: 1 !important;
+    max-height: 32px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .header--icons-list .kn-locale-icon-item .kn-iframe-locale button {
+    position: relative !important;
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 28px !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    overflow: hidden !important;
+    color: transparent !important;
+    font-size: 0 !important;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .header--icons-list .kn-locale-icon-item .kn-iframe-locale button[data-locale="tr"]::before {
+    content: "TR" !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+    color: #111 !important;
+  }
+
+  .header--icons-list .kn-locale-icon-item .kn-iframe-locale button[data-locale="en"]::before {
+    content: "EN" !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+    color: #111 !important;
+  }
+
+  .header--icons-list .kn-locale-icon-item .kn-iframe-locale button.is-active {
+    background: #111 !important;
+  }
+
+  .header--icons-list .kn-locale-icon-item .kn-iframe-locale button.is-active::before {
+    color: #fff !important;
+  }
+
+  .mobile--menu-footer .kn-iframe-locale {
+    display: inline-flex !important;
+    margin-top: 12px !important;
+    flex-shrink: 0 !important;
   }
 
   .header--icons-list .header--icon-link-text {

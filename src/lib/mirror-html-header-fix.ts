@@ -36,12 +36,13 @@ const HEADER_ICONS_CSS = `
   overflow:hidden;color:transparent;font-size:0;
 }
 .header--icons-list .kn-locale-icon-item .kn-iframe-locale button[data-locale="tr"]::before{
-  content:"🇹🇷";font-size:15px;line-height:1;
+  content:"TR";font-size:10px;font-weight:700;line-height:1;color:#111;
 }
 .header--icons-list .kn-locale-icon-item .kn-iframe-locale button[data-locale="en"]::before{
-  content:"🇬🇧";font-size:15px;line-height:1;
+  content:"EN";font-size:10px;font-weight:700;line-height:1;color:#111;
 }
 .header--icons-list .kn-locale-icon-item .kn-iframe-locale button.is-active{background:#111}
+.header--icons-list .kn-locale-icon-item .kn-iframe-locale button.is-active::before{color:#fff}
 .header--icons-list .header--icon-item{padding:0 1px!important}
 .header--icons-list .header--icon-link-text{width:36px!important;height:36px!important;min-width:36px!important}
 .header--icons-list .header--icon-item.account{display:flex!important;visibility:visible!important}

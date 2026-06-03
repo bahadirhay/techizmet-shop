@@ -27,9 +27,10 @@ const CSS = `
   display:inline-flex;align-items:center;justify-content:center;
   overflow:hidden;color:transparent;font-size:0;
 }
-.header--icons-list .kn-locale-icon-item .kn-iframe-locale button[data-locale="tr"]::before{content:"🇹🇷";font-size:15px;line-height:1}
-.header--icons-list .kn-locale-icon-item .kn-iframe-locale button[data-locale="en"]::before{content:"🇬🇧";font-size:15px;line-height:1}
+.header--icons-list .kn-locale-icon-item .kn-iframe-locale button[data-locale="tr"]::before{content:"TR";font-size:10px;font-weight:700;line-height:1;color:#111}
+.header--icons-list .kn-locale-icon-item .kn-iframe-locale button[data-locale="en"]::before{content:"EN";font-size:10px;font-weight:700;line-height:1;color:#111}
 .header--icons-list .kn-locale-icon-item .kn-iframe-locale button.is-active{background:#111}
+.header--icons-list .kn-locale-icon-item .kn-iframe-locale button.is-active::before{color:#fff}
 }
 `;
 
