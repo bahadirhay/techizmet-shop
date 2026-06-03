@@ -1,11 +1,20 @@
 /** Hesap çekmecesi — TR etiket / placeholder (gömülü Shopify İngilizce metinleri) */
 
 import { parseHTML } from "linkedom";
+import { isElementNode, isInputNode } from "@/lib/mirror-dom-node";
+
+/** linkedom / Node prebuild — Node.TEXT_NODE global yok */
+const TEXT_NODE = 3;
+
+function cssIdSelector(id: string): string {
+  const esc = typeof CSS !== "undefined" && typeof CSS.escape === "function" ? CSS.escape(id) : id;
+  return `#${esc}`;
+}
 
 export function localizeAccountDrawerTr(doc: Document): void {
   const drawer = doc.querySelector('[data-drawer="account-drawer"]');
-  if (!(drawer instanceof HTMLElement) || drawer.dataset.knTrLocalized === "1") return;
-  drawer.dataset.knTrLocalized = "1";
+  if (!isElementNode(drawer) || drawer.getAttribute("data-kn-tr-localized") === "1") return;
+  drawer.setAttribute("data-kn-tr-localized", "1");
 
   const heading = (key: string, text: string) => {
     const el = drawer.querySelector(`[data-heading="${key}"]`);
@@ -22,8 +31,8 @@ export function localizeAccountDrawerTr(doc: Document): void {
   };
 
   const placeholder = (id: string, text: string) => {
-    const el = drawer.querySelector(`#${CSS.escape(id)}`);
-    if (el instanceof HTMLInputElement) el.placeholder = text;
+    const el = drawer.querySelector(cssIdSelector(id));
+    if (isInputNode(el)) el.setAttribute("placeholder", text);
   };
 
   const btnInForm = (formSelector: string, text: string) => {
@@ -37,13 +46,13 @@ export function localizeAccountDrawerTr(doc: Document): void {
   placeholder("CustomerEmail", "E-posta adresiniz");
   label("customerPassword", "Şifre");
   const loginPwd = drawer.querySelector('[data-form="login"] input[name="customer[password]"]');
-  if (loginPwd instanceof HTMLInputElement) loginPwd.placeholder = "Şifreniz";
+  if (isInputNode(loginPwd)) loginPwd.setAttribute("placeholder", "Şifreniz");
   btnInForm('[data-form="login"]', "Giriş yap");
 
   const loginInfo = drawer.querySelector('[data-form="login"] .account--text-info');
   if (loginInfo) {
     loginInfo.childNodes.forEach((node) => {
-      if (node.nodeType === Node.TEXT_NODE && /don.t have/i.test(node.textContent ?? "")) {
+      if (node.nodeType === TEXT_NODE && /don.t have/i.test(node.textContent ?? "")) {
         node.textContent = "Hesabınız yok mu? ";
       }
     });
@@ -70,7 +79,7 @@ export function localizeAccountDrawerTr(doc: Document): void {
   const regInfo = drawer.querySelector('[data-form="create"] .account--text-info');
   if (regInfo) {
     regInfo.childNodes.forEach((node) => {
-      if (node.nodeType === Node.TEXT_NODE && /already have/i.test(node.textContent ?? "")) {
+      if (node.nodeType === TEXT_NODE && /already have/i.test(node.textContent ?? "")) {
         node.textContent = "Zaten üye misiniz? ";
       }
     });
