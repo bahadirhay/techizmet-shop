@@ -39,8 +39,12 @@ export async function resolveAddToCartInput(
   input: AddToCartInput,
 ): Promise<{ ok: true; data: ResolvedAddToCart } | { ok: false; error: string; status: number }> {
   const qty = Math.max(1, parseInt(String(input.qty ?? 1), 10) || 1);
-  const productId = String(input.productId ?? "").trim();
-  const slug = String(input.slug ?? "").trim();
+  let productId = String(input.productId ?? "").trim();
+  let slug = String(input.slug ?? "")
+    .trim()
+    .replace(/\.html$/i, "");
+  if (/^\d+$/.test(slug)) slug = "";
+  if (/^\d+$/.test(productId)) productId = "";
   const variantIdRaw = input.variantId ? String(input.variantId).trim() : "";
   const variantLabel = String(input.variantLabel ?? "").trim();
 

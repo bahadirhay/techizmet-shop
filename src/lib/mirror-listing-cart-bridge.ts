@@ -3,14 +3,39 @@
 export const MIRROR_LISTING_CART_BRIDGE_SCRIPT = `<script id="kn-listing-cart-bridge">(function(){
   function tr(){return document.documentElement.lang&&document.documentElement.lang.indexOf("tr")===0;}
   function elFrom(e){var t=e.target;if(t instanceof Element)return t;if(t&&t.parentElement)return t.parentElement;return null;}
+  function normalizeSlug(raw){
+    if(!raw)return null;
+    var s=String(raw).trim();
+    if(!s||/^\\d+$/.test(s))return null;
+    s=s.replace(/\\.html$/i,"");
+    return s||null;
+  }
+  function slugFromHref(href){
+    if(!href)return null;
+    var m=String(href).match(/\\/products\\/([^/?#]+)/i);
+    if(m)return normalizeSlug(decodeURIComponent(m[1]));
+    m=String(href).match(/products\\/([^/?#]+)\\.html/i);
+    if(m)return normalizeSlug(decodeURIComponent(m[1]));
+    return null;
+  }
   function slugFromCard(card){
     if(!card)return null;
-    var id=card.getAttribute("data-id");
-    if(id&&id.indexOf("/")<0&&id.indexOf(" ")<0)return id.trim();
-    var link=card.querySelector('a[href*="/products/"]');
-    if(!link)return null;
-    var m=(link.getAttribute("href")||"").match(/\\/products\\/([^/?#]+)/);
-    return m?decodeURIComponent(m[1]):null;
+    var handle=card.getAttribute("data-handle");
+    if(!handle){
+      var vs=card.querySelector("variants-set[data-handle]");
+      if(vs)handle=vs.getAttribute("data-handle");
+    }
+    var fromHandle=normalizeSlug(handle);
+    if(fromHandle)return fromHandle;
+    var links=card.querySelectorAll('a[href*="/products/"], a[href*="products/"], a[data-handle]');
+    for(var i=0;i<links.length;i++){
+      var a=links[i];
+      var dh=normalizeSlug(a.getAttribute("data-handle"));
+      if(dh)return dh;
+      var fromHref=slugFromHref(a.getAttribute("href")||"");
+      if(fromHref)return fromHref;
+    }
+    return normalizeSlug(card.getAttribute("data-id"));
   }
   function variantLabelFromForm(form){
     if(!form)return null;
