@@ -23,15 +23,6 @@ export function whatsAppShareUrl(text: string): string {
   return `https://wa.me/?text=${encodeURIComponent(text)}`;
 }
 
-/** Instagram’da doğrudan ürün linki paylaşımı yok — kopyalama + uygulama */
-export function instagramShareHint(): string {
-  return "Link kopyalandı. Instagram’da hikaye veya gönderiye yapıştırın.";
-}
-
-export function tikTokShareHint(): string {
-  return "Link kopyalandı. TikTok’ta biyografi veya videoya ekleyebilirsiniz.";
-}
-
-export function youTubeShareHint(): string {
-  return "Link kopyalandı. YouTube açıklamasına veya topluluğa yapıştırın.";
+export function facebookShareUrl(pageUrl: string): string {
+  return `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(pageUrl)}`;
 }
