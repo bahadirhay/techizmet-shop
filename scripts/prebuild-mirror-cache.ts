@@ -67,6 +67,16 @@ async function main() {
   }
 
   const written: string[] = [];
+  const prebuiltKeys = new Set<string>();
+
+  async function prebuildOnce(normalized: string, build: () => Promise<string>) {
+    if (prebuiltKeys.has(normalized)) return;
+    const html = await build();
+    await writePrebuilt(normalized, html);
+    prebuiltKeys.add(normalized);
+    written.push(normalized);
+    console.log(`[mirror:prebuild] ${normalized}`);
+  }
 
   for (const locale of ["tr", "en"] as const) {
     const cartRel = `theme/techizmet-shop/mirror/cart/index${locale === "tr" ? "-tr" : ""}.html`;
@@ -121,17 +131,6 @@ async function main() {
       siteName: site.name,
     });
     await writePrebuilt(normalized, html);
-    written.push(normalized);
-    console.log(`[mirror:prebuild] ${normalized}`);
-  }
-
-  const prebuiltKeys = new Set(written);
-
-  async function prebuildOnce(normalized: string, build: () => Promise<string>) {
-    if (prebuiltKeys.has(normalized)) return;
-    const html = await build();
-    await writePrebuilt(normalized, html);
-    prebuiltKeys.add(normalized);
     written.push(normalized);
     console.log(`[mirror:prebuild] ${normalized}`);
   }
