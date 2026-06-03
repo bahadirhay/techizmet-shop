@@ -388,6 +388,7 @@ export async function createOrderFromCart(params: {
   rateId: string;
   paymentMethod: string;
   guestCheckout: boolean;
+  visitorKey?: string | null;
 }): Promise<{ orderId: string; orderNumber: string; customerId: string | null }> {
   let orderCustomerId = params.customerId ?? null;
   if (params.customer.email) {
@@ -525,6 +526,7 @@ export async function createOrderFromCart(params: {
         paymentMethod: params.paymentMethod,
         paymentStatus: params.paymentMethod === "cod" ? "pending" : "unpaid",
         adminNotes: orderNotes.length ? orderNotes.join(" · ") : null,
+        visitorKey: params.visitorKey?.trim() || null,
         lines: {
           create: cart.items.map((line) => ({
             productId: line.productId,

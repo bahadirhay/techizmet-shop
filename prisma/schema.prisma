@@ -40,6 +40,9 @@ model StoreSite {
   customerGroups  CustomerGroup[]
   campaigns       StoreCampaign[]
   cookieConsentLogs CookieConsentLog[]
+  visitorProfiles   VisitorProfile[]
+  storeEvents       StoreEvent[]
+  cartAbandonments  CartAbandonment[]
   navMenuItems      NavMenuItem[]
   blogPosts         StoreBlogPost[]
   priceChangeBatches StorePriceChangeBatch[]
@@ -123,6 +126,71 @@ model CookieConsentLog {
 
   @@index([siteId, consentKey, createdAt])
   @@map("cookie_consent_log")
+  @@schema("shop")
+}
+
+model VisitorProfile {
+  id           String    @id @default(cuid())
+  siteId       String
+  site         StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  visitorKey   String
+  customerId   String?
+  customer     StoreCustomer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  firstSeenAt  DateTime  @default(now())
+  lastSeenAt   DateTime  @default(now())
+  utmSource    String?
+  utmMedium    String?
+  utmCampaign  String?
+  deviceType   String?
+  userAgent    String?
+  events       StoreEvent[]
+  cartAbandonments CartAbandonment[]
+
+  @@unique([siteId, visitorKey])
+  @@index([siteId, customerId])
+  @@index([siteId, lastSeenAt])
+  @@map("visitor_profile")
+  @@schema("shop")
+}
+
+model StoreEvent {
+  id           String   @id @default(cuid())
+  siteId       String
+  site         StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  visitorKey   String
+  visitor      VisitorProfile @relation(fields: [siteId, visitorKey], references: [siteId, visitorKey], onDelete: Cascade)
+  customerId   String?
+  eventType    String
+  payloadJson  String   @default("{}")
+  createdAt    DateTime @default(now())
+
+  @@index([siteId, visitorKey, createdAt])
+  @@index([siteId, eventType, createdAt])
+  @@index([siteId, customerId, createdAt])
+  @@map("store_event")
+  @@schema("shop")
+}
+
+model CartAbandonment {
+  id               String    @id @default(cuid())
+  siteId           String
+  site             StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  visitorKey       String
+  visitor          VisitorProfile @relation(fields: [siteId, visitorKey], references: [siteId, visitorKey], onDelete: Cascade)
+  customerId       String?
+  itemsJson        String
+  cartValueMinor   Int       @default(0)
+  itemCount        Int       @default(0)
+  status           String    @default("open")
+  lastActivityAt   DateTime  @default(now())
+  remindedAt       DateTime?
+  convertedOrderId String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([siteId, status, lastActivityAt])
+  @@index([siteId, visitorKey, status])
+  @@map("cart_abandonment")
   @@schema("shop")
 }
 
@@ -553,6 +621,7 @@ model StoreCustomer {
   passwordResetTokens PasswordResetToken[]
   financeInvoices   FinanceInvoice[]
   financeCounterparties FinanceCounterparty[]
+  visitorProfiles VisitorProfile[]
 
   @@unique([siteId, email])
   @@index([siteId, email])
@@ -733,6 +802,8 @@ model StoreOrder {
   /** JSON: brüt, komisyon, kargo, maliyet, tahmini net — sipariş anında dondurulur */
   financeSnapshotJson String?
   adminNotes      String?
+  /** Anonim ziyaretçi — sepet terki / dönüşüm eşlemesi */
+  visitorKey      String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   lines           StoreOrderLine[]

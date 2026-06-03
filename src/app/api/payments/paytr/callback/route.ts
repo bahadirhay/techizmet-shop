@@ -70,6 +70,20 @@ export async function POST(req: Request) {
     } catch (e) {
       console.error("[finance]", e);
     }
+    try {
+      const { recordPurchaseEvent } = await import("@/lib/analytics/events");
+      await recordPurchaseEvent({
+        siteId: site.id,
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        valueMinor: order.totalMinor,
+        paymentMethod: "card",
+        visitorKey: order.visitorKey,
+        customerId: order.customerId,
+      });
+    } catch (e) {
+      console.error("[analytics]", e);
+    }
   } else {
     await prisma.storeOrder.update({
       where: { id: order.id },

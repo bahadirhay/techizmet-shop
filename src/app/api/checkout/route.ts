@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { createOrderFromCart } from "@/lib/cart/service";
+import { recordPurchaseEvent, recordServerStoreEvent } from "@/lib/analytics/events";
+import { readVisitorKey } from "@/lib/analytics/visitor";
+import { createOrderFromCart, buildCartView } from "@/lib/cart/service";
 import { clearCartSession, getCartSession } from "@/lib/cart/session";
 import { createAccountAfterOrder } from "@/lib/checkout/create-account-after-order";
 import { saveCheckoutAddressToCustomer } from "@/lib/checkout/save-address";
@@ -46,9 +48,30 @@ export async function POST(req: Request) {
 
   try {
     const custSession = await getCustomerSession();
+    const visitorKey = await readVisitorKey();
+    const customerId = custSession.isLoggedIn ? custSession.customerId : null;
+
+    const cartPreview = await buildCartView(
+      { items: session.items, couponCode: session.couponCode },
+      site.id,
+      customerId,
+    );
+
+    recordServerStoreEvent({
+      siteId: site.id,
+      type: "begin_checkout",
+      payload: {
+        cartValueMinor: cartPreview.totalMinor,
+        itemCount: cartPreview.itemCount,
+        paymentMethod,
+      },
+      visitorKey,
+      customerId,
+    }).catch((e) => console.error("[analytics]", e));
+
     const result = await createOrderFromCart({
       siteId: site.id,
-      customerId: custSession.isLoggedIn ? custSession.customerId : null,
+      customerId,
       session: { items: session.items, couponCode: session.couponCode },
       customer: {
         email: String(body.email ?? "").trim(),
@@ -66,6 +89,7 @@ export async function POST(req: Request) {
       rateId: String(body.rateId ?? ""),
       paymentMethod,
       guestCheckout: true,
+      visitorKey,
     });
     await clearCartSession();
 
@@ -110,6 +134,16 @@ export async function POST(req: Request) {
     }
 
     await sendOrderConfirmationBundle(result.orderId).catch((e) => console.error("[notify]", e));
+
+    recordPurchaseEvent({
+      siteId: site.id,
+      orderId: result.orderId,
+      orderNumber: result.orderNumber,
+      valueMinor: cartPreview.totalMinor,
+      paymentMethod,
+      visitorKey,
+      customerId: result.customerId,
+    }).catch((e) => console.error("[analytics]", e));
 
     return NextResponse.json({ ok: true, ...result, accountCreated });
   } catch (e) {
