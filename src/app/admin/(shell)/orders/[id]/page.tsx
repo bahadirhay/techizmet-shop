@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { OrderDeliveryBlock } from "@/components/admin/OrderDeliveryBlock";
 import { OrderFinancePanel } from "@/components/admin/OrderFinancePanel";
 import { OrderDetailForm } from "@/components/admin/OrderDetailForm";
 import { MarketplaceOrderPanel } from "@/components/admin/MarketplaceOrderPanel";
@@ -37,7 +38,7 @@ export default async function OrderDetailPage({
   const carriers = await prisma.shippingCarrier.findMany({
     where: { siteId: auth.siteId, active: true },
     orderBy: { name: "asc" },
-    select: { id: true, name: true },
+    select: { id: true, name: true, trackingUrlTemplate: true },
   });
 
   const efaturaConfig = await getEfaturaConfig(auth.siteId);
@@ -95,6 +96,12 @@ export default async function OrderDetailPage({
               </Link>
             </p>
           ) : null}
+          <OrderDeliveryBlock
+            shippingAddressJson={order.shippingAddressJson}
+            carrierName={order.carrier?.name ?? null}
+            trackingUrlTemplate={order.carrier?.trackingUrlTemplate ?? null}
+            trackingNumber={order.trackingNumber}
+          />
           <h2 className="mt-6 font-semibold">Ürünler</h2>
           <ul className="mt-2 divide-y text-sm">
             {order.lines.map((l) => (
@@ -114,7 +121,11 @@ export default async function OrderDetailPage({
           initialCarrierId={order.carrierId ?? ""}
           initialTracking={order.trackingNumber ?? ""}
           initialNotes={order.adminNotes ?? ""}
-          carriers={carriers}
+          carriers={carriers.map((c) => ({
+            id: c.id,
+            name: c.name,
+            trackingUrlTemplate: c.trackingUrlTemplate,
+          }))}
           invoiceComplete={isOrderInvoiceComplete(order.invoiceStatus)}
         />
       </div>

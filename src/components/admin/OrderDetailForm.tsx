@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { buildCarrierTrackingUrl } from "@/lib/admin/carrier-tracking";
 import { shouldFocusInvoiceAfterSave } from "@/lib/admin/order-invoice-workflow";
 import { ORDER_STATUSES } from "@/lib/admin/marketplace-platforms";
 import { AdminField, btnPrimary, inputClass } from "@/components/admin/AdminForm";
 
-type CarrierOpt = { id: string; name: string };
+type CarrierOpt = { id: string; name: string; trackingUrlTemplate: string | null };
 
 export function OrderDetailForm({
   orderId,
@@ -31,6 +33,11 @@ export function OrderDetailForm({
   const [trackingNumber, setTrackingNumber] = useState(initialTracking);
   const [adminNotes, setAdminNotes] = useState(initialNotes);
   const [msg, setMsg] = useState<string | null>(null);
+
+  const trackingPreviewUrl = useMemo(() => {
+    const carrier = carriers.find((c) => c.id === carrierId);
+    return buildCarrierTrackingUrl(carrier?.trackingUrlTemplate, trackingNumber);
+  }, [carriers, carrierId, trackingNumber]);
 
   async function save() {
     const previousStatus = initialStatus;
@@ -87,6 +94,26 @@ export function OrderDetailForm({
           value={trackingNumber}
           onChange={(e) => setTrackingNumber(e.target.value)}
         />
+        {trackingPreviewUrl ? (
+          <p className="mt-1 text-xs text-zinc-600">
+            Önizleme:{" "}
+            <Link
+              href={trackingPreviewUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-[var(--kn-brand)] underline"
+            >
+              Kargo takip linki
+            </Link>
+          </p>
+        ) : trackingNumber.trim() && carrierId ? (
+          <p className="mt-1 text-xs text-amber-800">
+            Bu kargo firmasında takip URL şablonu tanımlı değil.{" "}
+            <Link href={`/admin/shipping/${carrierId}`} className="underline">
+              Firmayı düzenle
+            </Link>
+          </p>
+        ) : null}
       </AdminField>
       <AdminField label="Admin notu">
         <textarea

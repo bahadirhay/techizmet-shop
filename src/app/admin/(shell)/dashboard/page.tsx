@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { DashboardCharts } from "@/components/admin/DashboardCharts";
+import { OperationsChecklist } from "@/components/admin/OperationsChecklist";
+import { loadOperationsChecklist } from "@/lib/admin/operations-checklist";
 import { safeCount } from "@/lib/admin/safe-count";
 import { loadDashboardCharts } from "@/lib/admin/nav-badges";
 import { formatTry } from "@/lib/admin/money";
@@ -50,13 +52,14 @@ export default async function DashboardPage() {
   });
   const totalRevenue = revenueAgg._sum.totalMinor ?? 0;
 
-  const [recentOrders, charts] = await Promise.all([
+  const [recentOrders, charts, operationsChecklist] = await Promise.all([
     prisma.storeOrder.findMany({
       where: { siteId: auth.siteId },
       orderBy: { createdAt: "desc" },
       take: 8,
     }),
     loadDashboardCharts(auth.siteId),
+    loadOperationsChecklist(auth.siteId),
   ]);
 
   const startOfMonth = new Date();
@@ -129,6 +132,10 @@ export default async function DashboardPage() {
       </div>
 
       <DashboardCharts last7Days={charts.last7Days} statusBreakdown={charts.statusBreakdown} />
+
+      <div className="mt-8">
+        <OperationsChecklist snapshot={operationsChecklist} />
+      </div>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
         <section className="admin-card admin-card-pad">

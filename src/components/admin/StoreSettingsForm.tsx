@@ -8,6 +8,12 @@ import { AdminField, btnPrimary, inputClass } from "@/components/admin/AdminForm
 import type { SiteSettings } from "@/lib/site-settings";
 import type { StoreTextSettings } from "@/lib/store-static-texts";
 
+type ShipFromForm = NonNullable<NonNullable<SiteSettings["store"]>["shipFrom"]>;
+
+function emptyShipFrom(): ShipFromForm {
+  return { name: "", line1: "", line2: "", district: "", city: "", postalCode: "", phone: "" };
+}
+
 function minorToTryInput(minor: number | undefined): string {
   if (minor == null || minor <= 0) return "";
   return String(minor / 100);
@@ -33,7 +39,15 @@ export function StoreSettingsForm({ initial }: { initial: SiteSettings }) {
   const [barcodePrefix, setBarcodePrefix] = useState(
     initial.store?.barcodePrefix ?? DEFAULT_BARCODE_PREFIX,
   );
+  const [shipFrom, setShipFrom] = useState<ShipFromForm>({
+    ...emptyShipFrom(),
+    ...initial.store?.shipFrom,
+  });
   const [msg, setMsg] = useState<string | null>(null);
+
+  function updateShipFrom<K extends keyof ShipFromForm>(key: K, value: ShipFromForm[K]) {
+    setShipFrom((prev) => ({ ...prev, [key]: value }));
+  }
 
   async function save() {
     const payload: SiteSettings = {
@@ -44,6 +58,15 @@ export function StoreSettingsForm({ initial }: { initial: SiteSettings }) {
         orderNumberPrefix: sanitizeOrderNumberPrefix(orderPrefix),
         autoGenerateBarcode,
         barcodePrefix: barcodePrefix.replace(/\D/g, "").slice(0, 3) || DEFAULT_BARCODE_PREFIX,
+        shipFrom: {
+          name: shipFrom.name?.trim() || undefined,
+          line1: shipFrom.line1?.trim() || undefined,
+          line2: shipFrom.line2?.trim() || undefined,
+          district: shipFrom.district?.trim() || undefined,
+          city: shipFrom.city?.trim() || undefined,
+          postalCode: shipFrom.postalCode?.trim() || undefined,
+          phone: shipFrom.phone?.trim() || undefined,
+        },
       },
     };
     const res = await fetch("/api/admin/integrations/settings", {
@@ -52,7 +75,10 @@ export function StoreSettingsForm({ initial }: { initial: SiteSettings }) {
       body: JSON.stringify(payload),
     });
     setMsg(res.ok ? "Kaydedildi" : "Kayıt başarısız");
-    if (res.ok) setS(payload);
+    if (res.ok) {
+      setS(payload);
+      setShipFrom({ ...emptyShipFrom(), ...payload.store?.shipFrom });
+    }
   }
 
   const threshold = tryInputToMinor(freeShippingTry);
@@ -139,6 +165,75 @@ export function StoreSettingsForm({ initial }: { initial: SiteSettings }) {
             maxLength={3}
           />
         </AdminField>
+      </section>
+
+      <section id="kn-ship-from" className="scroll-mt-6 rounded-xl border bg-white p-6 space-y-4">
+        <h2 className="font-semibold">Kargo etiketi — gönderici adresi</h2>
+        <p className="text-sm text-zinc-600">
+          Kargo etiketlerinde &quot;Gönderen&quot; olarak görünür.{" "}
+          <Link href="/admin/orders/labels" className="text-[var(--kn-brand)] underline">
+            Kargo etiketi bas
+          </Link>{" "}
+          ekranında da düzenlenebilir; buradan kaydettiğiniz adres varsayılan olur.
+        </p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <AdminField label="Firma / mağaza adı *">
+            <input
+              className={inputClass}
+              value={shipFrom.name ?? ""}
+              onChange={(e) => updateShipFrom("name", e.target.value)}
+              placeholder="Techizmet Shop"
+            />
+          </AdminField>
+          <AdminField label="Telefon">
+            <input
+              className={inputClass}
+              value={shipFrom.phone ?? ""}
+              onChange={(e) => updateShipFrom("phone", e.target.value)}
+              placeholder="05xx xxx xx xx"
+            />
+          </AdminField>
+          <AdminField label="Adres satırı 1 *" hint="Mahalle, sokak, bina no">
+            <input
+              className={`${inputClass} sm:col-span-2`}
+              value={shipFrom.line1 ?? ""}
+              onChange={(e) => updateShipFrom("line1", e.target.value)}
+            />
+          </AdminField>
+          <AdminField label="Adres satırı 2">
+            <input
+              className={inputClass}
+              value={shipFrom.line2 ?? ""}
+              onChange={(e) => updateShipFrom("line2", e.target.value)}
+            />
+          </AdminField>
+          <AdminField label="İlçe">
+            <input
+              className={inputClass}
+              value={shipFrom.district ?? ""}
+              onChange={(e) => updateShipFrom("district", e.target.value)}
+            />
+          </AdminField>
+          <AdminField label="İl *">
+            <input
+              className={inputClass}
+              value={shipFrom.city ?? ""}
+              onChange={(e) => updateShipFrom("city", e.target.value)}
+            />
+          </AdminField>
+          <AdminField label="Posta kodu">
+            <input
+              className={inputClass}
+              value={shipFrom.postalCode ?? ""}
+              onChange={(e) => updateShipFrom("postalCode", e.target.value)}
+            />
+          </AdminField>
+        </div>
+        {shipFrom.name?.trim() && shipFrom.line1?.trim() && shipFrom.city?.trim() ? (
+          <p className="text-sm text-green-700">Gönderici adresi kayda hazır.</p>
+        ) : (
+          <p className="text-sm text-amber-800">Etiket için en az firma adı, adres ve il doldurun.</p>
+        )}
       </section>
 
       <section className="rounded-xl border bg-white p-6 space-y-4">
