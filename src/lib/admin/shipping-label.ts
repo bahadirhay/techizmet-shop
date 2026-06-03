@@ -57,13 +57,43 @@ export function formatShippingAddressLines(addr: ShippingAddress): string[] {
   return lines;
 }
 
-export function formatShipFromLines(from: ShipFromAddress): string[] {
+export function mergeShipFromAddress(
+  server: ShipFromAddress,
+  stored: Partial<ShipFromAddress>,
+): ShipFromAddress {
+  const pick = (key: keyof ShipFromAddress): string => {
+    const raw = stored[key];
+    if (typeof raw === "string" && raw.trim()) return raw.trim();
+    const base = server[key];
+    return typeof base === "string" ? base.trim() : "";
+  };
+  return {
+    name: pick("name") || server.name,
+    line1: pick("line1"),
+    line2: pick("line2") || undefined,
+    district: pick("district"),
+    city: pick("city"),
+    postalCode: pick("postalCode"),
+    phone: pick("phone"),
+  };
+}
+
+/** Sokak + posta — il/ilçe/telefon etikette ayrı satırda gösterilir */
+export function formatShipFromStreetLines(from: ShipFromAddress): string[] {
   const lines: string[] = [];
   if (from.line1.trim()) lines.push(from.line1.trim());
   if (from.line2?.trim()) lines.push(from.line2.trim());
-  const cityLine = [from.district, from.city].filter(Boolean).join(" / ");
-  if (cityLine) lines.push(cityLine);
   if (from.postalCode.trim()) lines.push(from.postalCode.trim());
+  return lines;
+}
+
+export function formatShipFromLines(from: ShipFromAddress): string[] {
+  const lines = formatShipFromStreetLines(from);
+  const district = from.district.trim();
+  const city = from.city.trim();
+  if (district && city) lines.push(`${district} / ${city}`);
+  else if (district) lines.push(district);
+  else if (city) lines.push(city);
   if (from.phone.trim()) lines.push(`Tel: ${from.phone.trim()}`);
   return lines;
 }

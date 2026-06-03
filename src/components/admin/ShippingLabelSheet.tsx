@@ -2,7 +2,7 @@
 
 import { ShippingLabelBarcode } from "@/components/admin/ShippingLabelBarcode";
 import {
-  formatShipFromLines,
+  formatShipFromStreetLines,
   formatShippingAddressLines,
   type ShipFromAddress,
   type ShippingLabelData,
@@ -18,7 +18,7 @@ export function ShippingLabelSheet({
   size?: "standard" | "compact";
 }) {
   const toLines = formatShippingAddressLines(label.shippingAddress);
-  const fromLines = formatShipFromLines(shipFrom);
+  const fromLines = formatShipFromStreetLines(shipFrom);
 
   return (
     <article
@@ -38,8 +38,21 @@ export function ShippingLabelSheet({
       <section className="shipping-label__block">
         <p className="shipping-label__label">Gönderici</p>
         <p className="shipping-label__name">{shipFrom.name}</p>
-        {fromLines.length ? (
-          <p className="shipping-label__address">{fromLines.join("\n")}</p>
+        {shipFrom.phone.trim() ? (
+          <p className="shipping-label__phone">{shipFrom.phone.trim()}</p>
+        ) : null}
+        {(shipFrom.district.trim() || shipFrom.city.trim()) ? (
+          <p className="shipping-label__meta">
+            {[shipFrom.district.trim(), shipFrom.city.trim()].filter(Boolean).join(" / ")}
+          </p>
+        ) : null}
+        {fromLines.length ||
+        shipFrom.district.trim() ||
+        shipFrom.city.trim() ||
+        shipFrom.phone.trim() ? (
+          fromLines.length ? (
+            <p className="shipping-label__address">{fromLines.join("\n")}</p>
+          ) : null
         ) : (
           <p className="shipping-label__address shipping-label__muted">Gönderici adresi girilmedi</p>
         )}

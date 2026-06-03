@@ -1,11 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import {
+  accountLoginPath,
+  sanitizeAccountReturnPath,
+} from "@/lib/account-return-path";
 
 export function AccountRegisterForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnTo = sanitizeAccountReturnPath(searchParams.get("next"));
   const [form, setForm] = useState({
     email: "",
     password: "",
@@ -31,7 +37,7 @@ export function AccountRegisterForm() {
       setErr(json.error ?? "Kayıt başarısız");
       return;
     }
-    router.push("/account");
+    router.push(returnTo);
     router.refresh();
   }
 
@@ -85,7 +91,7 @@ export function AccountRegisterForm() {
         </button>
       </form>
       <p className="kn-account__footer">
-        Zaten üye misiniz? <Link href="/account/login">Giriş yapın</Link>
+        Zaten üye misiniz? <Link href={accountLoginPath(returnTo)}>Giriş yapın</Link>
       </p>
     </div>
   );

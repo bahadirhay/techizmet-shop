@@ -66,8 +66,19 @@ const BRIDGE_SCRIPT = `<script id="kn-account-bridge">(function(){
       else if(btn.dataset.knPrevText) btn.textContent=btn.dataset.knPrevText;
     });
   }
+  function returnPath(){
+    try{
+      var topWin=window.top||window;
+      var u=new URL(topWin.location.href);
+      var n=u.searchParams.get("next");
+      if(n&&n.charAt(0)==="/"&&!n.startsWith("//")&&n.indexOf("://")===-1){
+        if(n.indexOf("/account/login")!==0&&n.indexOf("/account/register")!==0&&n.indexOf("/account/forgot-password")!==0)return n;
+      }
+    }catch(e){}
+    return "/account";
+  }
   function goAccount(){
-    (window.top||window).location.href="/account";
+    (window.top||window).location.href=returnPath();
   }
   async function postJson(url, body){
     var res=await fetch(url,{

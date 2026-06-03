@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { accountLoginPath } from "@/lib/account-return-path";
 
 export function FavoriteButton({
   productId,
@@ -58,7 +59,9 @@ export function FavoriteButton({
   if (loggedIn === false) {
     return (
       <Link
-        href={`/account/login?next=${encodeURIComponent(typeof window !== "undefined" ? window.location.pathname : "/")}`}
+        href={accountLoginPath(
+          typeof window !== "undefined" ? window.location.pathname : "/",
+        )}
         className={`kn-fav-btn kn-fav-btn--guest ${className}`}
         title="Favorilere eklemek için giriş yapın"
         onClick={(e) => e.stopPropagation()}

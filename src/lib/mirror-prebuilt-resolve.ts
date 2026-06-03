@@ -12,9 +12,11 @@ export function mirrorIframePrefersLiveApi(opts?: { hasCustomBlocks?: boolean })
   return Boolean(opts?.hasCustomBlocks);
 }
 
-/** Hesap / sepet — oturuma göre API enjeksiyonu gerekir */
+/** Sepet + hesap auth/favoriler — oturuma göre API; hesap ana sayfa prebuilt + /api/account/panel */
 function needsLiveMirrorApi(path: string): boolean {
-  return /\/mirror\/(?:account|cart)\//i.test(path);
+  if (/\/mirror\/cart\//i.test(path)) return true;
+  if (/\/mirror\/account\/(?:favorites|login|register|forgot-password)/i.test(path)) return true;
+  return false;
 }
 
 /** Statik public/theme HTML — generate script ile her zaman üretilir */

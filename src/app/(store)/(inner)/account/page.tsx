@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { MirrorAccountFrame } from "@/components/store/MirrorAccountFrame";
+import { accountLoginPath } from "@/lib/account-return-path";
 import { AccountDashboard } from "@/components/store/AccountDashboard";
 import {
   canRequestCancel,
@@ -18,7 +19,7 @@ import { prisma } from "@/lib/prisma";
 export default async function AccountPage() {
   const session = await getCustomerSession();
   if (!session.isLoggedIn || !session.customerId) {
-    redirect("/account/login");
+    redirect(accountLoginPath("/account"));
   }
 
   const site = await getDefaultSite();
@@ -44,7 +45,7 @@ export default async function AccountPage() {
     },
   });
 
-  if (!customer) redirect("/account/login");
+  if (!customer) redirect(accountLoginPath("/account"));
 
   const favorites = customer.favorites
     .filter((f) => f.product.siteId === site.id && f.product.published)

@@ -15,6 +15,7 @@ import {
   type PaymentMethodId,
 } from "@/lib/checkout/payment-options";
 import { formatCheckoutLine1, splitSavedLine1 } from "@/lib/tr-address/format";
+import { accountLoginPath } from "@/lib/account-return-path";
 
 function addressToForm(a: CheckoutPrefill["addresses"][0]) {
   const { neighborhood, streetLine } = splitSavedLine1(a.line1);
@@ -256,7 +257,7 @@ export function CheckoutForm({
           ) : (
             <p>
               Misafir olarak devam edebilirsiniz —{" "}
-              <Link href="/account/login?next=/checkout" {...linkProps}>giriş yapın</Link> kayıtlı adresleriniz için.
+              <Link href={accountLoginPath("/checkout")} {...linkProps}>giriş yapın</Link> kayıtlı adresleriniz için — üye olmadan da sipariş verebilirsiniz.
             </p>
           )}
         </header>

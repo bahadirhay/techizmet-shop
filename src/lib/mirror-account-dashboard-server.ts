@@ -33,7 +33,7 @@ export async function loadMirrorAccountDashboardPayload(
       addresses: { orderBy: [{ isDefault: "desc" }, { updatedAt: "desc" }] },
       orders: {
         orderBy: { createdAt: "desc" },
-        take: 50,
+        take: 24,
         include: { carrier: true },
       },
     },

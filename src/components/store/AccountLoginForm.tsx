@@ -1,11 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import {
+  accountRegisterPath,
+  sanitizeAccountReturnPath,
+} from "@/lib/account-return-path";
 
 export function AccountLoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnTo = sanitizeAccountReturnPath(searchParams.get("next"));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -26,7 +32,7 @@ export function AccountLoginForm() {
       setErr(json.error ?? "Giriş başarısız");
       return;
     }
-    router.push("/account");
+    router.push(returnTo);
     router.refresh();
   }
 
@@ -57,7 +63,7 @@ export function AccountLoginForm() {
         </button>
       </form>
       <p className="kn-account__footer">
-        Hesabınız yok mu? <Link href="/account/register">Kayıt olun</Link>
+        Hesabınız yok mu? <Link href={accountRegisterPath(returnTo)}>Kayıt olun</Link>
         <br />
         <Link href="/orders/track">Sipariş takip</Link> (misafir)
       </p>

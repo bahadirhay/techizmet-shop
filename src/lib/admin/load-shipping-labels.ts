@@ -12,18 +12,17 @@ import { prisma } from "@/lib/prisma";
 function shipFromFromSettings(settingsJson: string | null, storeName: string): ShipFromAddress {
   const settings = parseSiteSettings(settingsJson);
   const saved = settings.store?.shipFrom;
-  if (saved?.name?.trim()) {
-    return {
-      name: saved.name.trim(),
-      line1: saved.line1?.trim() ?? "",
-      line2: saved.line2?.trim(),
-      district: saved.district?.trim() ?? "",
-      city: saved.city?.trim() ?? "",
-      postalCode: saved.postalCode?.trim() ?? "",
-      phone: saved.phone?.trim() ?? "",
-    };
-  }
-  return defaultShipFrom(storeName);
+  const base = defaultShipFrom(storeName);
+  if (!saved) return base;
+  return {
+    name: saved.name?.trim() || base.name,
+    line1: saved.line1?.trim() ?? "",
+    line2: saved.line2?.trim(),
+    district: saved.district?.trim() ?? "",
+    city: saved.city?.trim() ?? "",
+    postalCode: saved.postalCode?.trim() ?? "",
+    phone: saved.phone?.trim() ?? "",
+  };
 }
 
 export async function loadShippingLabelsForPrint(

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { MirrorFavoritesFrame } from "@/components/store/MirrorFavoritesFrame";
+import { accountLoginPath } from "@/lib/account-return-path";
 import { formatTry } from "@/lib/format";
 import { getCustomerSession } from "@/lib/customer-session";
 import { getStoreHomepageMode } from "@/lib/site-settings";
@@ -12,7 +13,7 @@ export default async function FavoritesPage() {
   const site = await getDefaultSite();
   const session = await getCustomerSession();
   if (!session.isLoggedIn || !session.customerId) {
-    redirect(`/account/login?next=${encodeURIComponent("/account/favorites")}`);
+    redirect(accountLoginPath("/account/favorites"));
   }
 
   const homepageMode = await getStoreHomepageMode(site.id);

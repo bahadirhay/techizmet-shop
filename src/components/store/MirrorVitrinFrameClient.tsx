@@ -9,6 +9,7 @@ import { mergeScrollingCollectionEdits, applyScrollingCollectionsToSection } fro
 import { mergeTrendingProductEdits, applyTrendingProductsToSection } from "@/lib/mirror-trending-products-section";
 import { mergeTestimonialEdits, applyTestimonialToSection } from "@/lib/mirror-testimonial-section";
 import { applyMirrorAccountDashboardClient } from "@/lib/mirror-account-dashboard-client";
+import { hydrateMirrorAccountPanel } from "@/lib/mirror-account-panel-client";
 import {
   applyMirrorAccountDrawerClient,
   openAccountDrawer,
@@ -209,7 +210,11 @@ export function MirrorVitrinFrameClient({
         (!config || !hasMirrorPageEdits(config) || serverOverlay);
 
       applyMirrorAccountDrawerClient(doc);
-      applyMirrorAccountDashboardClient(doc);
+      if (pathname === "/account") {
+        void hydrateMirrorAccountPanel(doc);
+      } else {
+        applyMirrorAccountDashboardClient(doc);
+      }
       if (accountDrawerForm) openAccountDrawer(doc, accountDrawerForm);
 
       if (skipClientWork) return;

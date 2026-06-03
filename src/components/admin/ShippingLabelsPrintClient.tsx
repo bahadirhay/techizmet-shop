@@ -4,7 +4,11 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { AdminField, btnPrimary, btnSecondary, inputClass } from "@/components/admin/AdminForm";
 import { ShippingLabelSheet } from "@/components/admin/ShippingLabelSheet";
-import type { ShipFromAddress, ShippingLabelData } from "@/lib/admin/shipping-label";
+import {
+  mergeShipFromAddress,
+  type ShipFromAddress,
+  type ShippingLabelData,
+} from "@/lib/admin/shipping-label";
 
 const STORAGE_KEY = "admin-ship-from";
 
@@ -13,7 +17,7 @@ function loadStoredShipFrom(siteId: string, initial: ShipFromAddress): ShipFromA
   try {
     const raw = localStorage.getItem(`${STORAGE_KEY}:${siteId}`);
     if (!raw) return initial;
-    return { ...initial, ...JSON.parse(raw) } as ShipFromAddress;
+    return mergeShipFromAddress(initial, JSON.parse(raw) as Partial<ShipFromAddress>);
   } catch {
     return initial;
   }
