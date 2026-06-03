@@ -103,13 +103,94 @@
   border-radius: var(--card_radius, 8px);
   padding: 24px;
   position: sticky;
-  top: 20px;
+  top: 16px;
+  align-self: start;
+  z-index: 2;
+  max-height: calc(100vh - 32px);
+  overflow: auto;
 }
 
 .kn-checkout-page--embed .kn-checkout__summary h2 {
   font-size: var(--medium_text, 1.125rem);
   font-weight: 600;
   margin: 0 0 16px;
+}
+
+/* Siparişi tamamla — belirgin CTA */
+.kn-checkout__submit-btn,
+.kn-checkout-embed-root .kn-checkout__summary .cart-checkout-btn {
+  display: block;
+  width: 100%;
+  margin-top: 1.25rem;
+  padding: 1rem 1.25rem;
+  min-height: 52px;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  text-align: center;
+  color: #fff !important;
+  background: #1a1a1a !important;
+  border: none !important;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+}
+
+.kn-checkout__submit-btn:hover:not(:disabled),
+.kn-checkout-embed-root .kn-checkout__summary .cart-checkout-btn:hover:not(:disabled) {
+  background: #333 !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+}
+
+.kn-checkout__submit-btn:active:not(:disabled),
+.kn-checkout-embed-root .kn-checkout__summary .cart-checkout-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.kn-checkout__submit-btn:disabled,
+.kn-checkout-embed-root .kn-checkout__summary .cart-checkout-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+@media (max-width: 899px) {
+  .kn-checkout-page--embed .kn-checkout__main {
+    padding-bottom: 220px;
+  }
+
+  .kn-checkout-page--embed .kn-checkout__summary {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    z-index: 20;
+    max-height: none;
+    margin: 0;
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.12);
+    padding: 16px 20px calc(16px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .kn-checkout-page--embed .kn-checkout__summary h2,
+  .kn-checkout-page--embed .kn-checkout__items {
+    display: none;
+  }
+
+  .kn-checkout-page--embed .kn-checkout__summary .cart-summary-price-item:not(:last-of-type) {
+    display: none;
+  }
+
+  .kn-checkout-page--embed .kn-checkout__summary .cart-summary-price-item:last-of-type {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    font-size: 1.05rem;
+  }
 }
 
 .kn-checkout-page--embed .kn-address-pick__item,

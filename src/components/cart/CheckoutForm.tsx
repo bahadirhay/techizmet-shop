@@ -510,7 +510,11 @@ export function CheckoutForm({
             <strong>{formatTry(grandTotal)}</strong>
           </div>
           {err ? <p className="kn-checkout__err">{err}</p> : null}
-          <button type="submit" className="button medium-button button-block cart-checkout-btn" disabled={busy}>
+          <button
+            type="submit"
+            className="button medium-button button-block cart-checkout-btn kn-checkout__submit-btn"
+            disabled={busy}
+          >
             {busy ? "İşleniyor…" : "Siparişi tamamla"}
           </button>
         </aside>
