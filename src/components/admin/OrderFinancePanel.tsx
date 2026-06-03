@@ -67,11 +67,19 @@ export function OrderFinancePanel({
   }
 
   const snap = financeSnapshot;
+  const paymentFeeMinor = snap?.paymentFeeMinor ?? 0;
+  const cardFeeTx = transactions.filter(
+    (t) => t.kind === "expense" && t.description.includes("Tahmini kart komisyonu"),
+  );
   const netFromSnap =
     snap?.expectedNetProfitMinor != null
       ? snap.expectedNetProfitMinor
       : snap
-        ? snap.grossMinor - snap.totalCommissionMinor - snap.shippingDeductionMinor - (snap.totalCostMinor ?? 0)
+        ? snap.grossMinor -
+          snap.totalCommissionMinor -
+          snap.shippingDeductionMinor -
+          paymentFeeMinor -
+          (snap.totalCostMinor ?? 0)
         : null;
 
   return (
@@ -106,6 +114,15 @@ export function OrderFinancePanel({
                 <span>−{formatTry(snap.shippingDeductionMinor)}</span>
               </div>
             ) : null}
+            {paymentFeeMinor > 0 ? (
+              <div className="flex justify-between gap-4 text-amber-900">
+                <span>
+                  Tahmini kart komisyonu
+                  {snap.paymentFeePercent != null ? ` (%${snap.paymentFeePercent})` : ""}
+                </span>
+                <span>−{formatTry(paymentFeeMinor)}</span>
+              </div>
+            ) : null}
             {snap.totalCostMinor != null && snap.totalCostMinor > 0 ? (
               <div className="flex justify-between gap-4">
                 <span>Ürün maliyeti</span>
@@ -116,13 +133,48 @@ export function OrderFinancePanel({
                 {snap.missingCostLines} satırda maliyet yok — net kâr eksik hesaplanır.
               </p>
             ) : null}
-            {netFromSnap != null && snap.totalCostMinor ? (
+            {netFromSnap != null ? (
               <div className="flex justify-between gap-4 border-t border-blue-100 pt-2 font-semibold">
                 <span>Tahmini net kâr</span>
-                <span>{formatTry(netFromSnap)}</span>
+                <span>
+                  {snap.totalCostMinor != null && snap.totalCostMinor > 0
+                    ? formatTry(netFromSnap)
+                    : "Maliyet girilmedi"}
+                </span>
               </div>
             ) : null}
           </div>
+          {snap.lines.length > 0 ? (
+            <table className="mt-3 w-full text-xs">
+              <thead>
+                <tr className="border-b text-left text-blue-800/80">
+                  <th className="pb-1 pr-2">Kalem</th>
+                  <th className="pb-1 pr-2 text-right">Satış</th>
+                  <th className="pb-1 pr-2 text-right">Maliyet</th>
+                  <th className="pb-1 text-right">Komisyon</th>
+                </tr>
+              </thead>
+              <tbody>
+                {snap.lines.map((line, i) => (
+                  <tr key={`${line.productId ?? line.title}-${i}`} className="border-b border-blue-50">
+                    <td className="py-1 pr-2">
+                      {line.title}
+                      {line.qty > 1 ? ` ×${line.qty}` : ""}
+                    </td>
+                    <td className="py-1 pr-2 text-right tabular-nums">{formatTry(line.lineMinor)}</td>
+                    <td className="py-1 pr-2 text-right tabular-nums">
+                      {line.costMinor != null && line.costMinor > 0
+                        ? formatTry(line.costMinor * line.qty)
+                        : "—"}
+                    </td>
+                    <td className="py-1 text-right tabular-nums">
+                      {line.commissionMinor > 0 ? `−${formatTry(line.commissionMinor)}` : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : null}
         </div>
       ) : null}
 
@@ -146,6 +198,19 @@ export function OrderFinancePanel({
           ) : null}
         </div>
       )}
+
+      {cardFeeTx.length > 0 ? (
+        <ul className="mt-3 space-y-1 text-sm">
+          {cardFeeTx.map((d) => (
+            <li key={d.id} className="rounded border border-blue-100 bg-white px-3 py-2">
+              <span className="mr-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-900">
+                Tahmini
+              </span>
+              Kart komisyonu: {formatTry(d.amountMinor)} — {d.description}
+            </li>
+          ))}
+        </ul>
+      ) : null}
 
       {deductions.length > 0 ? (
         <ul className="mt-3 space-y-1 text-sm">

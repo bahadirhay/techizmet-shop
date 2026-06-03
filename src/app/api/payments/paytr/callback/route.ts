@@ -64,6 +64,12 @@ export async function POST(req: Request) {
       },
     });
     await sendOrderConfirmationBundle(order.id).catch((e) => console.error("[notify]", e));
+    try {
+      const { recordOrderFinanceOnPayment } = await import("@/lib/finance/order-posting");
+      await recordOrderFinanceOnPayment(site.id, order.id);
+    } catch (e) {
+      console.error("[finance]", e);
+    }
   } else {
     await prisma.storeOrder.update({
       where: { id: order.id },

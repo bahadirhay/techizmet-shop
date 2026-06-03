@@ -30,6 +30,9 @@ export type OrderFinanceSnapshot = {
   shippingDeductionMinor: number;
   shippingModel: ShippingModelId;
   totalCostMinor: number | null;
+  /** Tahmini PayTR / kart komisyonu (web + kart) */
+  paymentFeeMinor: number;
+  paymentFeePercent: number | null;
   expectedNetProfitMinor: number | null;
   missingCostLines: number;
   computedAt: string;
@@ -49,6 +52,7 @@ type OrderInput = {
   siteId: string;
   orderNumber: string;
   marketplacePlatform: string | null;
+  paymentMethod: string | null;
   subtotalMinor: number;
   shippingMinor: number;
   discountMinor: number;
@@ -125,10 +129,18 @@ export async function buildOrderFinanceSnapshot(order: OrderInput): Promise<Orde
   }
 
   const grossMinor = order.totalMinor;
+  const { resolvePaymentFeeForOrder } = await import("@/lib/finance/payment-fee");
+  const { paymentFeeMinor, paymentFeePercent } = await resolvePaymentFeeForOrder(
+    order.siteId,
+    order.paymentMethod,
+    platform,
+    grossMinor,
+  );
+
+  const deductions =
+    totalCommissionMinor + shippingDeductionMinor + paymentFeeMinor;
   const expectedNetProfitMinor =
-    totalCostMinor > 0
-      ? grossMinor - totalCommissionMinor - shippingDeductionMinor - totalCostMinor
-      : null;
+    totalCostMinor > 0 ? grossMinor - deductions - totalCostMinor : null;
 
   return {
     channel: platform ?? "web",
@@ -141,6 +153,8 @@ export async function buildOrderFinanceSnapshot(order: OrderInput): Promise<Orde
     shippingDeductionMinor,
     shippingModel,
     totalCostMinor: totalCostMinor > 0 ? totalCostMinor : null,
+    paymentFeeMinor,
+    paymentFeePercent,
     expectedNetProfitMinor,
     missingCostLines,
     computedAt: new Date().toISOString(),
@@ -159,6 +173,7 @@ export async function applyOrderFinanceSnapshot(siteId: string, orderId: string)
     siteId: order.siteId,
     orderNumber: order.orderNumber,
     marketplacePlatform: order.marketplacePlatform,
+    paymentMethod: order.paymentMethod,
     subtotalMinor: order.subtotalMinor,
     shippingMinor: order.shippingMinor,
     discountMinor: order.discountMinor,

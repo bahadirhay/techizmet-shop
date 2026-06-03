@@ -1,5 +1,8 @@
 /** İstemci + sunucu — mirror PDP fiyat / sepet (DOM yaması, fs/prisma yok) */
 
+import type { ProductSharePayload } from "@/lib/product-share";
+import { injectMirrorProductShareHtml } from "@/lib/mirror-product-share";
+
 export type MirrorProductCommerceTexts = {
   startingPricePrefix?: string;
 };
@@ -21,6 +24,7 @@ export type MirrorProductCommercePayload = {
   fromPrice: boolean;
   inStock: boolean;
   texts?: MirrorProductCommerceTexts;
+  share?: ProductSharePayload;
 };
 
 function buildCommerceScript(data: MirrorProductCommercePayload): string {
@@ -230,8 +234,10 @@ function buildCommerceScript(data: MirrorProductCommercePayload): string {
 /** Sunucu — mirror ürün HTML’ine sepet köprüsü */
 export function injectMirrorProductCommerceHtml(html: string, data: MirrorProductCommercePayload): string {
   const script = `<script id="kn-product-commerce">${buildCommerceScript(data)}</script>`;
-  const out = html.replace(/<script id="kn-product-commerce">[\s\S]*?<\/script>/i, "");
-  return out.replace(/<\/body>/i, `${script}</body>`);
+  let out = html.replace(/<script id="kn-product-commerce">[\s\S]*?<\/script>/i, "");
+  out = out.replace(/<\/body>/i, `${script}</body>`);
+  if (data.share) out = injectMirrorProductShareHtml(out, data.share);
+  return out;
 }
 
 export function applyMirrorProductCommerce(doc: Document, data: MirrorProductCommercePayload) {

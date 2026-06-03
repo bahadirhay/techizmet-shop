@@ -18,6 +18,11 @@ export async function syncOrdersToFinance(
       ...(options.orderId ? { id: options.orderId } : {}),
       status: { notIn: ["cancelled"] },
       ...(since && !options.orderId ? { createdAt: { gte: since } } : {}),
+      OR: [
+        { marketplacePlatform: { not: null } },
+        { paymentStatus: "paid" },
+        { paymentMethod: "cod" },
+      ],
     },
     select: {
       id: true,

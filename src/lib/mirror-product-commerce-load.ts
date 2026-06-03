@@ -88,5 +88,11 @@ export async function loadMirrorProductCommerceUncached(
     fromPrice,
     inStock,
     texts: resolveMirrorProductTexts(locale, textSettings),
+    share: {
+      slug: product.slug,
+      title: product.title,
+      priceLabel: fromPrice ? `${resolveMirrorProductTexts(locale, textSettings)?.startingPricePrefix ?? "Başlayan fiyat"}: ${priceLabel}` : priceLabel,
+      imageUrl: product.imageUrl,
+    },
   };
 }

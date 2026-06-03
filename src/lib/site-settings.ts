@@ -123,6 +123,8 @@ export type SiteSettings = {
   };
   /** Bildirim kanalları — site başına (DB settingsJson); .env yalnızca API anahtarı */
   notifications?: StoreNotificationSettings;
+  /** Ön muhasebe — tahmini kart komisyonu (%) */
+  finance?: { cardFeePercent?: number };
   payment?: {
     paytr?: { merchantId?: string; merchantKey?: string; merchantSalt?: string; testMode?: boolean };
     iyzico?: { apiKey?: string; secretKey?: string; baseUrl?: string };
