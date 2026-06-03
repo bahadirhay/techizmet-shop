@@ -210,6 +210,13 @@ export const ACCOUNT_DASHBOARD_CSS = `<style id="kn-account-dashboard-css">
 .kn-account-dashboard .kn-account-address-edit-form[hidden] {
   display: none !important;
 }
+.kn-account-dashboard .kn-account-address-edit-form:not([hidden]) {
+  display: block !important;
+}
+.kn-account-dashboard .kn-addr-btn {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
 .kn-account-dashboard .address--card {
   border: 1px solid var(--border_color, #e5e2dd);
   border-radius: 12px;
@@ -571,14 +578,14 @@ export function buildAccountDashboardBridgeScript(): string {
   function qs(s,r){return (r||document).querySelector(s);}
   function qsa(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s));}
   function tr(){return document.documentElement.lang&&document.documentElement.lang.indexOf("tr")===0;}
-  function elFromEvent(e){var t=e.target;if(t instanceof Element)return t;if(t&&t.parentElement)return t.parentElement;return null;}
+  function elFromEvent(e){var t=e.target;while(t){if(t instanceof Element)return t;if(t.parentElement)t=t.parentElement;else break;}return null;}
   function field(form,name){var el=form.querySelector('[name="'+name+'"]');return el?String(el.value||"").trim():"";}
   function chk(form,name){var el=form.querySelector('[name="'+name+'"]');return !!(el&&el.checked);}
   function msg(el,text,ok){if(!el)return;el.hidden=!text;el.textContent=text||"";el.style.color=ok?"#166534":"#b91c1c";}
   function welcomeName(first,last){return [first,last].filter(Boolean).join(" ").trim();}
   function setWelcome(name){var w=qs("#kn-account-welcome");if(!w||!name)return;w.innerHTML=(tr()?"Hoş geldiniz, ":"Welcome, ")+"<strong>"+name.replace(/&/g,"&amp;").replace(/</g,"&lt;")+"</strong>";}
   function resetNewAddressForm(form){if(!form)return;form.reset();var cb=form.querySelector('[name="isDefault"]');if(cb)cb.checked=false;}
-  function hideAllAddrEditForms(except){qsa("[data-kn-addr-edit-form]").forEach(function(f){if(f!==except)f.hidden=true;});}
+  function hideAllAddrEditForms(except){qsa("[data-kn-addr-edit-form]").forEach(function(f){if(f!==except){f.hidden=true;f.setAttribute("hidden","");f.style.display="none";}});}
   function reloadDashboard(){try{var u=new URL(window.location.href);u.searchParams.set("_kn",String(Date.now()));window.location.replace(u.toString());}catch(e){window.location.reload();}}
   function showTab(name){
     if(!name)return;
@@ -659,8 +666,8 @@ export function buildAccountDashboardBridgeScript(): string {
     var el=elFromEvent(e);if(!el)return;
     var tabBtn=el.closest("[data-kn-account-tab]");if(tabBtn){e.preventDefault();showTab(tabBtn.getAttribute("data-kn-account-tab"));return;}
     var lo=el.closest("[data-kn-logout]");if(lo){e.preventDefault();await post("/api/account/logout",{});try{window.top.location.href="/";}catch(err){window.location.href="/";}return;}
-    var edit=el.closest("[data-kn-addr-edit]");if(edit){e.preventDefault();var card=edit.closest("[data-address-id]");var form=card&&card.querySelector("[data-kn-addr-edit-form]");if(form){hideAllAddrEditForms(form);form.hidden=false;form.scrollIntoView({behavior:"smooth",block:"nearest"});}return;}
-    var cancel=el.closest("[data-kn-addr-cancel]");if(cancel){e.preventDefault();var form=cancel.closest("[data-kn-addr-edit-form]");if(form)form.hidden=true;return;}
+    var edit=el.closest("[data-kn-addr-edit]");if(edit){e.preventDefault();e.stopPropagation();var card=edit.closest("[data-address-id]");var form=card&&card.querySelector("[data-kn-addr-edit-form]");if(form){hideAllAddrEditForms(form);form.hidden=false;form.removeAttribute("hidden");form.style.display="block";var trBlocks=form.querySelectorAll("[data-kn-tr-address]");trBlocks.forEach(function(b){b.removeAttribute("data-kn-tr-bound");});form.scrollIntoView({behavior:"smooth",block:"nearest"});}return;}
+    var cancel=el.closest("[data-kn-addr-cancel]");if(cancel){e.preventDefault();e.stopPropagation();var form=cancel.closest("[data-kn-addr-edit-form]");if(form){form.hidden=true;form.setAttribute("hidden","");form.style.display="none";}return;}
     var def=el.closest("[data-kn-addr-default]");if(def){e.preventDefault();var r=await patch("/api/account/addresses/"+def.getAttribute("data-kn-addr-default"),{isDefault:true});if(r.ok)reloadDashboard();else alert(r.json.error||(tr()?"Hata":"Error"));return;}
     var del=el.closest("[data-kn-addr-delete]");if(del){e.preventDefault();if(!confirm(tr()?"Bu adresi silmek istiyor musunuz?":"Delete this address?"))return;var res=await fetch("/api/account/addresses/"+del.getAttribute("data-kn-addr-delete"),{method:"DELETE",credentials:"same-origin"});if(!res.ok){var j={};try{j=await res.json();}catch(err){}alert(j.error||(tr()?"Silinemedi":"Could not delete"));return;}reloadDashboard();return;}
     var fav=el.closest("[data-kn-fav-remove]");if(fav){e.preventDefault();var pid=fav.getAttribute("data-product-id");if(!pid)return;var fr=await post("/api/account/favorites",{productId:pid});if(!fr.ok){alert(tr()?"İşlem başarısız":"Failed");return;}var card=fav.closest("[data-kn-fav-card]");if(card)card.remove();if(!qs("[data-kn-fav-card]")){var empty=qs('[data-kn-account-panel="favorites"]');if(empty)reloadDashboard();}return;}

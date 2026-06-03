@@ -119,6 +119,132 @@ async function patchJson(url: string, body: Record<string, unknown>) {
   return { ok: r.ok, json };
 }
 
+function eventTargetElement(e: Event): Element | null {
+  const t = e.target;
+  if (t instanceof Element) return t;
+  if (t && "parentElement" in t && t.parentElement instanceof Element) return t.parentElement;
+  return null;
+}
+
+function hideAddressEditForms(doc: Document, except?: HTMLElement) {
+  doc.querySelectorAll<HTMLElement>("[data-kn-addr-edit-form]").forEach((f) => {
+    if (f === except) return;
+    f.hidden = true;
+    f.setAttribute("hidden", "");
+    f.style.display = "none";
+  });
+}
+
+export function openAddressEditForm(doc: Document, editBtn: Element) {
+  const card = editBtn.closest("[data-address-id]");
+  const form = card?.querySelector<HTMLElement>("[data-kn-addr-edit-form]");
+  if (!form) return;
+
+  hideAddressEditForms(doc, form);
+  form.hidden = false;
+  form.removeAttribute("hidden");
+  form.style.display = "block";
+
+  form.querySelectorAll("[data-kn-tr-address]").forEach((block) => {
+    block.removeAttribute("data-kn-tr-bound");
+  });
+  bindMirrorTrAddressFields(form);
+
+  try {
+    form.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  } catch {
+    form.scrollIntoView();
+  }
+}
+
+function bindAddressCardButtons(doc: Document) {
+  doc.querySelectorAll<HTMLButtonElement>("[data-kn-addr-edit]").forEach((btn) => {
+    if (btn.dataset.knEditBound === "1") return;
+    btn.dataset.knEditBound = "1";
+    btn.type = "button";
+    btn.addEventListener(
+      "click",
+      (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openAddressEditForm(doc, btn);
+      },
+      true,
+    );
+  });
+
+  doc.querySelectorAll<HTMLButtonElement>("[data-kn-addr-cancel]").forEach((btn) => {
+    if (btn.dataset.knCancelBound === "1") return;
+    btn.dataset.knCancelBound = "1";
+    btn.type = "button";
+    btn.addEventListener(
+      "click",
+      (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const form = btn.closest<HTMLElement>("[data-kn-addr-edit-form]");
+        if (!form) return;
+        form.hidden = true;
+        form.setAttribute("hidden", "");
+        form.style.display = "none";
+      },
+      true,
+    );
+  });
+
+  doc.querySelectorAll<HTMLButtonElement>("[data-kn-addr-default]").forEach((btn) => {
+    if (btn.dataset.knDefaultBound === "1") return;
+    btn.dataset.knDefaultBound = "1";
+    btn.type = "button";
+    btn.addEventListener(
+      "click",
+      async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const id = btn.getAttribute("data-kn-addr-default");
+        if (!id) return;
+        const r = await patchJson(`/api/account/addresses/${id}`, { isDefault: true });
+        if (r.ok) reloadDashboard(doc);
+        else alert(r.json.error || (isTr(doc) ? "Hata" : "Error"));
+      },
+      true,
+    );
+  });
+
+  doc.querySelectorAll<HTMLButtonElement>("[data-kn-addr-delete]").forEach((btn) => {
+    if (btn.dataset.knDeleteBound === "1") return;
+    btn.dataset.knDeleteBound = "1";
+    btn.type = "button";
+    btn.addEventListener(
+      "click",
+      async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const tr = isTr(doc);
+        if (!confirm(tr ? "Bu adresi silmek istiyor musunuz?" : "Delete this address?")) return;
+        const id = btn.getAttribute("data-kn-addr-delete");
+        if (!id) return;
+        const res = await fetch(`/api/account/addresses/${id}`, {
+          method: "DELETE",
+          credentials: "same-origin",
+        });
+        if (!res.ok) {
+          let j: { error?: string } = {};
+          try {
+            j = await res.json();
+          } catch {
+            /* ignore */
+          }
+          alert(j.error || (tr ? "Silinemedi" : "Could not delete"));
+          return;
+        }
+        reloadDashboard(doc);
+      },
+      true,
+    );
+  });
+}
+
 function addrBody(form: HTMLFormElement) {
   if (form.querySelector("[data-kn-tr-address]")) {
     const tr = mirrorTrAddressBodyFromForm(form);
@@ -278,8 +404,8 @@ function bindAccountActions(doc: Document) {
   doc.addEventListener(
     "click",
     async (e) => {
-      const t = e.target;
-      if (!(t instanceof Element)) return;
+      const t = eventTargetElement(e);
+      if (!t) return;
 
       const tabBtn = t.closest("[data-kn-account-tab]");
       if (tabBtn) {
@@ -298,63 +424,6 @@ function bindAccountActions(doc: Document) {
         } catch {
           if (doc.defaultView) doc.defaultView.location.href = "/";
         }
-        return;
-      }
-
-      const edit = t.closest("[data-kn-addr-edit]");
-      if (edit) {
-        e.preventDefault();
-        const card = edit.closest("[data-address-id]");
-        const form = card?.querySelector<HTMLElement>("[data-kn-addr-edit-form]");
-        if (form) {
-          doc.querySelectorAll<HTMLElement>("[data-kn-addr-edit-form]").forEach((f) => {
-            if (f !== form) f.hidden = true;
-          });
-          form.hidden = false;
-          bindMirrorTrAddressFields(form);
-          form.scrollIntoView({ behavior: "smooth", block: "nearest" });
-        }
-        return;
-      }
-
-      const cancel = t.closest("[data-kn-addr-cancel]");
-      if (cancel) {
-        e.preventDefault();
-        const form = cancel.closest<HTMLElement>("[data-kn-addr-edit-form]");
-        if (form) form.hidden = true;
-        return;
-      }
-
-      const def = t.closest("[data-kn-addr-default]");
-      if (def) {
-        e.preventDefault();
-        const id = def.getAttribute("data-kn-addr-default");
-        const r = await patchJson(`/api/account/addresses/${id}`, { isDefault: true });
-        if (r.ok) reloadDashboard(doc);
-        else alert(r.json.error || (tr() ? "Hata" : "Error"));
-        return;
-      }
-
-      const del = t.closest("[data-kn-addr-delete]");
-      if (del) {
-        e.preventDefault();
-        if (!confirm(tr() ? "Bu adresi silmek istiyor musunuz?" : "Delete this address?")) return;
-        const id = del.getAttribute("data-kn-addr-delete");
-        const res = await fetch(`/api/account/addresses/${id}`, {
-          method: "DELETE",
-          credentials: "same-origin",
-        });
-        if (!res.ok) {
-          let j: { error?: string } = {};
-          try {
-            j = await res.json();
-          } catch {
-            /* ignore */
-          }
-          alert(j.error || (tr() ? "Silinemedi" : "Could not delete"));
-          return;
-        }
-        reloadDashboard(doc);
         return;
       }
 
@@ -429,6 +498,7 @@ export function applyMirrorAccountDashboardClient(doc: Document) {
 
   bindAccountTabs(doc);
   bindMirrorTrAddressFields(doc);
+  bindAddressCardButtons(doc);
   bindAccountForms(doc);
   bindAccountActions(doc);
 
@@ -443,6 +513,7 @@ export function applyMirrorAccountDashboardClient(doc: Document) {
   const obs = new MutationObserver(() => {
     bindAccountTabs(doc);
     bindMirrorTrAddressFields(doc);
+    bindAddressCardButtons(doc);
     bindAccountForms(doc);
   });
   obs.observe(root, { childList: true, subtree: true });
