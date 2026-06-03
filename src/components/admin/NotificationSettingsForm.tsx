@@ -13,8 +13,19 @@ export function NotificationSettingsForm({ initial }: { initial: SiteSettings })
   const [busy, setBusy] = useState(false);
 
   const email = s.notifications?.email ?? {};
+  const smtp = s.notifications?.smtp ?? {};
   const sms = s.notifications?.sms ?? {};
   const telegram = s.notifications?.telegram ?? {};
+
+  function patchSmtp(patch: Partial<NonNullable<SiteSettings["notifications"]>["smtp"]>) {
+    setS({
+      ...s,
+      notifications: {
+        ...s.notifications,
+        smtp: { ...smtp, ...patch },
+      },
+    });
+  }
 
   function patchEmail(patch: Partial<NonNullable<SiteSettings["notifications"]>["email"]>) {
     setS({
@@ -83,14 +94,163 @@ export function NotificationSettingsForm({ initial }: { initial: SiteSettings })
     setMsg(j.message ?? j.error ?? (res.ok ? "SMS gönderildi" : "Gönderilemedi"));
   }
 
+  async function testSmtp() {
+    if (!testEmail.trim()) {
+      setMsg("Test için e-posta adresi girin");
+      return;
+    }
+    setBusy(true);
+    setMsg(null);
+    const res = await fetch("/api/admin/integrations/smtp/test", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ to: testEmail.trim(), smtpDraft: { smtp } }),
+    });
+    const j = (await res.json()) as { message?: string; error?: string };
+    setBusy(false);
+    setMsg(j.message ?? j.error ?? (res.ok ? "Test e-postası gönderildi" : "Gönderilemedi"));
+  }
+
   return (
     <div className="space-y-8">
+      <section id="smtp" className="scroll-mt-6 rounded-xl border bg-white p-6">
+        <h2 className="text-lg font-semibold">E-posta sunucusu (SMTP / Resend)</h2>
+        <p className="mt-1 text-sm text-zinc-500">
+          Gönderim ayarları bu mağaza için veritabanında saklanır. Sunucuda tanımlı{" "}
+          <code className="text-xs">SMTP_*</code> / <code className="text-xs">RESEND_API_KEY</code>{" "}
+          (.env) değerleri panel boşken yedek olarak kullanılır.
+        </p>
+
+        <div className="mt-4 flex flex-wrap gap-4 text-sm">
+          <label className="flex items-center gap-2">
+            <input
+              type="radio"
+              name="smtp-provider"
+              checked={(smtp.provider ?? "auto") === "auto"}
+              onChange={() => patchSmtp({ provider: "auto" })}
+            />
+            Otomatik (önce SMTP, yoksa Resend)
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="radio"
+              name="smtp-provider"
+              checked={smtp.provider === "smtp"}
+              onChange={() => patchSmtp({ provider: "smtp" })}
+            />
+            Yalnızca SMTP
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="radio"
+              name="smtp-provider"
+              checked={smtp.provider === "resend"}
+              onChange={() => patchSmtp({ provider: "resend" })}
+            />
+            Yalnızca Resend
+          </label>
+        </div>
+
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <AdminField label="SMTP sunucu (host)">
+            <input
+              className={inputClass}
+              value={smtp.host ?? ""}
+              onChange={(e) => patchSmtp({ host: e.target.value })}
+              placeholder="mail.ornek.com"
+              autoComplete="off"
+            />
+          </AdminField>
+          <AdminField label="Port">
+            <input
+              className={inputClass}
+              type="number"
+              min={1}
+              max={65535}
+              value={smtp.port ?? ""}
+              onChange={(e) =>
+                patchSmtp({ port: e.target.value ? Number(e.target.value) : undefined })
+              }
+              placeholder="587"
+            />
+          </AdminField>
+          <AdminField label="SMTP kullanıcı">
+            <input
+              className={inputClass}
+              value={smtp.user ?? ""}
+              onChange={(e) => patchSmtp({ user: e.target.value })}
+              placeholder="shop@ornek.com"
+              autoComplete="off"
+            />
+          </AdminField>
+          <AdminField label="SMTP şifre">
+            <input
+              className={inputClass}
+              type="password"
+              value={smtp.password ?? ""}
+              onChange={(e) => patchSmtp({ password: e.target.value })}
+              placeholder="••••••••"
+              autoComplete="new-password"
+            />
+          </AdminField>
+        </div>
+
+        <div className="mt-3 space-y-2 text-sm">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={smtp.secure === true}
+              onChange={(e) => patchSmtp({ secure: e.target.checked })}
+            />
+            SSL (genelde port 465)
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={smtp.tlsRejectUnauthorized === false}
+              onChange={(e) => patchSmtp({ tlsRejectUnauthorized: !e.target.checked })}
+            />
+            TLS sertifika doğrulaması (kapalı = self-signed sunucular)
+          </label>
+        </div>
+
+        <AdminField label="Resend API anahtarı (isteğe bağlı)">
+          <input
+            className={`${inputClass} mt-4 font-mono text-xs`}
+            type="password"
+            value={smtp.resendApiKey ?? ""}
+            onChange={(e) => patchSmtp({ resendApiKey: e.target.value })}
+            placeholder="re_..."
+            autoComplete="off"
+          />
+        </AdminField>
+
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <input
+            className={`${inputClass} max-w-xs`}
+            type="email"
+            placeholder="Test e-posta adresi"
+            value={testEmail}
+            onChange={(e) => setTestEmail(e.target.value)}
+          />
+          <button type="button" className={btnSecondary} disabled={busy} onClick={testSmtp}>
+            SMTP test gönder
+          </button>
+        </div>
+        <p className="mt-2 text-xs text-zinc-500">
+          Test, kaydetmeden önce formdaki değerlerle dener. Kalıcı ayar için alttaki Kaydet&apos;e
+          basın.
+        </p>
+      </section>
+
       <section id="email" className="scroll-mt-6 rounded-xl border bg-white p-6">
         <h2 className="text-lg font-semibold">E-posta bildirimleri</h2>
         <p className="mt-1 text-sm text-zinc-500">
-          Gönderim için sunucuda <code>SMTP_HOST</code> / <code>SMTP_USER</code> /{" "}
-          <code>SMTP_PASSWORD</code> (.env) tanımlayın. Alternatif: <code>RESEND_API_KEY</code>.
-          Gönderen adresi buradan veya <code>MAIL_FROM</code> ile ayarlanır. Şablon metinleri:{" "}
+          Gönderen adresi ve hangi olaylarda mail gideceği. Sunucu bağlantısı yukarıdaki{" "}
+          <a href="#smtp" className="text-[var(--kn-brand)] underline">
+            E-posta sunucusu
+          </a>{" "}
+          bölümünden ayarlanır. Şablon metinleri:{" "}
           <Link href="/admin/integrations/emails" className="text-[var(--kn-brand)] underline">
             E-posta şablonları
           </Link>

@@ -31,6 +31,7 @@ export async function sendCustomerPasswordResetEmail(params: {
     html,
     from: resolveMailFrom(params.settings, params.siteName),
     replyTo: e?.replyTo,
+    settings: params.settings,
   });
 }
 

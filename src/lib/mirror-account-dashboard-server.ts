@@ -19,6 +19,7 @@ import {
   injectAccountWelcomeBanner,
   type MirrorAccountDashboardPayload,
 } from "@/lib/mirror-account-dashboard";
+import { loadMirrorFavoritesPayload } from "@/lib/mirror-favorites-page-server";
 import { prisma } from "@/lib/prisma";
 
 export async function loadMirrorAccountDashboardPayload(
@@ -38,6 +39,8 @@ export async function loadMirrorAccountDashboardPayload(
     },
   });
   if (!customer) return null;
+
+  const favPayload = await loadMirrorFavoritesPayload(customerId, locale);
 
   const name =
     [customer.firstName, customer.lastName].filter(Boolean).join(" ").trim() ||
@@ -83,6 +86,8 @@ export async function loadMirrorAccountDashboardPayload(
       canCancel: canRequestCancel(o.status),
       canRefund: canRequestRefund(o.status),
     })),
+    favorites: favPayload.items,
+    hasPassword: Boolean(customer.passwordHash),
     locale,
   };
 }

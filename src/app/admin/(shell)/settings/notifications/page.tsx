@@ -13,7 +13,7 @@ export default async function NotificationSettingsPage() {
     <div>
       <AdminPageHeader
         title="Bildirim ayarları"
-        description="E-posta, SMS ve Telegram — her mağaza kendi ayarlarını veritabanında tutar. Resend/Netgsm anahtarları sunucu .env dosyasında olabilir."
+        description="E-posta sunucusu (SMTP), bildirim tercihleri, SMS ve Telegram — mağaza başına veritabanında. .env değerleri panel boşken yedek olarak kullanılır."
       />
       <NotificationSettingsForm initial={settings} />
     </div>

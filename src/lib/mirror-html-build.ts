@@ -6,6 +6,7 @@ import type { MirrorHtmlBuildParams } from "@/lib/mirror-html-processor";
 import { buildMirrorHtmlCore } from "@/lib/mirror-html-processor";
 import { readPrebuiltMirrorHtml } from "@/lib/mirror-prebuilt";
 import { isMirrorDevLiveRebuild, preferPrebuiltMirrorHtml } from "@/lib/mirror-prebuilt";
+import { injectMirrorListingCartBridge } from "@/lib/mirror-listing-cart-bridge";
 import type { SiteSettings } from "@/lib/site-settings";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import { productSlugFromMirrorPath } from "@/lib/mirror-html-processor";
@@ -72,7 +73,7 @@ export async function buildMirrorHtml(params: MirrorHtmlBuildParams): Promise<st
 
   if (preferPrebuiltMirrorHtml(params.normalized)) {
     const prebuilt = await readPrebuiltMirrorHtml(params.normalized);
-    if (prebuilt) return prebuilt;
+    if (prebuilt) return injectMirrorListingCartBridge(prebuilt);
   }
 
   if (process.env.NODE_ENV === "production") {

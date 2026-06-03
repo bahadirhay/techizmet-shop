@@ -1,4 +1,18 @@
-import type { SiteSettings } from "@/lib/site-settings";
+import type { SiteSettings, StoreSmtpSettings } from "@/lib/site-settings";
+
+function mergeSmtpSettings(
+  current: StoreSmtpSettings | undefined,
+  patch: StoreSmtpSettings,
+): StoreSmtpSettings {
+  const next = { ...current, ...patch };
+  if (patch.password === "" || patch.password === undefined) {
+    next.password = current?.password;
+  }
+  if (patch.resendApiKey === "" || patch.resendApiKey === undefined) {
+    next.resendApiKey = current?.resendApiKey;
+  }
+  return next;
+}
 
 /** PATCH gövdesi — iç içe theme/branding/seo kaybını önler */
 export function mergeSiteSettings(current: SiteSettings, patch: SiteSettings): SiteSettings {
@@ -38,6 +52,9 @@ export function mergeSiteSettings(current: SiteSettings, patch: SiteSettings): S
           email: patch.notifications.email
             ? { ...current.notifications?.email, ...patch.notifications.email }
             : current.notifications?.email,
+          smtp: patch.notifications.smtp
+            ? mergeSmtpSettings(current.notifications?.smtp, patch.notifications.smtp)
+            : current.notifications?.smtp,
           sms: patch.notifications.sms
             ? { ...current.notifications?.sms, ...patch.notifications.sms }
             : current.notifications?.sms,

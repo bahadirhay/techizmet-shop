@@ -71,8 +71,24 @@ export type StoreTelegramNotificationSettings = {
   onNewOrder?: boolean;
 };
 
+export type StoreSmtpSettings = {
+  /** smtp | resend | auto (önce SMTP, yoksa Resend) */
+  provider?: "smtp" | "resend" | "auto";
+  host?: string;
+  port?: number;
+  /** true = 465 SSL; false = STARTTLS (587) */
+  secure?: boolean;
+  user?: string;
+  password?: string;
+  /** false = self-signed sertifikaya izin (geliştirme) */
+  tlsRejectUnauthorized?: boolean;
+  /** Resend alternatifi — SMTP yoksa veya provider=resend */
+  resendApiKey?: string;
+};
+
 export type StoreNotificationSettings = {
   email?: StoreEmailNotificationSettings;
+  smtp?: StoreSmtpSettings;
   sms?: StoreSmsNotificationSettings;
   telegram?: StoreTelegramNotificationSettings;
 };

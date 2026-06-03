@@ -42,12 +42,17 @@ export async function POST(req: Request) {
   });
 
   const { subject, html } = renderEmailTemplate(template, vars);
-  const result = await sendTemplateEmail({ to, subject: `[TEST] ${subject}`, html });
+  const result = await sendTemplateEmail({
+    to,
+    subject: `[TEST] ${subject}`,
+    html,
+    settings,
+  });
 
   if (!result.sent) {
     const reasonMsg =
       result.reason === "not_configured"
-        ? "SMTP veya RESEND yapılandırılmamış — .env dosyasında SMTP_HOST veya RESEND_API_KEY tanımlayın."
+        ? "SMTP veya Resend yapılandırılmamış — Bildirimler → E-posta sunucusu bölümünden ayarlayın."
         : result.reason === "smtp_error"
           ? "SMTP sunucusu reddetti — host, port ve şifreyi kontrol edin."
           : "E-posta gönderilemedi";

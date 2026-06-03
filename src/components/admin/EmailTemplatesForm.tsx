@@ -104,7 +104,11 @@ export function EmailTemplatesForm({ initial }: { initial: SiteSettings }) {
           <Link href="/admin/settings/notifications" className="text-[var(--kn-brand)] underline">
             Bildirim ayarları
           </Link>
-          . Sunucuda <code>SMTP_HOST</code> veya <code>RESEND_API_KEY</code> gerekir.
+          . Sunucu bağlantısı:{" "}
+          <Link href="/admin/settings/notifications#smtp" className="text-[var(--kn-brand)] underline">
+            E-posta sunucusu (SMTP)
+          </Link>
+          .
         </p>
         <details className="text-xs text-zinc-600">
           <summary className="cursor-pointer font-medium">Kullanılabilir değişkenler</summary>

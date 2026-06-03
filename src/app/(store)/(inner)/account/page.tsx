@@ -37,10 +37,24 @@ export default async function AccountPage() {
         take: 50,
         include: { carrier: true },
       },
+      favorites: {
+        include: { product: true },
+        orderBy: { createdAt: "desc" },
+      },
     },
   });
 
   if (!customer) redirect("/account/login");
+
+  const favorites = customer.favorites
+    .filter((f) => f.product.siteId === site.id && f.product.published)
+    .map((f) => ({
+      productId: f.product.id,
+      slug: f.product.slug,
+      title: f.product.title,
+      imageUrl: f.product.imageUrl,
+      priceMinor: f.product.priceMinor,
+    }));
 
   const name =
     [customer.firstName, customer.lastName].filter(Boolean).join(" ").trim() || "Müşteri";
@@ -75,6 +89,7 @@ export default async function AccountPage() {
           canCancel: canRequestCancel(o.status),
           canRefund: canRequestRefund(o.status),
         }))}
+        initialFavorites={favorites}
       />
     </div>
   );

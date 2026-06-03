@@ -53,8 +53,7 @@ export async function GET(req: Request) {
   });
 
   const isProductMirror = /\/mirror\/products\/([^/]+)\.html$/i.test(normalized);
-  const session = await getCustomerSession();
-  if (isProductMirror && session.isLoggedIn && session.customerId) {
+  if (isProductMirror) {
     const settings = await getSiteSettings(site.id);
     localized = await injectProductCommerceIntoMirrorHtml(
       localized,
@@ -64,6 +63,8 @@ export async function GET(req: Request) {
       settings,
     );
   }
+
+  const session = await getCustomerSession();
 
   if (normalized.includes("mirror/cart/")) {
     const cartPayload = await loadMirrorCartPagePayload(locale);

@@ -35,6 +35,24 @@ type OrderRow = {
   canRefund: boolean;
 };
 
+type FavoriteItem = {
+  productId: string;
+  slug: string;
+  title: string;
+  imageUrl: string | null;
+  priceMinor: number;
+};
+
+type AccountTab = "profile" | "orders" | "addresses" | "favorites" | "password";
+
+const ACCOUNT_TABS: { id: AccountTab; label: string }[] = [
+  { id: "profile", label: "Profil" },
+  { id: "orders", label: "Siparişlerim" },
+  { id: "addresses", label: "Adres Bilgilerim" },
+  { id: "favorites", label: "Favorilerim" },
+  { id: "password", label: "Şifre Değiştir" },
+];
+
 export function AccountDashboard({
   name,
   email,
@@ -42,6 +60,7 @@ export function AccountDashboard({
   initialProfile,
   initialAddresses,
   initialOrders,
+  initialFavorites = [],
 }: {
   name: string;
   email: string | null;
@@ -49,11 +68,14 @@ export function AccountDashboard({
   initialProfile: { firstName: string | null; lastName: string | null; phone: string | null };
   initialAddresses: Address[];
   initialOrders: OrderRow[];
+  initialFavorites?: FavoriteItem[];
 }) {
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState<AccountTab>("profile");
   const [profile, setProfile] = useState(initialProfile);
   const [addresses, setAddresses] = useState(initialAddresses);
   const [orders, setOrders] = useState(initialOrders);
+  const [favorites, setFavorites] = useState(initialFavorites);
   const [profileMsg, setProfileMsg] = useState<string | null>(null);
   const [addrForm, setAddrForm] = useState({
     label: "Ev",
@@ -213,6 +235,19 @@ export function AccountDashboard({
     router.refresh();
   }
 
+  async function removeFavorite(productId: string) {
+    const res = await fetch("/api/account/favorites", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ productId }),
+    });
+    if (!res.ok) {
+      alert("İşlem başarısız");
+      return;
+    }
+    setFavorites((prev) => prev.filter((f) => f.productId !== productId));
+  }
+
   return (
     <div className="kn-account kn-account--wide">
       <div className="kn-account__head">
@@ -231,11 +266,20 @@ export function AccountDashboard({
         </div>
         <AccountLogoutButton />
       </div>
-      <nav className="kn-account-nav">
-        <Link href="/account/favorites">Favorilerim</Link>
-        <Link href="/orders/track">Sipariş takip</Link>
+      <nav className="kn-account-nav kn-account-nav--tabs" aria-label="Hesap menüsü">
+        {ACCOUNT_TABS.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            className={`kn-account-nav__tab${activeTab === tab.id ? " is-active" : ""}`}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
       </nav>
 
+      {activeTab === "profile" ? (
       <section className="kn-account-section">
         <h2>Profil</h2>
         <div className="kn-account__form kn-form-grid-2">
@@ -266,13 +310,17 @@ export function AccountDashboard({
           Profili kaydet
         </button>
       </section>
+      ) : null}
 
+      {activeTab === "password" ? (
       <section className="kn-account-section">
         <AccountChangePasswordForm />
       </section>
+      ) : null}
 
+      {activeTab === "addresses" ? (
       <section className="kn-account-section">
-        <h2>Adres defteri</h2>
+        <h2>Adres bilgilerim</h2>
         <ul className="kn-address-list">
           {addresses.map((a) => (
             <li key={a.id} className="kn-address-card">
@@ -393,7 +441,9 @@ export function AccountDashboard({
           </button>
         </form>
       </section>
+      ) : null}
 
+      {activeTab === "orders" ? (
       <section className="kn-account-section">
         <h2>Siparişlerim</h2>
         {orders.length === 0 ? (
@@ -444,6 +494,39 @@ export function AccountDashboard({
           </ul>
         )}
       </section>
+      ) : null}
+
+      {activeTab === "favorites" ? (
+      <section className="kn-account-section">
+        <h2>Favorilerim</h2>
+        {favorites.length === 0 ? (
+          <p className="kn-muted">Henüz favori ürününüz yok.</p>
+        ) : (
+          <ul className="kn-fav-list">
+            {favorites.map((item) => (
+              <li key={item.productId} className="kn-fav-list__item">
+                <Link href={`/products/${item.slug}`} className="kn-fav-list__link">
+                  {item.imageUrl ? (
+                    <img src={item.imageUrl} alt="" className="kn-fav-list__img" width={64} height={64} />
+                  ) : null}
+                  <span>
+                    <strong>{item.title}</strong>
+                    <span className="kn-fav-list__price">{formatTry(item.priceMinor)}</span>
+                  </span>
+                </Link>
+                <button
+                  type="button"
+                  className="kn-btn kn-btn--outline kn-btn--sm"
+                  onClick={() => removeFavorite(item.productId)}
+                >
+                  Kaldır
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+      ) : null}
 
       <p className="kn-account__footer">
         <Link href="/orders/track">Misafir sipariş takip</Link> ·{" "}

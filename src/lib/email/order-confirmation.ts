@@ -43,6 +43,7 @@ export async function sendOrderTemplateEmail(
     html,
     from: resolveMailFrom(settings, payload.storeName),
     replyTo: e.replyTo,
+    settings,
   });
 }
 

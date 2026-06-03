@@ -1451,13 +1451,37 @@
 .kn-account-nav {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 0.5rem;
   margin-bottom: 1.5rem;
   font-size: 0.875rem;
 }
 .kn-account-nav a {
   color: var(--kn-brand);
   text-decoration: none;
+}
+.kn-account-nav--tabs {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--kn-border);
+}
+.kn-account-nav__tab {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.25rem;
+  padding: 0.4rem 1rem;
+  border-radius: 999px;
+  border: 1px solid var(--kn-border);
+  background: #fff;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.kn-account-nav__tab:hover {
+  background: var(--kn-surface-alt, #f7f7f7);
+}
+.kn-account-nav__tab.is-active {
+  background: var(--kn-brand, #1a1a1a);
+  border-color: var(--kn-brand, #1a1a1a);
+  color: #fff;
 }
 .kn-fav-list {
   list-style: none;

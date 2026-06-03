@@ -39,6 +39,7 @@ E-posta: ${order.customerEmail ?? "—"}</p>
         html,
         from: resolveMailFrom(settings, siteName),
         replyTo: e.replyTo,
+        settings,
       }).catch((err) => console.error("[email admin]", err)),
     ),
   );
