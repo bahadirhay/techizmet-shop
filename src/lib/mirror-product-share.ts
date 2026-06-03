@@ -8,10 +8,13 @@ html.kn-share-locked, html.kn-share-locked body { overflow: hidden; }
 #kn-share-root.kn-share-open{pointer-events:auto}
 #kn-share-root .kn-share-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.45);opacity:0;transition:opacity .2s;pointer-events:none}
 #kn-share-root.kn-share-open .kn-share-backdrop{opacity:1;pointer-events:auto}
-#kn-share-root .kn-share-dialog{position:absolute;left:50%;bottom:0;transform:translate(-50%,100%);width:min(100%,24rem);max-height:90vh;overflow:auto;background:#fff;border-radius:1rem 1rem 0 0;padding:1rem 1rem 1.25rem;box-shadow:0 -8px 32px rgba(0,0,0,.15);transition:transform .25s ease,opacity .25s ease;pointer-events:auto;box-sizing:border-box;font-family:system-ui,-apple-system,sans-serif}
-#kn-share-root.kn-share-open .kn-share-dialog{transform:translate(-50%,0)}
+#kn-share-root .kn-share-dialog{position:absolute;left:50%;width:min(calc(100% - 1.5rem),24rem);max-height:min(78vh,calc(100vh - 10vh - env(safe-area-inset-bottom,0px)));overflow:auto;background:#fff;border-radius:1rem;padding:1rem 1rem 1.25rem;padding-top:calc(1rem + env(safe-area-inset-top,0px));box-shadow:0 8px 32px rgba(0,0,0,.18);transition:transform .25s ease,opacity .25s ease;pointer-events:auto;box-sizing:border-box;font-family:system-ui,-apple-system,sans-serif}
+@media(max-width:767px){
+  #kn-share-root .kn-share-dialog{bottom:auto;top:max(6vh,env(safe-area-inset-top,0px));transform:translate(-50%,-16px)}
+  #kn-share-root.kn-share-open .kn-share-dialog{transform:translate(-50%,0)}
+}
 @media(min-width:768px){
-  #kn-share-root .kn-share-dialog{bottom:auto;top:50%;transform:translate(-50%,calc(-50% + 1.5rem));border-radius:1rem;opacity:0}
+  #kn-share-root .kn-share-dialog{bottom:auto;top:50%;left:50%;transform:translate(-50%,calc(-50% + 1.5rem));max-height:90vh;border-radius:1rem;opacity:0;box-shadow:0 -8px 32px rgba(0,0,0,.15)}
   #kn-share-root.kn-share-open .kn-share-dialog{transform:translate(-50%,-50%);opacity:1}
 }
 .kn-share-close{position:absolute;top:.65rem;right:.75rem;width:2rem;height:2rem;border:0;border-radius:50%;background:#f4f4f5;font-size:1.25rem;line-height:1;cursor:pointer;color:#52525b;display:flex;align-items:center;justify-content:center}
@@ -125,13 +128,55 @@ function buildShareScript(share: ProductSharePayload): string {
     var top=Math.max(0,(window.screen.height-h)/2);
     window.open(url,'kn-share-popup','width='+w+',height='+h+',left='+left+',top='+top+',scrollbars=yes,resizable=yes');
   }
+  function isIOS(){return /iPhone|iPad|iPod/i.test(navigator.userAgent);}
+  function isAndroid(){return /Android/i.test(navigator.userAgent);}
+  function enc(s){return encodeURIComponent(s);}
+  function openMobileApp(iosScheme,androidIntent,fallback){
+    if(!isMobile()){if(fallback)fallback();return;}
+    var url=isAndroid()?(androidIntent||iosScheme):iosScheme;
+    if(!url){if(fallback)fallback();return;}
+    var gone=false;
+    var mark=function(){gone=true;};
+    document.addEventListener('visibilitychange',mark);
+    window.addEventListener('pagehide',mark);
+    window.location.href=url;
+    window.setTimeout(function(){
+      document.removeEventListener('visibilitychange',mark);
+      window.removeEventListener('pagehide',mark);
+      if(!gone&&fallback)fallback();
+    },2200);
+  }
+  function nativeShare(data,okMsg,failFn){
+    if(navigator.share){
+      return navigator.share(data).then(function(){
+        if(okMsg)showToast(okMsg);
+      }).catch(function(err){
+        if(err&&err.name==='AbortError')return;
+        if(failFn)failFn();
+      });
+    }
+    if(failFn)failFn();
+    return Promise.resolve();
+  }
   function shareWhatsApp(){
-    var url='https://wa.me/?text='+encodeURIComponent(shareText());
-    if(isMobile()){window.open(url,'_blank','noopener');}
-    else{openPopup(url,480,640);}
+    var text=shareText();
+    var waWeb='https://wa.me/?text='+enc(text);
+    if(!isMobile()){openPopup(waWeb,480,640);return;}
+    openMobileApp(
+      'whatsapp://send?text='+enc(text),
+      'intent://send/?text='+enc(text)+'#Intent;scheme=whatsapp;package=com.whatsapp;end',
+      function(){window.location.href=waWeb;}
+    );
   }
   function shareFacebook(){
-    openPopup('https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(productUrl()),560,436);
+    var url=productUrl();
+    var fbWeb='https://www.facebook.com/sharer/sharer.php?u='+enc(url);
+    if(!isMobile()){openPopup(fbWeb,560,436);return;}
+    openMobileApp(
+      'fb://facewebmodal/f?href='+enc(url),
+      'intent://www.facebook.com/sharer/sharer.php?u='+enc(url)+'#Intent;package=com.facebook.katana;scheme=https;end',
+      function(){window.location.href=fbWeb;}
+    );
   }
   function loadImage(url){
     return new Promise(function(resolve,reject){
@@ -195,52 +240,89 @@ function buildShareScript(share: ProductSharePayload): string {
     a.href=URL.createObjectURL(blob);a.download=name;a.click();
     setTimeout(function(){URL.revokeObjectURL(a.href);},5000);
   }
-  function shareNativeFile(blob,mode){
-    var file=new File([blob],'urun-paylas.png',{type:'image/png'});
-    if(navigator.canShare&&navigator.canShare({files:[file]})){
-      return navigator.share({files:[file],title:''}).then(function(){
-        showToast(mode==='story'?'Instagram Hikaye için paylaşım paneli açıldı':'Paylaşım paneli açıldı — Instagram seçin');
-      });
+  function prepareShareBlob(mode){
+    var imgP=SHARE.imageUrl?loadImage(SHARE.imageUrl):Promise.reject(new Error('no img'));
+    return imgP.catch(function(){return null;}).then(function(img){
+      return canvasToBlob(drawShareCanvas(img,mode));
+    });
+  }
+  function openInstagramApp(mode){
+    copyText(shareText(),'Metin kopyalandı');
+    if(mode==='story'){
+      openMobileApp(
+        'instagram://story-camera',
+        'intent://instagram.com/#Intent;package=com.instagram.android;scheme=https;end',
+        function(){showToast('Instagram bulunamadı — metin panoda');}
+      );
+    }else{
+      openMobileApp(
+        'instagram://camera',
+        'intent://instagram.com/#Intent;package=com.instagram.android;scheme=https;end',
+        function(){showToast('Instagram bulunamadı — metin panoda');}
+      );
     }
-    return Promise.reject(new Error('no native share'));
   }
   function shareInstagramVisual(mode){
     setLoading(true);
-    var imgP=SHARE.imageUrl?loadImage(SHARE.imageUrl):Promise.reject(new Error('no img'));
-    imgP.catch(function(){return null;}).then(function(img){
-      var canvas=drawShareCanvas(img,mode);
-      return canvasToBlob(canvas).then(function(blob){
-        return shareNativeFile(blob,mode).catch(function(){
-          downloadBlob(blob,'urun-'+SHARE.slug+'.png');
-          copyLink(mode==='story'?'Görsel indirildi + link kopyalandı — Instagram Hikaye\\'ye ekleyin':'Görsel indirildi + link kopyalandı');
-        });
-      });
+    prepareShareBlob(mode).then(function(blob){
+      var file=new File([blob],'urun.png',{type:'image/png'});
+      var openApp=function(){openInstagramApp(mode);};
+      if(isMobile()){
+        if(navigator.canShare&&navigator.canShare({files:[file]})){
+          return nativeShare(
+            {files:[file],title:''},
+            mode==='story'?'Instagram Hikaye paylaşımı':'Instagram Gönderi paylaşımı',
+            openApp
+          );
+        }
+        openApp();
+        return;
+      }
+      downloadBlob(blob,'urun-'+SHARE.slug+'.png');
+      copyLink('Görsel indirildi + link kopyalandı');
     }).catch(function(){
-      copyLink('Link kopyalandı — Instagram\\'da paylaşın');
+      if(isMobile()){openInstagramApp(mode);}
+      else{copyLink('Link kopyalandı — Instagram\\'da paylaşın');}
     }).finally(function(){setLoading(false);});
   }
   function shareInstagramStory(){shareInstagramVisual('story');}
   function shareInstagramPost(){shareInstagramVisual('post');}
   function shareInstagramDm(){
-    copyText(shareText(),'Mesaj metni kopyalandı — Instagram DM\\'ye yapıştırın');
-    if(isMobile()){
-      window.setTimeout(function(){
-        window.location.href='instagram://direct-inbox';
-      },400);
-    }
+    copyText(shareText(),'Mesaj metni kopyalandı');
+    openMobileApp(
+      'instagram://direct-inbox',
+      'intent://instagram.com/direct/inbox/#Intent;package=com.instagram.android;scheme=https;end',
+      function(){
+        if(!isMobile())showToast('Instagram DM — mobil uygulamada açılır');
+      }
+    );
   }
   function shareTikTok(){
-    if(navigator.share){
-      navigator.share({title:SHARE.title,text:SHARE.priceLabel,url:productUrl()}).then(function(){
-        showToast('Paylaşım paneli açıldı — TikTok seçin');
-      }).catch(function(){
-        copyLink('Link kopyalandı — TikTok\\'ta kullanın');
-      });
-      return;
-    }
-    copyLink('Link kopyalandı — TikTok bio veya videoya ekleyin');
+    var url=productUrl();
+    var payload={title:SHARE.title,text:shareText(),url:url};
+    var openApp=function(){
+      copyText(shareText(),'Metin kopyalandı');
+      openMobileApp(
+        'snssdk1233://',
+        'intent://www.tiktok.com/#Intent;package=com.zhiliaoapp.musically;scheme=https;end',
+        function(){copyLink('TikTok uygulaması bulunamadı — link kopyalandı');}
+      );
+    };
+    if(isMobile()){nativeShare(payload,'TikTok paylaşım paneli',openApp);return;}
+    copyLink('Link kopyalandı — TikTok\\'ta kullanın');
   }
   function shareYouTube(){
+    var url=productUrl();
+    var payload={title:SHARE.title,text:shareText(),url:url};
+    var openApp=function(){
+      copyText(url,'Link kopyalandı');
+      openMobileApp(
+        'vnd.youtube://',
+        'intent://www.youtube.com/#Intent;package=com.google.android.youtube;scheme=https;end',
+        function(){showToast('YouTube uygulaması bulunamadı — link panoda');}
+      );
+    };
+    if(isMobile()){nativeShare(payload,'YouTube paylaşım paneli',openApp);return;}
     copyLink('Link kopyalandı — YouTube açıklamasına yapıştırın');
   }
   function platformBtn(id,name,action){
