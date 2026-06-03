@@ -43,7 +43,7 @@ export function applyCheckoutPageToMirrorHtml(html: string): string {
   if (!out.includes("kn-checkout-embed.css")) {
     out = out.replace(
       /<\/head>/i,
-      '<link href="/theme/techizmet-shop/kn-checkout-embed.css?v=1" rel="stylesheet" type="text/css" media="all" />\n</head>',
+      '<link href="/theme/techizmet-shop/kn-checkout-embed.css?v=2" rel="stylesheet" type="text/css" media="all" />\n</head>',
     );
   }
   return out;

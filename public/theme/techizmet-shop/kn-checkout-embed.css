@@ -5,6 +5,52 @@
 .kn-checkout-embed-root {
   min-height: 100vh;
   background: var(--body_background, #fff);
+  --form_border: #d4d4d4;
+  --form_background: #ffffff;
+  --form_text: #1a1a1a;
+  --form_radius: 8px;
+  --border_color: #e5e2dd;
+  --body_background: #ffffff;
+  --body_alternate_background: #f7f5f2;
+  --text_color: #1a1a1a;
+}
+
+/* Tema değişkenleri yokken input kutuları görünür olsun */
+.kn-checkout-embed-root .kn-checkout .form-control,
+.kn-checkout-embed-root .kn-checkout input:not([type="radio"]):not([type="checkbox"]),
+.kn-checkout-embed-root .kn-checkout textarea,
+.kn-checkout-embed-root .kn-checkout select {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 10px 14px;
+  background-color: var(--form_background, #fff);
+  border: 1px solid var(--form_border, #d4d4d4);
+  border-radius: calc(var(--form_radius, 8px) / 2);
+  color: var(--form_text, #1a1a1a);
+  font: inherit;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.kn-checkout-embed-root .kn-checkout input.form-control,
+.kn-checkout-embed-root .kn-checkout input:not([type="radio"]):not([type="checkbox"]) {
+  min-height: 46px;
+}
+
+.kn-checkout-embed-root .kn-checkout textarea.form-control,
+.kn-checkout-embed-root .kn-checkout textarea {
+  min-height: 72px;
+  resize: vertical;
+}
+
+.kn-checkout-embed-root .kn-checkout .form-control:focus-visible,
+.kn-checkout-embed-root .kn-checkout input:not([type="radio"]):not([type="checkbox"]):focus-visible,
+.kn-checkout-embed-root .kn-checkout textarea:focus-visible {
+  outline: 2px solid rgba(26, 26, 26, 0.18);
+  outline-offset: 1px;
+  border-color: #1a1a1a;
 }
 
 .kn-checkout-page--embed {
