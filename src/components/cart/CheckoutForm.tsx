@@ -57,7 +57,7 @@ export function CheckoutForm({
   embed?: boolean;
 }) {
   const router = useRouter();
-  const { cart, refresh } = useCart();
+  const { cart, refresh, loading: cartLoading } = useCart();
   const [shipping, setShipping] = useState<ShippingOption[]>([]);
   const [freeShipping, setFreeShipping] = useState(false);
   const [carrierId, setCarrierId] = useState("");
@@ -147,9 +147,27 @@ export function CheckoutForm({
     }));
   }
 
+  const pageClass = embed ? "kn-checkout-page kn-checkout-page--embed" : "kn-checkout-page";
+  const linkProps = embed ? { target: "_top" as const } : {};
+
+  if (cartLoading) {
+    return (
+      <div className={pageClass}>
+        {!embed ? (
+          <header className="kn-checkout-page__banner">
+            <h1>Ödeme</h1>
+          </header>
+        ) : null}
+        <div className="kn-checkout kn-checkout--loading" aria-busy="true">
+          <p>Sepet yükleniyor…</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!cart || cart.items.length === 0) {
     return (
-      <div className={embed ? "kn-checkout-page kn-checkout-page--embed" : "kn-checkout-page"}>
+      <div className={pageClass}>
         {!embed ? (
           <header className="kn-checkout-page__banner">
             <h1>Ödeme</h1>
@@ -157,7 +175,7 @@ export function CheckoutForm({
         ) : null}
         <div className="kn-checkout kn-checkout--empty">
           <p>Sepetiniz boş.</p>
-          <Link href="/collections/all" className="button medium-button button-block" {...(embed ? { target: "_top" } : {})}>
+          <Link href="/collections/all" className="button medium-button button-block" {...linkProps}>
             Alışverişe başla
           </Link>
         </div>
@@ -242,26 +260,29 @@ export function CheckoutForm({
     }
   }
 
-  const pageClass = embed ? "kn-checkout-page kn-checkout-page--embed" : "kn-checkout-page";
-  const linkProps = embed ? { target: "_top" as const } : {};
+  const authNotice = prefill?.loggedIn ? (
+    <p>
+      <Link href="/account" {...linkProps}>Hesabınız</Link> ile giriş yaptınız — kayıtlı adresinizi seçebilir veya yeni adres girebilirsiniz.
+    </p>
+  ) : (
+    <p>
+      Misafir olarak devam ediyorsunuz.{" "}
+      <Link href={accountLoginPath("/checkout")} {...linkProps}>Üye girişi</Link> yaparak kayıtlı adreslerinizi kullanabilirsiniz — üye olmadan da sipariş verebilirsiniz.
+    </p>
+  );
 
   return (
     <div className={pageClass}>
       {!embed ? (
         <header className="kn-checkout-page__banner">
           <h1>Ödeme</h1>
-          {prefill?.loggedIn ? (
-            <p>
-              <Link href="/account" {...linkProps}>Hesabınız</Link> ile giriş yaptınız — kayıtlı adresinizi seçebilir veya yeni adres girebilirsiniz.
-            </p>
-          ) : (
-            <p>
-              Misafir olarak devam edebilirsiniz —{" "}
-              <Link href={accountLoginPath("/checkout")} {...linkProps}>giriş yapın</Link> kayıtlı adresleriniz için — üye olmadan da sipariş verebilirsiniz.
-            </p>
-          )}
+          {authNotice}
         </header>
-      ) : null}
+      ) : (
+        <div className="kn-checkout-page__auth-bar" role="status">
+          {authNotice}
+        </div>
+      )}
       <form className="kn-checkout" onSubmit={submit}>
       <div className="kn-checkout__grid">
         <div className="kn-checkout__main">
@@ -442,6 +463,11 @@ export function CheckoutForm({
           </section>
           <section className="kn-checkout__section">
             <h2>Ödeme yöntemi</h2>
+            {payment.paytrTestMode ? (
+              <p className="kn-paytr-test-notice" role="status">
+                PayTR test modu aktif — gerçek tahsilat yapılmaz; PayTR panelindeki test kartlarını kullanın.
+              </p>
+            ) : null}
             {!paymentAvailable ? (
               <p className="kn-alert kn-alert--warn">
                 Aktif ödeme yöntemi tanımlı değil. Admin → Entegrasyon → Ödeme bölümünden en az bir yöntemi
@@ -482,7 +508,7 @@ export function CheckoutForm({
                     checked={form.paymentMethod === "card"}
                     onChange={() => setForm({ ...form, paymentMethod: "card" })}
                   />
-                  Kredi / banka kartı (PayTR güvenli ödeme)
+                  Kredi / banka kartı (PayTR{payment.paytrTestMode ? " · test" : ""} güvenli ödeme)
                 </label>
               ) : null}
             </div>

@@ -74,10 +74,20 @@ const BRIDGE_SCRIPT = `<script id="kn-account-bridge">(function(){
       if(n&&n.charAt(0)==="/"&&!n.startsWith("//")&&n.indexOf("://")===-1){
         if(n.indexOf("/account/login")!==0&&n.indexOf("/account/register")!==0&&n.indexOf("/account/forgot-password")!==0)return n;
       }
+      var p=u.pathname||"";
+      if(p.indexOf("/checkout")===0||p==="/cart")return p+(u.search||"");
     }catch(e){}
     return "/account";
   }
-  function goAccount(){
+  function afterAuthSuccess(){
+    try{
+      var topWin=window.top||window;
+      var p=topWin.location.pathname||"";
+      if(p.indexOf("/checkout")===0||p==="/cart"){
+        topWin.location.reload();
+        return;
+      }
+    }catch(e){}
     (window.top||window).location.href=returnPath();
   }
   async function postJson(url, body){
@@ -103,7 +113,7 @@ const BRIDGE_SCRIPT = `<script id="kn-account-bridge">(function(){
         password:field(form,"customer[password]")
       });
       if(!r.ok){showErr(form,r.error||"Giriş başarısız");return;}
-      goAccount();
+      afterAuthSuccess();
       return;
     }
     if(type==="create_customer"){
@@ -115,7 +125,7 @@ const BRIDGE_SCRIPT = `<script id="kn-account-bridge">(function(){
         phone:field(form,"customer[phone]")||""
       });
       if(!reg.ok){showErr(form,reg.error||"Kayıt başarısız");return;}
-      goAccount();
+      afterAuthSuccess();
       return;
     }
     if(type==="recover_customer_password"){
@@ -165,7 +175,9 @@ const BRIDGE_SCRIPT = `<script id="kn-account-bridge">(function(){
     });
   }
   function tr(){
-    return document.documentElement.lang&&document.documentElement.lang.indexOf("tr")===0;
+    var el=document.documentElement;
+    if(el.getAttribute("data-kn-locale")==="tr")return true;
+    return el.lang&&el.lang.indexOf("tr")===0;
   }
   function hideGuestForms(drawer){
     drawer.classList.add("kn-account-is-logged-in");

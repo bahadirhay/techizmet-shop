@@ -209,7 +209,7 @@ export function MirrorVitrinFrameClient({
         !categoriesFromAdmin?.length &&
         (!config || !hasMirrorPageEdits(config) || serverOverlay);
 
-      applyMirrorAccountDrawerClient(doc);
+      applyMirrorAccountDrawerClient(doc, locale);
       if (pathname === "/account") {
         void hydrateMirrorAccountPanel(doc);
       } else {

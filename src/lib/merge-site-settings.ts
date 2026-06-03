@@ -35,7 +35,18 @@ export function mergeSiteSettings(current: SiteSettings, patch: SiteSettings): S
       : current.theme,
     branding: patch.branding ? { ...current.branding, ...patch.branding } : current.branding,
     seo: patch.seo ? { ...current.seo, ...patch.seo } : current.seo,
-    payment: patch.payment ? { ...current.payment, ...patch.payment } : current.payment,
+    payment: patch.payment
+      ? {
+          ...current.payment,
+          ...patch.payment,
+          paytr: patch.payment.paytr
+            ? { ...current.payment?.paytr, ...patch.payment.paytr }
+            : current.payment?.paytr,
+          iyzico: patch.payment.iyzico
+            ? { ...current.payment?.iyzico, ...patch.payment.iyzico }
+            : current.payment?.iyzico,
+        }
+      : current.payment,
     email: patch.email
       ? {
           ...current.email,

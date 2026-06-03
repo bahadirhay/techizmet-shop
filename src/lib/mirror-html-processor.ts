@@ -14,6 +14,7 @@ import type { ShopLocale } from "@/lib/i18n/locale";
 import { fixMirrorCdnPathsInHtml } from "@/lib/mirror-cdn-assets";
 import { injectAccountDashboardStyles } from "@/lib/mirror-account-dashboard";
 import { injectMirrorAccountBridge } from "@/lib/mirror-account-bridge";
+import { applyAccountDrawerTrHtml } from "@/lib/mirror-account-drawer-locale";
 import { injectMirrorCartBridge } from "@/lib/mirror-cart-bridge";
 import { injectMirrorContentFallback } from "@/lib/mirror-html-content-fix";
 import { injectBrandingIntoMirrorHtml } from "@/lib/mirror-html-branding";
@@ -111,6 +112,9 @@ export async function buildMirrorHtmlCore(params: MirrorHtmlBuildParams): Promis
   localized = patchMirrorSwiperHtml(localized);
   localized = injectMirrorContentFallback(localized);
   localized = injectMirrorAccountBridge(localized);
+  if (locale === "tr") {
+    localized = applyAccountDrawerTrHtml(localized);
+  }
   localized = injectMirrorCartBridge(localized);
   localized = injectMirrorListingCartBridge(localized);
   localized = injectMirrorLinkBridge(localized);

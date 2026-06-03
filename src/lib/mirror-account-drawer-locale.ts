@@ -1,5 +1,7 @@
 /** Hesap çekmecesi — TR etiket / placeholder (gömülü Shopify İngilizce metinleri) */
 
+import { parseHTML } from "linkedom";
+
 export function localizeAccountDrawerTr(doc: Document): void {
   const drawer = doc.querySelector('[data-drawer="account-drawer"]');
   if (!(drawer instanceof HTMLElement) || drawer.dataset.knTrLocalized === "1") return;
@@ -82,4 +84,20 @@ export function localizeAccountDrawerTr(doc: Document): void {
   btnInForm('[data-form="reset"]', "Bağlantı gönder");
   const cancelLink = drawer.querySelector('[data-form="reset"] account-event[data-target="login"] a');
   if (cancelLink) cancelLink.textContent = "İptal";
+}
+
+/** Prebuild / sunucu HTML — çekmece metinleri TR (lang=en kalsa bile) */
+export function applyAccountDrawerTrHtml(html: string): string {
+  if (!html.includes('data-drawer="account-drawer"')) return html;
+  const { document } = parseHTML(html);
+  localizeAccountDrawerTr(document);
+  const root = document.documentElement;
+  if (root) {
+    root.setAttribute("data-kn-locale", "tr");
+    if (!root.getAttribute("lang")?.toLowerCase().startsWith("tr")) {
+      root.setAttribute("lang", "tr");
+    }
+  }
+  const doctype = html.match(/^<!DOCTYPE[^>]*>/i)?.[0] ?? "<!DOCTYPE html>";
+  return `${doctype}\n${document.documentElement.outerHTML}`;
 }

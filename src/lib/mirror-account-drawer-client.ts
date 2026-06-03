@@ -80,6 +80,29 @@ export function openAccountDrawer(doc: Document, form: AccountDrawerForm = "crea
   switchAccountDrawerForm(doc, form);
 }
 
+function bindAccountDrawerOpenTr(doc: Document, locale?: ShopLocale) {
+  if (!shouldLocalizeAccountDrawerTr(doc, locale)) return;
+  const win = doc.defaultView;
+  if (!win || (win as Window & { __knAccountDrawerOpenTr?: number }).__knAccountDrawerOpenTr) return;
+  (win as Window & { __knAccountDrawerOpenTr?: number }).__knAccountDrawerOpenTr = 1;
+
+  doc.addEventListener(
+    "click",
+    (e) => {
+      const t = e.target;
+      if (!(t instanceof Element)) return;
+      const trigger = t.closest(
+        '[data-source="account-drawer"],[aria-label*="account" i],[aria-label*="hesap" i]',
+      );
+      if (!trigger) return;
+      const drawer = doc.querySelector('[data-drawer="account-drawer"]');
+      if (drawer instanceof HTMLElement) delete drawer.dataset.knTrLocalized;
+      localizeAccountDrawerTr(doc);
+    },
+    true,
+  );
+}
+
 function bindAccountDrawerSwitch(doc: Document) {
   const win = doc.defaultView;
   if (!win || (win as Window & { __knAccountDrawerBound?: number }).__knAccountDrawerBound) return;
@@ -116,4 +139,5 @@ export function applyMirrorAccountDrawerClient(doc: Document, locale?: ShopLocal
   patchAccountDrawerNavLinks(doc);
   if (shouldLocalizeAccountDrawerTr(doc, locale)) localizeAccountDrawerTr(doc);
   bindAccountDrawerSwitch(doc);
+  bindAccountDrawerOpenTr(doc, locale);
 }

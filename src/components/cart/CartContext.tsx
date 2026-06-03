@@ -49,9 +49,16 @@ const emptyCart: CartView = {
   errors: [],
 };
 
-export function CartProvider({ children }: { children: ReactNode }) {
-  const [cart, setCart] = useState<CartView | null>(null);
-  const [loading, setLoading] = useState(true);
+export function CartProvider({
+  children,
+  initialCart,
+}: {
+  children: ReactNode;
+  /** Sunucu tarafı sepet — ödeme embed'de boş flaşını önler */
+  initialCart?: CartView | null;
+}) {
+  const [cart, setCart] = useState<CartView | null>(initialCart ?? null);
+  const [loading, setLoading] = useState(initialCart == null);
   const [isOpen, setIsOpen] = useState(false);
 
   const refresh = useCallback(async () => {

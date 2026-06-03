@@ -11,6 +11,7 @@ export function PaytrCheckout({
   failed?: boolean;
 }) {
   const [iframeUrl, setIframeUrl] = useState<string | null>(null);
+  const [paytrTestMode, setPaytrTestMode] = useState(false);
   const [err, setErr] = useState<string | null>(failed ? "Ödeme tamamlanamadı. Tekrar deneyin." : null);
   const [loading, setLoading] = useState(true);
 
@@ -21,8 +22,9 @@ export function PaytrCheckout({
       body: JSON.stringify({ orderNumber }),
     })
       .then((r) => r.json())
-      .then((j: { iframeUrl?: string; error?: string }) => {
+      .then((j: { iframeUrl?: string; error?: string; testMode?: boolean }) => {
         setLoading(false);
+        setPaytrTestMode(Boolean(j.testMode));
         if (j.iframeUrl) setIframeUrl(j.iframeUrl);
         else setErr(j.error ?? "Ödeme başlatılamadı");
       })
@@ -38,6 +40,11 @@ export function PaytrCheckout({
       <p className="kn-paytr__order">
         Sipariş: <strong>{orderNumber}</strong>
       </p>
+      {paytrTestMode ? (
+        <p className="kn-paytr-test-notice" role="status">
+          PayTR test modu — gerçek tahsilat yapılmaz.
+        </p>
+      ) : null}
       {loading ? <p>PayTR güvenli ödeme yükleniyor…</p> : null}
       {err ? (
         <div className="kn-alert kn-alert--warn">

@@ -90,5 +90,9 @@ export async function POST(req: Request) {
     data: { adminNotes: [order.adminNotes, `PayTR OID: ${merchantOid}`].filter(Boolean).join(" · ") },
   });
 
-  return NextResponse.json({ token: result.token, iframeUrl: `https://www.paytr.com/odeme/guvenli/${result.token}` });
+  return NextResponse.json({
+    token: result.token,
+    iframeUrl: `https://www.paytr.com/odeme/guvenli/${result.token}`,
+    testMode: cfg.testMode,
+  });
 }

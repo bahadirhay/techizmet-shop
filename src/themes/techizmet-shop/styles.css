@@ -959,6 +959,16 @@
   background: #fef3c7;
   color: #92400e;
 }
+.kn-paytr-test-notice {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: #92400e;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: 8px;
+}
 
 /* Checkout */
 .kn-checkout-page__banner {

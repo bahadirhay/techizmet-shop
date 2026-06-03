@@ -10,6 +10,8 @@ export type CheckoutPaymentFlags = {
   codEnabled: boolean;
   bankTransferEnabled: boolean;
   cardEnabled: boolean;
+  /** PayTR test_mode — yalnızca kart açıkken ve admin’de işaretliyken */
+  paytrTestMode: boolean;
   bankAccounts: { bank: string; iban: string; holder: string }[];
 };
 
@@ -17,10 +19,12 @@ export type PaymentMethodId = "cod" | "bank_transfer" | "card";
 
 /** Admin panelinde açık olan yöntemler — varsayılan true değil */
 export function getCheckoutPaymentFlags(settings: SiteSettings): CheckoutPaymentFlags {
+  const cardEnabled = isPaytrConfigured(settings);
   return {
     codEnabled: settings.payment?.codEnabled === true,
     bankTransferEnabled: settings.payment?.bankTransferEnabled === true,
-    cardEnabled: isPaytrConfigured(settings),
+    cardEnabled,
+    paytrTestMode: cardEnabled && settings.payment?.paytr?.testMode === true,
     bankAccounts: settings.payment?.bankAccounts ?? [],
   };
 }
