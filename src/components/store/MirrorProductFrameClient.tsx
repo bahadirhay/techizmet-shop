@@ -23,6 +23,8 @@ import {
   applyMirrorProductCommerce,
   type MirrorProductCommercePayload,
 } from "@/lib/mirror-product-commerce";
+import { applyMirrorProductShare } from "@/lib/mirror-product-share";
+import type { ProductSharePayload } from "@/lib/product-share";
 import {
   applyProductContentOverlay,
   type ProductContentOverlay,
@@ -52,12 +54,14 @@ export function MirrorProductFrameClient({
   exploreProductsBySlug: exploreProductsInitial,
   productPageBottom,
   productSlug,
+  share,
 }: {
   src: string;
   title: string;
   overlay?: ProductContentOverlay;
   productFromAdmin?: VitrinProductDetail;
   commerce?: MirrorProductCommercePayload;
+  share?: ProductSharePayload;
   branding?: MirrorBranding;
   nav?: MirrorNavItem[];
   footer?: MirrorFooterData;
@@ -127,6 +131,7 @@ export function MirrorProductFrameClient({
     exploreProductsBySlug,
     exploreResolved,
     productPageBottom,
+    share,
   });
 
   const runPatch = useCallback(() => {
@@ -151,6 +156,19 @@ export function MirrorProductFrameClient({
       }
       applyProductContentOverlay(doc, overlay ?? {});
       if (commerce) applyMirrorProductCommerce(doc, commerce);
+    }
+
+    const sharePayload = share ?? commerce?.share;
+    if (sharePayload && !doc.getElementById("kn-share-btn")) {
+      applyMirrorProductShare(doc, sharePayload);
+      for (const ms of PATCH_RETRY_MS) {
+        window.setTimeout(() => {
+          const d = iframeRef.current?.contentDocument;
+          if (d?.getElementById("MainContent") && !d.getElementById("kn-share-btn")) {
+            applyMirrorProductShare(d, sharePayload);
+          }
+        }, ms);
+      }
     }
 
     cancelBrandingRef.current?.();
@@ -191,6 +209,7 @@ export function MirrorProductFrameClient({
     overlay,
     productFromAdmin,
     productPageBottom,
+    share,
   ]);
 
   useMirrorIframeLifecycle(iframeRef, src, runPatch, [patchKey, runPatch, src]);

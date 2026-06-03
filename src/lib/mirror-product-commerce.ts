@@ -1,7 +1,7 @@
 /** İstemci + sunucu — mirror PDP fiyat / sepet (DOM yaması, fs/prisma yok) */
 
 import type { ProductSharePayload } from "@/lib/product-share";
-import { injectMirrorProductShareHtml } from "@/lib/mirror-product-share";
+import { applyMirrorProductShare, injectMirrorProductShareHtml } from "@/lib/mirror-product-share";
 
 export type MirrorProductCommerceTexts = {
   startingPricePrefix?: string;
@@ -272,6 +272,8 @@ export function applyMirrorProductCommerce(doc: Document, data: MirrorProductCom
   script.id = "kn-product-commerce";
   script.textContent = buildCommerceScript(data);
   doc.body.appendChild(script);
+
+  if (data.share) applyMirrorProductShare(doc, data.share);
 }
 
 function mainPriceElSafe(doc: Document) {

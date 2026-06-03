@@ -8,6 +8,7 @@ import {
   resolveMirrorProductTemplateSlug,
 } from "@/lib/mirror-html-path";
 import { hasPrebuiltMirrorHtml } from "@/lib/mirror-prebuilt";
+import { loadMirrorProductCommerce } from "@/lib/mirror-product-commerce-server";
 import { loadMirrorProductFramePayload } from "@/lib/mirror-product-frame-server";
 import { getProductPageBottomSettings } from "@/lib/product-page-bottom";
 import { getDefaultSite } from "@/lib/site";
@@ -34,6 +35,12 @@ export async function MirrorProductFrame({
   const productPageBottom = getProductPageBottomSettings(settings);
 
   const productPrebuilt = hasPrebuiltMirrorHtml(productMirrorFileRel(slug, locale));
+  const commerceForShare = await loadMirrorProductCommerce(
+    site.id,
+    slug,
+    locale,
+    settings.store?.texts,
+  );
 
   if (process.env.NODE_ENV === "production" || productPrebuilt) {
     return (
@@ -43,6 +50,7 @@ export async function MirrorProductFrame({
         productSlug={slug}
         locale={locale}
         productPageBottom={productPageBottom}
+        share={commerceForShare?.share}
       />
     );
   }
