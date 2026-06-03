@@ -13,6 +13,9 @@ function esc(s: string): string {
 }
 
 const INJECT_STYLES = `
+.kn-custom-block-root{position:relative;z-index:2}
+.kn-custom-block-root.kn-cb-text{color:#111!important}
+.kn-custom-block-root.kn-cb-text h1,.kn-custom-block-root.kn-cb-text h2,.kn-custom-block-root.kn-cb-text h3,.kn-custom-block-root.kn-cb-text p{color:inherit!important}
 #kn-custom-blocks-root .kn-cb-section{margin:0 0 28px;padding:0 16px;max-width:1200px;margin-left:auto;margin-right:auto}
 #kn-custom-blocks-root .kn-cb-section.kn-cb-hidden{display:none!important}
 #kn-custom-blocks-root .kn-cb-text{text-align:var(--kn-cb-align,left);line-height:1.6}

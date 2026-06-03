@@ -3,7 +3,9 @@ import type { VitrinCollectionCard, VitrinCollectionCategoryOption } from "@/lib
 import { getMirrorVitrinHydration } from "@/lib/mirror-vitrin-data";
 import { getVitrinPage, vitrinMirrorFileRel, type VitrinPageKey } from "@/lib/mirror-vitrin-pages";
 import { resolveStoreMirrorIframeSrc } from "@/lib/mirror-prebuilt-resolve";
+import { getMirrorPageConfig } from "@/lib/mirror-page-settings";
 import { getStoreLocaleFromHeaders } from "@/lib/i18n/server";
+import { getSiteSettings } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
@@ -23,7 +25,12 @@ export async function MirrorVitrinFrame({
 
   const site = await getDefaultSite();
   const locale = await getStoreLocaleFromHeaders();
-  const src = resolveStoreMirrorIframeSrc(vitrinMirrorFileRel(pageKey, locale), pageKey);
+  const settings = await getSiteSettings(site.id);
+  const pageConfig = getMirrorPageConfig(settings, pageKey);
+  const fileRel = vitrinMirrorFileRel(pageKey, locale);
+  const src = resolveStoreMirrorIframeSrc(fileRel, pageKey, undefined, {
+    hasCustomBlocks: (pageConfig.customBlocks?.length ?? 0) > 0,
+  });
   const hydrationPromise = getMirrorVitrinHydration(site.id, pageKey, locale);
 
   let collectionsFromAdmin: VitrinCollectionCard[] | undefined;

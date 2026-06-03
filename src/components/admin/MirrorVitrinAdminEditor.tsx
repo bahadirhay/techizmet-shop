@@ -34,7 +34,8 @@ import type { MirrorFooterData } from "@/lib/mirror-footer-overlay";
 import type { MirrorNavItem } from "@/lib/mirror-nav-overlay";
 import type { MirrorElementEdit, MirrorElementPick } from "@/lib/mirror-element-edits";
 import type { MirrorPageConfig, MirrorPageSection, MirrorPageSectionEdit } from "@/lib/mirror-home-overlay";
-import { getVitrinPage, type VitrinPageKey } from "@/lib/mirror-vitrin-pages";
+import { mirrorVitrinApiSrc } from "@/lib/mirror-iframe-src";
+import { getVitrinPage, vitrinMirrorFileRel, type VitrinPageKey } from "@/lib/mirror-vitrin-pages";
 import { CustomBlocksEditor, toEditorCustomBlocks } from "@/components/editor/CustomBlocksEditor";
 import { stripMirrorCustomBlocks, type EditorMirrorCustomBlock } from "@/lib/mirror-custom-block-types";
 import { btnPrimary, btnSecondary } from "@/components/admin/AdminForm";
@@ -268,7 +269,8 @@ export function MirrorVitrinAdminEditor({
     }
   }
 
-  const mirrorSrc = def.mirrorPath("tr");
+  /** Widget önizlemesi — her zaman canlı API (prebuild widget içermeyebilir) */
+  const mirrorSrc = mirrorVitrinApiSrc(vitrinMirrorFileRel(pageKey, locale), pageKey);
   const elementCount = Object.keys(config.elements ?? {}).length;
   const selectedSection = selectedKey ? catalogMap.get(selectedKey) : undefined;
   const isCollectionListSection = selectedSection?.type === "main-collection-list";

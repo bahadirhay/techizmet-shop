@@ -7,6 +7,11 @@ import {
 } from "@/lib/mirror-iframe-src";
 import { hasPrebuiltMirrorHtml, isMirrorDevLiveRebuild } from "@/lib/mirror-prebuilt-io";
 
+/** Kayıtlı widget varsa statik prebuild yerine canlı API HTML (widget enjeksiyonu) */
+export function mirrorIframePrefersLiveApi(opts?: { hasCustomBlocks?: boolean }): boolean {
+  return Boolean(opts?.hasCustomBlocks);
+}
+
 /** Hesap / sepet — oturuma göre API enjeksiyonu gerekir */
 function needsLiveMirrorApi(path: string): boolean {
   return /\/mirror\/(?:account|cart)\//i.test(path);
@@ -21,10 +26,11 @@ export function resolveStoreMirrorIframeSrc(
   normalized: string,
   pageKey?: string,
   extra?: Record<string, string | undefined>,
+  opts?: { hasCustomBlocks?: boolean },
 ): string {
   const path = normalized.startsWith("/") ? normalized.slice(1) : normalized;
 
-  if (needsLiveMirrorApi(path)) {
+  if (needsLiveMirrorApi(path) || mirrorIframePrefersLiveApi(opts)) {
     return mirrorVitrinApiSrc(path, pageKey, extra);
   }
 

@@ -195,7 +195,11 @@ export function MirrorVitrinFrameClient({
       const serverOverlay = doc.documentElement.getAttribute("data-kn-overlay-server") === "1";
       const collectionsOnServer =
         doc.documentElement.getAttribute("data-kn-collections-server") === "1";
+      const hasWidgets = (config?.customBlocks?.length ?? 0) > 0;
+      const mustApplyPageConfig = Boolean(pageConfig && hasMirrorPageEdits(pageConfig));
       const skipClientWork =
+        !mustApplyPageConfig &&
+        !hasWidgets &&
         serverReady &&
         doc.documentElement.getAttribute("data-kn-catalog-pruned") === "1" &&
         collectionsOnServer &&
@@ -224,7 +228,10 @@ export function MirrorVitrinFrameClient({
       const needsClientOverlay =
         config &&
         hasMirrorPageEdits(config) &&
-        (!serverOverlay || (visualEditMode && overlaySig !== overlayKeyRef.current));
+        (hasWidgets ||
+          pageConfig != null ||
+          !serverOverlay ||
+          (visualEditMode && overlaySig !== overlayKeyRef.current));
 
       if (needsClientOverlay) {
         applyMirrorPageOverlay(doc, config, undefined, locale ?? "tr");
