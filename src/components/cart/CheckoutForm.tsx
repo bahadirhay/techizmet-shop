@@ -8,14 +8,13 @@ import { useCart } from "@/components/cart/CartContext";
 import { formatTry } from "@/lib/format";
 import type { ShippingOption } from "@/lib/cart/types";
 import type { CheckoutPrefill } from "@/lib/checkout/prefill";
+import {
+  hasAnyCheckoutPaymentMethod,
+  resolveDefaultPaymentMethod,
+  type CheckoutPaymentFlags,
+  type PaymentMethodId,
+} from "@/lib/checkout/payment-options";
 import { formatCheckoutLine1, splitSavedLine1 } from "@/lib/tr-address/format";
-
-type PaymentFlags = {
-  codEnabled: boolean;
-  bankTransferEnabled: boolean;
-  cardEnabled: boolean;
-  bankAccounts: { bank: string; iban: string; holder: string }[];
-};
 
 function addressToForm(a: CheckoutPrefill["addresses"][0]) {
   const { neighborhood, streetLine } = splitSavedLine1(a.line1);
@@ -52,7 +51,7 @@ export function CheckoutForm({
   prefill,
   embed = false,
 }: {
-  payment: PaymentFlags;
+  payment: CheckoutPaymentFlags;
   prefill?: CheckoutPrefill | null;
   embed?: boolean;
 }) {
@@ -75,6 +74,7 @@ export function CheckoutForm({
   const [saveAddress, setSaveAddress] = useState(
     Boolean(prefill?.loggedIn && !(prefill?.addresses.length)),
   );
+  const defaultPay = resolveDefaultPaymentMethod(payment);
   const [form, setForm] = useState({
     email: prefill?.email ?? "",
     phone: prefill?.phone || addrFields?.phone || "",
@@ -85,15 +85,11 @@ export function CheckoutForm({
     neighborhood: addrFields?.neighborhood ?? "",
     line1: addrFields?.line1 ?? "",
     postalCode: addrFields?.postalCode ?? "",
-    paymentMethod: payment.codEnabled
-      ? "cod"
-      : payment.bankTransferEnabled
-        ? "bank_transfer"
-        : payment.cardEnabled
-          ? "card"
-          : "cod",
+    paymentMethod: defaultPay ?? ("cod" as PaymentMethodId),
     acceptTerms: false,
   });
+
+  const paymentAvailable = hasAnyCheckoutPaymentMethod(payment);
 
   const isNewAddress = !selectedAddressId;
   const showSaveAddressOption = Boolean(prefill?.loggedIn && isNewAddress);
@@ -186,6 +182,18 @@ export function CheckoutForm({
     }
     if (!form.city || !form.district || !form.neighborhood || !form.line1.trim()) {
       setErr("İl, ilçe, mahalle ve adres (sokak) zorunludur");
+      return;
+    }
+    if (!paymentAvailable) {
+      setErr("Şu an aktif ödeme yöntemi yok. Lütfen mağaza yöneticisiyle iletişime geçin.");
+      return;
+    }
+    if (
+      (form.paymentMethod === "cod" && !payment.codEnabled) ||
+      (form.paymentMethod === "bank_transfer" && !payment.bankTransferEnabled) ||
+      (form.paymentMethod === "card" && !payment.cardEnabled)
+    ) {
+      setErr("Seçilen ödeme yöntemi kullanılamıyor. Lütfen başka bir yöntem seçin.");
       return;
     }
     setBusy(true);
@@ -433,6 +441,12 @@ export function CheckoutForm({
           </section>
           <section className="kn-checkout__section">
             <h2>Ödeme yöntemi</h2>
+            {!paymentAvailable ? (
+              <p className="kn-alert kn-alert--warn">
+                Aktif ödeme yöntemi tanımlı değil. Admin → Entegrasyon → Ödeme bölümünden en az bir yöntemi
+                açın.
+              </p>
+            ) : (
             <div className="kn-payment-options">
               {payment.codEnabled ? (
                 <label>
@@ -469,13 +483,9 @@ export function CheckoutForm({
                   />
                   Kredi / banka kartı (PayTR güvenli ödeme)
                 </label>
-              ) : (
-                <label className="kn-payment-option--muted">
-                  <input type="radio" name="pay" value="card" disabled />
-                  Kredi kartı (PayTR ayarları admin panelde)
-                </label>
-              )}
+              ) : null}
             </div>
+            )}
             {form.paymentMethod === "bank_transfer" && payment.bankAccounts.length > 0 ? (
               <div className="kn-bank-accounts">
                 {payment.bankAccounts.map((b) => (
@@ -536,7 +546,7 @@ export function CheckoutForm({
           <button
             type="submit"
             className="button medium-button button-block cart-checkout-btn kn-checkout__submit-btn"
-            disabled={busy}
+            disabled={busy || !paymentAvailable}
           >
             {busy ? "İşleniyor…" : "Siparişi tamamla"}
           </button>
