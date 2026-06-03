@@ -5,6 +5,14 @@ import { getDefaultSite } from "@/lib/site";
 import { getSiteSettings } from "@/lib/site-settings";
 import { getPaytrConfig, verifyPaytrCallbackHash } from "@/lib/payments/paytr";
 
+/** Tarayıcı / panel kontrolü — PayTR bildirimleri yalnızca POST ile gelir */
+export async function GET() {
+  return new NextResponse(
+    "PayTR bildirim URL aktif. Ödeme sonucu yalnızca POST ile iletilir; tarayıcıdan test için POST kullanın.",
+    { status: 200, headers: { "Content-Type": "text/plain; charset=utf-8" } },
+  );
+}
+
 export async function POST(req: Request) {
   const form = await req.formData();
   const body = {
@@ -40,6 +48,10 @@ export async function POST(req: Request) {
   }
 
   if (!order) {
+    return new NextResponse("OK");
+  }
+
+  if (order.paymentStatus === "paid") {
     return new NextResponse("OK");
   }
 
