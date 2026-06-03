@@ -31,7 +31,7 @@ export const CHECKOUT_EMBED_BRIDGE_SCRIPT = `<script id="kn-checkout-embed-bridg
 
 export function applyCheckoutPageToMirrorHtml(html: string): string {
   let out = html;
-  out = out.replace(/kn-checkout-embed\.css\?v=\d+/g, "kn-checkout-embed.css?v=3");
+  out = out.replace(/kn-checkout-embed\.css\?v=\d+/g, "kn-checkout-embed.css?v=4");
   if (!out.includes('id="kn-checkout-mirror-css"')) {
     out = out.replace(/<\/head>/i, `${CHECKOUT_MIRROR_CSS}</head>`);
   } else {
@@ -48,7 +48,7 @@ export function applyCheckoutPageToMirrorHtml(html: string): string {
   if (!out.includes("kn-checkout-embed.css")) {
     out = out.replace(
       /<\/head>/i,
-      '<link href="/theme/techizmet-shop/kn-checkout-embed.css?v=3" rel="stylesheet" type="text/css" media="all" />\n</head>',
+      '<link href="/theme/techizmet-shop/kn-checkout-embed.css?v=4" rel="stylesheet" type="text/css" media="all" />\n</head>',
     );
   }
   return out;

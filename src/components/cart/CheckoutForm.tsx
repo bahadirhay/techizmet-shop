@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { TurkeyAddressFields } from "@/components/address/TurkeyAddressFields";
 import { useCart } from "@/components/cart/CartContext";
 import { formatTry } from "@/lib/format";
 import type { ShippingOption } from "@/lib/cart/types";
 import type { CheckoutPrefill } from "@/lib/checkout/prefill";
+import { formatCheckoutLine1, splitSavedLine1 } from "@/lib/tr-address/format";
 
 type PaymentFlags = {
   codEnabled: boolean;
@@ -16,16 +18,26 @@ type PaymentFlags = {
 };
 
 function addressToForm(a: CheckoutPrefill["addresses"][0]) {
+  const { neighborhood, streetLine } = splitSavedLine1(a.line1);
   return {
     firstName: a.firstName ?? "",
     lastName: a.lastName ?? "",
     phone: a.phone ?? "",
     city: a.city,
     district: a.district,
-    line1: a.line1,
+    neighborhood,
+    line1: streetLine,
     postalCode: a.postalCode ?? "",
   };
 }
+
+const EMPTY_ADDRESS = {
+  city: "",
+  district: "",
+  neighborhood: "",
+  line1: "",
+  postalCode: "",
+};
 
 function topNavigate(url: string) {
   if (typeof window !== "undefined" && window.top && window.top !== window) {
@@ -60,6 +72,9 @@ export function CheckoutForm({
   const addrFields = defaultAddr ? addressToForm(defaultAddr) : null;
 
   const [selectedAddressId, setSelectedAddressId] = useState(defaultAddr?.id ?? "");
+  const [saveAddress, setSaveAddress] = useState(
+    Boolean(prefill?.loggedIn && !(prefill?.addresses.length)),
+  );
   const [form, setForm] = useState({
     email: prefill?.email ?? "",
     phone: prefill?.phone || addrFields?.phone || "",
@@ -67,6 +82,7 @@ export function CheckoutForm({
     lastName: prefill?.lastName || addrFields?.lastName || "",
     city: addrFields?.city ?? "",
     district: addrFields?.district ?? "",
+    neighborhood: addrFields?.neighborhood ?? "",
     line1: addrFields?.line1 ?? "",
     postalCode: addrFields?.postalCode ?? "",
     paymentMethod: payment.codEnabled
@@ -78,6 +94,13 @@ export function CheckoutForm({
           : "cod",
     acceptTerms: false,
   });
+
+  const isNewAddress = !selectedAddressId;
+  const showSaveAddressOption = Boolean(prefill?.loggedIn && isNewAddress);
+
+  const patchAddress = useCallback((patch: Partial<typeof EMPTY_ADDRESS & { line1: string; postalCode: string }>) => {
+    setForm((prev) => ({ ...prev, ...patch }));
+  }, []);
 
   useEffect(() => {
     refresh();
@@ -103,7 +126,29 @@ export function CheckoutForm({
     const ro = new ResizeObserver(reportHeight);
     ro.observe(document.body);
     return () => ro.disconnect();
-  }, [embed, cart, shipping, err, busy, createAccount, form]);
+  }, [embed, cart, shipping, err, busy, createAccount, saveAddress, form]);
+
+  function selectNewAddress() {
+    setSelectedAddressId("");
+    setSaveAddress(true);
+    setForm((prev) => ({
+      ...prev,
+      ...EMPTY_ADDRESS,
+    }));
+  }
+
+  function selectSavedAddress(a: CheckoutPrefill["addresses"][0]) {
+    setSelectedAddressId(a.id);
+    setSaveAddress(false);
+    const f = addressToForm(a);
+    setForm((prev) => ({
+      ...prev,
+      ...f,
+      phone: f.phone || prev.phone,
+      firstName: f.firstName || prev.firstName,
+      lastName: f.lastName || prev.lastName,
+    }));
+  }
 
   if (!cart || cart.items.length === 0) {
     return (
@@ -139,18 +184,25 @@ export function CheckoutForm({
         return;
       }
     }
+    if (!form.city || !form.district || !form.neighborhood || !form.line1.trim()) {
+      setErr("İl, ilçe, mahalle ve adres (sokak) zorunludur");
+      return;
+    }
     setBusy(true);
     setErr(null);
+    const fullLine1 = formatCheckoutLine1(form.neighborhood, form.line1);
     const res = await fetch("/api/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "same-origin",
       body: JSON.stringify({
         ...form,
+        line1: fullLine1,
         carrierId: freeShipping ? shipping[0]?.carrierId ?? "" : carrierId,
         rateId: freeShipping ? shipping[0]?.rateId ?? "" : rateId,
         createAccount: !prefill?.loggedIn && createAccount,
         accountPassword: !prefill?.loggedIn && createAccount ? accountPassword : undefined,
+        saveAddress: showSaveAddressOption && saveAddress,
       }),
     });
     const j = (await res.json()) as {
@@ -286,17 +338,7 @@ export function CheckoutForm({
                       type="radio"
                       name="savedAddress"
                       checked={selectedAddressId === a.id}
-                      onChange={() => {
-                        setSelectedAddressId(a.id);
-                        const f = addressToForm(a);
-                        setForm((prev) => ({
-                          ...prev,
-                          ...f,
-                          phone: f.phone || prev.phone,
-                          firstName: f.firstName || prev.firstName,
-                          lastName: f.lastName || prev.lastName,
-                        }));
-                      }}
+                      onChange={() => selectSavedAddress(a)}
                     />
                     <span>
                       <strong>{a.label || "Adres"}</strong>
@@ -311,7 +353,7 @@ export function CheckoutForm({
                     type="radio"
                     name="savedAddress"
                     checked={selectedAddressId === ""}
-                    onChange={() => setSelectedAddressId("")}
+                    onChange={selectNewAddress}
                   />
                   <span>Yeni adres gir</span>
                 </label>
@@ -338,47 +380,28 @@ export function CheckoutForm({
                   onChange={(e) => setForm({ ...form, lastName: e.target.value })}
                 />
               </div>
-              <div className="form-group">
-                <label htmlFor="kn-checkout-city">İl *</label>
-                <input
-                  id="kn-checkout-city"
-                  className="form-control"
-                  required
-                  value={form.city}
-                  onChange={(e) => setForm({ ...form, city: e.target.value })}
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="kn-checkout-district">İlçe *</label>
-                <input
-                  id="kn-checkout-district"
-                  className="form-control"
-                  required
-                  value={form.district}
-                  onChange={(e) => setForm({ ...form, district: e.target.value })}
-                />
-              </div>
-              <div className="form-group kn-form-full">
-                <label htmlFor="kn-checkout-line">Adres *</label>
-                <textarea
-                  id="kn-checkout-line"
-                  className="form-control"
-                  required
-                  rows={2}
-                  value={form.line1}
-                  onChange={(e) => setForm({ ...form, line1: e.target.value })}
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="kn-checkout-postal">Posta kodu</label>
-                <input
-                  id="kn-checkout-postal"
-                  className="form-control"
-                  value={form.postalCode}
-                  onChange={(e) => setForm({ ...form, postalCode: e.target.value })}
-                />
-              </div>
+              <TurkeyAddressFields
+                idPrefix="kn-checkout"
+                value={{
+                  city: form.city,
+                  district: form.district,
+                  neighborhood: form.neighborhood,
+                  postalCode: form.postalCode,
+                  line1: form.line1,
+                }}
+                onChange={patchAddress}
+              />
             </div>
+            {showSaveAddressOption ? (
+              <label className="kn-checkout__account-toggle kn-checkout__save-address">
+                <input
+                  type="checkbox"
+                  checked={saveAddress}
+                  onChange={(e) => setSaveAddress(e.target.checked)}
+                />
+                <span>Bu adresi hesabıma kaydet</span>
+              </label>
+            ) : null}
           </section>
           <section className="kn-checkout__section">
             <h2>Kargo</h2>

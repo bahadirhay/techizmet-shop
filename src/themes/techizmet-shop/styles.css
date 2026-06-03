@@ -1108,6 +1108,13 @@
   min-height: 4.5rem;
   resize: vertical;
 }
+.kn-checkout select.form-control {
+  cursor: pointer;
+  appearance: auto;
+}
+.kn-checkout__save-address {
+  margin-top: 1rem;
+}
 .kn-checkout .form-control:focus-visible,
 .kn-checkout input:not([type="radio"]):not([type="checkbox"]):focus-visible,
 .kn-checkout textarea:focus-visible {
@@ -1545,6 +1552,9 @@
   color: inherit;
   font: inherit;
   cursor: pointer;
+  pointer-events: auto;
+  -webkit-appearance: none;
+  appearance: none;
 }
 .kn-account-nav__tab:hover {
   background: var(--kn-surface-alt, #f7f7f7);
@@ -1553,6 +1563,36 @@
   background: var(--kn-brand, #1a1a1a);
   border-color: var(--kn-brand, #1a1a1a);
   color: #fff;
+}
+.kn-tr-address-select,
+.kn-account__form .kn-tr-address-select {
+  display: block;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.5rem 2.25rem 0.5rem 0.75rem;
+  border: 1px solid var(--kn-border);
+  border-radius: var(--kn-radius-sm, 6px);
+  background-color: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%231a1a1a' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.kn-account__form .kn-tr-address {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem 1rem;
+  width: 100%;
+}
+.kn-account__form .kn-tr-address .kn-form-full {
+  grid-column: 1 / -1;
+}
+@media (max-width: 640px) {
+  .kn-account__form .kn-tr-address {
+    grid-template-columns: 1fr;
+  }
 }
 .kn-fav-list {
   list-style: none;

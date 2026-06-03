@@ -1,5 +1,7 @@
 /** Techizmet Shop — hesap paneli HTML + iframe etkileşim köprüsü */
 
+import { mirrorTrAddressFieldsHtml } from "@/lib/mirror-tr-address-markup";
+
 export type MirrorAccountAddress = {
   id: string;
   label: string | null;
@@ -85,6 +87,36 @@ export const ACCOUNT_DASHBOARD_CSS = `<style id="kn-account-dashboard-css">
   padding-bottom: 16px;
   border-bottom: 1px solid var(--border_color, #e5e2dd);
 }
+.kn-account-tab-radio {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.kn-account-dashboard .kn-account-panels > .kn-account-panel {
+  display: none !important;
+}
+#kn-acc-tab-profile:checked ~ .kn-account-panels [data-kn-account-panel="profile"],
+#kn-acc-tab-orders:checked ~ .kn-account-panels [data-kn-account-panel="orders"],
+#kn-acc-tab-addresses:checked ~ .kn-account-panels [data-kn-account-panel="addresses"],
+#kn-acc-tab-favorites:checked ~ .kn-account-panels [data-kn-account-panel="favorites"],
+#kn-acc-tab-password:checked ~ .kn-account-panels [data-kn-account-panel="password"] {
+  display: block !important;
+}
+#kn-acc-tab-profile:checked ~ .kn-account-tabs label[for="kn-acc-tab-profile"],
+#kn-acc-tab-orders:checked ~ .kn-account-tabs label[for="kn-acc-tab-orders"],
+#kn-acc-tab-addresses:checked ~ .kn-account-tabs label[for="kn-acc-tab-addresses"],
+#kn-acc-tab-favorites:checked ~ .kn-account-tabs label[for="kn-acc-tab-favorites"],
+#kn-acc-tab-password:checked ~ .kn-account-tabs label[for="kn-acc-tab-password"] {
+  background: #1a1a1a;
+  border-color: #1a1a1a;
+  color: #fff;
+}
 .kn-account-tab {
   display: inline-flex;
   align-items: center;
@@ -97,6 +129,11 @@ export const ACCOUNT_DASHBOARD_CSS = `<style id="kn-account-dashboard-css">
   background: #fff;
   color: #1a1a1a;
   cursor: pointer;
+  pointer-events: auto;
+  -webkit-appearance: none;
+  appearance: none;
+  font-family: inherit;
+  user-select: none;
 }
 .kn-account-tab:hover {
   background: #f7f7f7;
@@ -130,6 +167,22 @@ export const ACCOUNT_DASHBOARD_CSS = `<style id="kn-account-dashboard-css">
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+}
+.kn-tr-address-select,
+.kn-account-dashboard .kn-tr-address-select {
+  cursor: pointer;
+  min-height: 46px;
+  padding-right: 2.25rem;
+  background-color: var(--form_background, #fff);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%231a1a1a' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.kn-account-dashboard .kn-tr-address [data-kn-tr-postal] {
+  background: var(--body_alternate_background, #f7f5f2);
+  cursor: default;
 }
 .kn-account-dashboard .button.medium-button {
   width: auto;
@@ -276,12 +329,12 @@ export function buildAccountWelcomeHtml(p: Pick<MirrorAccountDashboardPayload, "
 function addressEditFormHtml(a: MirrorAccountAddress, tr: boolean): string {
   return `<form class="account--form kn-account-address-edit-form" data-kn-addr-edit-form="${esc(a.id)}" hidden>
     <div class="form-group"><label>${tr ? "Etiket" : "Label"}</label><input class="form-control" name="label" value="${esc(a.label ?? "")}" /></div>
-    <div class="input-form--fields">
-      <div class="form-group"><label>${tr ? "İl" : "City"}</label><input class="form-control" name="city" value="${esc(a.city)}" required /></div>
-      <div class="form-group"><label>${tr ? "İlçe" : "District"}</label><input class="form-control" name="district" value="${esc(a.district)}" required /></div>
-    </div>
-    <div class="form-group"><label>${tr ? "Adres" : "Address"}</label><input class="form-control" name="line1" value="${esc(a.line1)}" required /></div>
-    <div class="form-group"><label>${tr ? "Posta kodu" : "Postal code"}</label><input class="form-control" name="postalCode" value="${esc(a.postalCode ?? "")}" /></div>
+    ${mirrorTrAddressFieldsHtml(tr, {
+      city: a.city,
+      district: a.district,
+      line1: a.line1,
+      postalCode: a.postalCode ?? "",
+    })}
     <div class="form-group kn-account-checkbox"><label><input type="checkbox" name="isDefault"${a.isDefault ? " checked" : ""} /> ${tr ? "Varsayılan adres" : "Default address"}</label></div>
     <p class="kn-account-msg" data-kn-addr-edit-msg hidden></p>
     <button type="submit" class="button medium-button">${tr ? "Kaydet" : "Save"}</button>
@@ -332,10 +385,16 @@ export function buildAccountDashboardMarkup(p: MirrorAccountDashboardPayload): s
     { id: "password", label: tr ? "Şifre Değiştir" : "Change password" },
   ];
 
+  const tabRadios = tabs
+    .map(
+      (t, i) =>
+        `<input type="radio" name="kn-acc-tab" id="kn-acc-tab-${t.id}" class="kn-account-tab-radio"${i === 0 ? " checked" : ""} />`,
+    )
+    .join("");
   const tabNav = tabs
     .map(
       (t, i) =>
-        `<button type="button" class="kn-account-tab${i === 0 ? " active" : ""}" data-kn-account-tab="${t.id}">${esc(t.label)}</button>`,
+        `<label for="kn-acc-tab-${t.id}" role="tab" class="kn-account-tab${i === 0 ? " active" : ""}" data-kn-account-tab="${t.id}">${esc(t.label)}</label>`,
     )
     .join("");
 
@@ -409,6 +468,7 @@ export function buildAccountDashboardMarkup(p: MirrorAccountDashboardPayload): s
     </div>
     <button type="button" class="button medium-button" data-kn-logout>${tr ? "Çıkış yap" : "Log out"}</button>
   </div>
+  ${tabRadios}
   <nav class="kn-account-tabs" aria-label="${tr ? "Hesap menüsü" : "Account menu"}">${tabNav}</nav>
   <div class="kn-account-panels">
     <section class="kn-account-panel" data-kn-account-panel="profile">
@@ -432,7 +492,7 @@ export function buildAccountDashboardMarkup(p: MirrorAccountDashboardPayload): s
         <button type="submit" class="button medium-button">${tr ? "Profili kaydet" : "Save profile"}</button>
       </form>
     </section>
-    <section class="kn-account-panel" data-kn-account-panel="orders" hidden>
+    <section class="kn-account-panel" data-kn-account-panel="orders">
       <h3 class="heading-font h5">${tr ? "Siparişlerim" : "Order history"}</h3>
       <div class="order--history">
         <table width="100%">
@@ -447,28 +507,23 @@ export function buildAccountDashboardMarkup(p: MirrorAccountDashboardPayload): s
         </table>
       </div>
     </section>
-    <section class="kn-account-panel" data-kn-account-panel="addresses" hidden>
+    <section class="kn-account-panel" data-kn-account-panel="addresses">
       <h3 class="heading-font h5">${tr ? "Adres bilgilerim" : "My addresses"}</h3>
       <div class="address--list">${addressCards || `<p class="text-medium">${tr ? "Kayıtlı adres yok." : "No saved addresses."}</p>`}</div>
       <form class="account--form kn-account-address-form" data-kn-address-form>
         <h4 class="heading-font h6">${tr ? "Yeni adres" : "New address"}</h4>
         <p class="kn-account-msg" data-kn-address-form-msg hidden></p>
         <div class="form-group"><label for="kn-addr-label">${tr ? "Etiket" : "Label"}</label><input class="form-control" id="kn-addr-label" name="label" placeholder="${tr ? "Ev, İş…" : "Home, Work…"}" autocomplete="off" /></div>
-        <div class="input-form--fields">
-          <div class="form-group"><label for="kn-addr-city">${tr ? "İl" : "City"}</label><input class="form-control" id="kn-addr-city" name="city" required autocomplete="address-level1" /></div>
-          <div class="form-group"><label for="kn-addr-district">${tr ? "İlçe" : "District"}</label><input class="form-control" id="kn-addr-district" name="district" required autocomplete="address-level2" /></div>
-        </div>
-        <div class="form-group"><label for="kn-addr-line">${tr ? "Adres" : "Address line"}</label><input class="form-control" id="kn-addr-line" name="line1" required autocomplete="street-address" /></div>
-        <div class="form-group"><label for="kn-addr-postal">${tr ? "Posta kodu" : "Postal code"}</label><input class="form-control" id="kn-addr-postal" name="postalCode" autocomplete="postal-code" /></div>
+        ${mirrorTrAddressFieldsHtml(tr)}
         <div class="form-group kn-account-checkbox"><label><input type="checkbox" name="isDefault" /> ${tr ? "Varsayılan adres" : "Default address"}</label></div>
         <button type="submit" class="button medium-button">${tr ? "Adres ekle" : "Add address"}</button>
       </form>
     </section>
-    <section class="kn-account-panel" data-kn-account-panel="favorites" hidden>
+    <section class="kn-account-panel" data-kn-account-panel="favorites">
       <h3 class="heading-font h5">${tr ? "Favorilerim" : "My favorites"}</h3>
       ${favoritesGridHtml(p.favorites, tr)}
     </section>
-    <section class="kn-account-panel" data-kn-account-panel="password" hidden>
+    <section class="kn-account-panel" data-kn-account-panel="password">
       <h3 class="heading-font h5">${tr ? "Şifre değiştir" : "Change password"}</h3>
       ${passwordPanel}
     </section>
@@ -526,23 +581,69 @@ export function buildAccountDashboardBridgeScript(): string {
   function hideAllAddrEditForms(except){qsa("[data-kn-addr-edit-form]").forEach(function(f){if(f!==except)f.hidden=true;});}
   function reloadDashboard(){try{var u=new URL(window.location.href);u.searchParams.set("_kn",String(Date.now()));window.location.replace(u.toString());}catch(e){window.location.reload();}}
   function showTab(name){
+    if(!name)return;
+    var radio=qs("#kn-acc-tab-"+name);if(radio)radio.checked=true;
     qsa("[data-kn-account-tab]").forEach(function(btn){
       var on=btn.getAttribute("data-kn-account-tab")===name;
       btn.classList.toggle("active",on);
+      btn.setAttribute("aria-selected",on?"true":"false");
     });
     qsa("[data-kn-account-panel]").forEach(function(panel){
       var on=panel.getAttribute("data-kn-account-panel")===name;
-      panel.hidden=!on;
+      if(on){
+        panel.removeAttribute("hidden");
+        panel.style.display="";
+      }else{
+        panel.setAttribute("hidden","");
+        panel.style.display="none";
+      }
     });
     try{var u=new URL(window.location.href);u.searchParams.set("tab",name);window.history.replaceState(null,"",u.toString());}catch(e){}
   }
+  function bindTabs(){
+    qsa(".kn-account-tab-radio").forEach(function(radio){
+      if(radio.dataset.knRadioBound)return;
+      radio.dataset.knRadioBound="1";
+      radio.addEventListener("change",function(){
+        if(!radio.checked)return;
+        var id=radio.id.replace(/^kn-acc-tab-/,"");
+        if(id)showTab(id);
+      });
+    });
+    qsa("[data-kn-account-tab]").forEach(function(btn){
+      if(btn.dataset.knTabBound)return;
+      btn.dataset.knTabBound="1";
+      btn.addEventListener("click",function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        var id=btn.getAttribute("data-kn-account-tab");
+        if(id)showTab(id);
+      });
+    });
+  }
   async function post(url,body){var r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:JSON.stringify(body||{})});var j={};try{j=await r.json();}catch(e){}return {ok:r.ok,json:j};}
   async function patch(url,body){var r=await fetch(url,{method:"PATCH",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:JSON.stringify(body||{})});var j={};try{j=await r.json();}catch(e){}return {ok:r.ok,json:j};}
-  function addrBody(form){return {label:field(form,"label"),city:field(form,"city"),district:field(form,"district"),line1:field(form,"line1"),postalCode:field(form,"postalCode"),isDefault:chk(form,"isDefault")};}
+  function addrBody(form){
+    var block=form.querySelector("[data-kn-tr-address]");
+    if(block){
+      var hood=block.querySelector("[data-kn-tr-neighborhood]");
+      var street=block.querySelector("[data-kn-tr-line]");
+      var city=block.querySelector("[data-kn-tr-city]");
+      var dist=block.querySelector("[data-kn-tr-district]");
+      var postal=block.querySelector("[data-kn-tr-postal]");
+      var h=hood?String(hood.value||"").trim():"";
+      var s=street?String(street.value||"").trim():"";
+      var line1=h&&s?h+", "+s:(h||s);
+      return {label:field(form,"label"),city:city?String(city.value||"").trim():"",district:dist?String(dist.value||"").trim():"",line1:line1,postalCode:postal?String(postal.value||"").trim():"",isDefault:chk(form,"isDefault")};
+    }
+    return {label:field(form,"label"),city:field(form,"city"),district:field(form,"district"),line1:field(form,"line1"),postalCode:field(form,"postalCode"),isDefault:chk(form,"isDefault")};
+  }
   function bindDashboard(){
+    bindTabs();
     var tabParam="";try{tabParam=new URL(window.location.href).searchParams.get("tab")||"";}catch(e){}
     var valid=["profile","orders","addresses","favorites","password"];
     if(valid.indexOf(tabParam)>=0)showTab(tabParam);
+    else showTab("profile");
     var pf=qs("[data-kn-profile-form]");if(pf&&!pf.dataset.knBound){pf.dataset.knBound="1";pf.addEventListener("submit",async function(e){e.preventDefault();var m=qs("[data-kn-profile-msg]",pf);var fn=field(pf,"firstName"),ln=field(pf,"lastName");var r=await patch("/api/account/profile",{firstName:fn,lastName:ln,phone:field(pf,"phone")});msg(m,r.ok?(tr()?"Kaydedildi":"Saved"):(r.json.error||(tr()?"Hata":"Error")),r.ok);if(r.ok){var n=welcomeName(fn,ln);if(n)setWelcome(n);}});}
     var af=qs("[data-kn-address-form]");if(af&&!af.dataset.knBound){af.dataset.knBound="1";af.addEventListener("submit",async function(e){e.preventDefault();var fm=qs("[data-kn-address-form-msg]",af);var btn=af.querySelector('button[type="submit"]');if(btn)btn.disabled=true;var r=await post("/api/account/addresses",addrBody(af));if(btn)btn.disabled=false;if(r.ok){resetNewAddressForm(af);msg(fm,tr()?"Adres eklendi":"Address added",true);reloadDashboard();}else{msg(fm,r.json.error||(tr()?"Adres eklenemedi":"Could not add address"),false);}});
     qsa("[data-kn-addr-edit-form]").forEach(function(form){
@@ -562,7 +663,7 @@ export function buildAccountDashboardBridgeScript(): string {
     var cancel=el.closest("[data-kn-addr-cancel]");if(cancel){e.preventDefault();var form=cancel.closest("[data-kn-addr-edit-form]");if(form)form.hidden=true;return;}
     var def=el.closest("[data-kn-addr-default]");if(def){e.preventDefault();var r=await patch("/api/account/addresses/"+def.getAttribute("data-kn-addr-default"),{isDefault:true});if(r.ok)reloadDashboard();else alert(r.json.error||(tr()?"Hata":"Error"));return;}
     var del=el.closest("[data-kn-addr-delete]");if(del){e.preventDefault();if(!confirm(tr()?"Bu adresi silmek istiyor musunuz?":"Delete this address?"))return;var res=await fetch("/api/account/addresses/"+del.getAttribute("data-kn-addr-delete"),{method:"DELETE",credentials:"same-origin"});if(!res.ok){var j={};try{j=await res.json();}catch(err){}alert(j.error||(tr()?"Silinemedi":"Could not delete"));return;}reloadDashboard();return;}
-    var fav=el.closest("[data-kn-fav-remove]");if(fav){e.preventDefault();var pid=fav.getAttribute("data-product-id");if(!pid)return;var fr=await post("/api/account/favorites",{productId:pid});if(!fr.ok){alert(tr()?"İşlem başarısız":"Failed");return;}var card=fav.closest("[data-kn-fav-card]");if(card)card.remove();if(!qs("[data-kn-fav-card]")){var empty=qs("[data-kn-account-panel=favorites]");if(empty)reloadDashboard();}return;}
+    var fav=el.closest("[data-kn-fav-remove]");if(fav){e.preventDefault();var pid=fav.getAttribute("data-product-id");if(!pid)return;var fr=await post("/api/account/favorites",{productId:pid});if(!fr.ok){alert(tr()?"İşlem başarısız":"Failed");return;}var card=fav.closest("[data-kn-fav-card]");if(card)card.remove();if(!qs("[data-kn-fav-card]")){var empty=qs('[data-kn-account-panel="favorites"]');if(empty)reloadDashboard();}return;}
     var oc=el.closest("[data-kn-order-cancel]");if(oc){e.preventDefault();var reason=prompt(tr()?"İptal nedeni (isteğe bağlı):":"Cancel reason (optional):")||"";var r=await post("/api/account/orders/"+encodeURIComponent(oc.getAttribute("data-kn-order-cancel"))+"/request",{type:"cancel",reason:reason});alert(r.json.message||r.json.error||"");if(r.ok)reloadDashboard();return;}
     var orf=el.closest("[data-kn-order-refund]");if(orf){e.preventDefault();var reason2=prompt(tr()?"İade nedeni (isteğe bağlı):":"Refund reason (optional):")||"";var r2=await post("/api/account/orders/"+encodeURIComponent(orf.getAttribute("data-kn-order-refund"))+"/request",{type:"refund",reason:reason2});alert(r2.json.message||r2.json.error||"");if(r2.ok)reloadDashboard();return;}
   },true);}
@@ -572,6 +673,11 @@ export function buildAccountDashboardBridgeScript(): string {
 
 export function injectAccountDashboardBridge(html: string): string {
   const script = `<script id="kn-account-dashboard-bridge">${buildAccountDashboardBridgeScript()}</script>`;
-  if (html.includes('id="kn-account-dashboard-bridge"')) return html;
+  if (html.includes('id="kn-account-dashboard-bridge"')) {
+    return html.replace(
+      /<script id="kn-account-dashboard-bridge">[\s\S]*?<\/script>/i,
+      script,
+    );
+  }
   return html.replace(/<\/body>/i, `${script}</body>`);
 }

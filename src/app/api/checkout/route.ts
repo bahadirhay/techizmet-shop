@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 import { createOrderFromCart } from "@/lib/cart/service";
 import { clearCartSession, getCartSession } from "@/lib/cart/session";
 import { createAccountAfterOrder } from "@/lib/checkout/create-account-after-order";
+import { saveCheckoutAddressToCustomer } from "@/lib/checkout/save-address";
 import { getCustomerSession } from "@/lib/customer-session";
 import { sendOrderConfirmationBundle } from "@/lib/email/send-order-notifications";
 import { getSiteSettings, isCardPaymentEnabled } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
+import { formatCheckoutLine1 } from "@/lib/tr-address/format";
 
 export async function POST(req: Request) {
   const body = (await req.json()) as Record<string, unknown>;
@@ -31,6 +33,17 @@ export async function POST(req: Request) {
   }
 
   const session = await getCartSession();
+  const neighborhood = String(body.neighborhood ?? "").trim();
+  const streetLine = String(body.line1 ?? "").trim();
+  const line1 = formatCheckoutLine1(neighborhood, streetLine) || streetLine;
+  const city = String(body.city ?? "").trim();
+  const district = String(body.district ?? "").trim();
+  const postalCode = String(body.postalCode ?? "").trim() || undefined;
+
+  if (!city || !district || !neighborhood || !streetLine) {
+    return NextResponse.json({ error: "İl, ilçe, mahalle ve adres zorunlu" }, { status: 400 });
+  }
+
   try {
     const custSession = await getCustomerSession();
     const result = await createOrderFromCart({
@@ -43,10 +56,10 @@ export async function POST(req: Request) {
         firstName: String(body.firstName ?? "").trim(),
         lastName: String(body.lastName ?? "").trim(),
         address: {
-          city: String(body.city ?? "").trim(),
-          district: String(body.district ?? "").trim(),
-          line1: String(body.line1 ?? "").trim(),
-          postalCode: String(body.postalCode ?? "").trim() || undefined,
+          city,
+          district,
+          line1,
+          postalCode,
         },
       },
       carrierId: String(body.carrierId ?? ""),
@@ -68,14 +81,22 @@ export async function POST(req: Request) {
         firstName: String(body.firstName ?? "").trim(),
         lastName: String(body.lastName ?? "").trim(),
         phone: String(body.phone ?? "").trim(),
-        address: {
-          city: String(body.city ?? "").trim(),
-          district: String(body.district ?? "").trim(),
-          line1: String(body.line1 ?? "").trim(),
-          postalCode: String(body.postalCode ?? "").trim() || undefined,
-        },
+        address: { city, district, line1, postalCode },
       });
       accountCreated = acc.ok && Boolean(acc.loggedIn);
+    }
+
+    if (custSession.isLoggedIn && custSession.customerId && Boolean(body.saveAddress)) {
+      await saveCheckoutAddressToCustomer({
+        customerId: custSession.customerId,
+        firstName: String(body.firstName ?? "").trim(),
+        lastName: String(body.lastName ?? "").trim(),
+        phone: String(body.phone ?? "").trim(),
+        city,
+        district,
+        line1,
+        postalCode,
+      }).catch((e) => console.error("[checkout saveAddress]", e));
     }
 
     if (paymentMethod === "card") {

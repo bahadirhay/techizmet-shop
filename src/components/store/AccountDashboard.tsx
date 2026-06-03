@@ -1,6 +1,8 @@
 "use client";
 
+import { TurkeyAddressFields } from "@/components/address/TurkeyAddressFields";
 import { AccountChangePasswordForm } from "@/components/store/AccountChangePasswordForm";
+import { formatCheckoutLine1, splitSavedLine1 } from "@/lib/tr-address/format";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -81,6 +83,7 @@ export function AccountDashboard({
     label: "Ev",
     city: "",
     district: "",
+    neighborhood: "",
     line1: "",
     postalCode: "",
     isDefault: addresses.length === 0,
@@ -93,6 +96,7 @@ export function AccountDashboard({
     label: "",
     city: "",
     district: "",
+    neighborhood: "",
     line1: "",
     postalCode: "",
     isDefault: false,
@@ -115,7 +119,10 @@ export function AccountDashboard({
     const res = await fetch("/api/account/addresses", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(addrForm),
+      body: JSON.stringify({
+        ...addrForm,
+        line1: formatCheckoutLine1(addrForm.neighborhood, addrForm.line1),
+      }),
     });
     const json = (await res.json()) as { address?: Address; error?: string };
     setBusy(false);
@@ -130,7 +137,15 @@ export function AccountDashboard({
           : [...prev];
         return [json.address!, ...next];
       });
-      setAddrForm({ label: "Ev", city: "", district: "", line1: "", postalCode: "", isDefault: false });
+      setAddrForm({
+        label: "Ev",
+        city: "",
+        district: "",
+        neighborhood: "",
+        line1: "",
+        postalCode: "",
+        isDefault: false,
+      });
     }
     router.refresh();
   }
@@ -158,12 +173,14 @@ export function AccountDashboard({
   }
 
   function startEditAddress(a: Address) {
+    const { neighborhood, streetLine } = splitSavedLine1(a.line1);
     setEditingAddressId(a.id);
     setEditForm({
       label: a.label ?? "",
       city: a.city,
       district: a.district,
-      line1: a.line1,
+      neighborhood,
+      line1: streetLine,
       postalCode: a.postalCode ?? "",
       isDefault: a.isDefault,
     });
@@ -176,7 +193,10 @@ export function AccountDashboard({
     const res = await fetch(`/api/account/addresses/${editingAddressId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(editForm),
+      body: JSON.stringify({
+        ...editForm,
+        line1: formatCheckoutLine1(editForm.neighborhood, editForm.line1),
+      }),
     });
     const json = (await res.json()) as { address?: Address; error?: string };
     setBusy(false);
@@ -271,8 +291,13 @@ export function AccountDashboard({
           <button
             key={tab.id}
             type="button"
+            role="tab"
+            aria-selected={activeTab === tab.id}
             className={`kn-account-nav__tab${activeTab === tab.id ? " is-active" : ""}`}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={(e) => {
+              e.preventDefault();
+              setActiveTab(tab.id);
+            }}
           >
             {tab.label}
           </button>
@@ -334,30 +359,18 @@ export function AccountDashboard({
                       onChange={(e) => setEditForm({ ...editForm, label: e.target.value })}
                     />
                   </label>
-                  <label>
-                    İl *
-                    <input
-                      required
-                      value={editForm.city}
-                      onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
-                    />
-                  </label>
-                  <label>
-                    İlçe *
-                    <input
-                      required
-                      value={editForm.district}
-                      onChange={(e) => setEditForm({ ...editForm, district: e.target.value })}
-                    />
-                  </label>
-                  <label className="kn-form-full">
-                    Adres *
-                    <input
-                      required
-                      value={editForm.line1}
-                      onChange={(e) => setEditForm({ ...editForm, line1: e.target.value })}
-                    />
-                  </label>
+                  <TurkeyAddressFields
+                    idPrefix="kn-edit-addr"
+                    value={{
+                      city: editForm.city,
+                      district: editForm.district,
+                      neighborhood: editForm.neighborhood,
+                      postalCode: editForm.postalCode,
+                      line1: editForm.line1,
+                    }}
+                    onChange={(patch) => setEditForm((prev) => ({ ...prev, ...patch }))}
+                    disabled={busy}
+                  />
                   <label>
                     <input
                       type="checkbox"
@@ -412,22 +425,18 @@ export function AccountDashboard({
             Etiket
             <input value={addrForm.label} onChange={(e) => setAddrForm({ ...addrForm, label: e.target.value })} />
           </label>
-          <label>
-            İl *
-            <input required value={addrForm.city} onChange={(e) => setAddrForm({ ...addrForm, city: e.target.value })} />
-          </label>
-          <label>
-            İlçe *
-            <input
-              required
-              value={addrForm.district}
-              onChange={(e) => setAddrForm({ ...addrForm, district: e.target.value })}
-            />
-          </label>
-          <label className="kn-form-full">
-            Adres *
-            <input required value={addrForm.line1} onChange={(e) => setAddrForm({ ...addrForm, line1: e.target.value })} />
-          </label>
+          <TurkeyAddressFields
+            idPrefix="kn-new-addr"
+            value={{
+              city: addrForm.city,
+              district: addrForm.district,
+              neighborhood: addrForm.neighborhood,
+              postalCode: addrForm.postalCode,
+              line1: addrForm.line1,
+            }}
+            onChange={(patch) => setAddrForm((prev) => ({ ...prev, ...patch }))}
+            disabled={busy}
+          />
           <label>
             <input
               type="checkbox"
