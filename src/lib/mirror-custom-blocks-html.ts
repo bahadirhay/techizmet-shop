@@ -105,15 +105,15 @@ function sectionAnchorEl(doc: Document, anchor: string): Element | null {
   return doc.querySelector(`section[id$="__${anchor}"]`);
 }
 
-function createWidgetElement(doc: Document, entry: MirrorCustomBlockEntry): HTMLElement | null {
+function createWidgetElement(doc: Document, entry: MirrorCustomBlockEntry): Element | null {
   const inner = blockToHtml(entry.block);
   if (!inner) return null;
   const wrap = doc.createElement("div");
   wrap.innerHTML = inner;
   const section = wrap.querySelector(".kn-cb-section");
-  if (!(section instanceof HTMLElement)) return null;
+  if (!section) return null;
   section.classList.add("kn-custom-block-root");
-  section.dataset.knCustomBlock = entry.id;
+  section.setAttribute("data-kn-custom-block", entry.id);
   if (entry.hidden) section.classList.add("kn-cb-hidden");
   return section;
 }
