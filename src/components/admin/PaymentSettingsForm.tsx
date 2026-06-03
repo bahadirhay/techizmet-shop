@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { paytrConfigStatus } from "@/lib/checkout/payment-options";
 import { AdminField, btnPrimary, inputClass } from "@/components/admin/AdminForm";
+import type { SiteSettings } from "@/lib/site-settings";
 
 type Settings = {
   payment?: {
@@ -19,21 +21,41 @@ export function PaymentSettingsForm({ initial }: { initial: Settings }) {
   const [msg, setMsg] = useState<string | null>(null);
 
   async function save() {
+    const paytr = s.payment?.paytr ?? {};
+    const payload: Settings = {
+      ...s,
+      payment: {
+        ...s.payment,
+        paytr: {
+          ...paytr,
+          ...(paytr.merchantKey?.trim() ? { merchantKey: paytr.merchantKey.trim() } : {}),
+          ...(paytr.merchantSalt?.trim() ? { merchantSalt: paytr.merchantSalt.trim() } : {}),
+        },
+      },
+    };
     const res = await fetch("/api/admin/integrations/settings", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(s),
+      body: JSON.stringify(payload),
     });
     setMsg(res.ok ? "Kaydedildi" : "Hata");
   }
 
   const paytr = s.payment?.paytr ?? {};
+  const paytrStatus = paytrConfigStatus(s as SiteSettings);
   const iyzico = s.payment?.iyzico ?? {};
 
   return (
     <div className="max-w-2xl space-y-6">
       <section id="paytr" className="scroll-mt-6 rounded-xl border bg-white p-6 space-y-4">
         <h2 className="font-semibold">PayTR</h2>
+        <p
+          className={`text-sm ${paytrStatus.configured ? "text-green-700" : "text-amber-800"}`}
+        >
+          {paytrStatus.configured
+            ? "Kartlı ödeme ödeme sayfasında seçenek olarak görünür (test modu yalnızca etiket içindir)."
+            : `Kartlı ödeme kapalı — eksik: ${paytrStatus.missing.join(", ")}. Test modu tek başına yetmez.`}
+        </p>
         <AdminField label="Mağaza no (merchant_id)">
           <input
             className={inputClass}
@@ -50,6 +72,7 @@ export function PaymentSettingsForm({ initial }: { initial: Settings }) {
           <input
             className={inputClass}
             type="password"
+            placeholder={paytr.merchantKey ? "Kayıtlı — değiştirmek için yazın" : ""}
             value={paytr.merchantKey ?? ""}
             onChange={(e) =>
               setS({
@@ -63,6 +86,7 @@ export function PaymentSettingsForm({ initial }: { initial: Settings }) {
           <input
             className={inputClass}
             type="password"
+            placeholder={paytr.merchantSalt ? "Kayıtlı — değiştirmek için yazın" : ""}
             value={paytr.merchantSalt ?? ""}
             onChange={(e) =>
               setS({

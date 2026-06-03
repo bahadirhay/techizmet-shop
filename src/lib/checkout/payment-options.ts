@@ -34,8 +34,21 @@ export function hasAnyCheckoutPaymentMethod(flags: CheckoutPaymentFlags): boolea
 }
 
 export function resolveDefaultPaymentMethod(flags: CheckoutPaymentFlags): PaymentMethodId | null {
+  if (flags.cardEnabled && !flags.codEnabled && !flags.bankTransferEnabled) return "card";
   if (flags.codEnabled) return "cod";
   if (flags.bankTransferEnabled) return "bank_transfer";
   if (flags.cardEnabled) return "card";
   return null;
+}
+
+export function paytrConfigStatus(settings: SiteSettings): {
+  configured: boolean;
+  missing: string[];
+} {
+  const p = settings.payment?.paytr;
+  const missing: string[] = [];
+  if (!p?.merchantId?.trim()) missing.push("Mağaza no");
+  if (!p?.merchantKey?.trim()) missing.push("Merchant key");
+  if (!p?.merchantSalt?.trim()) missing.push("Merchant salt");
+  return { configured: missing.length === 0, missing };
 }

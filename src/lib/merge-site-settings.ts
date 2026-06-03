@@ -1,5 +1,16 @@
 import type { SiteSettings, StoreSmtpSettings } from "@/lib/site-settings";
 
+function mergePaytrSettings(
+  current: NonNullable<SiteSettings["payment"]>["paytr"] | undefined,
+  patch: NonNullable<SiteSettings["payment"]>["paytr"] | undefined,
+) {
+  if (!patch) return current;
+  const next = { ...current, ...patch };
+  if (!patch.merchantKey?.trim()) next.merchantKey = current?.merchantKey;
+  if (!patch.merchantSalt?.trim()) next.merchantSalt = current?.merchantSalt;
+  return next;
+}
+
 function mergeSmtpSettings(
   current: StoreSmtpSettings | undefined,
   patch: StoreSmtpSettings,
@@ -40,7 +51,7 @@ export function mergeSiteSettings(current: SiteSettings, patch: SiteSettings): S
           ...current.payment,
           ...patch.payment,
           paytr: patch.payment.paytr
-            ? { ...current.payment?.paytr, ...patch.payment.paytr }
+            ? mergePaytrSettings(current.payment?.paytr, patch.payment.paytr)
             : current.payment?.paytr,
           iyzico: patch.payment.iyzico
             ? { ...current.payment?.iyzico, ...patch.payment.iyzico }

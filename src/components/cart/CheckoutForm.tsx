@@ -513,6 +513,12 @@ export function CheckoutForm({
               ) : null}
             </div>
             )}
+            {payment.cardEnabled && form.paymentMethod === "card" ? (
+              <p className="kn-checkout__card-hint">
+                Kart numarası bu adımda istenmez. Siparişi tamamladıktan sonra güvenli PayTR ödeme
+                ekranında kart bilgilerinizi gireceksiniz.
+              </p>
+            ) : null}
             {form.paymentMethod === "bank_transfer" && payment.bankAccounts.length > 0 ? (
               <div className="kn-bank-accounts">
                 {payment.bankAccounts.map((b) => (

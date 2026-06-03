@@ -17,6 +17,7 @@ export function isMirrorShellPath(pathname: string): boolean {
     pathname === "/search" ||
     pathname === "/checkout" ||
     pathname === "/checkout/embed" ||
+    pathname === "/checkout/pay" ||
     pathname === "/checkout/success" ||
     pathname === "/orders/track" ||
     pathname === "/orders/track/embed"

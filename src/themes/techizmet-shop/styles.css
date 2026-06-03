@@ -959,6 +959,15 @@
   background: #fef3c7;
   color: #92400e;
 }
+.kn-checkout__card-hint {
+  margin: 12px 0 0;
+  padding: 12px 14px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  background: var(--kn-surface-alt, #f7f5f2);
+  border: 1px solid var(--kn-border, #e5e2dd);
+  border-radius: 8px;
+}
 .kn-paytr-test-notice {
   margin: 0 0 12px;
   padding: 10px 14px;
