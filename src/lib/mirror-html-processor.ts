@@ -59,6 +59,10 @@ import {
   loadPublishedProductSlugSet,
   pruneMirrorHtmlToPublishedCatalog,
 } from "@/lib/mirror-catalog-prune";
+import {
+  isCollectionMirrorPath,
+  pruneCollectionSortOptionsHtml,
+} from "@/lib/mirror-collection-sort-locale";
 import { applyCollectionsCardsToMirrorHtml } from "@/lib/mirror-collections-sync-html";
 import { prisma } from "@/lib/prisma";
 
@@ -97,6 +101,9 @@ export async function buildMirrorHtmlCore(params: MirrorHtmlBuildParams): Promis
   html = patchMirrorProductPageHtml(html);
   html = injectBrandingIntoMirrorHtml(fixMirrorCdnPathsInHtml(html), branding);
   let localized = localizeMirrorHtml(html, normalized, locale);
+  if (isCollectionMirrorPath(normalized)) {
+    localized = pruneCollectionSortOptionsHtml(localized);
+  }
 
   const nav = await loadMirrorNavItemsUncached(siteId, locale);
   localized = injectNavIntoMirrorHtml(localized, nav, locale);

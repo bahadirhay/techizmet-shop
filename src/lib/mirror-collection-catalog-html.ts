@@ -7,6 +7,7 @@ import {
 } from "@/lib/mirror-collections-sync";
 import { loadCollectionCatalogCore } from "@/lib/mirror-collection-catalog-data";
 import type { CollectionCatalogPayload } from "@/lib/mirror-collection-payload-types";
+import { pruneCollectionSortOptions } from "@/lib/mirror-collection-sort-locale";
 import { collectionMirrorFileRel } from "@/lib/mirror-html-path";
 import { readPrebuiltMirrorHtml } from "@/lib/mirror-prebuilt-io";
 
@@ -46,6 +47,7 @@ export function applyCollectionCatalogToMirrorHtml(
       totalCount: payload.totalProductCount,
     },
   );
+  pruneCollectionSortOptions(document);
   return serializeMirrorDocument(html, document);
 }
 

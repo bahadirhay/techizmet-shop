@@ -37,11 +37,8 @@ export function applyMirrorEnReplacements(text: string): string {
 const EN_UI_REPLACEMENTS: ReadonlyArray<readonly [string, string]> = [
   ["Fiyat, düşükten yükseğe", "Price, low to high"],
   ["Fiyat, yüksekten düşüğe", "Price, high to low"],
-  ["Tarih, eskiden yeniye", "Date, old to new"],
-  ["Tarih, yeniden eskiye", "Date, new to old"],
   ["Alfabetik, A–Z", "Alphabetically, A-Z"],
   ["Alfabetik, Z–A", "Alphabetically, Z-A"],
-  ["En alakalı", "Most relevant"],
   ["En çok satan", "Best selling"],
   ["Öne çıkan", "Featured"],
   ["Sırala", "Sort by"],
