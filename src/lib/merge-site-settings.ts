@@ -102,6 +102,9 @@ export function mergeSiteSettings(current: SiteSettings, patch: SiteSettings): S
       : current.store,
     cookieConsentJson:
       patch.cookieConsentJson !== undefined ? patch.cookieConsentJson : current.cookieConsentJson,
+    maintenance: patch.maintenance
+      ? { ...current.maintenance, ...patch.maintenance }
+      : current.maintenance,
     efatura: patch.efatura ? { ...current.efatura, ...patch.efatura } : current.efatura,
     seoAi: patch.seoAi ? { ...current.seoAi, ...patch.seoAi } : current.seoAi,
   };

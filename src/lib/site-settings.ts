@@ -96,7 +96,11 @@ export type StoreNotificationSettings = {
 /** Ana sayfa vitrin tipi */
 export type HomepageMode = "mirror" | "blocks";
 
+export type { SiteMaintenanceSettings } from "@/lib/maintenance-mode";
+
 export type SiteSettings = {
+  /** Mağaza bakım modu — açıkken ziyaretçiler bakım sayfasına yönlendirilir */
+  maintenance?: import("@/lib/maintenance-mode").SiteMaintenanceSettings;
   theme?: {
     /** mirror = HTTrack Techizmet Shop HTML, blocks = admin DnD sayfa (home) */
     homepageMode?: HomepageMode;

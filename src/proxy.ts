@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { LOCALE_COOKIE, resolveLocaleFromRequest, type ShopLocale } from "@/lib/i18n/locale";
+import {
+  ADMIN_SESSION_COOKIE,
+  isMaintenanceBypassPath,
+} from "@/lib/maintenance-mode";
 import { mirrorStaticRewrite } from "@/lib/mirror-static-rewrite";
 
 function attachLocale(
@@ -22,7 +26,19 @@ function attachLocale(
   return response;
 }
 
-export function proxy(request: NextRequest) {
+async function isStoreInMaintenance(request: NextRequest): Promise<boolean> {
+  try {
+    const url = new URL("/api/site/maintenance", request.url);
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) return false;
+    const data = (await res.json()) as { enabled?: boolean };
+    return data.enabled === true;
+  } catch {
+    return false;
+  }
+}
+
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (
@@ -33,6 +49,19 @@ export function proxy(request: NextRequest) {
     pathname.startsWith("/api/theme/cdn")
   ) {
     return NextResponse.next();
+  }
+
+  if (
+    !isMaintenanceBypassPath(pathname) &&
+    !request.cookies.get(ADMIN_SESSION_COOKIE)?.value &&
+    (await isStoreInMaintenance(request))
+  ) {
+    const locale = resolveLocaleFromRequest(request);
+    const bakim = request.nextUrl.clone();
+    bakim.pathname = "/bakim";
+    bakim.search = "";
+    const redirect = NextResponse.redirect(bakim);
+    return attachLocale(redirect, request, locale, pathname);
   }
 
   if (pathname.startsWith("/theme/")) {

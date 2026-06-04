@@ -5,6 +5,10 @@ import { useState } from "react";
 import { orderNumberPreview, sanitizeOrderNumberPrefix } from "@/lib/admin/order-number";
 import { DEFAULT_BARCODE_PREFIX } from "@/lib/admin/product-barcode";
 import { AdminField, btnPrimary, inputClass } from "@/components/admin/AdminForm";
+import {
+  DEFAULT_MAINTENANCE_MESSAGE_TR,
+  DEFAULT_MAINTENANCE_TITLE_TR,
+} from "@/lib/maintenance-mode";
 import type { SiteSettings } from "@/lib/site-settings";
 import type { StoreTextSettings } from "@/lib/store-static-texts";
 
@@ -113,8 +117,70 @@ export function StoreSettingsForm({ initial }: { initial: SiteSettings }) {
     }));
   }
 
+  const maintenance = s.maintenance ?? {};
+
   return (
     <div className="max-w-4xl space-y-6">
+      <section className="rounded-xl border border-amber-200 bg-amber-50/80 p-6 space-y-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="font-semibold text-amber-950">Site bakım modu</h2>
+            <p className="mt-1 text-sm text-amber-900/80">
+              Açıkken ziyaretçiler mağazayı göremez; &quot;Kısa süre sonra buradayız&quot; bakım sayfası
+              görür. Yönetim paneline giriş yapmış personel siteyi normal gezebilir.
+            </p>
+          </div>
+          <label className="flex shrink-0 cursor-pointer items-center gap-2 rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm font-medium text-amber-950">
+            <input
+              type="checkbox"
+              checked={maintenance.enabled === true}
+              onChange={(e) =>
+                setS((prev) => ({
+                  ...prev,
+                  maintenance: { ...prev.maintenance, enabled: e.target.checked },
+                }))
+              }
+            />
+            Bakım açık
+          </label>
+        </div>
+        <AdminField label="Başlık">
+          <input
+            className={inputClass}
+            value={maintenance.title ?? ""}
+            onChange={(e) =>
+              setS((prev) => ({
+                ...prev,
+                maintenance: { ...prev.maintenance, title: e.target.value || null },
+              }))
+            }
+            placeholder={DEFAULT_MAINTENANCE_TITLE_TR}
+          />
+        </AdminField>
+        <AdminField label="Açıklama metni">
+          <textarea
+            className={textareaClass}
+            rows={3}
+            value={maintenance.message ?? ""}
+            onChange={(e) =>
+              setS((prev) => ({
+                ...prev,
+                maintenance: { ...prev.maintenance, message: e.target.value || null },
+              }))
+            }
+            placeholder={DEFAULT_MAINTENANCE_MESSAGE_TR}
+          />
+        </AdminField>
+        {maintenance.enabled ? (
+          <p className="text-xs text-amber-800">
+            Canlı önizleme:{" "}
+            <a href="/bakim" target="_blank" rel="noopener noreferrer" className="font-medium underline">
+              /bakim
+            </a>
+          </p>
+        ) : null}
+      </section>
+
       <section className="rounded-xl border bg-white p-6 space-y-4">
         <h2 className="font-semibold">Sipariş numarası</h2>
         <p className="text-sm text-zinc-600">

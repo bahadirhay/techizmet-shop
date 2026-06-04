@@ -96,6 +96,14 @@ export function MirrorVitrinFrameClient({
   const isCartOrCheckoutShell =
     pathname === "/cart" || pathname === "/checkout" || pathname.startsWith("/checkout/");
 
+  useMirrorLocaleMessage();
+
+  const [marqueeLive, setMarqueeLive] = useState(siteMarquee);
+
+  useEffect(() => {
+    setMarqueeLive(siteMarquee);
+  }, [siteMarquee]);
+
   const patchSig = JSON.stringify({
     overlaySig,
     collectionsFromAdmin,
@@ -110,14 +118,6 @@ export function MirrorVitrinFrameClient({
     src,
     isCartOrCheckoutShell,
   });
-
-  useMirrorLocaleMessage();
-
-  const [marqueeLive, setMarqueeLive] = useState(siteMarquee);
-
-  useEffect(() => {
-    setMarqueeLive(siteMarquee);
-  }, [siteMarquee]);
 
   useEffect(() => {
     baseSrcRef.current = src;
