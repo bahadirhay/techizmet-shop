@@ -32,7 +32,7 @@ export async function MirrorProductFrame({
   const src = buildProductMirrorSrc(slug, locale, resolvedTemplateSlug);
   const frameTitle = title ?? `Product — ${slug}`;
   const settings = await getCachedParsedSiteSettings(site.id);
-  const productPageBottom = getProductPageBottomSettings(settings);
+  const productPageBottom = getProductPageBottomSettings(settings, locale);
 
   const productPrebuilt = hasPrebuiltMirrorHtml(productMirrorFileRel(slug, locale));
   const commerceForShare = await loadMirrorProductCommerce(

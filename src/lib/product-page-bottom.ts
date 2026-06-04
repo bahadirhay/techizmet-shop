@@ -1,16 +1,93 @@
 /** Ürün PDP alt bölümleri — marquee, keşfet, revealing text, video metin */
 
-export const DEFAULT_PRODUCT_MARQUEE_HTML =
-  'Up to <span class="markers-text accent-font no-markers">40% Off</span> Bestsellers';
+import type { ShopLocale } from "@/lib/i18n/locale";
+import {
+  htmlToPlainText,
+  markedHtmlToPlainText,
+  plainTextToMarkedHtml,
+  plainTextToSimpleHtml,
+} from "@/lib/html-plain-text";
+import { applyMirrorTrReplacements } from "@/lib/mirror-html-locale";
 
-export const DEFAULT_REVEALING_TEXT_HTML =
+export const DEFAULT_PRODUCT_MARQUEE_PLAIN_EN = "Up to *40% Off* Bestsellers";
+export const DEFAULT_PRODUCT_MARQUEE_PLAIN_TR = "En çok satanlarda *%40'a varan* indirim";
+
+export const DEFAULT_REVEALING_TEXT_PLAIN_EN =
   "Your skin works hard every day, and it deserves the highest quality care. Our products are thoughtfully crafted with premium ingredients to hydrate, protect, and enhance your natural glow.";
 
-export const DEFAULT_VIDEO_HEADING_HTML =
-  'Your Skin Deserves the <span class="markers-text accent-font no-markers">Best</span>';
+export const DEFAULT_REVEALING_TEXT_PLAIN_TR =
+  "Cildiniz her gün yoğun çalışır ve en kaliteli bakımı hak eder. Ürünlerimiz premium içeriklerle nemlendirmek, korumak ve doğal ışıltınızı artırmak için özenle hazırlanmıştır.";
 
-export const DEFAULT_VIDEO_DESCRIPTION_HTML =
-  "Our skincare range is made with carefully selected, high-quality ingredients <br />\ndesigned to nourish, protect, and enhance your natural beauty.";
+export const DEFAULT_VIDEO_HEADING_PLAIN_EN = "Your Skin Deserves the *Best*";
+export const DEFAULT_VIDEO_HEADING_PLAIN_TR = "Cildiniz *En İyisini* Hak Ediyor";
+
+export const DEFAULT_VIDEO_DESCRIPTION_PLAIN_EN =
+  "Our skincare range is made with carefully selected, high-quality ingredients designed to nourish, protect, and enhance your natural beauty.";
+
+export const DEFAULT_VIDEO_DESCRIPTION_PLAIN_TR =
+  "Cilt bakım serimiz; cildinizi beslemek, korumak ve doğal güzelliğinizi öne çıkarmak için özenle seçilmiş yüksek kaliteli içeriklerle hazırlanmıştır.";
+
+/** @deprecated vitrin — yalnızca EN şablon karşılaştırması */
+export const DEFAULT_PRODUCT_MARQUEE_HTML = plainTextToMarkedHtml(DEFAULT_PRODUCT_MARQUEE_PLAIN_EN);
+
+export const DEFAULT_REVEALING_TEXT_HTML = DEFAULT_REVEALING_TEXT_PLAIN_EN;
+
+export const DEFAULT_VIDEO_HEADING_HTML = plainTextToMarkedHtml(DEFAULT_VIDEO_HEADING_PLAIN_EN);
+
+export const DEFAULT_VIDEO_DESCRIPTION_HTML = plainTextToSimpleHtml(DEFAULT_VIDEO_DESCRIPTION_PLAIN_EN);
+
+export function productMarqueePlainToHtml(plain: string): string {
+  return plainTextToMarkedHtml(plain);
+}
+
+export function productVideoHeadingPlainToHtml(plain: string): string {
+  return plainTextToMarkedHtml(plain);
+}
+
+export function productBodyPlainToHtml(plain: string): string {
+  return plainTextToSimpleHtml(plain);
+}
+
+export function productMarqueeHtmlToPlain(html: string): string {
+  return markedHtmlToPlainText(html);
+}
+
+export function productVideoHeadingHtmlToPlain(html: string): string {
+  return markedHtmlToPlainText(html);
+}
+
+export function productBodyHtmlToPlain(html: string): string {
+  return htmlToPlainText(html);
+}
+
+function localizeBottomHtml(html: string, locale: ShopLocale): string {
+  if (locale !== "tr") return html;
+  return applyMirrorTrReplacements(html);
+}
+
+function resolveStoredOrDefault(
+  stored: string | undefined,
+  plainEn: string,
+  plainTr: string,
+  toHtml: (plain: string) => string,
+  locale: ShopLocale,
+): string {
+  const raw = stored?.trim();
+  if (!raw) return localizeBottomHtml(toHtml(locale === "tr" ? plainTr : plainEn), locale);
+
+  const plainFromStored = toHtml === plainTextToMarkedHtml ? markedHtmlToPlainText(raw) : htmlToPlainText(raw);
+  const enHtml = toHtml(plainEn);
+  const trHtml = toHtml(plainTr);
+
+  if (locale === "tr") {
+    if (raw === enHtml || plainFromStored === plainEn) return trHtml;
+    if (raw === trHtml || plainFromStored === plainTr) return trHtml;
+    return localizeBottomHtml(toHtml(plainFromStored || plainTr), locale);
+  }
+
+  if (raw === trHtml || plainFromStored === plainTr) return enHtml;
+  return raw;
+}
 
 export type ProductPageBottomSettings = {
   marquee: { enabled: boolean; html: string };
@@ -31,24 +108,52 @@ type SettingsLike = {
   };
 };
 
-export function getProductPageBottomSettings(settings: SettingsLike): ProductPageBottomSettings {
+export function getProductPageBottomSettings(
+  settings: SettingsLike,
+  locale: ShopLocale = "tr",
+): ProductPageBottomSettings {
   const cfg = settings.theme?.defaultProductPageBottom;
   const legacyMarquee = settings.theme?.defaultProductMarqueeHtml?.trim();
+
+  const marqueeStored = cfg?.marquee?.html?.trim() || legacyMarquee || undefined;
 
   return {
     marquee: {
       enabled: cfg?.marquee?.enabled ?? true,
-      html: cfg?.marquee?.html?.trim() || legacyMarquee || DEFAULT_PRODUCT_MARQUEE_HTML,
+      html: resolveStoredOrDefault(
+        marqueeStored,
+        DEFAULT_PRODUCT_MARQUEE_PLAIN_EN,
+        DEFAULT_PRODUCT_MARQUEE_PLAIN_TR,
+        plainTextToMarkedHtml,
+        locale,
+      ),
     },
     revealingText: {
       enabled: cfg?.revealingText?.enabled ?? true,
-      html: cfg?.revealingText?.html?.trim() || DEFAULT_REVEALING_TEXT_HTML,
+      html: resolveStoredOrDefault(
+        cfg?.revealingText?.html?.trim(),
+        DEFAULT_REVEALING_TEXT_PLAIN_EN,
+        DEFAULT_REVEALING_TEXT_PLAIN_TR,
+        plainTextToSimpleHtml,
+        locale,
+      ),
     },
     videoPromo: {
       enabled: cfg?.videoPromo?.enabled ?? true,
-      headingHtml: cfg?.videoPromo?.headingHtml?.trim() || DEFAULT_VIDEO_HEADING_HTML,
-      descriptionHtml:
-        cfg?.videoPromo?.descriptionHtml?.trim() || DEFAULT_VIDEO_DESCRIPTION_HTML,
+      headingHtml: resolveStoredOrDefault(
+        cfg?.videoPromo?.headingHtml?.trim(),
+        DEFAULT_VIDEO_HEADING_PLAIN_EN,
+        DEFAULT_VIDEO_HEADING_PLAIN_TR,
+        plainTextToMarkedHtml,
+        locale,
+      ),
+      descriptionHtml: resolveStoredOrDefault(
+        cfg?.videoPromo?.descriptionHtml?.trim(),
+        DEFAULT_VIDEO_DESCRIPTION_PLAIN_EN,
+        DEFAULT_VIDEO_DESCRIPTION_PLAIN_TR,
+        plainTextToSimpleHtml,
+        locale,
+      ),
     },
   };
 }

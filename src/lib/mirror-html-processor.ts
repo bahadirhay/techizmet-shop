@@ -126,7 +126,7 @@ export async function buildMirrorHtmlCore(params: MirrorHtmlBuildParams): Promis
   if (isProductMirrorPath(normalized)) {
     localized = injectProductPageBottomMirrorHtml(
       localized,
-      getProductPageBottomSettings(settings),
+      getProductPageBottomSettings(settings, locale),
     );
     const slug = productSlug?.trim() || productSlugFromMirrorPath(normalized);
     if (slug) {

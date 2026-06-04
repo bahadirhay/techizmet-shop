@@ -71,3 +71,32 @@ export function isComplexHtml(html: string): boolean {
     /markers-text|class="[^"]*marker/i.test(html)
   );
 }
+
+const MARKERS_ACCENT_SPAN =
+  '<span class="markers-text accent-font no-markers">';
+
+/** Düz metin — *vurgu* → tema span (ürün sayfası kayan yazı / video başlığı) */
+export function plainTextToMarkedHtml(text: string): string {
+  const normalized = text.replace(/\r\n/g, "\n").trim();
+  if (!normalized) return "";
+
+  return normalized
+    .split(/(\*[^*\n]+\*)/g)
+    .map((part) => {
+      if (part.startsWith("*") && part.endsWith("*") && part.length > 2) {
+        return `${MARKERS_ACCENT_SPAN}${escapeHtml(part.slice(1, -1))}</span>`;
+      }
+      return escapeHtml(part);
+    })
+    .join("");
+}
+
+/** Vitrin HTML → admin düzenleme kutusu (*vurgu* ile) */
+export function markedHtmlToPlainText(html: string): string {
+  if (!html?.trim()) return "";
+  let s = html.replace(
+    /<span[^>]*class="[^"]*markers-text[^"]*"[^>]*>([\s\S]*?)<\/span>/gi,
+    (_, inner: string) => `*${htmlToPlainText(inner)}*`,
+  );
+  return htmlToPlainText(s);
+}

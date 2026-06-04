@@ -4,15 +4,23 @@ import { useState, type ReactNode } from "react";
 import { ProductExploreEditor } from "@/components/admin/ProductExploreEditor";
 import { AdminField, btnPrimary, inputClass } from "@/components/admin/AdminForm";
 import {
-  DEFAULT_PRODUCT_MARQUEE_HTML,
-  DEFAULT_REVEALING_TEXT_HTML,
-  DEFAULT_VIDEO_DESCRIPTION_HTML,
-  DEFAULT_VIDEO_HEADING_HTML,
+  DEFAULT_PRODUCT_MARQUEE_PLAIN_TR,
+  DEFAULT_REVEALING_TEXT_PLAIN_TR,
+  DEFAULT_VIDEO_DESCRIPTION_PLAIN_TR,
+  DEFAULT_VIDEO_HEADING_PLAIN_TR,
+  productBodyHtmlToPlain,
+  productBodyPlainToHtml,
+  productMarqueeHtmlToPlain,
+  productMarqueePlainToHtml,
+  productVideoHeadingHtmlToPlain,
+  productVideoHeadingPlainToHtml,
   type ProductPageBottomSettings,
 } from "@/lib/product-page-bottom";
 import type { ProductExploreLook } from "@/lib/product-explore-looks";
 
 type ProductOpt = { slug: string; title: string };
+
+const ACCENT_HINT = "Vurgulanacak kısmı yıldız içine alın: örn. En çok satanlarda *%40 indirim*";
 
 function SectionToggle({
   label,
@@ -48,6 +56,15 @@ function SectionToggle({
   );
 }
 
+function bottomToPlainDraft(initial: ProductPageBottomSettings) {
+  return {
+    marquee: productMarqueeHtmlToPlain(initial.marquee.html),
+    revealing: productBodyHtmlToPlain(initial.revealingText.html),
+    videoHeading: productVideoHeadingHtmlToPlain(initial.videoPromo.headingHtml),
+    videoDescription: productBodyHtmlToPlain(initial.videoPromo.descriptionHtml),
+  };
+}
+
 export function ProductExploreSettingsForm({
   initialLooks,
   initialPageBottom,
@@ -58,6 +75,7 @@ export function ProductExploreSettingsForm({
   productOptions: ProductOpt[];
 }) {
   const [looks, setLooks] = useState<ProductExploreLook[]>(() => [...initialLooks]);
+  const [plain, setPlain] = useState(() => bottomToPlainDraft(initialPageBottom));
   const [bottom, setBottom] = useState<ProductPageBottomSettings>(() => ({
     marquee: { ...initialPageBottom.marquee },
     revealingText: { ...initialPageBottom.revealingText },
@@ -66,6 +84,30 @@ export function ProductExploreSettingsForm({
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [ok, setOk] = useState(false);
+
+  function syncPlainToBottom(nextPlain: typeof plain) {
+    setBottom({
+      marquee: {
+        ...bottom.marquee,
+        html: productMarqueePlainToHtml(nextPlain.marquee),
+      },
+      revealingText: {
+        ...bottom.revealingText,
+        html: productBodyPlainToHtml(nextPlain.revealing),
+      },
+      videoPromo: {
+        ...bottom.videoPromo,
+        headingHtml: productVideoHeadingPlainToHtml(nextPlain.videoHeading),
+        descriptionHtml: productBodyPlainToHtml(nextPlain.videoDescription),
+      },
+    });
+  }
+
+  function updatePlain(patch: Partial<typeof plain>) {
+    const next = { ...plain, ...patch };
+    setPlain(next);
+    syncPlainToBottom(next);
+  }
 
   async function save() {
     setBusy(true);
@@ -77,10 +119,25 @@ export function ProductExploreSettingsForm({
         ...l,
         productSlugs: l.productSlugs.filter(Boolean),
       }));
+    const pageBottom: ProductPageBottomSettings = {
+      marquee: {
+        enabled: bottom.marquee.enabled,
+        html: productMarqueePlainToHtml(plain.marquee),
+      },
+      revealingText: {
+        enabled: bottom.revealingText.enabled,
+        html: productBodyPlainToHtml(plain.revealing),
+      },
+      videoPromo: {
+        enabled: bottom.videoPromo.enabled,
+        headingHtml: productVideoHeadingPlainToHtml(plain.videoHeading),
+        descriptionHtml: productBodyPlainToHtml(plain.videoDescription),
+      },
+    };
     const res = await fetch("/api/admin/settings/product-explore", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ looks: cleaned, pageBottom: bottom }),
+      body: JSON.stringify({ looks: cleaned, pageBottom }),
     });
     const json = (await res.json()) as { error?: string };
     setBusy(false);
@@ -90,6 +147,7 @@ export function ProductExploreSettingsForm({
     }
     setOk(true);
     setLooks(cleaned);
+    setBottom(pageBottom);
   }
 
   return (
@@ -100,15 +158,12 @@ export function ProductExploreSettingsForm({
         enabled={bottom.marquee.enabled}
         onEnabledChange={(enabled) => setBottom((b) => ({ ...b, marquee: { ...b.marquee, enabled } }))}
       >
-        <AdminField label="Metin (HTML)" hint='Vurgu: <span class="markers-text accent-font no-markers">metin</span>'>
-          <textarea
+        <AdminField label="Metin" hint={ACCENT_HINT}>
+          <input
             className={inputClass}
-            rows={2}
-            value={bottom.marquee.html}
-            onChange={(e) =>
-              setBottom((b) => ({ ...b, marquee: { ...b.marquee, html: e.target.value } }))
-            }
-            placeholder={DEFAULT_PRODUCT_MARQUEE_HTML}
+            value={plain.marquee}
+            onChange={(e) => updatePlain({ marquee: e.target.value })}
+            placeholder={DEFAULT_PRODUCT_MARQUEE_PLAIN_TR}
           />
         </AdminField>
       </SectionToggle>
@@ -122,7 +177,7 @@ export function ProductExploreSettingsForm({
 
       <SectionToggle
         label="Açılış metni (büyük paragraf)"
-        hint="Keşfet altında, arka plan görselli uzun metin. Düz metin yazın (animasyon kapalı, tam paragraf görünür)."
+        hint="Keşfet altında, arka plan görselli uzun metin. Düz metin; satır sonu için Enter."
         enabled={bottom.revealingText.enabled}
         onEnabledChange={(enabled) =>
           setBottom((b) => ({ ...b, revealingText: { ...b.revealingText, enabled } }))
@@ -132,14 +187,9 @@ export function ProductExploreSettingsForm({
           <textarea
             className={inputClass}
             rows={4}
-            value={bottom.revealingText.html}
-            onChange={(e) =>
-              setBottom((b) => ({
-                ...b,
-                revealingText: { ...b.revealingText, html: e.target.value },
-              }))
-            }
-            placeholder={DEFAULT_REVEALING_TEXT_HTML}
+            value={plain.revealing}
+            onChange={(e) => updatePlain({ revealing: e.target.value })}
+            placeholder={DEFAULT_REVEALING_TEXT_PLAIN_TR}
           />
         </AdminField>
       </SectionToggle>
@@ -152,32 +202,21 @@ export function ProductExploreSettingsForm({
           setBottom((b) => ({ ...b, videoPromo: { ...b.videoPromo, enabled } }))
         }
       >
-        <AdminField label="Başlık (HTML)">
-          <textarea
+        <AdminField label="Başlık" hint={ACCENT_HINT}>
+          <input
             className={inputClass}
-            rows={2}
-            value={bottom.videoPromo.headingHtml}
-            onChange={(e) =>
-              setBottom((b) => ({
-                ...b,
-                videoPromo: { ...b.videoPromo, headingHtml: e.target.value },
-              }))
-            }
-            placeholder={DEFAULT_VIDEO_HEADING_HTML}
+            value={plain.videoHeading}
+            onChange={(e) => updatePlain({ videoHeading: e.target.value })}
+            placeholder={DEFAULT_VIDEO_HEADING_PLAIN_TR}
           />
         </AdminField>
-        <AdminField label="Açıklama (HTML)">
+        <AdminField label="Açıklama">
           <textarea
             className={inputClass}
             rows={3}
-            value={bottom.videoPromo.descriptionHtml}
-            onChange={(e) =>
-              setBottom((b) => ({
-                ...b,
-                videoPromo: { ...b.videoPromo, descriptionHtml: e.target.value },
-              }))
-            }
-            placeholder={DEFAULT_VIDEO_DESCRIPTION_HTML}
+            value={plain.videoDescription}
+            onChange={(e) => updatePlain({ videoDescription: e.target.value })}
+            placeholder={DEFAULT_VIDEO_DESCRIPTION_PLAIN_TR}
           />
         </AdminField>
       </SectionToggle>

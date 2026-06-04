@@ -33,7 +33,7 @@ async function loadMirrorProductFramePayloadUncached(
     overlay: patch.overlay,
     productFromAdmin: patch.detail,
     commerce: patch.commerce,
-    productPageBottom: getProductPageBottomSettings(settings),
+    productPageBottom: getProductPageBottomSettings(settings, locale),
   };
 }
 

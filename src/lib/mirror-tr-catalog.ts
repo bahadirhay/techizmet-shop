@@ -1,6 +1,27 @@
 /** Techizmet Shop mirror *-tr.html — toplu EN→TR çeviri sözlüğü (uzun metinler önce eklenir) */
 
 export const MIRROR_TR_CATALOG: ReadonlyArray<readonly [string, string]> = [
+  // —— Ürün PDP altı (admin varsayılanları) ——
+  [
+    'Up to <span class="markers-text accent-font no-markers">40% Off</span> Bestsellers',
+    'En çok satanlarda <span class="markers-text accent-font no-markers">%40\'a varan</span> indirim',
+  ],
+  [
+    "Your skin works hard every day, and it deserves the highest quality care. Our products are thoughtfully crafted with premium ingredients to hydrate, protect, and enhance your natural glow.",
+    "Cildiniz her gün yoğun çalışır ve en kaliteli bakımı hak eder. Ürünlerimiz premium içeriklerle nemlendirmek, korumak ve doğal ışıltınızı artırmak için özenle hazırlanmıştır.",
+  ],
+  [
+    'Your Skin Deserves the <span class="markers-text accent-font no-markers">Best</span>',
+    'Cildiniz <span class="markers-text accent-font no-markers">En İyisini</span> Hak Ediyor',
+  ],
+  [
+    "Our skincare range is made with carefully selected, high-quality ingredients <br />\ndesigned to nourish, protect, and enhance your natural beauty.",
+    "Cilt bakım serimiz; cildinizi beslemek, korumak ve doğal güzelliğinizi öne çıkarmak için özenle seçilmiş yüksek kaliteli içeriklerle hazırlanmıştır.",
+  ],
+  [
+    "Our skincare range is made with carefully selected, high-quality ingredients designed to nourish, protect, and enhance your natural beauty.",
+    "Cilt bakım serimiz; cildinizi beslemek, korumak ve doğal güzelliğinizi öne çıkarmak için özenle seçilmiş yüksek kaliteli içeriklerle hazırlanmıştır.",
+  ],
   // —— Ana sayfa: media grid ——
   [
     'Unleash your inner radiance with our curated Beauty Essentials — a collection designed to enhance your natural glow. Packed with skin-loving ingredients and gentle formulas, each product works harmoniously to nourish, hydrate, and revitalize your skin. Whether you\'re starting your day or winding down, these essentials help you feel confident, fresh, and beautifully you.',
