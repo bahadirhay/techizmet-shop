@@ -256,6 +256,24 @@ export function injectProductPageBottomMirrorHtml(
       /(<section\b[^>]*\bsection-marquee\b[^>]*)(>)/i,
       `$1 data-kn-pdp-hidden="1" style="display:none!important"$2`,
     );
+  } else if (config.marquee.html) {
+    const marqueeInner = config.marquee.html;
+    out = out.replace(/<p class="marquee-text[^"]*">[\s\S]*?<\/p>/gi, `<p class="marquee-text ">${marqueeInner}</p>`);
+  }
+
+  if (config.videoPromo.enabled) {
+    if (config.videoPromo.headingHtml) {
+      out = out.replace(
+        /(<section\b[^>]*\bsection-video\b[^>]*>[\s\S]*?<div class="section--heading[^"]*">)[\s\S]*?(<\/div>)/i,
+        `$1${config.videoPromo.headingHtml}$2`,
+      );
+    }
+    if (config.videoPromo.descriptionHtml) {
+      out = out.replace(
+        /(<section\b[^>]*\bsection-video\b[^>]*>[\s\S]*?<div class="section--description[^"]*">)[\s\S]*?(<\/div>)/i,
+        `$1${config.videoPromo.descriptionHtml}$2`,
+      );
+    }
   }
 
   if (!config.videoPromo.enabled) {
@@ -372,4 +390,55 @@ export function applyProductPageBottomOverlay(doc: Document, config: ProductPage
       video: config.videoPromo.enabled,
     }),
   );
+
+  injectProductPageBottomGuard(doc, config);
+}
+
+function injectProductPageBottomGuard(doc: Document, config: ProductPageBottomSettings) {
+  const id = "kn-pdp-bottom-guard";
+  doc.getElementById(id)?.remove();
+
+  const script = doc.createElement("script");
+  script.id = id;
+  script.textContent = `(function(){
+  var CFG = ${JSON.stringify(config)};
+  function apply(){
+    var main = document.querySelector("#MainContent");
+    if (!main) return;
+    var marquee = main.querySelector(".section-marquee");
+    if (CFG.marquee && CFG.marquee.enabled) {
+      if (marquee) {
+        marquee.style.removeProperty("display");
+        marquee.removeAttribute("data-kn-pdp-hidden");
+        marquee.removeAttribute("hidden");
+      }
+      main.querySelectorAll(".section-marquee .marquee-text").forEach(function(el){
+        if (CFG.marquee.html) el.innerHTML = CFG.marquee.html;
+      });
+    } else if (marquee) {
+      marquee.style.setProperty("display", "none", "important");
+      marquee.setAttribute("data-kn-pdp-hidden", "1");
+    }
+    var video = main.querySelector(".section-video");
+    if (CFG.videoPromo && CFG.videoPromo.enabled) {
+      if (video) {
+        video.style.removeProperty("display");
+        video.removeAttribute("data-kn-pdp-hidden");
+        video.removeAttribute("hidden");
+      }
+      var heading = video && video.querySelector(".section--heading");
+      var desc = video && video.querySelector(".section--description");
+      if (heading && CFG.videoPromo.headingHtml) heading.innerHTML = CFG.videoPromo.headingHtml;
+      if (desc && CFG.videoPromo.descriptionHtml) desc.innerHTML = CFG.videoPromo.descriptionHtml;
+    } else if (video) {
+      video.style.setProperty("display", "none", "important");
+      video.setAttribute("data-kn-pdp-hidden", "1");
+    }
+  }
+  apply();
+  setTimeout(apply, 120);
+  setTimeout(apply, 600);
+  setTimeout(apply, 2000);
+})();`;
+  (doc.body ?? doc.documentElement).appendChild(script);
 }

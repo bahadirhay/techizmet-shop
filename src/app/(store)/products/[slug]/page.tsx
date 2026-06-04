@@ -10,7 +10,8 @@ import { getHomepageMode, getSiteSettings } from "@/lib/site-settings";
 import { getLoggedInCustomerPricing } from "@/lib/store/customer-pricing";
 import { getDefaultSite } from "@/lib/site";
 
-export const revalidate = 300;
+/** Admin’de kaydedilen ürün altı metinleri gecikmesiz yansısın */
+export const revalidate = 0;
 
 export async function generateStaticParams() {
   try {

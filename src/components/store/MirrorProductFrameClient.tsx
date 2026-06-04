@@ -81,6 +81,9 @@ export function MirrorProductFrameClient({
   const [exploreResolved, setExploreResolved] = useState(
     (exploreLooksInitial?.length ?? 0) > 0,
   );
+  const [pageBottomLive, setPageBottomLive] = useState<ProductPageBottomSettings | undefined>(
+    productPageBottom,
+  );
 
   useMirrorLocaleMessage();
   useMirrorFrameRouteSync(iframeRef, src);
@@ -101,16 +104,44 @@ export function MirrorProductFrameClient({
   }, [src]);
 
   useEffect(() => {
+    if (!productSlug) return;
+    let cancelled = false;
+    fetch(`/api/vitrin/product-frame?slug=${encodeURIComponent(productSlug)}`, {
+      cache: "no-store",
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { pageBottom?: ProductPageBottomSettings } | null) => {
+        if (cancelled || !data?.pageBottom) return;
+        setPageBottomLive(data.pageBottom);
+      })
+      .catch(() => {
+        /* SSR props yedek */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [productSlug]);
+
+  useEffect(() => {
     if (!productSlug || exploreResolved) return;
     let cancelled = false;
-    fetch(`/api/vitrin/product-frame?slug=${encodeURIComponent(productSlug)}`)
+    fetch(`/api/vitrin/product-frame?slug=${encodeURIComponent(productSlug)}`, {
+      cache: "no-store",
+    })
       .then((r) => (r.ok ? r.json() : null))
-      .then((data: { exploreLooks?: ProductExploreLook[]; exploreProductsBySlug?: Record<string, ExploreOverlayProduct> } | null) => {
-        if (cancelled) return;
-        setExploreLooks(data?.exploreLooks ?? []);
-        setExploreProductsBySlug(data?.exploreProductsBySlug ?? {});
-        setExploreResolved(true);
-      })
+      .then(
+        (
+          data: {
+            exploreLooks?: ProductExploreLook[];
+            exploreProductsBySlug?: Record<string, ExploreOverlayProduct>;
+          } | null,
+        ) => {
+          if (cancelled) return;
+          setExploreLooks(data?.exploreLooks ?? []);
+          setExploreProductsBySlug(data?.exploreProductsBySlug ?? {});
+          setExploreResolved(true);
+        },
+      )
       .catch(() => {
         if (!cancelled) setExploreResolved(true);
       });
@@ -118,6 +149,10 @@ export function MirrorProductFrameClient({
       cancelled = true;
     };
   }, [productSlug, exploreResolved]);
+
+  useEffect(() => {
+    setPageBottomLive(productPageBottom);
+  }, [productPageBottom]);
 
   const patchKey = JSON.stringify({
     overlay,
@@ -130,7 +165,7 @@ export function MirrorProductFrameClient({
     exploreLooks,
     exploreProductsBySlug,
     exploreResolved,
-    productPageBottom,
+    pageBottomLive,
     share,
   });
 
@@ -179,8 +214,8 @@ export function MirrorProductFrameClient({
       );
     }
 
-    if (productPageBottom) {
-      const bottom = productPageBottom;
+    if (pageBottomLive) {
+      const bottom = pageBottomLive;
       const applyBottom = () => {
         const d = iframeRef.current?.contentDocument;
         if (d?.getElementById("MainContent")) applyProductPageBottomOverlay(d, bottom);
@@ -194,7 +229,7 @@ export function MirrorProductFrameClient({
       applyExploreLooksOverlay(doc, exploreLooks, exploreProductsBySlug);
     }
 
-    if (isProductDocSynced(doc) || prebuiltSynced) {
+    if (isProductDocSynced(doc) || prebuiltSynced || pageBottomLive) {
       setContentVisible(true);
     }
   }, [
@@ -208,7 +243,7 @@ export function MirrorProductFrameClient({
     nav,
     overlay,
     productFromAdmin,
-    productPageBottom,
+    pageBottomLive,
     share,
   ]);
 

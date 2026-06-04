@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { MirrorProductFrameClient } from "@/components/store/MirrorProductFrameClient";
 import type { ShopLocale } from "@/lib/i18n/locale";
-import { getCachedParsedSiteSettings } from "@/lib/cache/store-cache";
+import { parseSiteSettings } from "@/lib/site-settings";
+import { prisma } from "@/lib/prisma";
 import {
   buildProductMirrorSrc,
   productMirrorFileRel,
@@ -31,7 +32,8 @@ export async function MirrorProductFrame({
 
   const src = buildProductMirrorSrc(slug, locale, resolvedTemplateSlug);
   const frameTitle = title ?? `Product — ${slug}`;
-  const settings = await getCachedParsedSiteSettings(site.id);
+  const siteRow = await prisma.storeSite.findUnique({ where: { id: site.id } });
+  const settings = parseSiteSettings(siteRow?.settingsJson ?? null);
   const productPageBottom = getProductPageBottomSettings(settings, locale);
 
   const productPrebuilt = hasPrebuiltMirrorHtml(productMirrorFileRel(slug, locale));

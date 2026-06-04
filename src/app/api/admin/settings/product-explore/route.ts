@@ -125,7 +125,13 @@ export async function PATCH(req: Request) {
   });
 
   revalidatePath("/products", "layout");
-  revalidatePath("/products/[slug]", "page");
+  const published = await prisma.storeProduct.findMany({
+    where: { siteId: auth.siteId, published: true },
+    select: { slug: true },
+  });
+  for (const p of published) {
+    revalidatePath(`/products/${p.slug}`);
+  }
   revalidateStorePublicCache(auth.siteId);
 
   return NextResponse.json({ ok: true, looks, pageBottom });
