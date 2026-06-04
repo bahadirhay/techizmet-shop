@@ -37,6 +37,7 @@ import {
   MIRROR_VISUAL_EDITOR_VERSION,
 } from "@/lib/mirror-visual-editor-script";
 import { applyCollectionCardEditShields, disableMirrorNavigation } from "@/lib/mirror-visual-edit-dom";
+import { useMirrorFrameRouteSync } from "@/hooks/use-mirror-frame-route-sync";
 import { useMirrorLocaleMessage } from "@/hooks/use-mirror-locale-message";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -97,6 +98,7 @@ export function MirrorVitrinFrameClient({
     pathname === "/cart" || pathname === "/checkout" || pathname.startsWith("/checkout/");
 
   useMirrorLocaleMessage();
+  useMirrorFrameRouteSync(iframeRef, src);
 
   const [marqueeLive, setMarqueeLive] = useState(siteMarquee);
 

@@ -32,7 +32,9 @@ import { patchMirrorSwiperHtml } from "@/lib/mirror-html-swiper-patch";
 import { injectNavIntoMirrorHtml } from "@/lib/mirror-html-nav-inject";
 import { injectMirrorIconsFix } from "@/lib/mirror-icons-fix";
 import { injectMirrorListingCartBridge } from "@/lib/mirror-listing-cart-bridge";
+import { injectMirrorAnalyticsBridge } from "@/lib/mirror-analytics-bridge";
 import { injectMirrorLinkBridge } from "@/lib/mirror-link-bridge";
+import { inferMirrorStorePath } from "@/lib/mirror-store-path";
 import { injectMirrorNavDropdownStyles } from "@/lib/mirror-nav-dropdown-inject";
 import { loadMirrorFooterDataUncached } from "@/lib/mirror-footer-load";
 import { loadMirrorNavItemsUncached } from "@/lib/mirror-nav-load";
@@ -126,6 +128,7 @@ export async function buildMirrorHtmlCore(params: MirrorHtmlBuildParams): Promis
   localized = injectMirrorCartBridge(localized);
   localized = injectMirrorListingCartBridge(localized);
   localized = injectMirrorLinkBridge(localized);
+  localized = injectMirrorAnalyticsBridge(localized, inferMirrorStorePath(normalized));
   localized = injectMirrorSearchBridge(localized);
   localized = injectMirrorQuickviewBridge(localized);
   localized = injectMirrorStoreUiFix(localized);

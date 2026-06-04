@@ -7,6 +7,7 @@ import {
   accountRegisterPath,
   sanitizeAccountReturnPath,
 } from "@/lib/account-return-path";
+import { SocialLoginButtons } from "@/components/store/SocialLoginButtons";
 
 export function AccountLoginForm() {
   const router = useRouter();
@@ -62,6 +63,7 @@ export function AccountLoginForm() {
           {busy ? "…" : "Giriş"}
         </button>
       </form>
+      <SocialLoginButtons />
       <p className="kn-account__footer">
         Hesabınız yok mu? <Link href={accountRegisterPath(returnTo)}>Kayıt olun</Link>
         <br />

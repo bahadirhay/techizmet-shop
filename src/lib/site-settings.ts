@@ -98,9 +98,24 @@ export type HomepageMode = "mirror" | "blocks";
 
 export type { SiteMaintenanceSettings } from "@/lib/maintenance-mode";
 
+export type CronRunRecord = import("@/lib/cron-health").CronRunRecord;
+
+export type SiteOpsSettings = {
+  cron?: Partial<Record<import("@/lib/cron-health").CronJobId, CronRunRecord>>;
+};
+
 export type SiteSettings = {
+  /** Cron sağlık kayıtları, operasyonel meta */
+  ops?: SiteOpsSettings;
   /** Mağaza bakım modu — açıkken ziyaretçiler bakım sayfasına yönlendirilir */
   maintenance?: import("@/lib/maintenance-mode").SiteMaintenanceSettings;
+  /** Google / Apple ile giriş — yalnızca clientId; gizli anahtarlar .env */
+  customerAuth?: {
+    googleEnabled?: boolean;
+    appleEnabled?: boolean;
+    googleClientId?: string;
+    appleClientId?: string;
+  };
   theme?: {
     /** mirror = HTTrack Techizmet Shop HTML, blocks = admin DnD sayfa (home) */
     homepageMode?: HomepageMode;

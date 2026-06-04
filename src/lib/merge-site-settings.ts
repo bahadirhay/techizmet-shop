@@ -105,6 +105,16 @@ export function mergeSiteSettings(current: SiteSettings, patch: SiteSettings): S
     maintenance: patch.maintenance
       ? { ...current.maintenance, ...patch.maintenance }
       : current.maintenance,
+    ops: patch.ops
+      ? {
+          ...current.ops,
+          ...patch.ops,
+          cron: patch.ops.cron ? { ...current.ops?.cron, ...patch.ops.cron } : current.ops?.cron,
+        }
+      : current.ops,
+    customerAuth: patch.customerAuth
+      ? { ...current.customerAuth, ...patch.customerAuth }
+      : current.customerAuth,
     efatura: patch.efatura ? { ...current.efatura, ...patch.efatura } : current.efatura,
     seoAi: patch.seoAi ? { ...current.seoAi, ...patch.seoAi } : current.seoAi,
   };

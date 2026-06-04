@@ -64,15 +64,22 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     perm: "store.dashboard",
     items: [
       { href: "/admin/dashboard", label: "Özet Panel", perm: "store.dashboard" },
-      { href: "/admin/analytics", label: "Ziyaretçi & Sepet Terki", perm: "store.dashboard" },
-      { href: "/admin/analytics/visitors", label: "Ziyaretçi listesi", perm: "store.dashboard" },
-      { href: "/admin/reports", label: "Raporlar & Analitik", perm: "store.dashboard" },
       {
         href: "/admin/orders?status=pending",
         label: "Canlı Siparişler",
         perm: "store.orders",
         badgeKey: "ordersPending",
       },
+    ],
+  },
+  {
+    id: "reports",
+    label: "Raporlar",
+    perm: "store.dashboard",
+    items: [
+      { href: "/admin/analytics", label: "Ziyaretçi & Sepet Terki", perm: "store.dashboard" },
+      { href: "/admin/analytics/visitors", label: "Ziyaretçi listesi", perm: "store.dashboard" },
+      { href: "/admin/reports", label: "Raporlar & Analitik", perm: "store.dashboard" },
     ],
   },
   {

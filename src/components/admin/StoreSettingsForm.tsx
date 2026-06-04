@@ -181,6 +181,68 @@ export function StoreSettingsForm({ initial }: { initial: SiteSettings }) {
         ) : null}
       </section>
 
+      <section className="rounded-xl border border-zinc-200 bg-zinc-50/50 p-6 space-y-4">
+        <h2 className="font-semibold">Sosyal giriş (Google / Apple)</h2>
+        <p className="text-sm text-zinc-600">
+          Şu an <strong>kapalı</strong> — kod hazır; kullanmak için kutuyu işaretleyin ve ortam
+          değişkenlerini tanımlayın (
+          <code className="rounded bg-zinc-100 px-1 text-xs">GOOGLE_CLIENT_*</code>,{" "}
+          <code className="rounded bg-zinc-100 px-1 text-xs">APPLE_*</code>).
+        </p>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={s.customerAuth?.googleEnabled === true}
+            onChange={(e) =>
+              setS((prev) => ({
+                ...prev,
+                customerAuth: { ...prev.customerAuth, googleEnabled: e.target.checked },
+              }))
+            }
+          />
+          Google ile giriş
+        </label>
+        <AdminField label="Google Client ID (isteğe bağlı — .env yerine)">
+          <input
+            className={inputClass}
+            value={s.customerAuth?.googleClientId ?? ""}
+            onChange={(e) =>
+              setS((prev) => ({
+                ...prev,
+                customerAuth: { ...prev.customerAuth, googleClientId: e.target.value },
+              }))
+            }
+            placeholder="GOOGLE_CLIENT_ID"
+          />
+        </AdminField>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={s.customerAuth?.appleEnabled === true}
+            onChange={(e) =>
+              setS((prev) => ({
+                ...prev,
+                customerAuth: { ...prev.customerAuth, appleEnabled: e.target.checked },
+              }))
+            }
+          />
+          Apple ile giriş
+        </label>
+        <AdminField label="Apple Services ID (isteğe bağlı)">
+          <input
+            className={inputClass}
+            value={s.customerAuth?.appleClientId ?? ""}
+            onChange={(e) =>
+              setS((prev) => ({
+                ...prev,
+                customerAuth: { ...prev.customerAuth, appleClientId: e.target.value },
+              }))
+            }
+            placeholder="APPLE_CLIENT_ID"
+          />
+        </AdminField>
+      </section>
+
       <section className="rounded-xl border bg-white p-6 space-y-4">
         <h2 className="font-semibold">Sipariş numarası</h2>
         <p className="text-sm text-zinc-600">

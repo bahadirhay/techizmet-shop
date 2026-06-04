@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { Poppins } from "next/font/google";
 import { CookieConsentBanner } from "@/components/store/CookieConsentBanner";
 import { ConsentAwareAnalytics } from "@/components/store/ConsentAwareAnalytics";
+import { MirrorAnalyticsBridge } from "@/components/store/MirrorAnalyticsBridge";
 import { StoreEventTracker } from "@/components/store/StoreEventTracker";
 import { buildSiteMetadata } from "@/lib/site-metadata";
 import { getCachedParsedSiteSettings } from "@/lib/cache/store-cache";
@@ -44,6 +45,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <CookieConsentBanner rawConfig={settings.cookieConsentJson} />
         <Suspense fallback={null}>
           <StoreEventTracker />
+          <MirrorAnalyticsBridge />
         </Suspense>
         {children}
       </body>

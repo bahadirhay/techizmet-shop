@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { CronHealthPanel } from "@/components/admin/CronHealthPanel";
 import {
   EVENT_LABELS,
   formatCartItemsPreview,
   formatEventDetail,
 } from "@/lib/analytics/format-event";
+import type { AnalyticsFunnel } from "@/lib/analytics/funnel";
 import { formatTry } from "@/lib/format";
 
 type Summary = {
@@ -37,50 +39,116 @@ type AbandonRow = {
   itemsJson?: string;
 };
 
+const ABANDON_FILTERS = [
+  { id: "all", label: "Tümü" },
+  { id: "eligible", label: "Cron uygun (1–72 sa)" },
+  { id: "not_reminded", label: "Hatırlatma yok" },
+  { id: "no_email", label: "E-posta yok" },
+] as const;
+
+type AbandonFilter = (typeof ABANDON_FILTERS)[number]["id"];
+
 export function AnalyticsDashboard() {
   const [summary, setSummary] = useState<Summary | null>(null);
+  const [funnel, setFunnel] = useState<AnalyticsFunnel | null>(null);
   const [events, setEvents] = useState<EventRow[]>([]);
   const [abandonments, setAbandonments] = useState<AbandonRow[]>([]);
+  const [abandonFilter, setAbandonFilter] = useState<AbandonFilter>("all");
+  const [funnelDays, setFunnelDays] = useState(7);
   const [err, setErr] = useState<string | null>(null);
+  const [remindBusy, setRemindBusy] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetch("/api/admin/analytics")
+  const load = useCallback(() => {
+    const q = new URLSearchParams({
+      abandonFilter,
+      funnelDays: String(funnelDays),
+    });
+    fetch(`/api/admin/analytics?${q}`)
       .then((r) => r.json())
       .then(
         (d: {
           summary?: Summary;
+          funnel?: AnalyticsFunnel;
           recentEvents?: EventRow[];
           abandonments?: AbandonRow[];
           error?: string;
         }) => {
           if (d.error) setErr(d.error);
           else {
+            setErr(null);
             setSummary(d.summary ?? null);
+            setFunnel(d.funnel ?? null);
             setEvents(d.recentEvents ?? []);
             setAbandonments(d.abandonments ?? []);
           }
         },
       )
       .catch(() => setErr("Yüklenemedi"));
-  }, []);
+  }, [abandonFilter, funnelDays]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function sendRemind(id: string, force = false) {
+    setRemindBusy(id);
+    try {
+      const res = await fetch(`/api/admin/analytics/abandonments/${id}/remind`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ force }),
+      });
+      const data = (await res.json()) as { error?: string; sent?: boolean; reason?: string };
+      if (!res.ok) alert(data.error ?? "Gönderilemedi");
+      else if (data.sent) alert(`E-posta gönderildi: ${(data as { email?: string }).email ?? ""}`);
+      else alert(data.reason ?? "Gönderilmedi");
+      load();
+    } finally {
+      setRemindBusy(null);
+    }
+  }
 
   if (err) return <p className="text-sm text-red-600">{err}</p>;
   if (!summary) return <p className="text-sm text-zinc-600">Yükleniyor…</p>;
 
+  const funnelSteps = funnel
+    ? [
+        { label: "Sayfa görüntüleme", count: funnel.pageViews, visitors: funnel.visitorsWithPageView },
+        { label: "Ürün görüntüleme", count: funnel.productViews, visitors: null },
+        { label: "Sepete ekleme", count: funnel.addToCart, visitors: funnel.visitorsWithAddToCart },
+        { label: "Ödemeye başlama", count: funnel.beginCheckout, visitors: funnel.visitorsWithCheckout },
+        { label: "Satın alma", count: funnel.purchases, visitors: funnel.visitorsWithPurchase },
+      ]
+    : [];
+
   return (
     <div className="space-y-8">
-      <p className="text-sm">
+      <CronHealthPanel />
+
+      <div className="flex flex-wrap items-center gap-3 text-sm">
         <Link
           href="/admin/analytics/visitors"
           className="font-medium text-blue-700 underline hover:text-blue-900"
         >
-          Tüm ziyaretçileri listele →
+          Tüm ziyaretçiler →
         </Link>
-        <span className="text-zinc-500">
-          {" "}
-          (kim ne gezdi, sepet detayı, e-posta ile gruplama)
-        </span>
-      </p>
+        <span className="text-zinc-400">|</span>
+        <a
+          href={`/api/admin/analytics/export?kind=funnel&days=${funnelDays}`}
+          className="text-zinc-700 underline"
+        >
+          Huni CSV
+        </a>
+        <a href="/api/admin/analytics/export?kind=abandonments" className="text-zinc-700 underline">
+          Sepet terk CSV
+        </a>
+        <a
+          href={`/api/admin/analytics/export?kind=events&days=${funnelDays}`}
+          className="text-zinc-700 underline"
+        >
+          Olaylar CSV
+        </a>
+      </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Ziyaretçi (7 gün)" value={String(summary.visitors7d)} />
@@ -91,6 +159,52 @@ export function AnalyticsDashboard() {
           value={String(summary.events7d.product_view ?? 0)}
         />
       </div>
+
+      <section>
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <h2 className="text-lg font-semibold">Dönüşüm hunisi</h2>
+          {[7, 30].map((d) => (
+            <button
+              key={d}
+              type="button"
+              onClick={() => setFunnelDays(d)}
+              className={`rounded-lg border px-3 py-1 text-sm ${
+                funnelDays === d
+                  ? "border-zinc-900 bg-zinc-900 text-white"
+                  : "border-zinc-200 bg-white hover:bg-zinc-50"
+              }`}
+            >
+              {d} gün
+            </button>
+          ))}
+        </div>
+        {!funnelSteps.length ? (
+          <p className="text-sm text-zinc-500">Huni verisi yok.</p>
+        ) : (
+          <div className="space-y-2">
+            {funnelSteps.map((step, i) => {
+              const prev = i > 0 ? funnelSteps[i - 1].visitors ?? funnelSteps[i - 1].count : null;
+              const rate =
+                prev && step.visitors != null && prev > 0
+                  ? `${Math.round((step.visitors / prev) * 100)}%`
+                  : null;
+              return (
+                <div
+                  key={step.label}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-white px-4 py-3 text-sm"
+                >
+                  <span className="font-medium">{step.label}</span>
+                  <span className="text-zinc-600">
+                    {step.count} olay
+                    {step.visitors != null ? ` · ${step.visitors} ziyaretçi` : ""}
+                    {rate ? ` · ${rate} (önceki adıma göre)` : ""}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
 
       <section>
         <h2 className="mb-2 text-lg font-semibold">Olay özeti (7 gün)</h2>
@@ -110,9 +224,25 @@ export function AnalyticsDashboard() {
       </section>
 
       <section>
-        <h2 className="mb-2 text-lg font-semibold">Açık sepet terkleri</h2>
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <h2 className="text-lg font-semibold">Açık sepet terkleri</h2>
+          {ABANDON_FILTERS.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => setAbandonFilter(f.id)}
+              className={`rounded-lg border px-3 py-1 text-sm ${
+                abandonFilter === f.id
+                  ? "border-zinc-900 bg-zinc-900 text-white"
+                  : "border-zinc-200 bg-white hover:bg-zinc-50"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
         {!abandonments.length ? (
-          <p className="text-sm text-zinc-500">Açık sepet terki yok.</p>
+          <p className="text-sm text-zinc-500">Bu filtrede sepet terki yok.</p>
         ) : (
           <div className="overflow-x-auto rounded-xl border bg-white">
             <table className="w-full text-sm">
@@ -123,6 +253,7 @@ export function AnalyticsDashboard() {
                   <th className="p-3">Ürünler</th>
                   <th className="p-3">Tutar</th>
                   <th className="p-3">Hatırlatma</th>
+                  <th className="p-3" />
                 </tr>
               </thead>
               <tbody>
@@ -153,17 +284,28 @@ export function AnalyticsDashboard() {
                           ? "—"
                           : "E-posta yok"}
                     </td>
+                    <td className="p-3">
+                      {a.customerEmail ? (
+                        <button
+                          type="button"
+                          disabled={remindBusy === a.id}
+                          onClick={() => sendRemind(a.id, !!a.remindedAt)}
+                          className="rounded border border-zinc-300 px-2 py-1 text-xs hover:bg-zinc-50 disabled:opacity-50"
+                        >
+                          {remindBusy === a.id
+                            ? "…"
+                            : a.remindedAt
+                              ? "Tekrar gönder"
+                              : "Hatırlat"}
+                        </button>
+                      ) : null}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
-        <p className="mt-2 text-xs text-zinc-500">
-          Hatırlatma e-postası: cron{" "}
-          <code className="rounded bg-zinc-100 px-1">/api/cron/cart-abandonment/remind</code> —
-          yalnızca üye e-postası olan terk sepetler, 1–72 saat sonra.
-        </p>
       </section>
 
       <section>

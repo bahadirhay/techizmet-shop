@@ -51,7 +51,7 @@ function isLinkActive(pathname: string, search: URLSearchParams, href: string, l
     if (wantPlatform) return search.get("platform") === wantPlatform;
     return pathname === "/admin/integrations" && !search.get("platform");
   }
-  if (base === "/admin/dashboard") return pathname === base;
+  if (base === "/admin/dashboard" || base === "/admin/analytics") return pathname === base;
   return pathname === base || pathname.startsWith(`${base}/`);
 }
 
@@ -92,7 +92,9 @@ function defaultOpenGroups(
     open.add("customers");
   }
   if (pathname.startsWith("/admin/shipping")) open.add("shipping");
-  if (pathname.startsWith("/admin/reports")) open.add("overview");
+  if (pathname.startsWith("/admin/analytics") || pathname.startsWith("/admin/reports")) {
+    open.add("reports");
+  }
   if (pathname.startsWith("/admin/settings/store")) open.add("settings");
   if (
     pathname.startsWith("/admin/theme") ||

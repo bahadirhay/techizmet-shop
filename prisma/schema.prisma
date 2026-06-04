@@ -610,6 +610,8 @@ model StoreCustomer {
   firstName       String?
   lastName        String?
   passwordHash    String?
+  googleSub       String?
+  appleSub        String?
   notes           String?
   customerGroupId String?
   customerGroup   CustomerGroup? @relation(fields: [customerGroupId], references: [id], onDelete: SetNull)
@@ -624,6 +626,8 @@ model StoreCustomer {
   visitorProfiles VisitorProfile[]
 
   @@unique([siteId, email])
+  @@unique([siteId, googleSub])
+  @@unique([siteId, appleSub])
   @@index([siteId, email])
   @@index([customerGroupId])
   @@map("customer")

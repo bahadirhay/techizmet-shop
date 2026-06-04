@@ -232,9 +232,55 @@ const BRIDGE_SCRIPT = `<script id="kn-account-bridge">(function(){
       .catch(function(){});
   }
   relocateAccountDrawer();
+  function injectOAuthButtons(root){
+    if(!root||root.dataset.knOAuth)return;
+    fetch("/api/account/oauth/status",{credentials:"same-origin"})
+      .then(function(r){return r.json();})
+      .then(function(s){
+        if(!s.google&&!s.apple)return;
+        var next=encodeURIComponent(returnPath());
+        var box=document.createElement("div");
+        box.className="kn-oauth-links";
+        box.style.cssText="margin-top:16px;display:flex;flex-direction:column;gap:8px";
+        if(s.google){
+          var g=document.createElement("a");
+          g.href="/api/account/oauth/google?next="+next;
+          g.textContent="Google ile devam et";
+          g.className="button button-block medium-button";
+          g.style.background="#fff";
+          g.style.color="#333";
+          box.appendChild(g);
+        }
+        if(s.apple){
+          var a=document.createElement("a");
+          a.href="/api/account/oauth/apple?next="+next;
+          a.textContent="Apple ile devam et";
+          a.className="button button-block medium-button";
+          a.style.background="#000";
+          a.style.color="#fff";
+          box.appendChild(a);
+        }
+        var btn=root.querySelector("button.button-block,button.medium-button,button[type='submit']");
+        if(btn&&btn.parentNode) btn.parentNode.insertBefore(box,btn.nextSibling);
+        else root.appendChild(box);
+        root.dataset.knOAuth="1";
+      })
+      .catch(function(){});
+  }
+  function initOAuth(){
+    document.querySelectorAll('[data-kn-account-auth="login"],[data-kn-account-auth="register"]').forEach(injectOAuthButtons);
+    var drawer=document.querySelector('account-drawer[data-drawer="account-drawer"]');
+    if(drawer){
+      var loginForm=drawer.querySelector('[data-form="login"]');
+      if(loginForm) injectOAuthButtons(loginForm);
+      var regForm=drawer.querySelector('[data-form="create"]');
+      if(regForm) injectOAuthButtons(regForm);
+    }
+  }
   function init(){
     bindAll();
     checkSession();
+    initOAuth();
   }
   if(document.readyState==="loading"){
     document.addEventListener("DOMContentLoaded",init);

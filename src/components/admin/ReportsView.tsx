@@ -38,6 +38,12 @@ export function ReportsView({ report }: { report: SalesReport }) {
             Son {d} gün
           </Link>
         ))}
+        <a
+          href={`/api/admin/reports/export?days=${report.periodDays}`}
+          className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm hover:bg-zinc-50"
+        >
+          CSV indir
+        </a>
       </div>
 
       <div className="admin-kpi-grid mt-6">

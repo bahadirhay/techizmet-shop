@@ -1,10 +1,40 @@
 import { NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
+import { loadAnalyticsFunnel } from "@/lib/analytics/funnel";
 import { requireStaffApi } from "@/lib/staff-auth";
 import { prisma } from "@/lib/prisma";
 
-export async function GET() {
+function abandonmentWhere(siteId: string, filter: string): Prisma.CartAbandonmentWhereInput {
+  const base = { siteId, status: "open" as const };
+  const now = Date.now();
+  const min1h = new Date(now - 60 * 60 * 1000);
+  const max72h = new Date(now - 72 * 60 * 60 * 1000);
+
+  if (filter === "eligible") {
+    return {
+      ...base,
+      remindedAt: null,
+      customerId: { not: null },
+      lastActivityAt: { lte: min1h, gte: max72h },
+    };
+  }
+  if (filter === "not_reminded") return { ...base, remindedAt: null };
+  if (filter === "no_email") {
+    return {
+      ...base,
+      NOT: { visitor: { customer: { email: { not: null } } } },
+    };
+  }
+  return base;
+}
+
+export async function GET(req: Request) {
   const auth = await requireStaffApi("store.dashboard");
   if (auth instanceof NextResponse) return auth;
+
+  const url = new URL(req.url);
+  const abandonFilter = url.searchParams.get("abandonFilter") ?? "all";
+  const funnelDays = Math.min(90, Math.max(1, Number(url.searchParams.get("funnelDays") ?? "7") || 7));
 
   const siteId = auth.siteId;
   const since7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -36,10 +66,12 @@ export async function GET() {
       }),
     ]);
 
-  const abandonments = await prisma.cartAbandonment.findMany({
-    where: { siteId, status: "open" },
+  const [funnel, abandonments] = await Promise.all([
+    loadAnalyticsFunnel(siteId, funnelDays),
+    prisma.cartAbandonment.findMany({
+    where: abandonmentWhere(siteId, abandonFilter),
     orderBy: { lastActivityAt: "desc" },
-    take: 30,
+    take: 50,
     include: {
       visitor: {
         select: {
@@ -47,9 +79,12 @@ export async function GET() {
         },
       },
     },
-  });
+  }),
+  ]);
 
   return NextResponse.json({
+    funnel,
+    abandonFilter,
     summary: {
       visitors7d: visitorsWeek,
       openAbandonments,
