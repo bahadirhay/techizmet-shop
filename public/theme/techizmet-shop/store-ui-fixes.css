@@ -590,3 +590,29 @@ product-media-popup.popup {
   line-height: 1.35 !important;
   cursor: pointer;
 }
+
+/* Yukarı çık — tema SVG + icon_bounce bazen görünmez; CSS ok */
+.scroll-to-top {
+  z-index: 90 !important;
+}
+
+.scroll-to-top-inner {
+  color: var(--scroll-top-color, #1a1a1a) !important;
+  overflow: visible !important;
+}
+
+.scroll-to-top-inner svg {
+  display: none !important;
+}
+
+.scroll-to-top-inner::before {
+  content: "";
+  display: block;
+  width: 11px;
+  height: 11px;
+  border-top: 2px solid currentColor;
+  border-left: 2px solid currentColor;
+  transform: rotate(45deg);
+  margin-top: 4px;
+  flex-shrink: 0;
+}

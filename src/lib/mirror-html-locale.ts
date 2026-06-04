@@ -154,6 +154,7 @@ const MIRROR_TR_PAIRS_BASE: ReadonlyArray<readonly [string, string]> = [
   ["Log in", "Giriş yap"],
   ["Account", "Hesap"],
   ["Go to top", "Yukarı çık"],
+  ['title="Go to top"', 'title="Yukarı çık"'],
   ["Store locator", "Mağaza bulucu"],
   ["Create account", "Hesap oluştur"],
   ["First name", "Ad"],
