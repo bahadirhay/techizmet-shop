@@ -1,9 +1,11 @@
 import type { ShopLocale } from "@/lib/i18n/locale";
+import { MIRROR_COLLECTION_SORT_TR_PAIRS } from "@/lib/mirror-collection-sort-locale";
 import { applyMirrorEnHtml } from "@/lib/mirror-en-locale";
 import { MIRROR_TR_CATALOG } from "@/lib/mirror-tr-catalog";
 
 /** Techizmet Shop mirror *-tr.html — gömülü İngilizce UI metinleri */
 const MIRROR_TR_PAIRS_BASE: ReadonlyArray<readonly [string, string]> = [
+  ...MIRROR_COLLECTION_SORT_TR_PAIRS,
   // Uzun paragraflar (önce)
   [
     "Enhance Your Natural Beauty is more than just a tagline — it's a philosophy that embraces who you are. It encourages confidence in your skin, celebrating every feature without the need for heavy coverage or drastic change. <br />\n<br />\nInstead of masking imperfections, it focuses on nurturing and highlighting your unique glow with gentle, effective skincare.",
@@ -128,7 +130,6 @@ const MIRROR_TR_PAIRS_BASE: ReadonlyArray<readonly [string, string]> = [
   ["Add to cart", "Sepete ekle"],
   ["Sold out", "Tükendi"],
   ["View cart", "Sepeti gör"],
-  ["Sort by", "Sırala"],
   ["Quantity", "Miktar"],
   ["Shades", "Tonlar"],
   ["Volume", "Hacim"],
