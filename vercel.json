@@ -1,9 +1,3 @@
 {
-  "regions": ["fra1"],
-  "crons": [
-    {
-      "path": "/api/cron/cart-abandonment/remind",
-      "schedule": "0 * * * *"
-    }
-  ]
+  "regions": ["fra1"]
 }

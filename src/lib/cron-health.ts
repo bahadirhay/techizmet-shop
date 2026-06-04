@@ -22,8 +22,9 @@ export type CronHealthSnapshot = {
 };
 
 const SCHEDULES: Record<CronJobId, string> = {
-  cartAbandonmentRemind: "Her saat (Vercel Cron)",
-  marketplaceOrders: "Harici zamanlayıcı / manuel",
+  cartAbandonmentRemind:
+    "Harici zamanlayıcı (Hobby: günde 1×) — GET /api/cron/cart-abandonment/remind?secret=CRON_SECRET",
+  marketplaceOrders: "Harici zamanlayıcı / manuel — GET /api/cron/marketplace/orders?secret=CRON_SECRET",
 };
 
 function getOps(settings: SiteSettings) {

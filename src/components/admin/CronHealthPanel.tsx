@@ -45,7 +45,7 @@ export function CronHealthPanel() {
       <h2 className="text-lg font-semibold">Zamanlanmış görevler (cron)</h2>
       <p className="mt-1 text-sm text-zinc-600">
         {health.secretConfigured
-          ? "CRON_SECRET tanımlı — Vercel veya harici zamanlayıcı çağrıları kabul edilir."
+          ? "CRON_SECRET tanımlı — Windows Görev Zamanlayıcı veya harici cron endpoint'i çağırabilir (Vercel Hobby saatlik cron desteklemez)."
           : "CRON_SECRET eksik — otomatik görevler çalışmaz."}
       </p>
       <ul className="mt-4 space-y-3">
