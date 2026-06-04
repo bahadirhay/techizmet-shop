@@ -4,8 +4,8 @@
  */
 
 /* Radio / checkbox — checkout/hesap (ürün varyasyon pill .productOption hariç) */
-input[type="radio"]:not(.productOption),
-input[type="checkbox"] {
+input[type="radio"]:not(.productOption):not(.checkmark-input),
+input[type="checkbox"]:not(.checkmark-input) {
   -webkit-appearance: auto !important;
   appearance: auto !important;
   display: inline-block !important;
@@ -522,4 +522,71 @@ account-drawer.kn-account-is-logged-in .kn-account-logout {
 .popup.product-media-popup,
 product-media-popup.popup {
   z-index: 300 !important;
+}
+
+/* Koleksiyon sıralama / filtre — tema checkmark radio (native appearance çakışmasını önle) */
+.filter-option-item.radio-box {
+  position: relative;
+  padding-left: 30px;
+  display: flex;
+  align-items: center;
+  min-height: 28px;
+}
+
+.filter-option-item.radio-box .checkmark-input {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 50% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px !important;
+  min-height: 18px !important;
+  max-width: 18px !important;
+  max-height: 18px !important;
+  border: 1px solid var(--text_color, #1a1a1a) !important;
+  border-radius: 50% !important;
+  background: transparent !important;
+  opacity: 1 !important;
+  cursor: pointer !important;
+  z-index: 2;
+  transform: translateY(-50%) !important;
+  accent-color: transparent !important;
+}
+
+.filter-option-item.radio-box .checkmark {
+  position: absolute !important;
+  left: 0 !important;
+  top: 50% !important;
+  width: 18px !important;
+  height: 18px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 50% !important;
+  background: transparent !important;
+  pointer-events: none !important;
+  transform: translateY(-50%) scale(0) !important;
+  transform-origin: center center !important;
+}
+
+.filter-option-item.radio-box .checkmark-input:checked ~ .checkmark {
+  background-color: var(--text_color, #1a1a1a) !important;
+  transform: translateY(-50%) scale(0.5) !important;
+}
+
+.filter-option-item.radio-box .checkmark-input:checked ~ .checkmark::after {
+  display: none !important;
+  content: none !important;
+}
+
+.filter-option-item.radio-box > label {
+  position: static !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1.35 !important;
+  cursor: pointer;
 }
