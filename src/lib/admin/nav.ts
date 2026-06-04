@@ -65,6 +65,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     items: [
       { href: "/admin/dashboard", label: "Özet Panel", perm: "store.dashboard" },
       { href: "/admin/analytics", label: "Ziyaretçi & Sepet Terki", perm: "store.dashboard" },
+      { href: "/admin/analytics/visitors", label: "Ziyaretçi listesi", perm: "store.dashboard" },
       { href: "/admin/reports", label: "Raporlar & Analitik", perm: "store.dashboard" },
       {
         href: "/admin/orders?status=pending",
@@ -294,6 +295,7 @@ export function isNavItemActive(
 export const ADMIN_PAGE_TITLES: Record<string, string> = {
   "/admin/dashboard": "Özet Panel",
   "/admin/analytics": "Ziyaretçi & Sepet Terki",
+  "/admin/analytics/visitors": "Ziyaretçiler",
   "/admin/reports": "Raporlar & Analitik",
   "/admin/settings/notifications": "Bildirim Ayarları",
   "/admin/settings/efatura": "GİB e-Arşiv Fatura",

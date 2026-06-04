@@ -9,9 +9,13 @@ export default async function AnalyticsAdminPage() {
       <div>
         <h1 className="text-2xl font-semibold">Ziyaretçi & sepet analitiği</h1>
         <p className="mt-1 text-sm text-zinc-600">
-          Ürün görüntüleme, sepet terki ve dönüşüm olayları. Çerez onay kayıtları:{" "}
+          Ürün görüntüleme, sepet terki ve dönüşüm olayları.{" "}
+          <a href="/admin/analytics/visitors" className="font-medium underline">
+            Ziyaretçi listesi
+          </a>
+          {" · "}
           <a href="/admin/settings/cookie-consents" className="underline">
-            Çerez Onay Kayıtları
+            Çerez onay kayıtları
           </a>
         </p>
       </div>

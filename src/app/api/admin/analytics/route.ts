@@ -59,14 +59,14 @@ export async function GET() {
     recentEvents: recentEvents.map((e) => ({
       id: e.id,
       eventType: e.eventType,
-      visitorKey: e.visitorKey.slice(0, 10),
+      visitorKey: e.visitorKey,
       customerId: e.customerId,
       payload: e.payloadJson,
       createdAt: e.createdAt.toISOString(),
     })),
     abandonments: abandonments.map((a) => ({
       id: a.id,
-      visitorKey: a.visitorKey.slice(0, 10),
+      visitorKey: a.visitorKey,
       customerEmail: a.visitor.customer?.email ?? null,
       customerName: [a.visitor.customer?.firstName, a.visitor.customer?.lastName]
         .filter(Boolean)

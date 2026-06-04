@@ -1,6 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
+import {
+  EVENT_LABELS,
+  formatCartItemsPreview,
+  formatEventDetail,
+} from "@/lib/analytics/format-event";
 import { formatTry } from "@/lib/format";
 
 type Summary = {
@@ -28,14 +34,7 @@ type AbandonRow = {
   itemCount: number;
   lastActivityAt: string;
   remindedAt: string | null;
-};
-
-const EVENT_LABELS: Record<string, string> = {
-  page_view: "Sayfa görüntüleme",
-  product_view: "Ürün görüntüleme",
-  add_to_cart: "Sepete ekleme",
-  begin_checkout: "Ödeme başlangıcı",
-  purchase: "Satın alma",
+  itemsJson?: string;
 };
 
 export function AnalyticsDashboard() {
@@ -70,6 +69,19 @@ export function AnalyticsDashboard() {
 
   return (
     <div className="space-y-8">
+      <p className="text-sm">
+        <Link
+          href="/admin/analytics/visitors"
+          className="font-medium text-blue-700 underline hover:text-blue-900"
+        >
+          Tüm ziyaretçileri listele →
+        </Link>
+        <span className="text-zinc-500">
+          {" "}
+          (kim ne gezdi, sepet detayı, e-posta ile gruplama)
+        </span>
+      </p>
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Ziyaretçi (7 gün)" value={String(summary.visitors7d)} />
         <StatCard label="Açık sepet terki" value={String(summary.openAbandonments)} />
@@ -88,7 +100,7 @@ export function AnalyticsDashboard() {
               key={k}
               className="rounded-full border bg-white px-3 py-1 text-sm text-zinc-700"
             >
-              {EVENT_LABELS[k] ?? k}: <strong>{v}</strong>
+              {EVENT_LABELS[k as keyof typeof EVENT_LABELS] ?? k}: <strong>{v}</strong>
             </span>
           ))}
           {!Object.keys(summary.events7d).length ? (
@@ -107,9 +119,9 @@ export function AnalyticsDashboard() {
               <thead>
                 <tr className="border-b bg-zinc-50 text-left">
                   <th className="p-3">Son aktivite</th>
-                  <th className="p-3">Müşteri</th>
+                  <th className="p-3">Müşteri / ziyaretçi</th>
+                  <th className="p-3">Ürünler</th>
                   <th className="p-3">Tutar</th>
-                  <th className="p-3">Adet</th>
                   <th className="p-3">Hatırlatma</th>
                 </tr>
               </thead>
@@ -120,14 +132,26 @@ export function AnalyticsDashboard() {
                       {new Date(a.lastActivityAt).toLocaleString("tr-TR")}
                     </td>
                     <td className="p-3">
-                      {a.customerName ?? a.customerEmail ?? `…${a.visitorKey}`}
+                      <VisitorLink
+                        visitorKey={a.visitorKey}
+                        label={
+                          a.customerName ?? a.customerEmail ?? `Anonim …${a.visitorKey.slice(-8)}`
+                        }
+                      />
                     </td>
-                    <td className="p-3">{formatTry(a.cartValueMinor)}</td>
-                    <td className="p-3">{a.itemCount}</td>
+                    <td className="p-3 max-w-xs text-zinc-700">
+                      {a.itemsJson ? formatCartItemsPreview(a.itemsJson, 2) : "—"}
+                    </td>
+                    <td className="p-3 whitespace-nowrap">
+                      {formatTry(a.cartValueMinor)}
+                      <span className="text-zinc-500"> · {a.itemCount} adet</span>
+                    </td>
                     <td className="p-3">
                       {a.remindedAt
                         ? new Date(a.remindedAt).toLocaleDateString("tr-TR")
-                        : "—"}
+                        : a.customerEmail
+                          ? "—"
+                          : "E-posta yok"}
                     </td>
                   </tr>
                 ))}
@@ -137,8 +161,8 @@ export function AnalyticsDashboard() {
         )}
         <p className="mt-2 text-xs text-zinc-500">
           Hatırlatma e-postası: cron{" "}
-          <code className="rounded bg-zinc-100 px-1">/api/cron/cart-abandonment/remind</code> — üye
-          e-postası olan terk sepetler, 1–72 saat arası.
+          <code className="rounded bg-zinc-100 px-1">/api/cron/cart-abandonment/remind</code> —
+          yalnızca üye e-postası olan terk sepetler, 1–72 saat sonra.
         </p>
       </section>
 
@@ -153,6 +177,7 @@ export function AnalyticsDashboard() {
                 <tr className="border-b bg-zinc-50 text-left">
                   <th className="p-3">Tarih</th>
                   <th className="p-3">Olay</th>
+                  <th className="p-3">Detay</th>
                   <th className="p-3">Ziyaretçi</th>
                 </tr>
               </thead>
@@ -162,8 +187,15 @@ export function AnalyticsDashboard() {
                     <td className="p-3 whitespace-nowrap">
                       {new Date(e.createdAt).toLocaleString("tr-TR")}
                     </td>
-                    <td className="p-3">{EVENT_LABELS[e.eventType] ?? e.eventType}</td>
-                    <td className="p-3 font-mono text-xs">{e.visitorKey}…</td>
+                    <td className="p-3">
+                      {EVENT_LABELS[e.eventType as keyof typeof EVENT_LABELS] ?? e.eventType}
+                    </td>
+                    <td className="p-3 text-zinc-800">
+                      {formatEventDetail(e.eventType, e.payload)}
+                    </td>
+                    <td className="p-3">
+                      <VisitorLink visitorKey={e.visitorKey} />
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -172,6 +204,22 @@ export function AnalyticsDashboard() {
         )}
       </section>
     </div>
+  );
+}
+
+function VisitorLink({
+  visitorKey,
+  label,
+}: {
+  visitorKey: string;
+  label?: string | null;
+}) {
+  const href = `/admin/analytics/visitors/${encodeURIComponent(visitorKey)}`;
+  const text = label?.trim() || `…${visitorKey.slice(-8)}`;
+  return (
+    <Link href={href} className="text-blue-700 hover:underline">
+      {text}
+    </Link>
   );
 }
 
