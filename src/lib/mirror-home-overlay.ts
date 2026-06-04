@@ -157,7 +157,7 @@ function applyMirrorSectionLayout(doc: Document, config: MirrorPageConfig, local
   if (!main) return;
 
   main.querySelectorAll("section.kn-mirror-section").forEach((el) => {
-    (el as HTMLElement).style.display = "";
+    (el as HTMLElement).style.removeProperty("display");
   });
 
   const visibleInOrder = config.order.filter((key) => !config.sections[key]?.hidden).length;
@@ -170,7 +170,7 @@ function applyMirrorSectionLayout(doc: Document, config: MirrorPageConfig, local
       (el as HTMLElement).style.display = "none";
       continue;
     }
-    (el as HTMLElement).style.display = "";
+    (el as HTMLElement).style.removeProperty("display");
     if (edit?.headingHtml?.trim()) {
       const h = el.querySelector(".section--heading");
       if (h) h.innerHTML = edit.headingHtml.trim();

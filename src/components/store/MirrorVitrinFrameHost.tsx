@@ -32,6 +32,7 @@ function MirrorVitrinFrameInner({
       pageConfig={hydration?.pageConfig}
       branding={hydration?.branding}
       mirrorTexts={hydration?.mirrorTexts}
+      siteMarquee={hydration?.siteMarquee}
       collectionsFromAdmin={collectionsFromAdmin}
       categoriesFromAdmin={categoriesFromAdmin}
     />

@@ -11,8 +11,13 @@ import { getMirrorPageConfig } from "@/lib/mirror-page-settings";
 import type { MirrorPageConfig } from "@/lib/mirror-home-overlay";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import type { VitrinPageKey } from "@/lib/mirror-vitrin-pages";
+import {
+  getProductPageBottomSettings,
+  type ProductPageBottomSettings,
+} from "@/lib/product-page-bottom";
 import { getSiteBranding } from "@/lib/site-settings-branding";
 import type { SiteSettings } from "@/lib/site-settings";
+import { getSiteSettingsUncached } from "@/lib/site-settings-load";
 import { hasMirrorPageEdits } from "@/lib/mirror-has-page-edits";
 import { resolveMirrorCollectionTexts } from "@/lib/store-static-texts";
 import type { MirrorBranding } from "@/lib/mirror-branding-overlay";
@@ -22,6 +27,8 @@ export type MirrorVitrinHydration = {
   pageConfig?: MirrorPageConfig;
   branding?: MirrorBranding;
   mirrorTexts?: ResolvedMirrorCollectionTexts;
+  /** Ana sayfa kayan şerit — Ürün sayfası altı ayarı (güncel DB) */
+  siteMarquee?: ProductPageBottomSettings["marquee"];
 };
 
 export function getMirrorVitrinHydration(
@@ -32,6 +39,8 @@ export function getMirrorVitrinHydration(
   return unstable_cache(
     async () => {
       const settings: SiteSettings = await getCachedParsedSiteSettings(siteId);
+      const freshSettings =
+        pageKey === "home" ? await getSiteSettingsUncached(siteId) : settings;
       let pageConfig = getMirrorPageConfig(settings, pageKey);
       if (pageKey === "home" && hasMirrorPageEdits(pageConfig)) {
         const featured = await listFeaturedBlogPostsForHome(siteId, locale);
@@ -42,6 +51,9 @@ export function getMirrorVitrinHydration(
         mirrorTexts: resolveMirrorCollectionTexts(locale, settings.store?.texts),
       };
       if (hasMirrorPageEdits(pageConfig)) payload.pageConfig = pageConfig;
+      if (pageKey === "home") {
+        payload.siteMarquee = getProductPageBottomSettings(freshSettings, locale).marquee;
+      }
       return payload;
     },
     ["mirror-vitrin-hydration", siteId, pageKey, locale],

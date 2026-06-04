@@ -7,6 +7,7 @@ import {
   hasMirrorPageEdits,
   type MirrorPageConfig,
 } from "@/lib/mirror-home-overlay";
+import { stripBrokenSectionDisplayAttr } from "@/lib/product-page-bottom";
 
 export function applyMirrorPageOverlayToHtml(
   html: string,
@@ -21,5 +22,5 @@ export function applyMirrorPageOverlayToHtml(
   applyMirrorPageOverlay(document, config, undefined, locale);
   document.documentElement.setAttribute("data-kn-overlay-server", "1");
   const doctype = html.match(/^<!DOCTYPE[^>]*>/i)?.[0] ?? "<!DOCTYPE html>";
-  return `${doctype}\n${document.documentElement.outerHTML}`;
+  return stripBrokenSectionDisplayAttr(`${doctype}\n${document.documentElement.outerHTML}`);
 }

@@ -21,6 +21,8 @@ import type { ShopLocale } from "@/lib/i18n/locale";
 import type { MirrorFooterData } from "@/lib/mirror-footer-overlay";
 import type { MirrorNavItem } from "@/lib/mirror-nav-overlay";
 import { applyMirrorPageOverlay } from "@/lib/mirror-home-overlay";
+import { applySiteMarqueeOverlay } from "@/lib/product-page-bottom";
+import type { ProductPageBottomSettings } from "@/lib/product-page-bottom";
 import { hasMirrorPageEdits } from "@/lib/mirror-has-page-edits";
 import {
   applyCollectionsCardsFromAdmin,
@@ -58,6 +60,7 @@ export function MirrorVitrinFrameClient({
   collectionsFromAdmin,
   categoriesFromAdmin,
   mirrorTexts,
+  siteMarquee,
   sectionCatalog,
   focusSectionKey,
 }: {
@@ -72,6 +75,7 @@ export function MirrorVitrinFrameClient({
   collectionsFromAdmin?: VitrinCollectionCard[];
   categoriesFromAdmin?: VitrinCollectionCategoryOption[];
   mirrorTexts?: ResolvedMirrorCollectionTexts;
+  siteMarquee?: ProductPageBottomSettings["marquee"];
   sectionCatalog?: MirrorPageSection[];
   focusSectionKey?: string | null;
 }) {
@@ -101,6 +105,7 @@ export function MirrorVitrinFrameClient({
     nav,
     footer,
     locale,
+    marqueeLive,
     visualEditMode,
     src,
     isCartOrCheckoutShell,
@@ -108,9 +113,31 @@ export function MirrorVitrinFrameClient({
 
   useMirrorLocaleMessage();
 
+  const [marqueeLive, setMarqueeLive] = useState(siteMarquee);
+
+  useEffect(() => {
+    setMarqueeLive(siteMarquee);
+  }, [siteMarquee]);
+
   useEffect(() => {
     baseSrcRef.current = src;
   }, [src]);
+
+  useEffect(() => {
+    if (pathname !== "/" || marqueeLive) return;
+    let cancelled = false;
+    fetch("/api/vitrin/home-marquee", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { marquee?: ProductPageBottomSettings["marquee"] } | null) => {
+        if (!cancelled && data?.marquee) setMarqueeLive(data.marquee);
+      })
+      .catch(() => {
+        /* hydration yedek */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname, marqueeLive]);
 
   useEffect(() => {
     const iframe = iframeRef.current;
@@ -221,6 +248,13 @@ export function MirrorVitrinFrameClient({
         applyMirrorAccountDashboardClient(doc);
       }
       if (accountDrawerForm) openAccountDrawer(doc, accountDrawerForm);
+
+      if (marqueeLive && pathname === "/") {
+        const applyMarquee = () => applySiteMarqueeOverlay(doc, marqueeLive);
+        applyMarquee();
+        window.setTimeout(applyMarquee, 150);
+        window.setTimeout(applyMarquee, 800);
+      }
 
       if (skipClientWork) return;
 

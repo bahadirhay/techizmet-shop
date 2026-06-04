@@ -154,7 +154,7 @@ export function ProductExploreSettingsForm({
     <div className="mx-auto max-w-3xl space-y-6">
       <SectionToggle
         label="Kayan kampanya yazısı"
-        hint="Keşfet bölümünün üstündeki sonsuz kayan şerit. Tekrarlı görünüm normaldir."
+        hint="Ana sayfa ve tüm ürün detay sayfalarında üstteki kayan şerit. Tekrarlı görünüm normaldir."
         enabled={bottom.marquee.enabled}
         onEnabledChange={(enabled) => setBottom((b) => ({ ...b, marquee: { ...b.marquee, enabled } }))}
       >

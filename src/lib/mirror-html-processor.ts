@@ -39,6 +39,7 @@ import { loadMirrorNavItemsUncached } from "@/lib/mirror-nav-load";
 import {
   getProductPageBottomSettings,
   injectProductPageBottomMirrorHtml,
+  injectSiteMarqueeMirrorHtml,
 } from "@/lib/product-page-bottom";
 import { injectPublishedProductIntoMirrorHtml } from "@/lib/mirror-product-detail-load";
 import { injectMirrorQuickviewBridge } from "@/lib/mirror-quickview-bridge";
@@ -173,6 +174,8 @@ export async function buildMirrorHtmlCore(params: MirrorHtmlBuildParams): Promis
       pageConfig = mergeFeaturedBlogIntoPageConfig(pageConfig, featuredForHome);
     }
     localized = applyMirrorPageOverlayToHtml(localized, pageConfig, locale);
+    const siteMarquee = getProductPageBottomSettings(settings, locale).marquee;
+    localized = injectSiteMarqueeMirrorHtml(localized, siteMarquee);
   }
 
   if (normalized.match(/mirror\/account\/index(-tr)?\.html$/i)) {

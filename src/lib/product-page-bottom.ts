@@ -218,12 +218,61 @@ function injectRevealingStaticStyles(doc: Document) {
   if (style) doc.head.appendChild(style);
 }
 
+/** Geçersiz style="display:" — tarayıcıda bölümü gizler (linkedom boş display) */
+export function stripBrokenSectionDisplayAttr(html: string): string {
+  return html.replace(/\sstyle="display:\s*"/gi, "");
+}
+
+/** Ana sayfa + tüm mirror sayfalar — kayan kampanya şeridi (Ürün sayfası altı ayarı) */
+export function injectSiteMarqueeMirrorHtml(
+  html: string,
+  marquee: ProductPageBottomSettings["marquee"],
+): string {
+  let out = stripBrokenSectionDisplayAttr(html);
+  if (!marquee.enabled) {
+    return out.replace(
+      /(<section\b[^>]*\bsection-marquee\b[^>]*)(>)/i,
+      `$1 data-kn-pdp-hidden="1" style="display:none!important"$2`,
+    );
+  }
+  if (marquee.html) {
+    out = out.replace(/<p class="marquee-text[^"]*">[\s\S]*?<\/p>/gi, `<p class="marquee-text ">${marquee.html}</p>`);
+  }
+  return out.replace(
+    /(<section\b[^>]*\bsection-marquee\b[^>]*)\sdata-kn-pdp-hidden="1"[^>]*/i,
+    "$1",
+  );
+}
+
+export function applySiteMarqueeOverlay(
+  doc: Document,
+  marquee: ProductPageBottomSettings["marquee"],
+) {
+  const main = doc.querySelector("#MainContent");
+  if (!main) return;
+  const section = main.querySelector(".section-marquee");
+  if (!marquee.enabled) {
+    setSectionVisible(section, false);
+    return;
+  }
+  if (section instanceof HTMLElement) {
+    section.style.removeProperty("display");
+    section.removeAttribute("data-kn-pdp-hidden");
+    section.removeAttribute("hidden");
+  }
+  if (marquee.html) {
+    main.querySelectorAll(".section-marquee .marquee-text").forEach((el) => {
+      el.innerHTML = marquee.html;
+    });
+  }
+}
+
 /** Sunucu — mirror ürün HTML (reveal-text yüklenmeden önce) */
 export function injectProductPageBottomMirrorHtml(
   html: string,
   config: ProductPageBottomSettings,
 ): string {
-  let out = html;
+  let out = stripBrokenSectionDisplayAttr(html);
   if (!out.includes("kn-revealing-static-style")) {
     out = out.replace(/<\/head>/i, `${REVEALING_STATIC_CSS}</head>`);
   }

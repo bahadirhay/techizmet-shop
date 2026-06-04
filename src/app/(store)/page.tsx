@@ -9,7 +9,7 @@ import { getHomepageMode } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
 import { resolveStoreBlockMessages } from "@/lib/store-static-texts";
 
-export const revalidate = 300;
+export const revalidate = 0;
 
 export default async function HomePage() {
   const site = await getDefaultSite();

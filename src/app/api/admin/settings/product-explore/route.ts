@@ -124,6 +124,7 @@ export async function PATCH(req: Request) {
     data: { settingsJson: JSON.stringify(next) },
   });
 
+  revalidatePath("/", "page");
   revalidatePath("/products", "layout");
   const published = await prisma.storeProduct.findMany({
     where: { siteId: auth.siteId, published: true },
