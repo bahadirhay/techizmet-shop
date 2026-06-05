@@ -1,11 +1,17 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { MirrorProductFrame } from "@/components/store/MirrorProductFrame";
+import { JsonLdScript } from "@/components/store/JsonLdScript";
 import { resolveMirrorProductTemplateSlug } from "@/lib/mirror-html-path";
 import { ProductPurchasePanel } from "@/components/store/ProductPurchasePanel";
 import { localeFromCookieValue } from "@/lib/i18n/locale";
 import { prisma } from "@/lib/prisma";
+import { buildPageMetadata } from "@/lib/seo/metadata";
+import { buildProductPageJsonLd } from "@/lib/seo/product-page-json-ld";
+import { loadPublishedProductSeo } from "@/lib/seo/product-seo";
+import { buildSiteMetadata } from "@/lib/site-metadata";
 import { getHomepageMode, getSiteSettings } from "@/lib/site-settings";
 import { getLoggedInCustomerPricing } from "@/lib/store/customer-pricing";
 import { getDefaultSite } from "@/lib/site";
@@ -26,6 +32,24 @@ export async function generateStaticParams() {
   }
 }
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const base = await buildSiteMetadata();
+  const seo = await loadPublishedProductSeo(slug);
+  if (!seo) return base;
+
+  return buildPageMetadata(base, {
+    title: seo.metaTitle,
+    description: seo.metaDescription,
+    imageUrl: seo.imageUrl,
+    canonicalPath: `/products/${slug}`,
+  });
+}
+
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const h = await headers();
@@ -33,10 +57,16 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const site = await getDefaultSite();
   const settings = await getSiteSettings(site.id);
   const homepageMode = getHomepageMode(settings);
+  const jsonLd = await buildProductPageJsonLd(slug);
 
   const mirrorTemplateSlug = homepageMode === "mirror" ? resolveMirrorProductTemplateSlug(slug) : null;
   if (homepageMode === "mirror" && mirrorTemplateSlug) {
-    return <MirrorProductFrame slug={slug} locale={locale} templateSlug={mirrorTemplateSlug} />;
+    return (
+      <>
+        {jsonLd ? <JsonLdScript data={jsonLd} /> : null}
+        <MirrorProductFrame slug={slug} locale={locale} templateSlug={mirrorTemplateSlug} />
+      </>
+    );
   }
 
   const product = await prisma.storeProduct.findUnique({
@@ -59,50 +89,53 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const memberPricing = pricing;
 
   return (
-    <div className="kn-section kn-pdp">
-      <div className="kn-pdp__grid">
-        <div className="space-y-2">
-          {gallery.length === 0 ? (
-            <div className="kn-pdp__img kn-product-card__img--placeholder" />
-          ) : (
-            gallery.map((item, i) =>
-              item.mediaType === "video" ? (
-                <video
-                  key={`${item.url}-${i}`}
-                  src={item.url}
-                  controls
-                  playsInline
-                  muted
-                  loop
-                  className="kn-pdp__img w-full"
-                  preload="metadata"
-                />
-              ) : (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img key={`${item.url}-${i}`} src={item.url} alt="" className="kn-pdp__img" />
-              ),
-            )
-          )}
-        </div>
-        <div>
-          <h1>{product.title}</h1>
-          <ProductPurchasePanel
-            productId={product.id}
-            badgesJson={product.badgesJson}
-            stockQty={product.stockQty}
-            lowStockThreshold={product.lowStockThreshold}
-            variantOptionName={product.variantOptionName}
-            variants={product.variants}
-            priceMinor={product.priceMinor}
-            compareAtMinor={product.compareAtMinor}
-            memberPricing={memberPricing}
-          />
-          {product.description ? <p className="kn-pdp__desc">{product.description}</p> : null}
-          <p className="mt-4">
-            <Link href="/">← Mağazaya dön</Link>
-          </p>
+    <>
+      {jsonLd ? <JsonLdScript data={jsonLd} /> : null}
+      <div className="kn-section kn-pdp">
+        <div className="kn-pdp__grid">
+          <div className="space-y-2">
+            {gallery.length === 0 ? (
+              <div className="kn-pdp__img kn-product-card__img--placeholder" />
+            ) : (
+              gallery.map((item, i) =>
+                item.mediaType === "video" ? (
+                  <video
+                    key={`${item.url}-${i}`}
+                    src={item.url}
+                    controls
+                    playsInline
+                    muted
+                    loop
+                    className="kn-pdp__img w-full"
+                    preload="metadata"
+                  />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img key={`${item.url}-${i}`} src={item.url} alt="" className="kn-pdp__img" />
+                ),
+              )
+            )}
+          </div>
+          <div>
+            <h1>{product.title}</h1>
+            <ProductPurchasePanel
+              productId={product.id}
+              badgesJson={product.badgesJson}
+              stockQty={product.stockQty}
+              lowStockThreshold={product.lowStockThreshold}
+              variantOptionName={product.variantOptionName}
+              variants={product.variants}
+              priceMinor={product.priceMinor}
+              compareAtMinor={product.compareAtMinor}
+              memberPricing={memberPricing}
+            />
+            {product.description ? <p className="kn-pdp__desc">{product.description}</p> : null}
+            <p className="mt-4">
+              <Link href="/">← Mağazaya dön</Link>
+            </p>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
