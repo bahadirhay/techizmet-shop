@@ -1,17 +1,25 @@
+import { trendyolAuthHeaders } from "@/lib/marketplace/trendyol/headers";
+
 export type TrendyolCredentials = {
   sellerId: string;
   apiKey: string;
   apiSecret: string;
   stage: boolean;
+  /** User-Agent ikinci kısım — kendi yazılım: SelfIntegration */
+  integrationCompany?: string;
 };
 
 export function parseTrendyolConfig(config: Record<string, string>): TrendyolCredentials | null {
-  const sellerId = config.sellerId?.trim() || config.supplierId?.trim();
+  const sellerId = (config.sellerId?.trim() || config.supplierId?.trim() || "").replace(/\s/g, "");
   const apiKey = config.apiKey?.trim();
   const apiSecret = config.apiSecret?.trim() || config.secretKey?.trim();
   if (!sellerId || !apiKey || !apiSecret) return null;
   const stage = config.useStage === "true" || config.testMode === "true";
-  return { sellerId, apiKey, apiSecret, stage };
+  const integrationCompany =
+    config.integrationCompany?.trim() ||
+    config.userAgentCompany?.trim() ||
+    "SelfIntegration";
+  return { sellerId, apiKey, apiSecret, stage, integrationCompany };
 }
 
 export function trendyolApiBase(creds: TrendyolCredentials): string {
@@ -31,15 +39,15 @@ export async function trendyolRequest(
   path: string,
   init: RequestInit = {},
 ): Promise<{ ok: boolean; status: number; text: string; json: unknown }> {
-  const auth = Buffer.from(`${creds.apiKey}:${creds.apiSecret}`).toString("base64");
   const url = `${trendyolApiBase(creds)}${path}`;
+  const baseHeaders = trendyolAuthHeaders(creds);
   const res = await fetch(url, {
     ...init,
     headers: {
-      Authorization: `Basic ${auth}`,
-      "Content-Type": "application/json",
-      "User-Agent": `${creds.sellerId} - TechizmetShop`,
-      ...(init.headers ?? {}),
+      ...baseHeaders,
+      ...(init.headers instanceof Headers
+        ? Object.fromEntries(init.headers.entries())
+        : (init.headers as Record<string, string> | undefined)),
     },
   });
   const text = await res.text();

@@ -1,4 +1,5 @@
 import type { TrendyolCredentials } from "@/lib/marketplace/trendyol/client";
+import { trendyolAuthHeaders } from "@/lib/marketplace/trendyol/headers";
 
 export type TrendyolFinancialRow = {
   id: string;
@@ -32,14 +33,9 @@ async function trendyolFinanceRequest(
   creds: TrendyolCredentials,
   path: string,
 ): Promise<{ ok: boolean; status: number; text: string; json: unknown }> {
-  const auth = Buffer.from(`${creds.apiKey}:${creds.apiSecret}`).toString("base64");
   const url = `${trendyolFinanceBase(creds)}${path}`;
   const res = await fetch(url, {
-    headers: {
-      Authorization: `Basic ${auth}`,
-      "Content-Type": "application/json",
-      "User-Agent": `${creds.sellerId} - TechizmetShop`,
-    },
+    headers: trendyolAuthHeaders(creds),
   });
   const text = await res.text();
   let json: unknown = null;

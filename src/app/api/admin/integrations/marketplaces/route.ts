@@ -2,6 +2,32 @@ import { NextResponse } from "next/server";
 import { requireStaffApi } from "@/lib/staff-auth";
 import { prisma } from "@/lib/prisma";
 
+function parseConfig(raw: string | null): Record<string, string> {
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw) as Record<string, string>;
+  } catch {
+    return {};
+  }
+}
+
+function mergeMarketplaceConfig(
+  existing: Record<string, string>,
+  incoming: Record<string, unknown>,
+): Record<string, string> {
+  const next: Record<string, string> = {};
+  for (const [k, v] of Object.entries(incoming)) {
+    if (typeof v === "string") next[k] = v;
+    else if (v != null) next[k] = String(v);
+  }
+  for (const key of ["apiSecret", "secretKey", "lwaClientSecret", "refreshToken"]) {
+    if (!next[key]?.trim() && existing[key]?.trim()) {
+      next[key] = existing[key];
+    }
+  }
+  return next;
+}
+
 export async function GET() {
   const auth = await requireStaffApi("store.integrations");
   if (auth instanceof NextResponse) return auth;
@@ -22,8 +48,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Platform ve etiket gerekli" }, { status: 400 });
   }
 
-  const config =
-    body.config && typeof body.config === "object" ? JSON.stringify(body.config) : null;
+  const existing = await prisma.marketplaceIntegration.findUnique({
+    where: { siteId_platform: { siteId: auth.siteId, platform } },
+  });
+  const merged =
+    body.config && typeof body.config === "object"
+      ? mergeMarketplaceConfig(
+          parseConfig(existing?.configJson ?? null),
+          body.config as Record<string, unknown>,
+        )
+      : parseConfig(existing?.configJson ?? null);
+  const config = Object.keys(merged).length > 0 ? JSON.stringify(merged) : null;
 
   const row = await prisma.marketplaceIntegration.upsert({
     where: { siteId_platform: { siteId: auth.siteId, platform } },

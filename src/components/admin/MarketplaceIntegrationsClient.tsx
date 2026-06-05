@@ -78,6 +78,7 @@ export function MarketplaceIntegrationsClient({
   const [msg, setMsg] = useState<string | null>(null);
   const [logs, setLogs] = useState<SyncLog[]>([]);
   const [syncBusy, setSyncBusy] = useState(false);
+  const [testBusy, setTestBusy] = useState(false);
   const [mapCategoryId, setMapCategoryId] = useState("");
   const [mapPlatformCategoryId, setMapPlatformCategoryId] = useState("");
   const [mapPlatformBrandId, setMapPlatformBrandId] = useState("");
@@ -99,6 +100,36 @@ export function MarketplaceIntegrationsClient({
 
   function selectPlatform(p: string) {
     router.replace(`/admin/integrations?platform=${p}`, { scroll: false });
+  }
+
+  async function testConnection() {
+    setTestBusy(true);
+    setMsg(null);
+    const res = await fetch("/api/admin/integrations/marketplaces/test", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ platform: selected, config: cfg }),
+    });
+    const json = (await res.json()) as {
+      result?: { ok: boolean; message: string; userAgent?: string };
+      message?: string;
+      error?: string;
+    };
+    setTestBusy(false);
+    if (!res.ok) {
+      setMsg(json.message ?? json.error ?? "Bağlantı testi başarısız");
+      return;
+    }
+    const r = json.result;
+    if (!r) {
+      setMsg("Beklenmeyen yanıt");
+      return;
+    }
+    setMsg(
+      r.ok
+        ? `✓ ${r.message}${r.userAgent ? ` (User-Agent: ${r.userAgent})` : ""}`
+        : `✗ ${r.message}${r.userAgent ? ` — User-Agent: ${r.userAgent}` : ""}`,
+    );
   }
 
   async function save() {
@@ -287,11 +318,29 @@ export function MarketplaceIntegrationsClient({
           Stok değişince diğer pazaryerlerine otomatik gönder
         </label>
 
+        {selected === "trendyol" ? (
+          <div className="rounded-lg border border-amber-100 bg-amber-50 p-3 text-sm text-amber-950">
+            <p className="font-medium">Trendyol panel → bu alanlar</p>
+            <ul className="mt-1 list-inside list-disc text-xs text-amber-900">
+              <li>
+                <strong>Satıcı ID (Cari ID)</strong> → aşağıdaki Satıcı ID alanı
+              </li>
+              <li>
+                <strong>API Key</strong> ve <strong>API Secret</strong> → aynı isimli alanlar (Basic Auth)
+              </li>
+              <li>
+                <strong>Token</strong> ve <strong>Entegrasyon Referans Kodu</strong> → API&apos;de kullanılmaz,
+                girmenize gerek yok
+              </li>
+            </ul>
+          </div>
+        ) : null}
         <AdminField label="Satıcı ID / Mağaza kodu">
           <input
             className={inputClass}
             value={cfg.sellerId ?? ""}
             onChange={(e) => setCfg({ ...cfg, sellerId: e.target.value })}
+            placeholder={selected === "trendyol" ? "Trendyol Satıcı ID (Cari ID)" : undefined}
           />
         </AdminField>
         <AdminField label="API Key">
@@ -307,6 +356,7 @@ export function MarketplaceIntegrationsClient({
             type="password"
             value={cfg.apiSecret ?? ""}
             onChange={(e) => setCfg({ ...cfg, apiSecret: e.target.value })}
+            placeholder="Boş bırakırsanız kayıtlı secret korunur"
           />
         </AdminField>
         <AdminField label="Webhook URL (isteğe bağlı)">
@@ -318,6 +368,29 @@ export function MarketplaceIntegrationsClient({
         </AdminField>
         {selected === "trendyol" ? (
           <>
+            <AdminField label="Entegrasyon firma adı (User-Agent)">
+              <input
+                className={inputClass}
+                value={cfg.integrationCompany ?? "SelfIntegration"}
+                onChange={(e) => setCfg({ ...cfg, integrationCompany: e.target.value })}
+                placeholder="SelfIntegration"
+              />
+              <p className="mt-1 text-xs text-zinc-500">
+                Kendi yazılımınız ise <strong>SelfIntegration</strong> bırakın. Aracı firma varsa firma adı
+                (alfanumerik, max 30 karakter). Trendyol User-Agent:{" "}
+                <code className="text-[11px]">
+                  {cfg.sellerId?.trim() || "…"} - {cfg.integrationCompany?.trim() || "SelfIntegration"}
+                </code>
+              </p>
+            </AdminField>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={cfg.useStage === "true"}
+                onChange={(e) => setCfg({ ...cfg, useStage: e.target.checked ? "true" : "false" })}
+              />
+              Test ortamı (stage API)
+            </label>
             <AdminField label="Trendyol marka ID (trendyolBrandId)">
               <input
                 className={inputClass}
@@ -437,6 +510,16 @@ export function MarketplaceIntegrationsClient({
           <button type="button" className={btnPrimary} onClick={save}>
             Ayarları kaydet
           </button>
+          {selected === "trendyol" ? (
+            <button
+              type="button"
+              className={btnSecondary}
+              disabled={testBusy || syncBusy}
+              onClick={() => void testConnection()}
+            >
+              {testBusy ? "Test ediliyor…" : "Bağlantıyı test et"}
+            </button>
+          ) : null}
           <button type="button" className={btnSecondary} onClick={runSync} disabled={syncBusy}>
             {syncBusy ? "…" : "Ürün gönder"}
           </button>
@@ -480,7 +563,13 @@ export function MarketplaceIntegrationsClient({
             XML dışa aktar
           </a>
         </div>
-        {msg ? <p className="text-sm text-green-700">{msg}</p> : null}
+        {msg ? (
+          <p
+            className={`text-sm ${msg.startsWith("✗") ? "text-red-700" : msg.startsWith("✓") ? "text-green-700" : "text-green-700"}`}
+          >
+            {msg}
+          </p>
+        ) : null}
 
         {!marketplaceTablesReady ? (
           <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">

@@ -3,6 +3,7 @@ import { toMarketplaceSyncPrices } from "@/lib/marketplace/product-prices";
 import { resolveTrendyolCategoryBrand } from "@/lib/marketplace/category-mapping";
 import { marketplaceProductListingDb } from "@/lib/marketplace/prisma-marketplace";
 import { parseTrendyolConfig, trendyolLegacyProductBase } from "@/lib/marketplace/trendyol/client";
+import { trendyolAuthHeaders } from "@/lib/marketplace/trendyol/headers";
 
 type TrendyolProduct = {
   barcode: string;
@@ -102,16 +103,11 @@ export async function syncProductsToTrendyol(
   }
 
   const url = `${trendyolLegacyProductBase(creds)}/sapigw/suppliers/${creds.sellerId}/v2/products`;
-  const auth = Buffer.from(`${creds.apiKey}:${creds.apiSecret}`).toString("base64");
 
   try {
     const res = await fetch(url, {
       method: "POST",
-      headers: {
-        Authorization: `Basic ${auth}`,
-        "Content-Type": "application/json",
-        "User-Agent": `${creds.sellerId} - TechizmetShop`,
-      },
+      headers: trendyolAuthHeaders(creds),
       body: JSON.stringify({ items }),
     });
     const text = await res.text();
