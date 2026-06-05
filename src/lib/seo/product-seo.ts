@@ -22,7 +22,26 @@ export const loadPublishedProductSeo = cache(async (slug: string) => {
       stockQty: true,
       published: true,
       collection: { select: { slug: true, title: true } },
-      category: { select: { slug: true, title: true } },
+      category: {
+        select: {
+          slug: true,
+          title: true,
+          parent: { select: { slug: true, title: true } },
+        },
+      },
+      categoryLinks: {
+        orderBy: { sortOrder: "asc" },
+        take: 1,
+        select: {
+          category: {
+            select: {
+              slug: true,
+              title: true,
+              parent: { select: { slug: true, title: true } },
+            },
+          },
+        },
+      },
       brand: { select: { name: true } },
       images: { orderBy: { sortOrder: "asc" }, select: { url: true, mediaType: true } },
       variants: { select: { stockQty: true, priceMinor: true, isDefault: true, sku: true } },

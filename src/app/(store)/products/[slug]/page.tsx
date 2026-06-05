@@ -86,7 +86,26 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     where: { siteId_slug: { siteId: site.id, slug } },
     include: {
       collection: { select: { slug: true, title: true } },
-      category: { select: { slug: true, title: true } },
+      category: {
+        select: {
+          slug: true,
+          title: true,
+          parent: { select: { slug: true, title: true } },
+        },
+      },
+      categoryLinks: {
+        orderBy: { sortOrder: "asc" },
+        take: 1,
+        select: {
+          category: {
+            select: {
+              slug: true,
+              title: true,
+              parent: { select: { slug: true, title: true } },
+            },
+          },
+        },
+      },
       variants: { orderBy: { sortOrder: "asc" } },
       images: { orderBy: { sortOrder: "asc" } },
     },
