@@ -22,6 +22,7 @@ import { fetchTrendyolCatalog } from "@/lib/marketplace/trendyol/products";
 import { fetchHepsiburadaCatalog } from "@/lib/marketplace/hepsiburada/products";
 import { fetchAmazonCatalog } from "@/lib/marketplace/amazon/products";
 import { importMarketplaceCatalog, upsertProductMarketplaceListing } from "@/lib/marketplace/catalog-import";
+import { persistCatalogTitleCache } from "@/lib/marketplace/catalog-title-cache";
 import { parseMarketplaceOrderMeta } from "@/lib/marketplace/types";
 import { syncStockToAllMarketplaces } from "@/lib/marketplace/stock-sync-all";
 
@@ -259,13 +260,15 @@ export async function pullMarketplaceCatalog(
       };
     }
     const imported = await importMarketplaceCatalog(siteId, platform, fetched.items);
+    const cached = await persistCatalogTitleCache(siteId, platform, fetched.items);
+    const cacheNote = cached > 0 ? ` · ${cached} başlık SEO önbelleğine yazıldı` : "";
     const errNote = fetched.errors.length ? ` · Uyarı: ${fetched.errors.slice(0, 2).join("; ")}` : "";
     return {
       ok: imported.ok,
       itemsCount: imported.matched,
       matched: imported.matched,
       unmatched: imported.unmatched,
-      message: `${fetched.message} · ${imported.message}${errNote}`,
+      message: `${fetched.message} · ${imported.message}${cacheNote}${errNote}`,
     };
   }
 

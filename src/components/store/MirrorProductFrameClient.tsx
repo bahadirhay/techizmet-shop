@@ -2,6 +2,7 @@
 
 import { useMirrorFrameRouteSync } from "@/hooks/use-mirror-frame-route-sync";
 import { useMirrorIframeLifecycle } from "@/hooks/use-mirror-iframe-lifecycle";
+import { stripSeoFromMirrorDocument } from "@/lib/mirror-html-seo-strip";
 import { useMirrorLocaleMessage } from "@/hooks/use-mirror-locale-message";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -174,6 +175,8 @@ export function MirrorProductFrameClient({
     if (!frame) return;
     const doc = frame.contentDocument;
     if (!doc?.getElementById("MainContent")) return;
+
+    stripSeoFromMirrorDocument(doc);
 
     const prebuiltSynced = isProductDocSynced(doc);
 

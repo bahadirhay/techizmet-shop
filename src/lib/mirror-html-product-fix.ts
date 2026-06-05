@@ -1,3 +1,5 @@
+import { patchMirrorProductSeoStrip } from "@/lib/mirror-html-seo-strip";
+
 /** Mirror ürün sayfası — Shopify kalıntıları, eksik medya, öneri API */
 
 const SHOPIFY_ACCEL_LINK =
@@ -45,6 +47,7 @@ const PRODUCT_RECS_BRIDGE = `<script id="kn-product-recs-quiet">(function(){
 export function patchMirrorProductPageHtml(html: string): string {
   let out = html;
 
+  out = patchMirrorProductSeoStrip(out);
   out = out.replace(SHOPIFY_ACCEL_LINK, "");
   out = out.replace(SHOPIFY_ACCEL_STYLE, "");
   out = out.replace(PORTABLE_WALLETS_INLINE, "");

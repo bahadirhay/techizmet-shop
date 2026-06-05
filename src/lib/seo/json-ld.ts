@@ -20,6 +20,7 @@ export type ProductJsonLdInput = {
   name: string;
   description?: string | null;
   sku?: string | null;
+  gtin?: string | null;
   brandName?: string | null;
   imageUrls: string[];
   priceMinor: number;
@@ -43,6 +44,7 @@ export function buildProductJsonLd(input: ProductJsonLdInput, siteOrigin?: strin
     ...(input.description?.trim() ? { description: input.description.trim().slice(0, 5000) } : {}),
     ...(images.length ? { image: images.length === 1 ? images[0] : images } : {}),
     ...(input.sku?.trim() ? { sku: input.sku.trim() } : {}),
+    ...(input.gtin?.trim() ? { gtin13: input.gtin.trim() } : {}),
     ...(input.brandName?.trim()
       ? { brand: { "@type": "Brand", name: input.brandName.trim() } }
       : {}),

@@ -17,10 +17,12 @@ export const loadPublishedProductSeo = cache(async (slug: string) => {
       seoDescription: true,
       imageUrl: true,
       sku: true,
+      barcode: true,
       priceMinor: true,
       stockQty: true,
       published: true,
       collection: { select: { slug: true, title: true } },
+      category: { select: { slug: true, title: true } },
       brand: { select: { name: true } },
       images: { orderBy: { sortOrder: "asc" }, select: { url: true, mediaType: true } },
       variants: { select: { stockQty: true, priceMinor: true, isDefault: true, sku: true } },
@@ -56,5 +58,11 @@ export const loadPublishedProductSeo = cache(async (slug: string) => {
     priceMinor,
     inStock,
     sku: product.sku ?? defaultVariant?.sku ?? null,
+    barcode: product.barcode?.trim() || null,
+    visibleTitle: product.title.trim(),
+    visibleDescription:
+      product.description?.trim() ||
+      product.seoDescription?.trim().slice(0, 320) ||
+      null,
   };
 });

@@ -1,9 +1,9 @@
 import "server-only";
 
+import { buildProductBreadcrumbItems } from "@/lib/seo/product-breadcrumbs";
 import {
   buildBreadcrumbListJsonLd,
   buildProductJsonLd,
-  type BreadcrumbItem,
 } from "@/lib/seo/json-ld";
 import { loadPublishedProductSeo } from "@/lib/seo/product-seo";
 
@@ -11,26 +11,26 @@ export async function buildProductPageJsonLd(slug: string) {
   const ctx = await loadPublishedProductSeo(slug);
   if (!ctx) return null;
 
-  const { site, product, metaTitle, metaDescription, imageUrls, priceMinor, inStock, sku } = ctx;
+  const {
+    site,
+    product,
+    metaDescription,
+    imageUrls,
+    priceMinor,
+    inStock,
+    sku,
+    barcode,
+    visibleTitle,
+  } = ctx;
   const productPath = `/products/${product.slug}`;
-
-  const breadcrumbs: BreadcrumbItem[] = [
-    { name: "Ana sayfa", path: "/" },
-    { name: "Koleksiyonlar", path: "/collections" },
-  ];
-  if (product.collection) {
-    breadcrumbs.push({
-      name: product.collection.title,
-      path: `/collections/${product.collection.slug}`,
-    });
-  }
-  breadcrumbs.push({ name: product.title, path: productPath });
+  const breadcrumbs = buildProductBreadcrumbItems(product);
 
   return [
     buildProductJsonLd({
-      name: metaTitle,
+      name: visibleTitle,
       description: metaDescription,
       sku,
+      gtin: barcode,
       brandName: product.brand?.name ?? null,
       imageUrls,
       priceMinor,

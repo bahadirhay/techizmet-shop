@@ -5,7 +5,10 @@ export type ProductSeoInsight = {
 };
 
 export type ProductSeoOptimizeResult = {
+  /** Mağaza + Trendyol title alanı (marka öneksiz) */
   suggestedTitle: string;
+  /** Platforma özel listeleme başlıkları */
+  marketplaceTitles?: Record<string, string>;
   suggestedSlug: string;
   seoTitle: string;
   seoDescription: string;

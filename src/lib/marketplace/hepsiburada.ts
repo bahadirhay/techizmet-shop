@@ -1,5 +1,6 @@
 import { minorToTry } from "@/lib/admin/money";
 import { upsertProductMarketplaceListing } from "@/lib/marketplace/catalog-import";
+import { buildPlatformListingTitle } from "@/lib/marketplace/title-rules";
 
 type HbFastListingItem = {
   merchant: string;
@@ -27,6 +28,7 @@ export async function syncProductsToHepsiburada(
     sku: string | null;
     priceMinor: number;
     stockQty: number;
+    brand?: { name: string } | null;
   }[],
   config: Record<string, string>,
   options?: { includeZeroStock?: boolean; siteId?: string },
@@ -57,7 +59,7 @@ export async function syncProductsToHepsiburada(
   const items: HbFastListingItem[] = eligible.map((p) => ({
     merchant,
     merchantSku: (p.sku?.trim() || p.slug).slice(0, 64),
-    productName: p.title.slice(0, 200),
+    productName: buildPlatformListingTitle("hepsiburada", p.title, p.brand?.name ?? undefined),
     barcode: p.barcode?.trim() || undefined,
     stock: String(Math.min(p.stockQty, 9999)),
     price: minorToTry(p.priceMinor),

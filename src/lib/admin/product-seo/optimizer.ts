@@ -10,6 +10,11 @@ import {
 } from "@/lib/admin/product-seo/marketplace-search";
 import type { ProductSeoInsight, ProductSeoOptimizeInput, ProductSeoOptimizeResult } from "@/lib/admin/product-seo/types";
 import { MARKETPLACE_PLATFORMS } from "@/lib/admin/marketplace-platforms";
+import {
+  MARKETPLACE_TITLE_RULES,
+  buildAllPlatformListingTitles,
+  buildCanonicalProductTitle,
+} from "@/lib/marketplace/title-rules";
 import { listCategoryMappings } from "@/lib/marketplace/category-mapping";
 import { prisma } from "@/lib/prisma";
 import { getSiteSettings, getSiteSeo } from "@/lib/site-settings";
@@ -26,13 +31,6 @@ function truncate(text: string, max: number): string {
 
 function normalizeTitle(s: string): string {
   return s.trim().replace(/\s+/g, " ");
-}
-
-function titleCaseWords(s: string): string {
-  return s
-    .split(/\s+/)
-    .map((w) => (w.length <= 2 ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()))
-    .join(" ");
 }
 
 function containsWord(haystack: string, needle: string): boolean {
@@ -65,46 +63,40 @@ function scoreTitle(title: string, keywords: string[], categoryTitles: string[])
   return Math.min(100, Math.max(0, score));
 }
 
-function buildMarketplaceTitle(
-  title: string,
-  brandTitle: string | undefined,
-  categoryTitles: string[],
-  keywords: string[],
-): string {
-  let t = normalizeTitle(title);
-  const brand = brandTitle?.trim();
-  const primaryCat = categoryTitles[0]?.trim();
-
-  if (brand && !containsWord(t, brand)) {
-    t = `${brand} ${t}`;
-  }
-
-  if (primaryCat) {
-    const catWord = primaryCat.split(/\s+/)[0] ?? "";
-    if (catWord.length > 3 && !containsWord(t, catWord)) {
-      const kw = keywords.find((k) => k.includes(catWord.toLowerCase()));
-      if (kw) {
-        const extra = kw
-          .split(/\s+/)
-          .find((w) => w.length > 3 && !containsWord(t, w));
-        if (extra) t = `${t} ${titleCaseWords(extra)}`;
-      }
-    }
-  }
-
-  return truncate(t, 100).replace(/…$/, "");
-}
-
+/**
+ * Google / meta title — pazaryeri başlığından bağımsız.
+ * Sıra: ürün adı | marka | mağaza (kategori buraya eklenmez; tekrar ve kısıt yaratır).
+ */
 function buildSeoTitle(
-  productTitle: string,
-  categoryTitles: string[],
+  rawProductTitle: string,
+  brandTitle: string | undefined,
   siteName: string,
+  maxLen = 60,
 ): string {
-  const cat = categoryTitles[0]?.trim();
-  const parts = [productTitle];
-  if (cat && !containsWord(productTitle, cat)) parts.push(cat);
-  parts.push(siteName);
-  return truncate(parts.join(" | "), 60).replace(/…$/, "");
+  let product = normalizeTitle(rawProductTitle);
+  const brand = brandTitle?.trim();
+  const site = siteName.trim();
+
+  if (brand && product.toLowerCase().startsWith(`${brand.toLowerCase()} `)) {
+    product = product.slice(brand.length).trim();
+  }
+
+  const segments: string[] = [product];
+  if (brand && !containsWord(product, brand)) {
+    segments.push(brand);
+  }
+  segments.push(site);
+
+  const full = segments.join(" | ");
+  if (full.length <= maxLen) return full;
+
+  if (brand && !containsWord(product, brand)) {
+    const productBrand = `${product} | ${brand}`;
+    if (productBrand.length <= maxLen) return productBrand;
+    return truncate(productBrand, maxLen).replace(/…$/, "");
+  }
+
+  return truncate(product, maxLen).replace(/…$/, "");
 }
 
 function buildSeoDescription(input: {
@@ -222,18 +214,31 @@ export async function optimizeProductSeo(
   ];
 
   if (competitors.trendyol.length) {
-    const viaSeller = competitors.diagnostics.trendyolSeller === "ok";
+    const src = competitors.diagnostics.trendyolSource;
+    const label =
+      src === "cache"
+        ? "Trendyol (katalog önbelleği)"
+        : src === "db_listings"
+          ? "Trendyol (eşleşmiş ürünler)"
+          : src === "live_api"
+            ? "Trendyol (canlı API)"
+            : "Trendyol başlıkları";
     insights.push({
       source: "marketplace",
-      label: viaSeller ? "Trendyol (satıcı kataloğu)" : "Trendyol rakip başlıkları",
+      label,
       detail: competitors.trendyol.slice(0, 4).join(" · "),
     });
-  } else if (competitors.diagnostics.trendyolPublic === "blocked") {
+  } else if (
+    competitors.diagnostics.trendyolSeller === "skipped" ||
+    competitors.diagnostics.trendyolSeller === "error"
+  ) {
+    const detail =
+      competitors.notes.find((n) => n.includes("Trendyol") || n.includes("API")) ??
+      "Entegrasyonlar → Trendyol: API bilgilerini kaydedin, Bağlantıyı test et, ardından Katalog çek.";
     insights.push({
       source: "marketplace",
-      label: "Trendyol genel arama",
-      detail:
-        "Sunucu IP engeli (403) — Trendyol web araması Vercel'den çalışmaz. Entegrasyonlar → Trendyol API ile satıcı kataloğu kullanılır.",
+      label: "Trendyol",
+      detail,
     });
   }
 
@@ -253,19 +258,13 @@ export async function optimizeProductSeo(
     });
   }
 
-  for (const note of competitors.notes) {
-    if (note.includes("403") || note.includes("satıcı")) {
-      insights.push({ source: "marketplace", label: "Trendyol notu", detail: note });
-    }
-  }
-
   if (!allCompetitorTitles.length) {
     insights.push({
       source: "marketplace",
       label: "Pazaryeri araması",
       detail:
-        competitors.diagnostics.trendyolPublic === "blocked"
-          ? "Trendyol web araması engellendi. Trendyol satıcı API'sini Entegrasyonlar'dan bağlayın veya Google önerileri kullanılır."
+        competitors.diagnostics.trendyolSeller === "empty"
+          ? "Trendyol kataloğunda eşleşen başlık yok. Katalog çek veya Google önerileri kullanılır."
           : "Rakip başlık alınamadı. Google önerileri yine kullanıldı.",
     });
   }
@@ -360,12 +359,16 @@ export async function optimizeProductSeo(
 
   const keywords = [...new Set([...googleKeywords, ...extractTokens(title), ...extractTokens(categoryTitles.join(" "))])];
 
-  let suggestedTitle = buildMarketplaceTitle(title, brandTitle, categoryTitles, keywords);
+  let suggestedTitle = buildCanonicalProductTitle(title, brandTitle, categoryTitles, keywords);
   if (allCompetitorTitles.length) {
     suggestedTitle = refineTitleFromCompetitors(suggestedTitle, allCompetitorTitles, 100);
   }
+  const marketplaceTitles = buildAllPlatformListingTitles(suggestedTitle, brandTitle, {
+    categoryTitles,
+    keywords,
+  });
   const suggestedSlug = input.slug?.trim() ? slugify(input.slug) : slugify(suggestedTitle);
-  let seoTitle = buildSeoTitle(suggestedTitle, categoryTitles, siteName);
+  const seoTitle = buildSeoTitle(title, brandTitle, siteName);
   let seoDescription = buildSeoDescription({
     productTitle: suggestedTitle,
     categoryTitles,
@@ -398,12 +401,38 @@ export async function optimizeProductSeo(
 
   insights.push({
     source: "analysis",
+    label: "SEO başlık yapısı",
+    detail: brandTitle
+      ? `Ürün adı → marka → mağaza: "${seoTitle}"`
+      : `Ürün adı → mağaza (marka seçilmedi): "${seoTitle}"`,
+  });
+
+  for (const p of MARKETPLACE_PLATFORMS) {
+    const rule = MARKETPLACE_TITLE_RULES[p.id];
+    const mt = marketplaceTitles[p.id];
+    if (!rule || !mt) continue;
+    insights.push({
+      source: "marketplace",
+      label: `${p.label} başlığı`,
+      detail: `${mt} (${mt.length}/${rule.maxLength} kar.) — ${rule.note}`,
+    });
+  }
+
+  insights.push({
+    source: "analysis",
+    label: "Mağaza ürün adı",
+    detail: `Marka öneksiz kanonik ad (Trendyol API brandId ile gider): "${suggestedTitle}"`,
+  });
+
+  insights.push({
+    source: "analysis",
     label: "SEO skoru",
     detail: `${score}/100 — ${score >= 75 ? "iyi uyum" : score >= 55 ? "orta — önerileri uygulayın" : "zayıf — kategori ve anahtar kelime ekleyin"}`,
   });
 
   return {
     suggestedTitle,
+    marketplaceTitles,
     suggestedSlug,
     seoTitle,
     seoDescription,

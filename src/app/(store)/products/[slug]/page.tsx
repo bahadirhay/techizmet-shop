@@ -4,11 +4,13 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { MirrorProductFrame } from "@/components/store/MirrorProductFrame";
 import { JsonLdScript } from "@/components/store/JsonLdScript";
+import { ProductSeoShell } from "@/components/store/ProductSeoShell";
 import { resolveMirrorProductTemplateSlug } from "@/lib/mirror-html-path";
 import { ProductPurchasePanel } from "@/components/store/ProductPurchasePanel";
 import { localeFromCookieValue } from "@/lib/i18n/locale";
 import { prisma } from "@/lib/prisma";
 import { buildPageMetadata } from "@/lib/seo/metadata";
+import { breadcrumbItemsToNav, buildProductBreadcrumbItems } from "@/lib/seo/product-breadcrumbs";
 import { buildProductPageJsonLd } from "@/lib/seo/product-page-json-ld";
 import { loadPublishedProductSeo } from "@/lib/seo/product-seo";
 import { buildSiteMetadata } from "@/lib/site-metadata";
@@ -57,14 +59,29 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const site = await getDefaultSite();
   const settings = await getSiteSettings(site.id);
   const homepageMode = getHomepageMode(settings);
+  const seoCtx = await loadPublishedProductSeo(slug);
   const jsonLd = await buildProductPageJsonLd(slug);
 
   const mirrorTemplateSlug = homepageMode === "mirror" ? resolveMirrorProductTemplateSlug(slug) : null;
   if (homepageMode === "mirror" && mirrorTemplateSlug) {
+    if (!seoCtx) notFound();
+
+    const breadcrumbs = breadcrumbItemsToNav(buildProductBreadcrumbItems(seoCtx.product));
+
     return (
       <>
         {jsonLd ? <JsonLdScript data={jsonLd} /> : null}
-        <MirrorProductFrame slug={slug} locale={locale} templateSlug={mirrorTemplateSlug} />
+        <ProductSeoShell
+          title={seoCtx.visibleTitle}
+          lead={seoCtx.visibleDescription}
+          breadcrumbs={breadcrumbs}
+        />
+        <MirrorProductFrame
+          slug={slug}
+          locale={locale}
+          templateSlug={mirrorTemplateSlug}
+          title={seoCtx.visibleTitle}
+        />
       </>
     );
   }
@@ -72,6 +89,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const product = await prisma.storeProduct.findUnique({
     where: { siteId_slug: { siteId: site.id, slug } },
     include: {
+      collection: { select: { slug: true, title: true } },
+      category: { select: { slug: true, title: true } },
       variants: { orderBy: { sortOrder: "asc" } },
       images: { orderBy: { sortOrder: "asc" } },
     },
@@ -86,12 +105,14 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         : [];
 
   const pricing = await getLoggedInCustomerPricing(site.id);
-  const memberPricing = pricing;
+  const breadcrumbs = breadcrumbItemsToNav(buildProductBreadcrumbItems(product));
+  const lead = product.description?.trim() || product.seoDescription?.trim() || null;
 
   return (
     <>
       {jsonLd ? <JsonLdScript data={jsonLd} /> : null}
       <div className="kn-section kn-pdp">
+        <ProductSeoShell title={product.title} lead={lead} breadcrumbs={breadcrumbs} />
         <div className="kn-pdp__grid">
           <div className="space-y-2">
             {gallery.length === 0 ? (
@@ -111,13 +132,17 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                   />
                 ) : (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img key={`${item.url}-${i}`} src={item.url} alt="" className="kn-pdp__img" />
+                  <img
+                    key={`${item.url}-${i}`}
+                    src={item.url}
+                    alt={i === 0 ? product.title : `${product.title} — ${i + 1}`}
+                    className="kn-pdp__img"
+                  />
                 ),
               )
             )}
           </div>
           <div>
-            <h1>{product.title}</h1>
             <ProductPurchasePanel
               productId={product.id}
               badgesJson={product.badgesJson}
@@ -127,9 +152,15 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               variants={product.variants}
               priceMinor={product.priceMinor}
               compareAtMinor={product.compareAtMinor}
-              memberPricing={memberPricing}
+              memberPricing={pricing}
             />
             {product.description ? <p className="kn-pdp__desc">{product.description}</p> : null}
+            {product.descriptionHtml ? (
+              <div
+                className="kn-pdp__desc prose prose-sm max-w-none"
+                dangerouslySetInnerHTML={{ __html: product.descriptionHtml }}
+              />
+            ) : null}
             <p className="mt-4">
               <Link href="/">← Mağazaya dön</Link>
             </p>

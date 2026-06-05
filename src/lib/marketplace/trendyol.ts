@@ -2,6 +2,7 @@ import { minorToTry } from "@/lib/admin/money";
 import { toMarketplaceSyncPrices } from "@/lib/marketplace/product-prices";
 import { resolveTrendyolCategoryBrand } from "@/lib/marketplace/category-mapping";
 import { marketplaceProductListingDb } from "@/lib/marketplace/prisma-marketplace";
+import { buildPlatformListingTitle } from "@/lib/marketplace/title-rules";
 import { parseTrendyolConfig, trendyolLegacyProductBase } from "@/lib/marketplace/trendyol/client";
 import { trendyolAuthHeaders } from "@/lib/marketplace/trendyol/headers";
 
@@ -41,6 +42,7 @@ export async function syncProductsToTrendyol(
     description: string | null;
     imageUrl: string | null;
     images?: { url: string }[];
+    brand?: { name: string } | null;
   }[],
   config: Record<string, string>,
   siteId?: string,
@@ -90,7 +92,7 @@ export async function syncProductsToTrendyol(
 
     items.push({
       barcode: p.barcode!.trim(),
-      title: p.title.slice(0, 100),
+      title: buildPlatformListingTitle("trendyol", p.title, p.brand?.name ?? undefined),
       productMainId: p.sku?.trim() || p.slug,
       brandId: mapped.brandId,
       categoryId: mapped.categoryId,

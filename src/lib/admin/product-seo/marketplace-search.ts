@@ -1,4 +1,5 @@
 import { getIntegrationConfig } from "@/lib/marketplace/actions";
+import { readCatalogTitleCache } from "@/lib/marketplace/catalog-title-cache";
 import { fetchTrendyolCatalog } from "@/lib/marketplace/trendyol/products";
 import { parseTrendyolConfig } from "@/lib/marketplace/trendyol/client";
 import { prisma } from "@/lib/prisma";
@@ -15,8 +16,10 @@ const BROWSER_HEADERS = {
 };
 
 export type MarketplaceSearchDiagnostics = {
-  trendyolPublic: "ok" | "blocked" | "empty" | "error";
+  /** Halka açık web araması — Vercel'de bilinçli olarak kullanılmıyor */
+  trendyolPublic: "skipped" | "ok" | "blocked" | "empty" | "error";
   trendyolSeller: "ok" | "skipped" | "empty" | "error";
+  trendyolSource?: "cache" | "db_listings" | "live_api";
   hepsiburada: "ok" | "empty" | "error";
 };
 
@@ -34,89 +37,139 @@ function scoreTitleMatch(title: string, tokens: string[]): number {
   return tokens.reduce((s, tok) => (t.includes(tok) ? s + 1 : s), 0);
 }
 
-/** Trendyol halka açık arama — Vercel/sunucu IP'lerinde çoğunlukla 403 */
-export async function fetchTrendyolCompetitorTitles(query: string): Promise<{
+function pickMatchingTitles(query: string, pool: string[], limit = 8): string[] {
+  const tokens = queryTokens(query);
+  if (!tokens.length || !pool.length) return [];
+  return pool
+    .map((title) => ({ title: title.trim(), score: scoreTitleMatch(title, tokens) }))
+    .filter((x) => x.title.length > 5 && x.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map((x) => x.title);
+}
+
+/** Trendyol web araması — sunucu IP (Vercel) engellenir; SEO akışında çağrılmaz */
+export async function fetchTrendyolCompetitorTitles(_query: string): Promise<{
   titles: string[];
   status: MarketplaceSearchDiagnostics["trendyolPublic"];
+}> {
+  return { titles: [], status: "skipped" };
+}
+
+async function fetchTrendyolTitlesFromDbListings(siteId: string): Promise<string[]> {
+  const rows = await prisma.marketplaceProductListing.findMany({
+    where: { siteId, platform: "trendyol" },
+    select: { product: { select: { title: true } } },
+    orderBy: { updatedAt: "desc" },
+    take: 300,
+  });
+  return [...new Set(rows.map((r) => r.product.title.trim()).filter((t) => t.length > 5))];
+}
+
+/**
+ * Trendyol başlık kaynakları (öncelik sırası):
+ * 1. Katalog çek → config önbelleği
+ * 2. Eşleşmiş ürün listeleri (DB)
+ * 3. Canlı satıcı API
+ */
+export async function fetchTrendyolSellerCatalogTitles(
+  siteId: string,
+  query: string,
+): Promise<{
+  titles: string[];
+  status: MarketplaceSearchDiagnostics["trendyolSeller"];
+  source?: MarketplaceSearchDiagnostics["trendyolSource"];
+  note?: string;
 }> {
   const q = query.trim();
   if (!q) return { titles: [], status: "empty" };
 
-  const urls = [
-    `https://apigw.trendyol.com/discovery-web-searchgw-service/v2/api/infinite-scroll/sr?q=${encodeURIComponent(q)}&pi=1&culture=tr-TR&storefrontId=1&countryCode=TR`,
-    `https://public.trendyol.com/discovery-web-searchgw-service/v2/api/infinite-scroll/sr?q=${encodeURIComponent(q)}&pi=1&culture=tr-TR&storefrontId=1&countryCode=TR`,
-  ];
+  const config = await getIntegrationConfig(siteId, "trendyol");
+  if (!config) {
+    return {
+      titles: [],
+      status: "skipped",
+      note: "Trendyol API bilgisi yok — Entegrasyonlar → Trendyol → kaydet ve Katalog çek",
+    };
+  }
 
-  let saw403 = false;
-
-  for (const url of urls) {
-    try {
-      const res = await fetch(url, {
-        headers: BROWSER_HEADERS,
-        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-        cache: "no-store",
-      });
-      if (res.status === 403 || res.status === 401) {
-        saw403 = true;
-        continue;
-      }
-      if (!res.ok) continue;
-      const data = (await res.json()) as {
-        result?: { products?: { name?: string }[] };
-        products?: { name?: string }[];
+  const { titles: cachedTitles, cachedAt } = readCatalogTitleCache(config);
+  if (cachedTitles.length) {
+    const titles = pickMatchingTitles(q, cachedTitles);
+    if (titles.length) {
+      const when = cachedAt ? new Date(cachedAt).toLocaleString("tr-TR") : "bilinmiyor";
+      return {
+        titles,
+        status: "ok",
+        source: "cache",
+        note: `Trendyol katalog önbelleği (${cachedTitles.length} ürün, ${when})`,
       };
-      const products = data.result?.products ?? data.products ?? [];
-      const titles = products
-        .map((p) => p.name?.trim())
-        .filter((n): n is string => Boolean(n && n.length > 5))
-        .slice(0, 8);
-      if (titles.length) return { titles, status: "ok" };
-    } catch {
-      /* sonraki URL */
     }
   }
 
-  return { titles: [], status: saw403 ? "blocked" : "empty" };
-}
+  const dbTitles = await fetchTrendyolTitlesFromDbListings(siteId);
+  if (dbTitles.length) {
+    const titles = pickMatchingTitles(q, dbTitles);
+    if (titles.length) {
+      return {
+        titles,
+        status: "ok",
+        source: "db_listings",
+        note: "Trendyol ile eşleşmiş mağaza ürün başlıkları",
+      };
+    }
+  }
 
-/** Trendyol satıcı API — kendi kataloğunuzdan benzer başlıklar (403'e takılmaz) */
-export async function fetchTrendyolSellerCatalogTitles(
-  siteId: string,
-  query: string,
-): Promise<{ titles: string[]; status: MarketplaceSearchDiagnostics["trendyolSeller"]; note?: string }> {
-  const q = query.trim();
-  if (!q) return { titles: [], status: "empty" };
-
-  const config = await getIntegrationConfig(siteId, "trendyol");
-  const creds = config ? parseTrendyolConfig(config) : null;
+  const creds = parseTrendyolConfig(config);
   if (!creds) {
     return {
       titles: [],
       status: "skipped",
-      note: "Trendyol satıcı API bilgisi yok — Entegrasyonlar → Trendyol",
+      note: "Satıcı ID, API Key ve Secret eksik — Bağlantıyı test et",
     };
   }
 
   try {
     const catalog = await fetchTrendyolCatalog(creds, { maxPages: 4 });
-    const tokens = queryTokens(q);
-    const titles = catalog.items
-      .map((item) => ({ title: item.title?.trim() ?? "", score: scoreTitleMatch(item.title ?? "", tokens) }))
-      .filter((x) => x.title.length > 5 && x.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 8)
-      .map((x) => x.title);
+    if (!catalog.ok && catalog.items.length === 0) {
+      const err = catalog.errors[0] ?? "API yanıt vermedi";
+      return {
+        titles: [],
+        status: "error",
+        note: `Trendyol satıcı API: ${err}`,
+      };
+    }
+
+    const pool = catalog.items
+      .map((item) => item.title?.trim())
+      .filter((t): t is string => Boolean(t && t.length > 5));
+    const titles = pickMatchingTitles(q, pool);
 
     if (titles.length) {
-      return { titles, status: "ok", note: "Trendyol satıcı kataloğunuzdan eşleşen başlıklar" };
+      return {
+        titles,
+        status: "ok",
+        source: "live_api",
+        note: `Trendyol canlı API (${catalog.items.length} ürün okundu)`,
+      };
     }
+
+    if (pool.length === 0) {
+      return {
+        titles: [],
+        status: "empty",
+        note: "Trendyol kataloğunuz boş — önce Trendyol'a ürün yükleyin veya Katalog çek",
+      };
+    }
+
     return {
       titles: [],
       status: "empty",
-      note: "Satıcı kataloğunda bu aramaya uygun başlık bulunamadı",
+      note: `Katalogda ${pool.length} ürün var ama bu aramayla eşleşen başlık yok`,
     };
-  } catch {
-    return { titles: [], status: "error", note: "Trendyol satıcı API isteği başarısız" };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "bilinmeyen hata";
+    return { titles: [], status: "error", note: `Trendyol satıcı API isteği başarısız: ${msg}` };
   }
 }
 
@@ -214,16 +267,9 @@ export async function fetchMarketplaceCompetitorTitles(input: {
     fetchLocalStoreCompetitorTitles(input.siteId, query, input.categoryIds ?? []),
   ]);
 
-  if (trendyolPublic.status === "blocked") {
-    notes.push(
-      "Trendyol genel arama sunucudan engellendi (403). Tarayıcıdan yapılan aramalar çalışır; sunucu IP'si engellenir.",
-    );
-  }
   if (trendyolSeller.note) notes.push(trendyolSeller.note);
 
-  const trendyol = [
-    ...new Set([...trendyolPublic.titles, ...trendyolSeller.titles]),
-  ].slice(0, 8);
+  const trendyol = [...new Set([...trendyolPublic.titles, ...trendyolSeller.titles])].slice(0, 8);
 
   return {
     trendyol,
@@ -232,6 +278,7 @@ export async function fetchMarketplaceCompetitorTitles(input: {
     diagnostics: {
       trendyolPublic: trendyolPublic.status,
       trendyolSeller: trendyolSeller.status,
+      trendyolSource: trendyolSeller.source,
       hepsiburada: hepsiburada.status,
     },
     notes,

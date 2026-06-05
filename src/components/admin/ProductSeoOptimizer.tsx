@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { AdminField, btnPrimary, btnSecondary, inputClass } from "@/components/admin/AdminForm";
+import { MARKETPLACE_PLATFORMS } from "@/lib/admin/marketplace-platforms";
 import type { ProductSeoInsight, ProductSeoOptimizeResult } from "@/lib/admin/product-seo/types";
 
 const SOURCE_LABELS: Record<ProductSeoInsight["source"], string> = {
@@ -121,9 +122,30 @@ export function ProductSeoOptimizer(props: Props) {
           </div>
 
           <div className="grid gap-3 text-sm sm:grid-cols-2">
-            <AdminField label="Önerilen ürün adı (pazaryeri uyumlu)">
+            <AdminField label="Önerilen ürün adı (mağaza / Trendyol title)">
               <input className={inputClass} readOnly value={result.suggestedTitle} />
+              <p className="mt-1 text-xs text-zinc-500">
+                Trendyol&apos;da marka ayrı alan (brandId) — başlıkta tekrarlanmaz.
+              </p>
             </AdminField>
+            {result.marketplaceTitles && MARKETPLACE_PLATFORMS.some((p) => result.marketplaceTitles?.[p.id]) ? (
+              <div className="sm:col-span-2 space-y-2">
+                <p className="text-xs font-medium text-zinc-700">Pazaryeri başlıkları</p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {MARKETPLACE_PLATFORMS.map((p) => {
+                    const t = result.marketplaceTitles?.[p.id];
+                    if (!t) return null;
+                    return (
+                      <div key={p.id} className="rounded border border-zinc-100 bg-zinc-50 px-2 py-1.5 text-xs">
+                        <span className="font-medium text-zinc-700">{p.label}</span>
+                        <p className="mt-0.5 text-zinc-600">{t}</p>
+                        <p className="text-[10px] text-zinc-400">{t.length} karakter</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
             <AdminField label="Önerilen slug">
               <input className={inputClass} readOnly value={result.suggestedSlug} />
             </AdminField>

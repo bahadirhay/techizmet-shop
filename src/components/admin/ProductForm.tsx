@@ -14,6 +14,7 @@ import { emptyVariantRow } from "@/lib/admin/product-variants";
 import type { VariantFormRow } from "@/lib/product-variants";
 import { ProductExploreEditor } from "@/components/admin/ProductExploreEditor";
 import { ProductHighlightsEditor } from "@/components/admin/ProductHighlightsEditor";
+import { ProductSeoHealthPanel } from "@/components/admin/ProductSeoHealthPanel";
 import { ProductSeoOptimizer } from "@/components/admin/ProductSeoOptimizer";
 import { VatRateSelect } from "@/components/admin/VatRateSelect";
 import { ProductMarketplacePrices } from "@/components/admin/ProductMarketplacePrices";
@@ -74,6 +75,8 @@ export function ProductForm({
   siteDefaultExplore = [],
   activeMarketplaces = [],
   defaultAutoGenerateBarcode = false,
+  homepageMode = "mirror",
+  siteUrl = "",
 }: {
   initial: ProductFormData;
   collections: Opt[];
@@ -83,6 +86,8 @@ export function ProductForm({
   siteDefaultExplore?: ProductExploreLook[];
   activeMarketplaces?: ActiveMarketplaceOption[];
   defaultAutoGenerateBarcode?: boolean;
+  homepageMode?: "mirror" | "blocks";
+  siteUrl?: string;
 }) {
   const router = useRouter();
   const [form, setForm] = useState(initial);
@@ -625,6 +630,20 @@ export function ProductForm({
             onChange={(highlights) => set("highlights", highlights)}
           />
         </div>
+        <ProductSeoHealthPanel
+          title={form.title}
+          slug={form.slug}
+          seoTitle={form.seoTitle}
+          seoDescription={form.seoDescription}
+          description={form.description}
+          descriptionHtml={form.descriptionHtml}
+          brandId={form.brandId}
+          imageUrl={form.imageUrl || primaryProductImageUrl(form.mediaItems) || ""}
+          barcode={form.barcode}
+          published={form.published}
+          homepageMode={homepageMode}
+          siteUrl={siteUrl}
+        />
         <ProductSeoOptimizer
           title={form.title}
           slug={form.slug}

@@ -6,7 +6,7 @@ import { loadActiveMarketplacePlatforms } from "@/lib/marketplace/active-integra
 import { prisma } from "@/lib/prisma";
 import { requireStaffPage } from "@/lib/staff-auth";
 import { getProductBarcodeSettings } from "@/lib/admin/product-barcode";
-import { getDefaultProductExploreLooks, getSiteSettings } from "@/lib/site-settings";
+import { getDefaultProductExploreLooks, getHomepageMode, getSiteSettings } from "@/lib/site-settings";
 
 export const dynamic = "force-dynamic";
 
@@ -91,6 +91,8 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
       siteDefaultExplore={siteDefaultExplore}
       activeMarketplaces={activeMarketplaces}
       defaultAutoGenerateBarcode={defaultAutoGenerateBarcode && !formInitial.barcode.trim()}
+      homepageMode={getHomepageMode(settings)}
+      siteUrl={process.env.NEXT_PUBLIC_SITE_URL ?? ""}
     />
   );
 }
