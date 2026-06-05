@@ -40,24 +40,4 @@ export function stripSeoFromMirrorDocument(doc: Document): void {
       'meta[property^="og:"], meta[name^="twitter:"], meta[name="description"], meta[name="robots"]',
     )
     .forEach((el) => el.remove());
-
-  demoteMirrorProductHeading(doc);
-}
-
-/** Dış sayfadaki tek h1 korunur — iframe içi başlık görsel kalır */
-export function demoteMirrorProductHeading(doc: Document): void {
-  const main = doc.getElementById("MainContent");
-  if (!main) return;
-  const h1 = main.querySelector("h1");
-  if (!h1 || h1.getAttribute("data-kn-demoted") === "1") return;
-
-  const div = doc.createElement("div");
-  for (const name of h1.getAttributeNames()) {
-    if (name === "id") continue;
-    div.setAttribute(name, h1.getAttribute(name) ?? "");
-  }
-  div.setAttribute("data-kn-demoted", "1");
-  div.setAttribute("role", "presentation");
-  div.innerHTML = h1.innerHTML;
-  h1.replaceWith(div);
 }

@@ -20,11 +20,13 @@ export async function MirrorProductFrame({
   locale,
   title,
   templateSlug,
+  breadcrumbs = [],
 }: {
   slug: string;
   locale: ShopLocale;
   title?: string;
   templateSlug?: string;
+  breadcrumbs?: { name: string; href: string; current?: boolean }[];
 }) {
   const site = await getDefaultSite();
   const resolvedTemplateSlug = templateSlug ?? resolveMirrorProductTemplateSlug(slug);
@@ -53,6 +55,7 @@ export async function MirrorProductFrame({
         locale={locale}
         productPageBottom={productPageBottom}
         share={commerceForShare?.share}
+        breadcrumbs={breadcrumbs}
       />
     );
   }
@@ -72,6 +75,7 @@ export async function MirrorProductFrame({
       exploreProductsBySlug={{}}
       productSlug={slug}
       productPageBottom={payload.productPageBottom}
+      breadcrumbs={breadcrumbs}
     />
   );
 }

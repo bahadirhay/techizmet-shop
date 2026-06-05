@@ -71,16 +71,12 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     return (
       <>
         {jsonLd ? <JsonLdScript data={jsonLd} /> : null}
-        <ProductSeoShell
-          title={seoCtx.visibleTitle}
-          lead={seoCtx.visibleDescription}
-          breadcrumbs={breadcrumbs}
-        />
         <MirrorProductFrame
           slug={slug}
           locale={locale}
           templateSlug={mirrorTemplateSlug}
           title={seoCtx.visibleTitle}
+          breadcrumbs={breadcrumbs}
         />
       </>
     );

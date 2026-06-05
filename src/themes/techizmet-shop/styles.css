@@ -681,13 +681,12 @@
 }
 
 .kn-product-seo-shell {
-  border-bottom: 1px solid color-mix(in srgb, var(--kn-text, #18181b) 8%, transparent);
   background: var(--kn-surface, #fff);
 }
 .kn-product-seo-shell__inner {
   max-width: var(--kn-max, 1200px);
   margin: 0 auto;
-  padding: 0.75rem 1rem 1rem;
+  padding: 0.75rem 1rem 0.25rem;
 }
 .kn-product-seo-shell__crumbs ol {
   display: flex;
@@ -712,14 +711,7 @@
   font-size: clamp(1.125rem, 2.5vw, 1.5rem);
   font-weight: 700;
   line-height: 1.25;
-  margin: 0;
-}
-.kn-product-seo-shell__lead {
-  margin: 0.5rem 0 0;
-  font-size: 0.875rem;
-  line-height: 1.5;
-  color: color-mix(in srgb, var(--kn-text, #18181b) 72%, transparent);
-  max-width: 72ch;
+  margin: 0.35rem 0 0;
 }
 
 .kn-pdp__grid {

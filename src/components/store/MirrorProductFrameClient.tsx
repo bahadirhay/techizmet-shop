@@ -2,6 +2,7 @@
 
 import { useMirrorFrameRouteSync } from "@/hooks/use-mirror-frame-route-sync";
 import { useMirrorIframeLifecycle } from "@/hooks/use-mirror-iframe-lifecycle";
+import { injectMirrorProductBreadcrumb } from "@/lib/mirror-product-breadcrumb";
 import { stripSeoFromMirrorDocument } from "@/lib/mirror-html-seo-strip";
 import { useMirrorLocaleMessage } from "@/hooks/use-mirror-locale-message";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -56,6 +57,7 @@ export function MirrorProductFrameClient({
   productPageBottom,
   productSlug,
   share,
+  breadcrumbs = [],
 }: {
   src: string;
   title: string;
@@ -71,6 +73,7 @@ export function MirrorProductFrameClient({
   exploreProductsBySlug?: Record<string, ExploreOverlayProduct>;
   productPageBottom?: ProductPageBottomSettings;
   productSlug?: string;
+  breadcrumbs?: { name: string; href: string; current?: boolean }[];
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const cancelBrandingRef = useRef<(() => void) | undefined>(undefined);
@@ -177,6 +180,9 @@ export function MirrorProductFrameClient({
     if (!doc?.getElementById("MainContent")) return;
 
     stripSeoFromMirrorDocument(doc);
+    if (breadcrumbs.length) {
+      injectMirrorProductBreadcrumb(doc, breadcrumbs, locale ?? "tr");
+    }
 
     const prebuiltSynced = isProductDocSynced(doc);
 
@@ -248,6 +254,7 @@ export function MirrorProductFrameClient({
     productFromAdmin,
     pageBottomLive,
     share,
+    breadcrumbs,
   ]);
 
   useMirrorIframeLifecycle(iframeRef, src, runPatch, [patchKey, runPatch, src]);
