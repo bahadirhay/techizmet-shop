@@ -209,18 +209,34 @@ export async function optimizeProductSeo(
   }
 
   const competitors = await fetchMarketplaceCompetitorTitles({
+    siteId,
     title,
     categoryTitle: categoryTitles[0],
     brandTitle,
+    categoryIds,
   });
-  const allCompetitorTitles = [...competitors.trendyol, ...competitors.hepsiburada];
+  const allCompetitorTitles = [
+    ...competitors.trendyol,
+    ...competitors.hepsiburada,
+    ...competitors.localStore,
+  ];
+
   if (competitors.trendyol.length) {
+    const viaSeller = competitors.diagnostics.trendyolSeller === "ok";
     insights.push({
       source: "marketplace",
-      label: "Trendyol rakip başlıkları",
+      label: viaSeller ? "Trendyol (satıcı kataloğu)" : "Trendyol rakip başlıkları",
       detail: competitors.trendyol.slice(0, 4).join(" · "),
     });
+  } else if (competitors.diagnostics.trendyolPublic === "blocked") {
+    insights.push({
+      source: "marketplace",
+      label: "Trendyol genel arama",
+      detail:
+        "Sunucu IP engeli (403) — Trendyol web araması Vercel'den çalışmaz. Entegrasyonlar → Trendyol API ile satıcı kataloğu kullanılır.",
+    });
   }
+
   if (competitors.hepsiburada.length) {
     insights.push({
       source: "marketplace",
@@ -228,11 +244,29 @@ export async function optimizeProductSeo(
       detail: competitors.hepsiburada.slice(0, 4).join(" · "),
     });
   }
+
+  if (competitors.localStore.length) {
+    insights.push({
+      source: "site",
+      label: "Mağaza benzer başlıklar",
+      detail: competitors.localStore.slice(0, 4).join(" · "),
+    });
+  }
+
+  for (const note of competitors.notes) {
+    if (note.includes("403") || note.includes("satıcı")) {
+      insights.push({ source: "marketplace", label: "Trendyol notu", detail: note });
+    }
+  }
+
   if (!allCompetitorTitles.length) {
     insights.push({
       source: "marketplace",
       label: "Pazaryeri araması",
-      detail: "Rakip başlık alınamadı (ağ/engelleme). Google önerileri yine kullanıldı.",
+      detail:
+        competitors.diagnostics.trendyolPublic === "blocked"
+          ? "Trendyol web araması engellendi. Trendyol satıcı API'sini Entegrasyonlar'dan bağlayın veya Google önerileri kullanılır."
+          : "Rakip başlık alınamadı. Google önerileri yine kullanıldı.",
     });
   }
 
