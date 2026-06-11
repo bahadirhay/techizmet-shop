@@ -1,13 +1,22 @@
 import type { MirrorBranding } from "@/lib/mirror-branding-overlay";
 
-export const LOGO_UNIFY_VERSION = 3;
+export const LOGO_UNIFY_VERSION = 4;
 const STYLE_ID = "kn-logo-unify-final";
 const SCRIPT_ID = "kn-logo-unify-script";
 
 /** Tema header38c6.css body'de yüklendiği için kritik kurallar body sonunda */
 export const LOGO_UNIFY_CSS = `
 .section-header,sticky-always.header,sticky-on-scroll.header{--logo_width:320px!important}
-@media(max-width:767px){.section-header,sticky-always.header,sticky-on-scroll.header{--logo_width:240px!important}}
+@media(max-width:991px){
+.section-header,sticky-always.header,sticky-on-scroll.header{--logo_width:min(112px,calc(100vw - 12.75rem))!important}
+.header--logo{
+  max-width:100%!important;min-width:0!important;flex-shrink:1!important;min-height:44px!important;margin:2px 0!important;
+}
+.header--logo .header--logo-img:not(.transparent-logo-img),
+.header--logo img.header--logo-img:not(.transparent-logo-img){
+  max-height:44px!important;height:44px!important;max-width:100%!important;
+}
+}
 .header--logo{
   position:relative!important;display:inline-flex!important;align-items:center!important;
   justify-content:flex-start!important;width:auto!important;max-width:min(var(--logo_width,320px),50vw)!important;

@@ -377,11 +377,11 @@ sticky-on-scroll.header {
   --logo_width: 320px !important;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 991px) {
   .section-header,
   sticky-always.header,
   sticky-on-scroll.header {
-    --logo_width: 240px !important;
+    --logo_width: min(112px, calc(100vw - 12.75rem)) !important;
   }
 }
 
@@ -441,18 +441,49 @@ sticky-on-scroll.header {
   }
 
   .header--wrapper {
-    grid-template-columns: auto minmax(0, 1fr) auto !important;
-    column-gap: 6px !important;
+    display: grid !important;
+    grid-template-areas: "hamburger logo icons" !important;
+    grid-template-columns: minmax(40px, auto) minmax(0, 1fr) minmax(0, auto) !important;
+    column-gap: 4px !important;
     min-height: 52px !important;
+    align-items: center !important;
+  }
+
+  .mobile-toggler,
+  .hamburger--toggler,
+  [data-mobile-toggler] {
+    grid-area: hamburger !important;
+    justify-self: start !important;
+  }
+
+  .header--navigation-main {
+    display: none !important;
   }
 
   .header--logo {
-    justify-self: center;
+    grid-area: logo !important;
+    justify-self: start !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    flex-shrink: 1 !important;
   }
 
-  .header--logo-img,
+  .header--right {
+    grid-area: icons !important;
+    justify-self: end !important;
+  }
+
+  .header--logo-img:not(.transparent-logo-img),
+  .header--logo .header--logo-img:not(.transparent-logo-img) {
+    max-height: 44px !important;
+    height: 44px !important;
+    max-width: 100% !important;
+    width: auto !important;
+  }
+
   .header--logo .transparent-logo-img {
-    max-height: 52px !important;
+    max-height: 44px !important;
   }
 
   .header--right {

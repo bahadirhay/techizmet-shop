@@ -1,5 +1,7 @@
 /** iframe — header ikonları (şeffaf header’da beyaz SVG sorunu) */
 
+import { applyMirrorHeaderMobileFit } from "@/lib/mirror-header-mobile-fit";
+
 const STYLE_ID = "kn-header-icons-fix-style";
 
 const CSS = `
@@ -35,9 +37,11 @@ const CSS = `
 `;
 
 export function applyMirrorHeaderIconsFix(doc: Document) {
-  if (doc.getElementById(STYLE_ID)) return;
-  const st = doc.createElement("style");
-  st.id = STYLE_ID;
-  st.textContent = CSS;
-  doc.head.appendChild(st);
+  if (!doc.getElementById(STYLE_ID)) {
+    const st = doc.createElement("style");
+    st.id = STYLE_ID;
+    st.textContent = CSS;
+    doc.head.appendChild(st);
+  }
+  applyMirrorHeaderMobileFit(doc);
 }

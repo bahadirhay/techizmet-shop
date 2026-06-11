@@ -1,5 +1,7 @@
 /** Mirror header — dil seçici + arama/hesap/sepet ikonları (sunucu HTML) */
 
+import { injectMirrorHeaderMobileFitHtml } from "@/lib/mirror-header-mobile-fit";
+
 const HEADER_ICONS_CSS = `
 .header--icons-list{display:flex!important;flex-wrap:nowrap;align-items:center;gap:4px}
 .header--icons-list>.header--icon-item{flex:0 0 auto}
@@ -26,8 +28,6 @@ const HEADER_ICONS_CSS = `
 .header--icons-list .kn-locale-icon-item .kn-iframe-locale{font-size:10px}
 .header--icons-list .kn-locale-icon-item .kn-iframe-locale button{padding:4px 8px}
 @media (max-width:991px){
-.header--wrapper{grid-template-columns:auto minmax(0,1fr) auto!important;column-gap:6px!important}
-.header--logo{max-width:min(var(--logo_width,130px),36vw)!important;margin:4px 0!important}
 .header--icons-list .kn-locale-icon-item{display:flex!important;align-items:center;margin-right:2px}
 .header--icons-list .kn-locale-icon-item .kn-iframe-locale{font-size:0;line-height:1;max-height:32px}
 .header--icons-list .kn-locale-icon-item .kn-iframe-locale button{
@@ -61,6 +61,7 @@ const ACCOUNT_LINK_HREF =
 export function patchMirrorHeaderIconsHtml(html: string): string {
   let out = html.replace(SEARCH_LI_CLOSE, "$1</li>$2$3");
   out = out.replace(ACCOUNT_LINK_HREF, '$1#$2');
+  out = injectMirrorHeaderMobileFitHtml(out);
 
   if (out.includes("kn-mirror-header-icons-style") || out.includes("kn-header-icons-fix-style")) {
     return out;
