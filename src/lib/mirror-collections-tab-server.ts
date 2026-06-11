@@ -25,21 +25,11 @@ export async function enrichMirrorPageConfigCollectionsTabs(
   siteId: string,
   config: MirrorPageConfig,
 ): Promise<MirrorPageConfig> {
-  const slugs = new Set<string>();
-  for (const edit of Object.values(config.sections ?? {})) {
-    for (const tab of edit?.collectionsTabs ?? []) {
-      for (const p of tab.products ?? []) {
-        const m = p.href?.match(/\/products\/([^/?#]+)/i);
-        if (m) slugs.add(m[1].replace(/\.html$/i, ""));
-        const keySlug = p.key?.replace(/\.html$/i, "").trim();
-        if (keySlug && !keySlug.startsWith("item-")) slugs.add(keySlug);
-      }
-    }
-  }
-  if (!slugs.size) return config;
+  const hasTabs = Object.values(config.sections ?? {}).some((e) => (e?.collectionsTabs?.length ?? 0) > 0);
+  if (!hasTabs) return config;
 
   const rows = await prisma.storeProduct.findMany({
-    where: { siteId, published: true, slug: { in: [...slugs] } },
+    where: { siteId, published: true },
     select: {
       slug: true,
       title: true,

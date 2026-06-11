@@ -38,6 +38,10 @@ import {
 import type { ResolvedMirrorCollectionTexts } from "@/lib/store-static-texts";
 import { stampMirrorEditableElements, hasMarqueeElementOverride } from "@/lib/mirror-element-edits";
 import { applyMirrorUsdPrices } from "@/lib/mirror-usd-price-overlay";
+import {
+  applyCatalogPricesToDocument,
+  readCatalogPriceMapFromDocument,
+} from "@/lib/mirror-listing-prices";
 
 function vitrinOverridesMarquee(config: MirrorPageConfig | undefined): boolean {
   if (!config) return false;
@@ -100,7 +104,6 @@ export function MirrorVitrinFrameClient({
   const [frameReady, setFrameReady] = useState(false);
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const parentRouteKey = `${pathname}?${searchParams.toString()}`;
   const accountRaw = searchParams.get("account");
   const accountDrawerForm: AccountDrawerForm | undefined =
     accountRaw === "create" || accountRaw === "login" || accountRaw === "reset"
@@ -238,26 +241,15 @@ export function MirrorVitrinFrameClient({
       }
     }
 
-    let overlayTimers: number[] = [];
+    function applyEmbeddedCatalogPrices(doc: Document) {
+      const map = readCatalogPriceMapFromDocument(doc);
+      if (map) applyCatalogPricesToDocument(doc, map);
+    }
 
     function applyPageOverlayToDoc(doc: Document) {
       if (!config) return;
       applyMirrorPageOverlay(doc, config, undefined, locale ?? "tr");
       overlayKeyRef.current = overlaySig;
-    }
-
-    function scheduleVisualOverlayReapply(doc: Document) {
-      applyPageOverlayToDoc(doc);
-      overlayTimers.forEach((t) => window.clearTimeout(t));
-      overlayTimers = [120, 450, 1200].map((ms) =>
-        window.setTimeout(() => {
-          if (disposed) return;
-          const d = iframeRef.current?.contentDocument;
-          if (d?.getElementById("MainContent") && config) {
-            applyMirrorPageOverlay(d, config, undefined, locale ?? "tr");
-          }
-        }, ms),
-      );
     }
 
     function runPatches() {
@@ -268,11 +260,6 @@ export function MirrorVitrinFrameClient({
       if (!doc?.getElementById("MainContent")) return;
 
       setFrameReady(true);
-
-      // İngilizce vitrin: TRY fiyatlarını USD'ye çevir
-      if (usdRate && usdRate > 0) {
-        applyMirrorUsdPrices(doc, usdRate);
-      }
 
       if (branding?.logoUrl?.trim()) {
         applyMirrorLogoUnify(doc, branding);
@@ -316,7 +303,11 @@ export function MirrorVitrinFrameClient({
       }
       if (accountDrawerForm) openAccountDrawer(doc, accountDrawerForm);
 
-      if (skipClientWork) return;
+      if (skipClientWork) {
+        applyEmbeddedCatalogPrices(doc);
+        if (usdRate && usdRate > 0) applyMirrorUsdPrices(doc, usdRate);
+        return;
+      }
 
       if (!serverReady) {
         cancelBranding?.();
@@ -370,9 +361,10 @@ export function MirrorVitrinFrameClient({
             }
           });
         }
-      } else if (config && shouldApplyMirrorPageOverlay(config) && !serverOverlay) {
-        scheduleVisualOverlayReapply(doc);
       }
+
+      applyEmbeddedCatalogPrices(doc);
+      if (usdRate && usdRate > 0) applyMirrorUsdPrices(doc, usdRate);
     }
 
     function schedulePatches() {
@@ -383,8 +375,10 @@ export function MirrorVitrinFrameClient({
 
     function onLoad() {
       const hasMain = !!iframeRef.current?.contentDocument?.getElementById("MainContent");
-      if (!hasMain) setFrameReady(false);
-      overlayKeyRef.current = "";
+      if (!hasMain) {
+        setFrameReady(false);
+        return;
+      }
       schedulePatches();
     }
 
@@ -415,7 +409,9 @@ export function MirrorVitrinFrameClient({
     window.addEventListener("message", onIframeNavMessage);
     window.addEventListener("pageshow", onPageShow);
     window.addEventListener("popstate", onPopState);
-    onLoad();
+    if (iframe.contentDocument?.getElementById("MainContent")) {
+      schedulePatches();
+    }
 
     const navPoll = visualEditMode
       ? window.setInterval(() => resetIframeIfNavigatedAway(), 2000)
@@ -423,7 +419,6 @@ export function MirrorVitrinFrameClient({
 
     return () => {
       disposed = true;
-      overlayTimers.forEach((t) => window.clearTimeout(t));
       cancelBranding?.();
       if (cancelIdle) {
         if (typeof window.cancelIdleCallback === "function") {
@@ -452,7 +447,7 @@ export function MirrorVitrinFrameClient({
     categoriesFromAdmin,
     mirrorTexts,
     src,
-    parentRouteKey,
+    pathname,
   ]);
 
   useEffect(() => {

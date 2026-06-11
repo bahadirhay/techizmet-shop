@@ -176,18 +176,32 @@ export function collectionsTabProductTitle(p: CollectionsTabProductEdit, locale:
 }
 
 /** Mağaza ürün listesinden sekme kartlarını doldur (başlık, görsel, fiyat) */
+function normalizeTitleKey(title: string): string {
+  return title
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
 export function enrichCollectionsTabsFromProductOptions<
   T extends { slug: string; title: string; imageUrl?: string | null; priceLabel: string },
 >(tabs: CollectionsTabItemEdit[], options: T[]): CollectionsTabItemEdit[] {
   if (!options.length) return tabs;
   const bySlug = new Map(options.map((o) => [o.slug, o]));
+  const byTitle = new Map(options.map((o) => [normalizeTitleKey(o.title), o]));
   return tabs.map((tab) => ({
     ...tab,
     products: tab.products.map((p) => {
       const slug =
         productSlugFromHref(p.href) ||
         (p.key?.trim() && !p.key.startsWith("item-") ? p.key.replace(/\.html$/i, "") : null);
-      const product = slug ? bySlug.get(slug) : undefined;
+      let product = slug ? bySlug.get(slug) : undefined;
+      if (!product) {
+        const titleKey = normalizeTitleKey(p.titleTr || p.title || "");
+        if (titleKey) product = byTitle.get(titleKey);
+      }
       if (!product) return p;
       return {
         ...p,
@@ -279,11 +293,14 @@ export function applyCollectionsTabToSection(
         if (imgWrap) setImg(imgWrap, p.imageUrl);
       }
       const priceEl = box.querySelector(".product--actual-price");
-      if (showPricing && priceEl && p.priceText?.trim()) {
+      const infoEl = box.querySelector(".collections-tab--info");
+      if (!showPricing) {
+        setElementDisplay(infoEl, "none");
+      } else if (priceEl && p.priceText?.trim()) {
         priceEl.textContent = p.priceText.trim();
-        setElementDisplay(box.querySelector(".collections-tab--info"), null);
-      } else if (!showPricing) {
-        setElementDisplay(box.querySelector(".collections-tab--info"), "none");
+        setElementDisplay(infoEl, null);
+      } else if (infoEl && showPricing) {
+        setElementDisplay(infoEl, null);
       }
     });
   }

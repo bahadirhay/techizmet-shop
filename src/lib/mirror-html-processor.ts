@@ -84,7 +84,7 @@ import {
 } from "@/lib/mirror-collection-sort-locale";
 import { applyCollectionsCardsToMirrorHtml } from "@/lib/mirror-collections-sync-html";
 import { injectHomeListingProductsIntoHtml } from "@/lib/mirror-home-products-inject";
-import { syncMirrorListingPricesInHtml } from "@/lib/sync-mirror-listing-prices";
+import { syncMirrorListingPricesInHtml } from "@/lib/mirror-listing-prices-server";
 import {
   getAnnouncementBarSettings,
   injectAnnouncementBarMirrorHtml,
@@ -265,7 +265,6 @@ export async function buildMirrorHtmlCore(params: MirrorHtmlBuildParams): Promis
     }
     pageConfig = await enrichMirrorPageConfigCollectionsTabs(siteId, pageConfig);
     localized = applyMirrorPageOverlayToHtml(localized, pageConfig, locale);
-    localized = await syncMirrorListingPricesInHtml(localized, siteId);
   }
 
   if (normalized.match(/mirror\/account\/index(-tr)?\.html$/i)) {
@@ -298,5 +297,6 @@ export async function buildMirrorHtmlCore(params: MirrorHtmlBuildParams): Promis
     }
   }
 
+  localized = await syncMirrorListingPricesInHtml(localized, siteId);
   return rewriteLegacyThemePaths(localized);
 }
