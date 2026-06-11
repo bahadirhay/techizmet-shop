@@ -59,6 +59,18 @@ export const CART_PAGE_CSS = `<style id="kn-cart-page-css">
   color: var(--color_success_text, #2e7d32);
   font-weight: 600;
 }
+@media (max-width: 767px) {
+  .section-main-cart.cart-page .section-wrapper.section-spacing {
+    padding-bottom: calc(var(--bottom_spacing, 24px) + 40px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  .section-main-cart.cart-page .cart-summary-buttons {
+    margin-top: 12px;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  main:has(.section-main-cart.cart-page) + footer.section-footer .footer--main.border-radius-enabled {
+    margin-top: 8px;
+  }
+}
 </style>`;
 
 function discountLabelSuffix(cart: CartView): string {

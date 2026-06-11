@@ -277,6 +277,26 @@ input[type="checkbox"]:not(.checkmark-input) {
   font-weight: 600;
 }
 
+/* Sepet sayfası — mobilde Ödemeye geç ile footer arasında boşluk */
+@media (max-width: 767px) {
+  .section-main-cart.cart-page .section-wrapper.section-spacing {
+    padding-bottom: calc(var(--bottom_spacing, 24px) + 40px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .section-main-cart.cart-page .main-cart--bottom {
+    margin-bottom: 4px;
+  }
+
+  .section-main-cart.cart-page .cart-summary-buttons {
+    margin-top: 12px;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  main:has(.section-main-cart.cart-page) + footer.section-footer .footer--main.border-radius-enabled {
+    margin-top: 8px;
+  }
+}
+
 /* Hesap — metin/link tipi aksiyonlar (Varsayılan yap / Sil) */
 .kn-account-dashboard .button.text-button,
 .account-page .address--footer .button.text-button {
