@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getSiteSettingsUncached } from "@/lib/site-settings-load";
 import { resolveMirrorCollectionTexts } from "@/lib/store-static-texts";
 import { MIRROR_COLLECTION_PAGE_SIZE } from "@/lib/mirror-collections-sync";
+import { withProductDisplayTitle } from "@/lib/product-display-title";
 import { getCategoryFilterOptions, getCategoryScopeIds } from "@/lib/store-category-tree";
 
 /** Koleksiyon/kategori ürün listesi — prebuild ve runtime (server-only değil) */
@@ -71,6 +72,8 @@ export async function loadCollectionCatalogCore(
         stockQty: true,
         lowStockThreshold: true,
         badgesJson: true,
+        weightGrams: true,
+        pieceCount: true,
       },
     }),
   ]);
@@ -100,7 +103,7 @@ export async function loadCollectionCatalogCore(
 
   return {
     collectionFromAdmin,
-    productsFromAdmin: products,
+    productsFromAdmin: products.map(withProductDisplayTitle),
     totalProductCount,
     categoriesFromAdmin: getCategoryFilterOptions(categories, categorySlug).map((c) => ({
       slug: c.slug,

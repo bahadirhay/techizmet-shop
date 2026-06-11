@@ -299,7 +299,12 @@ export async function optimizeProductSeo(
     [...new Set([...googleKeywords, ...extractTokens(title), ...extractTokens(categoryTitles.join(" "))])],
   );
 
-  const suggestedTitle = buildCanonicalProductTitle(title, brandTitle, categoryTitles, keywords);
+  const suggestedTitle = buildCanonicalProductTitle(title, brandTitle, {
+    categoryTitles,
+    keywords,
+    weightGrams: input.weightGrams,
+    pieceCount: input.pieceCount,
+  });
   const marketplaceListingTitle =
     relevantCompetitorTitles.length > 0
       ? safeRefineTitleFromCompetitors(suggestedTitle, relevantCompetitorTitles, 100)

@@ -7,6 +7,7 @@ import { loadMirrorFooterData } from "@/lib/mirror-footer-server";
 import { loadMirrorNavItems } from "@/lib/mirror-nav-server";
 import { getSiteBranding, getSiteSettings } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
+import { withProductDisplayTitle } from "@/lib/product-display-title";
 import { prisma } from "@/lib/prisma";
 import { resolveMirrorCollectionTexts } from "@/lib/store-static-texts";
 
@@ -45,10 +46,12 @@ async function loadSearchProducts(siteId: string, term: string): Promise<VitrinC
       stockQty: true,
       lowStockThreshold: true,
       badgesJson: true,
+      weightGrams: true,
+      pieceCount: true,
     },
   });
 
-  return rows;
+  return rows.map(withProductDisplayTitle);
 }
 
 /** Techizmet Shop vitrin — /search?q= sonuç sayfası */

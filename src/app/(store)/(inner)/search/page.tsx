@@ -7,6 +7,7 @@ import { StoreSearchForm } from "@/components/store/StoreSearchForm";
 import { prisma } from "@/lib/prisma";
 import { getLoggedInCustomerPricing } from "@/lib/store/customer-pricing";
 import { getStoreHomepageMode } from "@/lib/site-settings";
+import { formatProductDisplayTitle } from "@/lib/product-display-title";
 import { getDefaultSite } from "@/lib/site";
 
 async function SearchResults({ q }: { q: string }) {
@@ -60,7 +61,11 @@ async function SearchResults({ q }: { q: string }) {
             key={p.id}
             productId={p.id}
             slug={p.slug}
-            title={p.title}
+            title={formatProductDisplayTitle({
+              title: p.title,
+              weightGrams: p.weightGrams,
+              pieceCount: p.pieceCount,
+            })}
             imageUrl={p.imageUrl}
             badgesJson={p.badgesJson}
             stockQty={p.stockQty}

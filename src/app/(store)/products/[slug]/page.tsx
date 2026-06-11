@@ -16,6 +16,7 @@ import { loadPublishedProductSeo } from "@/lib/seo/product-seo";
 import { buildSiteMetadata } from "@/lib/site-metadata";
 import { getHomepageMode, getSiteSettings } from "@/lib/site-settings";
 import { getLoggedInCustomerPricing } from "@/lib/store/customer-pricing";
+import { formatProductDisplayTitle } from "@/lib/product-display-title";
 import { getDefaultSite } from "@/lib/site";
 
 /** Admin’de kaydedilen ürün altı metinleri gecikmesiz yansısın */
@@ -120,6 +121,11 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         : [];
 
   const pricing = await getLoggedInCustomerPricing(site.id);
+  const displayTitle = formatProductDisplayTitle({
+    title: product.title,
+    weightGrams: product.weightGrams,
+    pieceCount: product.pieceCount,
+  });
   const breadcrumbs = breadcrumbItemsToNav(buildProductBreadcrumbItems(product));
   const lead = product.description?.trim() || product.seoDescription?.trim() || null;
 
@@ -127,7 +133,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     <>
       {jsonLd ? <JsonLdScript data={jsonLd} /> : null}
       <div className="kn-section kn-pdp">
-        <ProductSeoShell title={product.title} lead={lead} breadcrumbs={breadcrumbs} />
+        <ProductSeoShell title={displayTitle} lead={lead} breadcrumbs={breadcrumbs} />
         <div className="kn-pdp__grid">
           <div className="space-y-2">
             {gallery.length === 0 ? (
@@ -150,7 +156,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                   <img
                     key={`${item.url}-${i}`}
                     src={item.url}
-                    alt={i === 0 ? product.title : `${product.title} — ${i + 1}`}
+                    alt={i === 0 ? displayTitle : `${displayTitle} — ${i + 1}`}
                     className="kn-pdp__img"
                   />
                 ),

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { formatTry } from "@/lib/format";
+import { formatProductDisplayTitle } from "@/lib/product-display-title";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import type { MirrorFavoritesPayload } from "@/lib/mirror-favorites-page";
 import { prisma } from "@/lib/prisma";
@@ -22,7 +23,11 @@ export async function loadMirrorFavoritesPayload(
     .map((f) => ({
       productId: f.product.id,
       slug: f.product.slug,
-      title: f.product.title,
+      title: formatProductDisplayTitle({
+        title: f.product.title,
+        weightGrams: f.product.weightGrams,
+        pieceCount: f.product.pieceCount,
+      }),
       imageUrl: f.product.imageUrl,
       priceLabel: formatTry(f.product.priceMinor),
       compareLabel:

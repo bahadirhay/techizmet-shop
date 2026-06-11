@@ -1,4 +1,5 @@
 import type { BreadcrumbItem } from "@/lib/seo/json-ld";
+import { formatProductDisplayTitle } from "@/lib/product-display-title";
 
 export type BreadcrumbCategory = {
   slug: string;
@@ -9,6 +10,8 @@ export type BreadcrumbCategory = {
 type ProductBreadcrumbSource = {
   slug: string;
   title: string;
+  weightGrams?: number | null;
+  pieceCount?: number | null;
   collection?: { slug: string; title: string } | null;
   category?: BreadcrumbCategory | null;
   categoryLinks?: { category: BreadcrumbCategory }[];
@@ -54,7 +57,14 @@ export function buildProductBreadcrumbItems(product: ProductBreadcrumbSource): B
     });
   }
 
-  items.push({ name: product.title, path: productPath });
+  items.push({
+    name: formatProductDisplayTitle({
+      title: product.title,
+      weightGrams: product.weightGrams,
+      pieceCount: product.pieceCount,
+    }),
+    path: productPath,
+  });
   return items;
 }
 

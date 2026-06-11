@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { MirrorFavoritesFrame } from "@/components/store/MirrorFavoritesFrame";
 import { accountLoginPath } from "@/lib/account-return-path";
 import { formatTry } from "@/lib/format";
+import { formatProductDisplayTitle } from "@/lib/product-display-title";
 import { getCustomerSession } from "@/lib/customer-session";
 import { getStoreHomepageMode } from "@/lib/site-settings";
 import { prisma } from "@/lib/prisma";
@@ -49,7 +50,13 @@ export default async function FavoritesPage() {
                   <div className="kn-fav-list__img kn-product-card__img--placeholder" />
                 )}
                 <span>
-                  <strong>{f.product.title}</strong>
+                  <strong>
+                    {formatProductDisplayTitle({
+                      title: f.product.title,
+                      weightGrams: f.product.weightGrams,
+                      pieceCount: f.product.pieceCount,
+                    })}
+                  </strong>
                   <span className="kn-fav-list__price">{formatTry(f.product.priceMinor)}</span>
                 </span>
               </Link>

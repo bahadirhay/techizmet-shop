@@ -11,6 +11,7 @@ import { productHighlightsForPatch } from "@/lib/product-highlights";
 import { getProductPageBottomSettings } from "@/lib/product-page-bottom";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import type { SiteSettings } from "@/lib/site-settings";
+import { formatProductDisplayTitle } from "@/lib/product-display-title";
 import { prisma } from "@/lib/prisma";
 
 type DbProduct = {
@@ -23,6 +24,8 @@ type DbProduct = {
   howToUseHtml: string | null;
   imageUrl: string | null;
   highlightsJson: string | null;
+  weightGrams: number | null;
+  pieceCount: number | null;
   variantOptionName: string | null;
   images: { url: string; alt: string | null; mediaType: string; sortOrder: number }[];
   variants: {
@@ -38,7 +41,11 @@ export function vitrinProductDetailFromDb(product: DbProduct): VitrinProductDeta
   return {
     productId: product.id,
     slug: product.slug,
-    title: product.title,
+    title: formatProductDisplayTitle({
+      title: product.title,
+      weightGrams: product.weightGrams,
+      pieceCount: product.pieceCount,
+    }),
     description: product.description,
     imageUrl: product.imageUrl,
     images: product.images.map((image) => ({

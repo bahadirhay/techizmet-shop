@@ -1,5 +1,6 @@
 import type { CustomerGroupPricing } from "@/lib/customer-group-pricing";
 import { formatTry } from "@/lib/format";
+import { formatProductDisplayTitle } from "@/lib/product-display-title";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import type { MirrorProductCommercePayload } from "@/lib/mirror-product-commerce";
 import { prisma } from "@/lib/prisma";
@@ -99,6 +100,11 @@ export async function loadMirrorProductCommerceUncached(
     inStock = variants.some((v) => v.stockQty > 0);
   }
 
+  const displayTitle = formatProductDisplayTitle({
+    title: product.title,
+    weightGrams: product.weightGrams,
+    pieceCount: product.pieceCount,
+  });
   const texts = resolveMirrorProductTexts(locale, textSettings);
   const sharePriceLabel = showPrice
     ? fromPrice
@@ -119,7 +125,7 @@ export async function loadMirrorProductCommerceUncached(
     texts,
     share: {
       slug: product.slug,
-      title: product.title,
+      title: displayTitle,
       priceLabel: sharePriceLabel,
       imageUrl: product.imageUrl,
     },

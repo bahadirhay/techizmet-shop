@@ -6,6 +6,7 @@ import {
   serializeProductBadges,
   type ProductBadgeId,
 } from "@/lib/product-badges";
+import { resolveStoredProductTitle } from "@/lib/product-display-title";
 
 /** Excel sütun başlıkları (ShopPHP tarzı Türkçe) */
 export const PRODUCT_EXCEL_HEADERS = [
@@ -336,8 +337,10 @@ export function parsedRowToProductData(
     return { error: `Koleksiyon bulunamadı: ${row.collectionSlug}` };
   }
 
+  const weightGrams = row.weightGrams?.trim() ? parseInt(row.weightGrams, 10) : null;
+
   return {
-    title,
+    title: resolveStoredProductTitle(title, weightGrams, null),
     slug,
     sku: row.sku?.trim() || null,
     barcode: row.barcode?.trim() || null,
@@ -352,7 +355,7 @@ export function parsedRowToProductData(
     costMinor: row.cost?.trim() ? tryToMinor(row.cost) : null,
     stockQty: parseInt(String(row.stockQty ?? "0"), 10) || 0,
     lowStockThreshold: parseInt(String(row.lowStockThreshold ?? "5"), 10) || 5,
-    weightGrams: row.weightGrams?.trim() ? parseInt(row.weightGrams, 10) : null,
+    weightGrams,
     desi: row.desi?.trim() ? parseFloat(row.desi.replace(",", ".")) : null,
     imageUrl: row.imageUrl?.trim() || null,
     badgesJson: serializeProductBadges(parseBadges(row.badges)),

@@ -5,6 +5,7 @@ import {
   type CampaignRecord,
   type PromoLineMeta,
 } from "@/lib/campaign-engine";
+import { formatProductDisplayTitle } from "@/lib/product-display-title";
 import { variantCatalogPrices } from "@/lib/product-variants";
 import { prisma } from "@/lib/prisma";
 import { resolveOrderNumberPrefix, generateOrderNumber } from "@/lib/admin/order-number";
@@ -201,7 +202,12 @@ export async function buildCartView(
                   : null,
           };
         })();
-    const title = variant ? `${p.title} — ${variant.label}` : p.title;
+    const baseTitle = formatProductDisplayTitle({
+      title: p.title,
+      weightGrams: p.weightGrams,
+      pieceCount: p.pieceCount,
+    });
+    const title = variant ? `${baseTitle} — ${variant.label}` : baseTitle;
     const lineKey = cartLineKey(p.id, variant?.id ?? null);
     const lineMinor = priced.unitMinor * qty;
     const categoryIds = p.categoryLinks.map((l) => l.categoryId);

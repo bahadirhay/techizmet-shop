@@ -5,6 +5,7 @@ import { getSiteSettings } from "@/lib/site-settings";
 import { resolveProductGridEmptyText } from "@/lib/store-static-texts";
 import { getLoggedInCustomerPricing } from "@/lib/store/customer-pricing";
 import { getDefaultSite } from "@/lib/site";
+import { formatProductDisplayTitle } from "@/lib/product-display-title";
 import { getCategoryScopeIds } from "@/lib/store-category-tree";
 
 export async function ProductGridBlock({
@@ -64,7 +65,11 @@ export async function ProductGridBlock({
         <ProductCardServer
           key={p.id}
           slug={p.slug}
-          title={p.title}
+          title={formatProductDisplayTitle({
+            title: p.title,
+            weightGrams: p.weightGrams,
+            pieceCount: p.pieceCount,
+          })}
           imageUrl={p.imageUrl}
           badgesJson={p.badgesJson}
           stockQty={p.stockQty}

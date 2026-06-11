@@ -8,6 +8,7 @@ import {
   buildMirrorProductCardHtml,
   type VitrinCollectionProductCard,
 } from "@/lib/mirror-collections-sync";
+import { withProductDisplayTitle } from "@/lib/product-display-title";
 import { prisma } from "@/lib/prisma";
 import { getSiteSettingsUncached } from "@/lib/site-settings-load";
 import { resolveMirrorCollectionTexts } from "@/lib/store-static-texts";
@@ -25,19 +26,25 @@ export async function loadHomeListingProducts(siteId: string): Promise<VitrinCol
       stockQty: true,
       lowStockThreshold: true,
       badgesJson: true,
+      weightGrams: true,
+      pieceCount: true,
       images: { take: 1, orderBy: { sortOrder: "asc" }, select: { url: true } },
     },
   });
-  return rows.map((p) => ({
-    slug: p.slug,
-    title: p.title,
-    imageUrl: p.imageUrl || p.images[0]?.url || null,
-    priceMinor: p.priceMinor,
-    compareAtMinor: p.compareAtMinor,
-    stockQty: p.stockQty,
-    lowStockThreshold: p.lowStockThreshold,
-    badgesJson: p.badgesJson,
-  }));
+  return rows.map((p) =>
+    withProductDisplayTitle({
+      slug: p.slug,
+      title: p.title,
+      imageUrl: p.imageUrl || p.images[0]?.url || null,
+      priceMinor: p.priceMinor,
+      compareAtMinor: p.compareAtMinor,
+      stockQty: p.stockQty,
+      lowStockThreshold: p.lowStockThreshold,
+      badgesJson: p.badgesJson,
+      weightGrams: p.weightGrams,
+      pieceCount: p.pieceCount,
+    }),
+  );
 }
 
 function patchHorizontalProductCard(card: Element, product: VitrinCollectionProductCard, locale?: ShopLocale) {

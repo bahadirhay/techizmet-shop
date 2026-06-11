@@ -1,6 +1,7 @@
 import "server-only";
 
 import { cache } from "react";
+import { formatProductDisplayTitle } from "@/lib/product-display-title";
 import { prisma } from "@/lib/prisma";
 import { getDefaultSite } from "@/lib/site";
 
@@ -19,6 +20,8 @@ export const loadPublishedProductSeo = cache(async (slug: string) => {
       sku: true,
       barcode: true,
       priceMinor: true,
+      weightGrams: true,
+      pieceCount: true,
       stockQty: true,
       published: true,
       collection: { select: { slug: true, title: true } },
@@ -64,10 +67,16 @@ export const loadPublishedProductSeo = cache(async (slug: string) => {
       ? product.variants.some((v) => v.stockQty > 0)
       : product.stockQty > 0;
 
+  const visibleTitle = formatProductDisplayTitle({
+    title: product.title,
+    weightGrams: product.weightGrams,
+    pieceCount: product.pieceCount,
+  });
+
   return {
     site,
     product,
-    metaTitle: product.seoTitle?.trim() || product.title,
+    metaTitle: product.seoTitle?.trim() || visibleTitle,
     metaDescription:
       product.seoDescription?.trim() ||
       product.description?.trim().slice(0, 160) ||
@@ -78,7 +87,7 @@ export const loadPublishedProductSeo = cache(async (slug: string) => {
     inStock,
     sku: product.sku ?? defaultVariant?.sku ?? null,
     barcode: product.barcode?.trim() || null,
-    visibleTitle: product.title.trim(),
+    visibleTitle,
     visibleDescription:
       product.description?.trim() ||
       product.seoDescription?.trim().slice(0, 320) ||
