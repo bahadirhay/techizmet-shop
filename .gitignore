@@ -33,6 +33,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!scripts/setup-anatolianpaw.config.example.json
+scripts/setup-anatolianpaw.config.json
 
 # vercel
 .vercel

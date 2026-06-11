@@ -26,8 +26,26 @@ NEXT_PUBLIC_SITE_URL=http://localhost:5556
 
 ## 3. Tek komut kurulum
 
+**Yerel geliştirme:**
+
 ```powershell
 .\scripts\setup-anatolianpaw.ps1
+```
+
+**Canlı / Vercel (DB + build doğrulama):**
+
+```powershell
+copy scripts\setup-anatolianpaw.config.example.json scripts\setup-anatolianpaw.config.json
+# config dosyasını doldurun (DATABASE_URL, adminPassword, publicUrl)
+npm run setup:paw:prod
+```
+
+Script: `.env` yazar → `db:push` → provision → seed → mirror prebuild testi → Vercel env listesi yazdırır.
+
+Etkileşimli (config dosyası olmadan):
+
+```powershell
+npm run setup:paw:prod -- -Interactive
 ```
 
 Veya elle:

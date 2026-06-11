@@ -1,0 +1,19 @@
+{
+  "_yorum": "Kopyala: scripts/setup-anatolianpaw.config.json — bu dosya git'e gitmez. Sonra: npm run setup:paw:prod",
+  "databaseUrl": "postgresql://USER:PASSWORD@ep-xxx-pooler.neon.tech/neondb?sslmode=require",
+  "adminPassword": "en-az-8-karakter-guclu-sifre",
+  "storeSiteSlug": "anatolianpaw",
+  "publicUrl": "https://PROJE-ADI.vercel.app",
+  "sessionSecret": "",
+  "mailFrom": "Anatolian Paw <siparis@anatolianpaw.com>",
+  "smtp": {
+    "host": "smtp.yandex.com",
+    "port": "465",
+    "user": "web@anatolianpaw.com",
+    "password": ""
+  },
+  "cronSecret": "",
+  "skipSeed": false,
+  "skipBuildCheck": false,
+  "setVercelEnv": false
+}
