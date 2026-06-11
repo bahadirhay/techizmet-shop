@@ -17,7 +17,7 @@ export type MirrorIframeSrcOpts = {
   hasCustomBranding?: boolean;
 };
 
-/** Widget veya mağaza özelleştirmesi varsa statik prebuild yerine canlı API HTML */
+/** Prebuild yokken canlı API — deploy öncesi prebuild tüm overlay/fiyat/markayı içerir */
 export function mirrorIframePrefersLiveApi(opts?: MirrorIframeSrcOpts): boolean {
   return Boolean(
     opts?.hasCustomBlocks ||
@@ -25,6 +25,10 @@ export function mirrorIframePrefersLiveApi(opts?: MirrorIframeSrcOpts): boolean 
       opts?.hasCustomBranding ||
       opts?.hasAnnouncementBarSettings,
   );
+}
+
+function preferPrebuiltWhenAvailable(path: string): boolean {
+  return hasPrebuiltMirrorHtml(path) && !isMirrorDevLiveRebuild();
 }
 
 /** Hesap auth/favoriler — oturuma göre API; sepet artık prebuild + /api/cart hidrasyon */
@@ -52,7 +56,15 @@ export function resolveStoreMirrorIframeSrc(
     return mirrorVitrinApiSrc(path, pageKey, extra);
   }
 
-  if (needsLiveMirrorApi(path) || mirrorIframePrefersLiveApi(opts)) {
+  if (needsLiveMirrorApi(path)) {
+    return mirrorVitrinApiSrc(path, pageKey, extra);
+  }
+
+  if (preferPrebuiltWhenAvailable(path)) {
+    return prebuiltMirrorPublicUrl(path);
+  }
+
+  if (mirrorIframePrefersLiveApi(opts)) {
     return mirrorVitrinApiSrc(path, pageKey, extra);
   }
 

@@ -6,20 +6,16 @@ import { resolveStoreMirrorIframeSrc } from "@/lib/mirror-prebuilt-resolve";
 import { hasCustomAnnouncementBarSettings } from "@/lib/mirror-announcement-bar";
 import { shouldApplyMirrorPageOverlay } from "@/lib/mirror-has-page-edits";
 import { getMirrorPageConfig } from "@/lib/mirror-page-settings";
-import type { MirrorVitrinHydration } from "@/lib/mirror-vitrin-data";
 import { getStoreLocaleFromHeaders } from "@/lib/i18n/server";
-import { getProductPageBottomSettings } from "@/lib/product-page-bottom";
 import { getSiteSettings } from "@/lib/site-settings";
-import { getSiteBranding } from "@/lib/site-settings-branding";
 import { getDefaultSite } from "@/lib/site";
-import { resolveMirrorCollectionTexts } from "@/lib/store-static-texts";
 import { prisma } from "@/lib/prisma";
 import { getEffectiveUsdTryRate } from "@/lib/currency/exchange-rate";
 import { notFound } from "next/navigation";
 
 /** Koleksiyon kartları prebuild’de gömülür; yalnızca kategori filtresi sayfasında canlı DB */
 
-/** Techizmet Shop vitrin — iframe anında, DB ayarları paralel */
+/** Techizmet Shop vitrin — prebuild iframe + sunucu hidrasyonu */
 export async function MirrorVitrinFrame({
   pageKey,
 }: {
@@ -52,15 +48,7 @@ export async function MirrorVitrinFrame({
     hasCustomBranding,
     hasAnnouncementBarSettings: hasCustomAnnouncementBarSettings(settings),
   });
-  const hydrationPromise = getMirrorVitrinHydration(site.id, pageKey, locale);
-  const initialHydration: MirrorVitrinHydration = {
-    branding: getSiteBranding(settings),
-    mirrorTexts: resolveMirrorCollectionTexts(locale, settings.store?.texts),
-  };
-  if (shouldApplyMirrorPageOverlay(pageConfig)) initialHydration.pageConfig = pageConfig;
-  if (pageKey === "home") {
-    initialHydration.siteMarquee = getProductPageBottomSettings(settings, locale).marquee;
-  }
+  const hydration = await getMirrorVitrinHydration(site.id, pageKey, locale);
 
   let collectionsFromAdmin: VitrinCollectionCard[] | undefined;
   let categoriesFromAdmin: VitrinCollectionCategoryOption[] | undefined;
@@ -79,8 +67,7 @@ export async function MirrorVitrinFrame({
       title={def.label}
       locale={locale}
       usdRate={usdRate ?? undefined}
-      hydrationPromise={hydrationPromise}
-      initialHydration={initialHydration}
+      hydration={hydration}
       collectionsFromAdmin={collectionsFromAdmin}
       categoriesFromAdmin={categoriesFromAdmin}
     />

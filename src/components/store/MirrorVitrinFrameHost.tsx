@@ -1,6 +1,5 @@
 "use client";
 
-import { Suspense, use, useCallback, useEffect, useState, type SetStateAction } from "react";
 import { MirrorVitrinFrameClient } from "@/components/store/MirrorVitrinFrameClient";
 import {
   MirrorVitrinHydrationProvider,
@@ -42,32 +41,12 @@ function MirrorVitrinFrameInner({
   );
 }
 
-function HydrationFromPromise({
-  promise,
-  onReady,
-}: {
-  promise: Promise<MirrorVitrinHydration>;
-  onReady: (value: SetStateAction<MirrorVitrinHydration>) => void;
-}) {
-  const data = use(promise);
-  useEffect(() => {
-    onReady((prev) => (hydrationSig(prev) === hydrationSig(data) ? prev : data));
-  }, [data, onReady]);
-  return null;
-}
-
-/** Iframe hemen başlar; ayarlar arka planda bağlanır */
-function hydrationSig(data: MirrorVitrinHydration): string {
-  return JSON.stringify(data);
-}
-
 export function MirrorVitrinFrameHost({
   src,
   title,
   locale,
   usdRate,
-  hydrationPromise,
-  initialHydration,
+  hydration,
   collectionsFromAdmin,
   categoriesFromAdmin,
 }: {
@@ -75,16 +54,10 @@ export function MirrorVitrinFrameHost({
   title: string;
   locale: ShopLocale;
   usdRate?: number;
-  hydrationPromise: Promise<MirrorVitrinHydration>;
-  initialHydration?: MirrorVitrinHydration;
+  hydration: MirrorVitrinHydration;
   collectionsFromAdmin?: VitrinCollectionCard[];
   categoriesFromAdmin?: VitrinCollectionCategoryOption[];
 }) {
-  const [hydration, setHydration] = useState<MirrorVitrinHydration>(initialHydration ?? {});
-  const onHydrationReady = useCallback((value: SetStateAction<MirrorVitrinHydration>) => {
-    setHydration(value);
-  }, []);
-
   return (
     <MirrorVitrinHydrationProvider value={hydration}>
       <MirrorVitrinFrameInner
@@ -95,9 +68,6 @@ export function MirrorVitrinFrameHost({
         collectionsFromAdmin={collectionsFromAdmin}
         categoriesFromAdmin={categoriesFromAdmin}
       />
-      <Suspense fallback={null}>
-        <HydrationFromPromise promise={hydrationPromise} onReady={onHydrationReady} />
-      </Suspense>
     </MirrorVitrinHydrationProvider>
   );
 }

@@ -102,6 +102,7 @@ export function MirrorVitrinFrameClient({
   const baseSrcRef = useRef(src);
   const overlayKeyRef = useRef("");
   const [frameReady, setFrameReady] = useState(false);
+  const [contentVisible, setContentVisible] = useState(false);
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const accountRaw = searchParams.get("account");
@@ -123,12 +124,6 @@ export function MirrorVitrinFrameClient({
     !visualEditMode && !pathname.startsWith("/admin") && !isCartOrCheckoutShell;
   useMirrorFrameRouteSync(iframeRef, src, syncParentRoute);
 
-  const [marqueeLive, setMarqueeLive] = useState(siteMarquee);
-
-  useEffect(() => {
-    setMarqueeLive(siteMarquee);
-  }, [siteMarquee]);
-
   const patchSig = JSON.stringify({
     overlaySig,
     collectionsFromAdmin,
@@ -138,7 +133,7 @@ export function MirrorVitrinFrameClient({
     nav,
     footer,
     locale,
-    marqueeLive,
+    siteMarquee,
     visualEditMode,
     src,
     isCartOrCheckoutShell,
@@ -147,23 +142,8 @@ export function MirrorVitrinFrameClient({
 
   useEffect(() => {
     baseSrcRef.current = src;
+    setContentVisible(false);
   }, [src]);
-
-  useEffect(() => {
-    if (visualEditMode || pathname !== "/" || marqueeLive) return;
-    let cancelled = false;
-    fetch("/api/vitrin/home-marquee", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data: { marquee?: ProductPageBottomSettings["marquee"] } | null) => {
-        if (!cancelled && data?.marquee) setMarqueeLive(data.marquee);
-      })
-      .catch(() => {
-        /* hydration yedek */
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [pathname, marqueeLive, visualEditMode]);
 
   useEffect(() => {
     const iframe = iframeRef.current;
@@ -306,6 +286,7 @@ export function MirrorVitrinFrameClient({
       if (skipClientWork) {
         applyEmbeddedCatalogPrices(doc);
         if (usdRate && usdRate > 0) applyMirrorUsdPrices(doc, usdRate);
+        setContentVisible(true);
         return;
       }
 
@@ -332,12 +313,12 @@ export function MirrorVitrinFrameClient({
       }
 
       if (
-        marqueeLive &&
+        siteMarquee &&
         pathname === "/" &&
         !visualEditMode &&
         !vitrinOverridesMarquee(config ?? undefined)
       ) {
-        applySiteMarqueeOverlay(doc, marqueeLive);
+        applySiteMarqueeOverlay(doc, siteMarquee);
       }
 
       if (collectionsFromAdmin?.length) {
@@ -365,6 +346,7 @@ export function MirrorVitrinFrameClient({
 
       applyEmbeddedCatalogPrices(doc);
       if (usdRate && usdRate > 0) applyMirrorUsdPrices(doc, usdRate);
+      setContentVisible(true);
     }
 
     function schedulePatches() {
@@ -475,14 +457,19 @@ export function MirrorVitrinFrameClient({
   }, [focusSectionKey, visualEditMode, frameReady]);
 
   return (
-    <div className="kn-home-mirror relative h-full min-h-[70vh] w-full">
+    <div
+      className="kn-home-mirror relative h-full min-h-[70vh] w-full"
+      style={{
+        opacity: visualEditMode || contentVisible ? 1 : 0,
+        transition: contentVisible ? "opacity 0.12s ease-out" : undefined,
+      }}
+    >
       {visualEditMode && !frameReady ? (
         <p className="absolute right-2 top-2 z-10 rounded-md bg-zinc-800/95 px-2 py-1 text-xs text-zinc-400">
           Yükleniyor…
         </p>
       ) : null}
       <iframe
-        key={src}
         ref={iframeRef}
         title={title}
         src={src}
