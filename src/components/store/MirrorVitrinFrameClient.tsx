@@ -268,12 +268,13 @@ export function MirrorVitrinFrameClient({
 
       setFrameReady(true);
 
-      applyMirrorHeaderIconsFix(doc);
       applyMirrorStoreUiFixToDocument(doc);
 
       if (branding?.logoUrl?.trim()) {
         applyMirrorLogoUnify(doc, branding);
       }
+
+      applyMirrorHeaderIconsFix(doc);
       if (branding?.faviconUrl?.trim()) {
         setMirrorFavicon(doc, branding.faviconUrl);
       }

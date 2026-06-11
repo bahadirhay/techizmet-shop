@@ -1,6 +1,6 @@
 import type { MirrorBranding } from "@/lib/mirror-branding-overlay";
 
-export const LOGO_UNIFY_VERSION = 5;
+export const LOGO_UNIFY_VERSION = 6;
 const STYLE_ID = "kn-logo-unify-final";
 const SCRIPT_ID = "kn-logo-unify-script";
 
@@ -8,14 +8,16 @@ const SCRIPT_ID = "kn-logo-unify-script";
 export const LOGO_UNIFY_CSS = `
 .section-header,sticky-always.header,sticky-on-scroll.header{--logo_width:320px!important}
 @media(max-width:1024px){
-.section-header,sticky-always.header,sticky-on-scroll.header{--logo_width:min(100px,calc(100vw - 10.5rem))!important}
-.header--logo{
+html.kn-mobile-header .section-header,
+html.kn-mobile-header sticky-always.header,
+html.kn-mobile-header sticky-on-scroll.header{--logo_width:min(50vw,calc(100vw - 13rem))!important}
+html.kn-mobile-header .header--logo{
   max-width:100%!important;min-width:0!important;flex-shrink:1!important;
-  min-height:40px!important;margin:0!important;justify-content:flex-start!important;
+  min-height:36px!important;max-height:36px!important;margin:0!important;justify-content:flex-start!important;
 }
-.header--logo .header--logo-img:not(.transparent-logo-img),
-.header--logo img.header--logo-img:not(.transparent-logo-img){
-  max-height:40px!important;height:40px!important;max-width:100%!important;
+html.kn-mobile-header .header--logo .header--logo-img:not(.transparent-logo-img),
+html.kn-mobile-header .header--logo img.header--logo-img:not(.transparent-logo-img){
+  max-height:36px!important;height:auto!important;max-width:100%!important;width:auto!important;
 }
 }
 .header--logo{
@@ -60,14 +62,25 @@ function bustUrl(url: string) {
   return url + (url.includes("?") ? "&" : "?") + "kn=1";
 }
 
+function isMobileHeader() {
+  return typeof window !== "undefined" && window.matchMedia("(max-width:1024px)").matches;
+}
+
 function applyLogoImgSize(img: HTMLImageElement) {
   img.removeAttribute("width");
   img.removeAttribute("height");
+  img.style.objectFit = "contain";
+  img.style.background = "transparent";
+  if (isMobileHeader()) {
+    img.style.width = "auto";
+    img.style.height = "auto";
+    img.style.maxHeight = "36px";
+    img.style.maxWidth = "100%";
+    return;
+  }
   img.style.width = "auto";
   img.style.height = "56px";
   img.style.maxHeight = "56px";
-  img.style.objectFit = "contain";
-  img.style.background = "transparent";
 }
 
 function setLogoImgSrc(img: HTMLImageElement, url: string) {
@@ -126,7 +139,8 @@ export function buildLogoUnifyScript(branding: MirrorBranding): string {
   return `(function(){
 var P=${payload};
 function bust(u){return u?(u+(u.indexOf("?")>=0?"&":"?")+"kn=1"):"";}
-function size(img){if(!img)return;img.removeAttribute("width");img.removeAttribute("height");img.style.width="auto";img.style.height="56px";img.style.maxHeight="56px";img.style.objectFit="contain";img.style.background="transparent";}
+function mob(){return window.matchMedia("(max-width:1024px)").matches;}
+function size(img){if(!img)return;img.removeAttribute("width");img.removeAttribute("height");img.style.objectFit="contain";img.style.background="transparent";if(mob()){img.style.width="auto";img.style.height="auto";img.style.maxHeight="36px";img.style.maxWidth="100%";return;}img.style.width="auto";img.style.height="56px";img.style.maxHeight="56px";}
 function setSrc(img,u){if(!img||!u)return;var n=bust(u);if((img.getAttribute("src")||"").split("?")[0]===n.split("?")[0])return;img.src=n;img.setAttribute("srcset",n+" 1x, "+n+" 2x");}
 function apply(){var dark=document.querySelector(".header--logo img.header--logo-img:not(.transparent-logo-img)");var light=document.querySelector(".header--logo img.transparent-logo-img");if(!dark||!P.dark)return;size(dark);setSrc(dark,P.dark);if(light){size(light);setSrc(light,P.light||P.dark);}}
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",apply);else apply();

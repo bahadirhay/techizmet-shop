@@ -378,10 +378,10 @@ sticky-on-scroll.header {
 }
 
 @media (max-width: 1024px) {
-  .section-header,
-  sticky-always.header,
-  sticky-on-scroll.header {
-    --logo_width: min(100px, calc(100vw - 10.5rem)) !important;
+  html.kn-mobile-header .section-header,
+  html.kn-mobile-header sticky-always.header,
+  html.kn-mobile-header sticky-on-scroll.header {
+    --logo_width: min(50vw, calc(100vw - 13rem)) !important;
   }
 }
 
@@ -422,7 +422,7 @@ sticky-on-scroll.header {
   transition: opacity 0.35s cubic-bezier(0.104, 0.204, 0.492, 1) 0s !important;
 }
 
-/* Mobil — header: logo sola, dil secici cekmece footer'da */
+/* Mobil — header: logo küçülür, TR/EN görünür kalır */
 @media (max-width: 1024px) {
   html,
   body,
@@ -440,89 +440,89 @@ sticky-on-scroll.header {
     box-sizing: border-box !important;
   }
 
-  .header--wrapper,
-  .header--wrapper.logo-left-menu-left {
+  html.kn-mobile-header .header--wrapper,
+  html.kn-mobile-header .header--wrapper.logo-left-menu-left {
     display: grid !important;
     grid-template-areas: "hamburger logo icons" !important;
-    grid-template-columns: 44px minmax(0, 1fr) auto !important;
-    column-gap: 6px !important;
-    min-height: 52px !important;
+    grid-template-columns: 40px minmax(0, 1fr) auto !important;
+    column-gap: 4px !important;
+    min-height: 48px !important;
     align-items: center !important;
   }
 
-  .mobile-toggler,
-  .hamburger--toggler,
-  [data-mobile-toggler] {
+  html.kn-mobile-header .mobile-toggler,
+  html.kn-mobile-header .hamburger--toggler,
+  html.kn-mobile-header [data-mobile-toggler] {
     grid-area: hamburger !important;
     justify-self: start !important;
   }
 
-  .header--navigation-main {
+  html.kn-mobile-header .header--navigation-main {
     display: none !important;
   }
 
-  .header--logo {
+  html.kn-mobile-header .header--logo {
     grid-area: logo !important;
     justify-self: stretch !important;
     justify-content: flex-start !important;
     min-width: 0 !important;
     max-width: 100% !important;
+    max-height: 36px !important;
     overflow: hidden !important;
     flex-shrink: 1 !important;
     margin: 0 !important;
   }
 
-  .header--right {
+  html.kn-mobile-header .header--right {
     grid-area: icons !important;
     justify-self: end !important;
-  }
-
-  .header--logo-img:not(.transparent-logo-img),
-  .header--logo .header--logo-img:not(.transparent-logo-img) {
-    max-height: 40px !important;
-    height: 40px !important;
-    max-width: 100% !important;
-    width: auto !important;
-    object-position: left center !important;
-  }
-
-  .header--logo .transparent-logo-img {
-    max-height: 40px !important;
-  }
-
-  .header--icons-list > .header--icon-item.kn-locale-icon-item {
-    display: none !important;
-  }
-
-  .header--right {
     min-width: 0 !important;
-    max-width: 100% !important;
+    flex-shrink: 0 !important;
     overflow: visible !important;
   }
 
-  .header--icons-list {
+  html.kn-mobile-header .header--logo-img:not(.transparent-logo-img),
+  html.kn-mobile-header .header--logo .header--logo-img:not(.transparent-logo-img) {
+    max-height: 36px !important;
+    height: auto !important;
+    max-width: 100% !important;
+    width: auto !important;
+    object-fit: contain !important;
+    object-position: left center !important;
+  }
+
+  html.kn-mobile-header .header--logo .transparent-logo-img {
+    max-height: 36px !important;
+  }
+
+  html.kn-mobile-header .header--icons-list {
     gap: 0 !important;
     flex-wrap: nowrap !important;
     justify-content: flex-end !important;
-    max-width: 100% !important;
   }
 
-  .header--icons-list > .header--icon-item {
+  html.kn-mobile-header .header--icons-list > .header--icon-item {
     padding: 0 1px !important;
     flex: 0 0 auto !important;
   }
 
-  .mobile--menu-footer .kn-iframe-locale {
-    display: inline-flex !important;
-    margin-top: 12px !important;
-    flex-shrink: 0 !important;
+  html.kn-mobile-header .header--icons-list > .header--icon-item.kn-locale-icon-item {
+    display: flex !important;
+    align-items: center !important;
   }
 
-  .header--icons-list .header--icon-link-text {
-    width: 34px !important;
-    height: 34px !important;
-    min-width: 34px !important;
-    min-height: 34px !important;
+  html.kn-mobile-header .header--icons-list .kn-locale-icon-item .kn-iframe-locale button {
+    width: 26px !important;
+    height: 26px !important;
+    min-width: 26px !important;
+    padding: 0 !important;
+  }
+
+  html.kn-mobile-header .header--icons-list .header--icon-link-text {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
   }
 
   .section-announcement-bar,
