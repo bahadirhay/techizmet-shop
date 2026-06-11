@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, use, useEffect, useState } from "react";
+import { Suspense, use, useCallback, useEffect, useState, type SetStateAction } from "react";
 import { MirrorVitrinFrameClient } from "@/components/store/MirrorVitrinFrameClient";
 import {
   MirrorVitrinHydrationProvider,
@@ -47,22 +47,27 @@ function HydrationFromPromise({
   onReady,
 }: {
   promise: Promise<MirrorVitrinHydration>;
-  onReady: (value: MirrorVitrinHydration) => void;
+  onReady: (value: SetStateAction<MirrorVitrinHydration>) => void;
 }) {
   const data = use(promise);
   useEffect(() => {
-    onReady(data);
+    onReady((prev) => (hydrationSig(prev) === hydrationSig(data) ? prev : data));
   }, [data, onReady]);
   return null;
 }
 
 /** Iframe hemen başlar; ayarlar arka planda bağlanır */
+function hydrationSig(data: MirrorVitrinHydration): string {
+  return JSON.stringify(data);
+}
+
 export function MirrorVitrinFrameHost({
   src,
   title,
   locale,
   usdRate,
   hydrationPromise,
+  initialHydration,
   collectionsFromAdmin,
   categoriesFromAdmin,
 }: {
@@ -71,10 +76,14 @@ export function MirrorVitrinFrameHost({
   locale: ShopLocale;
   usdRate?: number;
   hydrationPromise: Promise<MirrorVitrinHydration>;
+  initialHydration?: MirrorVitrinHydration;
   collectionsFromAdmin?: VitrinCollectionCard[];
   categoriesFromAdmin?: VitrinCollectionCategoryOption[];
 }) {
-  const [hydration, setHydration] = useState<MirrorVitrinHydration>({});
+  const [hydration, setHydration] = useState<MirrorVitrinHydration>(initialHydration ?? {});
+  const onHydrationReady = useCallback((value: SetStateAction<MirrorVitrinHydration>) => {
+    setHydration(value);
+  }, []);
 
   return (
     <MirrorVitrinHydrationProvider value={hydration}>
@@ -87,7 +96,7 @@ export function MirrorVitrinFrameHost({
         categoriesFromAdmin={categoriesFromAdmin}
       />
       <Suspense fallback={null}>
-        <HydrationFromPromise promise={hydrationPromise} onReady={setHydration} />
+        <HydrationFromPromise promise={hydrationPromise} onReady={onHydrationReady} />
       </Suspense>
     </MirrorVitrinHydrationProvider>
   );

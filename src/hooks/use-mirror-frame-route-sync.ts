@@ -36,6 +36,8 @@ export function useMirrorFrameRouteSync(
 
     function pushTopRoute(href: string | null | undefined) {
       if (!href || href === lastPushedHrefRef.current) return false;
+      const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      if (href === current) return false;
       // Eski mirror HTML hesap sayfasını "/" sanıp ana sayfaya atmasın
       if (
         href === "/" &&

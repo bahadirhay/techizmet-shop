@@ -12,7 +12,6 @@ export function injectMirrorAnalyticsBridge(html: string, storePath: string | nu
   if(!path)return;
   function ping(){
     try{window.parent.postMessage({type:"kn-mirror-analytics",path:path}, "*");}catch(e){}
-    try{window.parent.postMessage({type:"kn-iframe-route",href:path}, "*");}catch(e){}
   }
   ping();
   window.addEventListener("load",ping);

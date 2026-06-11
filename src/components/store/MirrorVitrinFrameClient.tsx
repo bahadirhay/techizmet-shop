@@ -370,7 +370,7 @@ export function MirrorVitrinFrameClient({
             }
           });
         }
-      } else if (config && shouldApplyMirrorPageOverlay(config)) {
+      } else if (config && shouldApplyMirrorPageOverlay(config) && !serverOverlay) {
         scheduleVisualOverlayReapply(doc);
       }
     }
@@ -491,7 +491,7 @@ export function MirrorVitrinFrameClient({
         ref={iframeRef}
         title={title}
         src={src}
-        loading={isCartOrCheckoutShell ? "eager" : "lazy"}
+        loading="eager"
         sandbox={visualEditMode ? "allow-same-origin allow-scripts" : undefined}
         className="mirror-home-frame"
         style={{
