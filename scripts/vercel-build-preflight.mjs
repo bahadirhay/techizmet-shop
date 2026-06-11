@@ -15,9 +15,10 @@ console.log(`[vercel:preflight] SESSION_SECRET=${session.length >= 32 ? "ok" : "
 const errors = [];
 
 if (!db) {
-  errors.push(
-    "DATABASE_URL yok. Vercel -> Settings -> Environment Variables -> DATABASE_URL -> Production + Preview + BUILD isaretleyin.",
+  console.warn(
+    "[vercel:preflight] UYARI: DATABASE_URL build ortaminda yok — mirror prebuild atlanacak (mevcut statik dosyalar kullanilir).",
   );
+  process.env.SKIP_MIRROR_PREBUILD = "1";
 } else if (!db.includes("neon.tech") && !db.startsWith("postgresql://")) {
   errors.push("DATABASE_URL gecersiz formatta gorunuyor.");
 }

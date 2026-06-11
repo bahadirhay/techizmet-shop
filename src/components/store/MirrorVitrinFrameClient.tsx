@@ -20,6 +20,7 @@ import { setMirrorFavicon } from "@/lib/mirror-branding-overlay";
 import { scheduleMirrorFramePatches, isMirrorServerReady } from "@/lib/mirror-frame-patch";
 import { applyMirrorHeaderIconsFix } from "@/lib/mirror-header-overlay";
 import { applyMirrorStoreUiFixToDocument } from "@/lib/mirror-store-ui-fix";
+import { ensureMirrorLayoutStyles } from "@/lib/mirror-nav-dropdown-inject";
 import type { MirrorBranding } from "@/lib/mirror-branding-overlay";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import type { MirrorFooterData } from "@/lib/mirror-footer-overlay";
@@ -269,6 +270,7 @@ export function MirrorVitrinFrameClient({
       setFrameReady(true);
 
       applyMirrorStoreUiFixToDocument(doc);
+      ensureMirrorLayoutStyles(doc);
 
       if (branding?.logoUrl?.trim()) {
         applyMirrorLogoUnify(doc, branding);

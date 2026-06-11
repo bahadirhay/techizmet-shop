@@ -53,9 +53,11 @@ async function main() {
 
   console.log(`[mirror:prebuild] slug=${slug} DATABASE_URL=${hasDb ? "ok" : "EKSIK"}`);
 
-  if (!hasDb) {
-    console.error("[mirror:prebuild] DATABASE_URL tanımlı değil — Vercel env (Build+Production) kontrol edin.");
-    process.exit(1);
+  if (!hasDb || process.env.SKIP_MIRROR_PREBUILD === "1") {
+    console.warn(
+      "[mirror:prebuild] Atlandi — DATABASE_URL yok veya SKIP_MIRROR_PREBUILD=1 (mevcut _mirror-prebuilt kullanilir).",
+    );
+    return;
   }
 
   const site = await prisma.storeSite.findUnique({ where: { slug } });
