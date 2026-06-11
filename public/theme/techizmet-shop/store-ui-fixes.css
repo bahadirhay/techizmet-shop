@@ -377,11 +377,11 @@ sticky-on-scroll.header {
   --logo_width: 320px !important;
 }
 
-@media (max-width: 991px) {
+@media (max-width: 1024px) {
   .section-header,
   sticky-always.header,
   sticky-on-scroll.header {
-    --logo_width: min(112px, calc(100vw - 12.75rem)) !important;
+    --logo_width: min(100px, calc(100vw - 10.5rem)) !important;
   }
 }
 
@@ -422,8 +422,8 @@ sticky-on-scroll.header {
   transition: opacity 0.35s cubic-bezier(0.104, 0.204, 0.492, 1) 0s !important;
 }
 
-/* Mobil — header ikonları ekrana sığsın, hesap ikonu görünsün */
-@media (max-width: 991px) {
+/* Mobil — header: logo sola, dil secici cekmece footer'da */
+@media (max-width: 1024px) {
   html,
   body,
   .body-main,
@@ -440,11 +440,12 @@ sticky-on-scroll.header {
     box-sizing: border-box !important;
   }
 
-  .header--wrapper {
+  .header--wrapper,
+  .header--wrapper.logo-left-menu-left {
     display: grid !important;
     grid-template-areas: "hamburger logo icons" !important;
-    grid-template-columns: minmax(40px, auto) minmax(0, 1fr) minmax(0, auto) !important;
-    column-gap: 4px !important;
+    grid-template-columns: 44px minmax(0, 1fr) auto !important;
+    column-gap: 6px !important;
     min-height: 52px !important;
     align-items: center !important;
   }
@@ -462,11 +463,13 @@ sticky-on-scroll.header {
 
   .header--logo {
     grid-area: logo !important;
-    justify-self: start !important;
+    justify-self: stretch !important;
+    justify-content: flex-start !important;
     min-width: 0 !important;
     max-width: 100% !important;
     overflow: hidden !important;
     flex-shrink: 1 !important;
+    margin: 0 !important;
   }
 
   .header--right {
@@ -476,14 +479,19 @@ sticky-on-scroll.header {
 
   .header--logo-img:not(.transparent-logo-img),
   .header--logo .header--logo-img:not(.transparent-logo-img) {
-    max-height: 44px !important;
-    height: 44px !important;
+    max-height: 40px !important;
+    height: 40px !important;
     max-width: 100% !important;
     width: auto !important;
+    object-position: left center !important;
   }
 
   .header--logo .transparent-logo-img {
-    max-height: 44px !important;
+    max-height: 40px !important;
+  }
+
+  .header--icons-list > .header--icon-item.kn-locale-icon-item {
+    display: none !important;
   }
 
   .header--right {
@@ -504,60 +512,6 @@ sticky-on-scroll.header {
     flex: 0 0 auto !important;
   }
 
-  /* Kompakt dil — TR / EN (iPhone dahil, taşmayı önler) */
-  .header--icons-list .kn-locale-icon-item {
-    display: flex !important;
-    align-items: center !important;
-    flex: 0 0 auto !important;
-    margin-right: 2px !important;
-  }
-
-  .header--icons-list .kn-locale-icon-item .kn-iframe-locale {
-    font-size: 0 !important;
-    line-height: 1 !important;
-    max-height: 32px !important;
-    flex-shrink: 0 !important;
-  }
-
-  .header--icons-list .kn-locale-icon-item .kn-iframe-locale button {
-    position: relative !important;
-    width: 28px !important;
-    height: 28px !important;
-    min-width: 28px !important;
-    padding: 0 !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    overflow: hidden !important;
-    color: transparent !important;
-    font-size: 0 !important;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  .header--icons-list .kn-locale-icon-item .kn-iframe-locale button[data-locale="tr"]::before {
-    content: "TR" !important;
-    font-size: 10px !important;
-    font-weight: 700 !important;
-    line-height: 1 !important;
-    color: #111 !important;
-  }
-
-  .header--icons-list .kn-locale-icon-item .kn-iframe-locale button[data-locale="en"]::before {
-    content: "EN" !important;
-    font-size: 10px !important;
-    font-weight: 700 !important;
-    line-height: 1 !important;
-    color: #111 !important;
-  }
-
-  .header--icons-list .kn-locale-icon-item .kn-iframe-locale button.is-active {
-    background: #111 !important;
-  }
-
-  .header--icons-list .kn-locale-icon-item .kn-iframe-locale button.is-active::before {
-    color: #fff !important;
-  }
-
   .mobile--menu-footer .kn-iframe-locale {
     display: inline-flex !important;
     margin-top: 12px !important;
@@ -565,18 +519,10 @@ sticky-on-scroll.header {
   }
 
   .header--icons-list .header--icon-link-text {
-    width: 36px !important;
-    height: 36px !important;
-    min-width: 36px !important;
-    min-height: 36px !important;
-  }
-
-  .header--icons-list .header--icon-item.account,
-  .header--icons-list .header--icon-item.cart,
-  .header--icons-list .header--icon-item.search {
-    display: flex !important;
-    visibility: visible !important;
-    opacity: 1 !important;
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    min-height: 34px !important;
   }
 
   .section-announcement-bar,

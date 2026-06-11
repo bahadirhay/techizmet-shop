@@ -27,25 +27,12 @@ const HEADER_ICONS_CSS = `
 }
 .header--icons-list .kn-locale-icon-item .kn-iframe-locale{font-size:10px}
 .header--icons-list .kn-locale-icon-item .kn-iframe-locale button{padding:4px 8px}
-@media (max-width:991px){
-.header--icons-list .kn-locale-icon-item{display:flex!important;align-items:center;margin-right:2px}
-.header--icons-list .kn-locale-icon-item .kn-iframe-locale{font-size:0;line-height:1;max-height:32px}
-.header--icons-list .kn-locale-icon-item .kn-iframe-locale button{
-  position:relative;width:30px;height:30px;min-width:30px;padding:0;
-  display:inline-flex;align-items:center;justify-content:center;
-  overflow:hidden;color:transparent;font-size:0;
-}
-.header--icons-list .kn-locale-icon-item .kn-iframe-locale button[data-locale="tr"]::before{
-  content:"TR";font-size:10px;font-weight:700;line-height:1;color:#111;
-}
-.header--icons-list .kn-locale-icon-item .kn-iframe-locale button[data-locale="en"]::before{
-  content:"EN";font-size:10px;font-weight:700;line-height:1;color:#111;
-}
-.header--icons-list .kn-locale-icon-item .kn-iframe-locale button.is-active{background:#111}
-.header--icons-list .kn-locale-icon-item .kn-iframe-locale button.is-active::before{color:#fff}
+@media (max-width:1024px){
+.header--icons-list>.header--icon-item.kn-locale-icon-item{display:none!important}
+.header--icons-list .kn-locale-icon-item{display:none!important}
 .header--icons-list .header--icon-item{padding:0 1px!important}
-.header--icons-list .header--icon-link-text{width:36px!important;height:36px!important;min-width:36px!important}
-.header--icons-list .header--icon-item.account{display:flex!important;visibility:visible!important}
+.header--icons-list .header--icon-link-text{width:34px!important;height:34px!important;min-width:34px!important}
+.mobile--menu-footer .kn-iframe-locale{display:inline-flex!important}
 }
 `;
 
