@@ -35,7 +35,6 @@ import { injectMirrorListingCartBridge } from "@/lib/mirror-listing-cart-bridge"
 import { injectMirrorProductFavoritesBridge } from "@/lib/mirror-product-favorites-bridge";
 import { applyCmsPageToMirrorHtml } from "@/lib/mirror-cms-page";
 import { parseBlocks } from "@/lib/blocks/schema";
-import { getPageBySlug } from "@/lib/site";
 import { buildDistanceSalesAgreementHtml } from "@/lib/legal/distance-sales-agreement";
 import { resolveLegalSellerProfile } from "@/lib/legal/seller-profile";
 import { injectMirrorAnalyticsBridge } from "@/lib/mirror-analytics-bridge";
@@ -285,7 +284,9 @@ export async function buildMirrorHtmlCore(params: MirrorHtmlBuildParams): Promis
         bodyHtml: buildDistanceSalesAgreementHtml(profile),
       });
     } else {
-      const cmsPage = await getPageBySlug(slug);
+      const cmsPage = await prisma.shopPage.findUnique({
+        where: { siteId_slug: { siteId, slug } },
+      });
       if (cmsPage?.published) {
         localized = applyCmsPageToMirrorHtml(localized, {
           title: cmsPage.title,
