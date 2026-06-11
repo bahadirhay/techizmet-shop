@@ -20,6 +20,44 @@ export function formatCatalogPrice(entry: CatalogPriceEntry): string {
   return formatTry(entry.priceMinor);
 }
 
+function pricingContainer(root: Element): Element | null {
+  return (
+    root.querySelector(".product--pricing") ??
+    root.querySelector(".collections-tab--info .product--pricing") ??
+    root.querySelector(".horizontal--product-detail .product--pricing") ??
+    root.querySelector(".product--card-detail .product--pricing") ??
+    root.querySelector(".product--actual-price")?.parentElement ??
+    null
+  );
+}
+
+/** Satış + üstü çizili liste fiyatı — cut-price yoksa oluşturur */
+export function applyProductPricingToRoot(
+  root: Element,
+  entry: { priceMinor: number; compareAtMinor?: number | null },
+) {
+  const priceEl = root.querySelector(".product--actual-price");
+  if (priceEl) priceEl.textContent = formatTry(entry.priceMinor);
+
+  const pricing = pricingContainer(root);
+  if (!pricing) return;
+
+  let cutEl = pricing.querySelector(".product--cut-price");
+  const compare = entry.compareAtMinor;
+  if (compare != null && compare > entry.priceMinor) {
+    if (!cutEl) {
+      cutEl = root.ownerDocument.createElement("span");
+      cutEl.className = "product--cut-price line-through";
+      if (priceEl?.nextSibling) pricing.insertBefore(cutEl, priceEl.nextSibling);
+      else pricing.appendChild(cutEl);
+    }
+    cutEl.textContent = formatTry(compare);
+    (cutEl as HTMLElement).style.removeProperty("display");
+  } else if (cutEl) {
+    (cutEl as HTMLElement).style.display = "none";
+  }
+}
+
 export function injectCatalogPriceMapScript(html: string, map: CatalogPriceMap): string {
   if (!Object.keys(map).length) return html;
   const payload = JSON.stringify(map).replace(/</g, "\\u003c");
@@ -58,18 +96,7 @@ export function applyCatalogPricesToDocument(doc: Document, map: CatalogPriceMap
         ".collections-tab--menu-content-item-box, .product--card, .horizontal--product-card, .collections-tab--menu-content-item-inner",
       ) ?? link;
 
-    const priceEl = root.querySelector(".product--actual-price");
-    if (priceEl) priceEl.textContent = formatCatalogPrice(entry);
-
-    const cutEl = root.querySelector(".product--cut-price");
-    if (cutEl) {
-      if (entry.compareAtMinor && entry.compareAtMinor > entry.priceMinor) {
-        cutEl.textContent = formatTry(entry.compareAtMinor);
-        (cutEl as HTMLElement).style.removeProperty("display");
-      } else {
-        (cutEl as HTMLElement).style.display = "none";
-      }
-    }
+    applyProductPricingToRoot(root, entry);
 
     const info =
       root.querySelector(".collections-tab--info") ??

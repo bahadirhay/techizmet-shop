@@ -30,7 +30,9 @@ const SEARCH_BRIDGE_SCRIPT = `<script id="kn-search-bridge">(function(){
       '<a href="'+href+'" class="horizontal--product-image media-wrapper"><div class="media" style="--image_ratio:100%;">'+img+'</div></a>'+
       '<div class="horizontal--product-detail">'+
         '<a href="'+href+'" class="product--title">'+esc(p.title)+'</a>'+
-        '<div class="product--pricing text"><span class="product--actual-price heading-font">'+esc(L.from)+' '+esc(p.priceLabel)+'</span></div>'+
+        '<div class="product--pricing text"><span class="product--actual-price heading-font">'+esc(L.from)+' '+esc(p.priceLabel)+'</span>'+
+        (p.compareLabel?'<span class="product--cut-price line-through">'+esc(p.compareLabel)+'</span>':'')+
+        '</div>'+
         '<div class="product--view-detail text-right"><a href="'+href+'" class="text-underline text-small"> '+esc(L.details)+'</a></div>'+
       '</div></div>';
   }

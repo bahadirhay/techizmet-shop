@@ -3,6 +3,7 @@
 import { parseHTML } from "linkedom";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import { formatTry } from "@/lib/format";
+import { applyProductPricingToRoot } from "@/lib/mirror-listing-prices";
 import {
   buildMirrorProductCardHtml,
   type VitrinCollectionProductCard,
@@ -45,8 +46,10 @@ function patchHorizontalProductCard(card: Element, product: VitrinCollectionProd
   card.querySelectorAll('a[href*="/products/"]').forEach((a) => a.setAttribute("href", href));
   const titleEl = card.querySelector(".product--title");
   if (titleEl) titleEl.textContent = product.title;
-  const priceEl = card.querySelector(".product--actual-price");
-  if (priceEl) priceEl.textContent = formatTry(product.priceMinor);
+  applyProductPricingToRoot(card, {
+    priceMinor: product.priceMinor,
+    compareAtMinor: product.compareAtMinor,
+  });
   const image = product.imageUrl?.trim();
   if (image) {
     card.querySelectorAll("img").forEach((img) => {

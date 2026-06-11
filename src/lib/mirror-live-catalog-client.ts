@@ -37,6 +37,10 @@ function toProductOptions(products: VitrinCollectionProductCard[]) {
     title: p.title,
     imageUrl: p.imageUrl,
     priceLabel: formatTry(p.priceMinor),
+    compareAtLabel:
+      p.compareAtMinor != null && p.compareAtMinor > p.priceMinor
+        ? formatTry(p.compareAtMinor)
+        : null,
   }));
 }
 

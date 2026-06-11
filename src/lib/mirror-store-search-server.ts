@@ -7,6 +7,7 @@ export type MirrorSearchProductHit = {
   title: string;
   imageUrl: string;
   priceLabel: string;
+  compareLabel?: string | null;
 };
 
 export type MirrorSearchCollectionHit = {
@@ -50,6 +51,7 @@ export async function loadMirrorSearchDrawerPayload(q = ""): Promise<MirrorSearc
         title: true,
         imageUrl: true,
         priceMinor: true,
+        compareAtMinor: true,
         description: true,
         descriptionHtml: true,
         images: { take: 1, orderBy: { sortOrder: "asc" }, select: { url: true } },
@@ -77,6 +79,10 @@ export async function loadMirrorSearchDrawerPayload(q = ""): Promise<MirrorSearc
       title: product.title,
       imageUrl: product.imageUrl || product.images[0]?.url || "",
       priceLabel: formatTry(product.priceMinor),
+      compareLabel:
+        product.compareAtMinor != null && product.compareAtMinor > product.priceMinor
+          ? formatTry(product.compareAtMinor)
+          : null,
     })),
     collections: collections.map((collection) => ({
       slug: collection.slug,

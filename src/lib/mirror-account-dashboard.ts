@@ -35,6 +35,7 @@ export type MirrorAccountFavorite = {
   title: string;
   imageUrl: string | null;
   priceLabel: string;
+  compareLabel?: string | null;
 };
 
 export type MirrorAccountDashboardPayload = {
@@ -366,7 +367,9 @@ function favoritesGridHtml(favorites: MirrorAccountFavorite[], tr: boolean): str
         <a href="${href}" class="kn-fav-card__media">${img}</a>
         <div>
           <a href="${href}" class="kn-fav-card__title product--title">${esc(item.title)}</a>
-          <p class="product--actual-price">${esc(item.priceLabel)}</p>
+          <p class="kn-fav-card__price">
+            <span class="product--actual-price">${esc(item.priceLabel)}</span>${item.compareLabel ? `<span class="product--cut-price line-through">${esc(item.compareLabel)}</span>` : ""}
+          </p>
         </div>
         <button type="button" class="button kn-addr-btn" data-kn-fav-remove data-product-id="${esc(item.productId)}">${esc(remove)}</button>
       </article>`;

@@ -13,6 +13,8 @@ export type CollectionsTabProductEdit = {
   imageUrl?: string;
   /** Vitrin fiyat metni — mağaza ürününden (örn. 149,00 ₺) */
   priceText?: string;
+  /** Liste fiyatı — üstü çizili (örn. 329,00 ₺) */
+  compareAtText?: string;
   /** Vitrinde bu ürün kartını gizle */
   hidden?: boolean;
 };
@@ -186,7 +188,13 @@ function normalizeTitleKey(title: string): string {
 }
 
 export function enrichCollectionsTabsFromProductOptions<
-  T extends { slug: string; title: string; imageUrl?: string | null; priceLabel: string },
+  T extends {
+    slug: string;
+    title: string;
+    imageUrl?: string | null;
+    priceLabel: string;
+    compareAtLabel?: string | null;
+  },
 >(tabs: CollectionsTabItemEdit[], options: T[]): CollectionsTabItemEdit[] {
   if (!options.length) return tabs;
   const bySlug = new Map(options.map((o) => [o.slug, o]));
@@ -212,6 +220,7 @@ export function enrichCollectionsTabsFromProductOptions<
         title: product.title,
         imageUrl: product.imageUrl ?? p.imageUrl,
         priceText: product.priceLabel,
+        compareAtText: product.compareAtLabel?.trim() || undefined,
       };
     }),
   }));
@@ -298,6 +307,22 @@ export function applyCollectionsTabToSection(
         setElementDisplay(infoEl, "none");
       } else if (priceEl && p.priceText?.trim()) {
         priceEl.textContent = p.priceText.trim();
+        const pricing = priceEl.closest(".product--pricing") ?? priceEl.parentElement;
+        let cutEl = pricing?.querySelector(".product--cut-price");
+        if (p.compareAtText?.trim()) {
+          if (!cutEl && pricing) {
+            cutEl = box.ownerDocument.createElement("span");
+            cutEl.className = "product--cut-price line-through";
+            if (priceEl.nextSibling) pricing.insertBefore(cutEl, priceEl.nextSibling);
+            else pricing.appendChild(cutEl);
+          }
+          if (cutEl) {
+            cutEl.textContent = p.compareAtText.trim();
+            (cutEl as HTMLElement).style.removeProperty("display");
+          }
+        } else if (cutEl) {
+          (cutEl as HTMLElement).style.display = "none";
+        }
         setElementDisplay(infoEl, null);
       } else if (infoEl && showPricing) {
         setElementDisplay(infoEl, null);
@@ -342,6 +367,7 @@ export function mergeCollectionsTabEdits(
         href: ep.href || dp.href,
         imageUrl: ep.imageUrl ?? dp.imageUrl,
         priceText: ep.priceText?.trim() || dp.priceText,
+        compareAtText: ep.compareAtText?.trim() || dp.compareAtText,
         hidden: ep.hidden ?? dp.hidden,
       };
     });

@@ -8,6 +8,7 @@ export type MirrorFavoriteItem = {
   title: string;
   imageUrl: string | null;
   priceLabel: string;
+  compareLabel?: string | null;
 };
 
 export type MirrorFavoritesPayload = {
@@ -101,7 +102,9 @@ export function buildFavoritesPageMarkup(p: MirrorFavoritesPayload): string {
         <a href="${href}" class="kn-fav-card__media">${img}</a>
         <div>
           <a href="${href}" class="kn-fav-card__title product--title">${esc(item.title)}</a>
-          <p class="kn-fav-card__price product--actual-price">${esc(item.priceLabel)}</p>
+          <p class="kn-fav-card__price">
+            <span class="product--actual-price">${esc(item.priceLabel)}</span>${item.compareLabel ? `<span class="product--cut-price line-through">${esc(item.compareLabel)}</span>` : ""}
+          </p>
         </div>
         <div class="kn-fav-card__actions">
           <button type="button" class="button text-button" data-kn-fav-remove data-product-id="${esc(item.productId)}">${esc(remove)}</button>

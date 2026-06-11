@@ -25,6 +25,10 @@ export async function loadMirrorFavoritesPayload(
       title: f.product.title,
       imageUrl: f.product.imageUrl,
       priceLabel: formatTry(f.product.priceMinor),
+      compareLabel:
+        f.product.compareAtMinor != null && f.product.compareAtMinor > f.product.priceMinor
+          ? formatTry(f.product.compareAtMinor)
+          : null,
     }));
 
   return { items, locale };

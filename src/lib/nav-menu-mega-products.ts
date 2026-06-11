@@ -31,7 +31,10 @@ export async function resolveMegaMenuProductsBySlug(
         title: p.title,
         imageUrl,
         priceLabel: formatTry(p.priceMinor),
-        compareLabel: p.compareAtMinor ? formatTry(p.compareAtMinor) : null,
+        compareLabel:
+          p.compareAtMinor != null && p.compareAtMinor > p.priceMinor
+            ? formatTry(p.compareAtMinor)
+            : null,
       });
     }
     return map;

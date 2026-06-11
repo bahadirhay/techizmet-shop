@@ -1,4 +1,4 @@
-import { minorToTry } from "@/lib/admin/money";
+import { formatTry } from "@/lib/format";
 import type { ExploreOverlayProduct } from "@/lib/product-explore-looks";
 import { prisma } from "@/lib/prisma";
 
@@ -11,7 +11,7 @@ export async function loadExploreOverlayProducts(
 
   const rows = await prisma.storeProduct.findMany({
     where: { siteId, slug: { in: unique }, published: true },
-    select: { slug: true, title: true, imageUrl: true, priceMinor: true },
+    select: { slug: true, title: true, imageUrl: true, priceMinor: true, compareAtMinor: true },
   });
 
   const out: Record<string, ExploreOverlayProduct> = {};
@@ -20,7 +20,13 @@ export async function loadExploreOverlayProducts(
       slug: p.slug,
       title: p.title,
       imageUrl: p.imageUrl,
-      priceLabel: `$${minorToTry(p.priceMinor)}`,
+      priceMinor: p.priceMinor,
+      compareAtMinor: p.compareAtMinor,
+      priceLabel: formatTry(p.priceMinor),
+      compareLabel:
+        p.compareAtMinor != null && p.compareAtMinor > p.priceMinor
+          ? formatTry(p.compareAtMinor)
+          : null,
       href: `/products/${p.slug}`,
     };
   }

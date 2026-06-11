@@ -127,7 +127,8 @@ function buildCommerceScript(data: MirrorProductCommercePayload): string {
     stickyImg.classList.remove('lazyload');
   }
   function mainCutEl(){
-    return qs('#MainContent [id^="price--wrapper-template"] .product--cut-price');
+    return qs('#MainContent [id^="price--wrapper-template"] .product--cut-price')||
+      qs('#MainContent .product--pricing .product--cut-price');
   }
   function updatePrice(){
     if(!DATA.showPrice){
@@ -168,9 +169,20 @@ function buildCommerceScript(data: MirrorProductCommercePayload): string {
       }
     }
     if(el){
+      var cmp=v?v.compareLabel:DATA.compareLabel;
       var cut=mainCutEl();
+      if(cmp&&!cut){
+        var pricing=qs('#MainContent [id^="price--wrapper-template"] .product--pricing')||
+          qs('#MainContent .product--pricing');
+        if(pricing){
+          cut=document.createElement('span');
+          cut.className='product--cut-price line-through';
+          if(el.nextSibling)pricing.insertBefore(cut,el.nextSibling);
+          else pricing.appendChild(cut);
+        }
+      }
       if(cut){
-        if(v&&v.compareLabel){cut.textContent=v.compareLabel;cut.style.display='';}
+        if(cmp){cut.textContent=cmp;cut.style.display='';}
         else cut.style.display='none';
       }
     }
@@ -298,6 +310,28 @@ export function applyMirrorProductCommerce(doc: Document, data: MirrorProductCom
   if (el && data.showPrice) {
     const prefix = data.texts?.startingPricePrefix?.trim() || "Başlayan fiyat";
     el.textContent = data.fromPrice ? `${prefix}: ${data.priceLabel}` : data.priceLabel;
+  }
+
+  const pricing =
+    doc.querySelector('#MainContent [id^="price--wrapper-template"] .product--pricing') ??
+    doc.querySelector("#MainContent .product--pricing");
+  let cutEl =
+    doc.querySelector('#MainContent [id^="price--wrapper-template"] .product--cut-price') ??
+    doc.querySelector("#MainContent .product--pricing .product--cut-price");
+  if (data.showPrice && data.compareLabel && pricing && !cutEl) {
+    cutEl = doc.createElement("span");
+    cutEl.className = "product--cut-price line-through";
+    const actual = pricing.querySelector(".product--actual-price");
+    if (actual?.nextSibling) pricing.insertBefore(cutEl, actual.nextSibling);
+    else pricing.appendChild(cutEl);
+  }
+  if (cutEl && data.showPrice) {
+    if (data.compareLabel) {
+      cutEl.textContent = data.compareLabel;
+      (cutEl as HTMLElement).style.removeProperty("display");
+    } else {
+      (cutEl as HTMLElement).style.display = "none";
+    }
   }
 
   const stickyPrice = doc.querySelector(

@@ -715,3 +715,27 @@ product-media-popup.popup {
   width: max-content;
   min-width: 100%;
 }
+
+/* Liste / karşılaştırma fiyatı — tüm vitrin kartları */
+.product--pricing .product--cut-price,
+.collections-tab--info .product--cut-price,
+.horizontal--product-detail .product--cut-price,
+.kn-fav-card__price .product--cut-price {
+  text-decoration: line-through;
+  opacity: 0.72;
+}
+
+.collections-tab--info .product--pricing {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.5rem;
+}
+
+.collections-tab--info .product--cut-price {
+  font-size: 0.85em;
+}
+
+#MainContent .product--pricing .product--cut-price {
+  margin-left: 0.5rem;
+}

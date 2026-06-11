@@ -1,3 +1,5 @@
+import { applyProductPricingToRoot } from "@/lib/mirror-listing-prices";
+
 /** Sayfa altı "EXPLORE / Keşfet" — lifestyle görsel + tıklanınca çıkan ürünler */
 export type ProductExploreLook = {
   imageUrl: string;
@@ -82,6 +84,9 @@ export type ExploreOverlayProduct = {
   title: string;
   imageUrl: string | null;
   priceLabel: string;
+  compareLabel?: string | null;
+  priceMinor?: number;
+  compareAtMinor?: number | null;
   href: string;
 };
 
@@ -184,8 +189,15 @@ export function applyExploreLooksOverlay(
         img.alt = p.title;
       }
 
-      const priceEl = listEl.querySelector(".product--actual-price");
-      if (priceEl && p.priceLabel) priceEl.textContent = p.priceLabel;
+      if (p.priceMinor != null) {
+        applyProductPricingToRoot(listEl, {
+          priceMinor: p.priceMinor,
+          compareAtMinor: p.compareAtMinor,
+        });
+      } else if (p.priceLabel) {
+        const priceEl = listEl.querySelector(".product--actual-price");
+        if (priceEl) priceEl.textContent = p.priceLabel;
+      }
 
       listEl.querySelectorAll("a.product--image, a.product--icon").forEach((anchor) => {
         if (anchor instanceof HTMLAnchorElement) anchor.href = p.href;
