@@ -200,19 +200,30 @@ function productBadgeHtml(
 function productCardHtml(
   product: VitrinCollectionProductCard,
   texts: ResolvedMirrorCollectionTexts,
+  options?: { swiperSlide?: boolean; locale?: string },
 ) {
   const href = productHref(product.slug);
   const title = escText(product.title);
+  const addLabel = options?.locale?.toLowerCase().startsWith("en") ? "Add to cart" : "Sepete ekle";
   const image = product.imageUrl?.trim() || EMPTY_IMAGE;
   const price = escText(formatTry(product.priceMinor));
   const compare = product.compareAtMinor && product.compareAtMinor > product.priceMinor
     ? `<span class="product--cut-price line-through">${escText(formatTry(product.compareAtMinor))}</span>`
     : "";
   const badges = productBadgeHtml(product, texts);
+  const slideClass = options?.swiperSlide ? " swiper-slide" : "";
+  const slideAttr = options?.swiperSlide ? " data-card-animate" : "";
 
-  return `<div class="product--card" is="card-animate">
+  return `<div class="product--card${slideClass}"${slideAttr} is="card-animate">
   <div class="product--card-inner animate-hover options-hover quickview-on-hover product-background-none" data-id="${escAttr(product.slug)}" data-product-card>
     <div class="product--card-image width-100 pos-relative">
+      <button
+        type="button"
+        class="kn-fav-btn kn-product-card__fav"
+        data-kn-favorite
+        data-product-slug="${escAttr(product.slug)}"
+        aria-label="${options?.locale?.toLowerCase().startsWith("en") ? "Add to favorites" : "Favorilere ekle"}"
+      >♡</button>
       <a href="${escAttr(href)}" aria-label="${title}" class="product--image d-block width-100">
         <div class="media" style="--image_ratio:128.64493996569468%" data-product-media>
           <img
@@ -237,21 +248,40 @@ function productCardHtml(
           </div>
         </div>
         <div class="product--card-detail-button">
-          <div class="product-checkout-buttons-outer product--card-form">
-            <a href="${escAttr(href)}" class="product--icon" aria-label="${title}">
-              <span class="width-100 height-100 d-flex">
-                <svg width="17" height="19" viewBox="0 0 17 19" fill="none" class="cart--icon" aria-hidden="true">
-                  <path d="M13.8624 5.125H3.13686C2.21555 5.125 1.45202 5.83932 1.39074 6.75859L0.749072 16.3836C0.681732 17.3936 1.48288 18.25 2.49519 18.25H14.5041C15.5164 18.25 16.3176 17.3936 16.2502 16.3836L15.6086 6.75859C15.5472 5.83932 14.7837 5.125 13.8624 5.125Z" stroke="currentColor" stroke-width="1.5"></path>
-                  <path d="M12 7.75V4.25C12 2.317 10.433 0.75 8.5 0.75C6.567 0.75 5 2.317 5 4.25V7.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"></path>
-                </svg>
-              </span>
-            </a>
+          <div class="product-checkout-buttons-outer product--card-form" data-handle="${escAttr(product.slug)}">
+            <form action="#" onsubmit="return false">
+              <div class="product-checkout-buttons">
+                <button
+                  type="button"
+                  name="add"
+                  class="product--icon"
+                  data-add-to-cart
+                  data-handle="${escAttr(product.slug)}"
+                  aria-label="${escAttr(addLabel)}"
+                >
+                  <span class="width-100 height-100 d-flex">
+                    <svg width="17" height="19" viewBox="0 0 17 19" fill="none" class="cart--icon" aria-hidden="true">
+                      <path d="M13.8624 5.125H3.13686C2.21555 5.125 1.45202 5.83932 1.39074 6.75859L0.749072 16.3836C0.681732 17.3936 1.48288 18.25 2.49519 18.25H14.5041C15.5164 18.25 16.3176 17.3936 16.2502 16.3836L15.6086 6.75859C15.5472 5.83932 14.7837 5.125 13.8624 5.125Z" stroke="currentColor" stroke-width="1.5"></path>
+                      <path d="M12 7.75V4.25C12 2.317 10.433 0.75 8.5 0.75C6.567 0.75 5 2.317 5 4.25V7.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"></path>
+                    </svg>
+                  </span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       </div>
     </div>
   </div>
 </div>`;
+}
+
+export function buildMirrorProductCardHtml(
+  product: VitrinCollectionProductCard,
+  texts: ResolvedMirrorCollectionTexts,
+  options?: { swiperSlide?: boolean; locale?: string },
+) {
+  return productCardHtml(product, texts, options);
 }
 
 export type CollectionPaginationOptions = {
@@ -386,7 +416,9 @@ export function applyCollectionProductsFromAdmin(
     list.innerHTML = `<p class="text-center" style="padding:2rem 0;grid-column:1/-1">${escText(empty)}</p>`;
     return;
   }
-  list.innerHTML = pageItems.map((product) => productCardHtml(product, resolved)).join("");
+  list.innerHTML = pageItems
+    .map((product) => productCardHtml(product, resolved, { locale }))
+    .join("");
 }
 
 export function applyCollectionCategoryFiltersFromAdmin(

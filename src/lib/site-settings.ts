@@ -14,8 +14,7 @@ import {
   getStoreNavItems,
   type StoreNavItem,
 } from "@/lib/store-navigation";
-import type { MirrorHomeConfig } from "@/lib/mirror-home-overlay";
-import { loadMirrorProductExploreLooks } from "@/lib/mirror-product-explore-server";
+import type { MirrorHomeConfig, MirrorPageConfig } from "@/lib/mirror-home-overlay";
 import {
   getProductPageBottomSettings,
   type ProductPageBottomThemeConfig,
@@ -25,6 +24,7 @@ import {
   parseExploreLooksJson,
   type ProductExploreLook,
 } from "@/lib/product-explore-looks";
+import type { AnnouncementBarSettings } from "@/lib/mirror-announcement-bar";
 import type { StoreTextSettings } from "@/lib/store-static-texts";
 
 export type EmailTemplateKey = "orderConfirmation" | "orderShipped" | "orderCancelled";
@@ -102,6 +102,8 @@ export type CronRunRecord = import("@/lib/cron-health").CronRunRecord;
 
 export type SiteOpsSettings = {
   cron?: Partial<Record<import("@/lib/cron-health").CronJobId, CronRunRecord>>;
+  /** GSC arama sorguları önbelleği (son senkron) */
+  gsc?: import("@/lib/admin/gsc/sync").GscSyncCache;
 };
 
 export type SiteSettings = {
@@ -129,12 +131,14 @@ export type SiteSettings = {
     defaultProductMarqueeHtml?: string;
     /** Ürün PDP alt bölümler: marquee, revealing text, video metin */
     defaultProductPageBottom?: ProductPageBottomThemeConfig;
+    /** Header duyuru şeridi (üst kayan yazılar) */
+    announcementBar?: AnnouncementBarSettings;
     /** mirror index → admin home blok içe aktarma sürümü */
     mirrorHomeImportVersion?: number;
     /** Techizmet Shop ana sayfa — bölüm sırası / gizle / başlık */
     mirrorHome?: MirrorHomeConfig;
     /** Tüm vitrin sayfaları (home, collections, …) */
-    mirrorPages?: Partial<Record<string, MirrorHomeConfig>>;
+    mirrorPages?: Partial<Record<string, MirrorPageConfig>>;
     mirrorPagesMeta?: Partial<Record<string, { published?: boolean }>>;
   };
   email?: {
@@ -142,8 +146,15 @@ export type SiteSettings = {
   };
   /** Bildirim kanalları — site başına (DB settingsJson); .env yalnızca API anahtarı */
   notifications?: StoreNotificationSettings;
-  /** Ön muhasebe — tahmini kart komisyonu (%) */
-  finance?: { cardFeePercent?: number };
+  /** Ön muhasebe — kâr tahmini ve sipariş ekonomisi */
+  finance?: {
+    /** Tahmini PayTR / kart komisyonu (%) */
+    cardFeePercent?: number;
+    /** Web siparişlerinde sizin ödediğiniz kargo maliyeti (kuruş) — müşteri ücretsiz kargo alsın bile */
+    webShippingCostMinor?: number;
+    /** Sipariş başı paketleme / malzeme gideri (kuruş) */
+    packagingCostMinor?: number;
+  };
   payment?: {
     paytr?: { merchantId?: string; merchantKey?: string; merchantSalt?: string; testMode?: boolean };
     iyzico?: { apiKey?: string; secretKey?: string; baseUrl?: string };
@@ -153,6 +164,8 @@ export type SiteSettings = {
   };
   store?: {
     freeShippingOverMinor?: number;
+    /** USD/TRY piyasa kuruna eklenen üst marjı (%) — örn. 5 = %5 fazla */
+    usdMarkupPercent?: number;
     /** Web sipariş numarası öneki — örn. KN, SHOP (varsayılan: KN) */
     orderNumberPrefix?: string;
     /** Barkod boşken otomatik EAN-13 üret (ürün kaydı / içe aktarma) */
@@ -170,6 +183,19 @@ export type SiteSettings = {
       postalCode?: string;
       phone?: string;
     };
+    /** Mesafeli satış sözleşmesi — satıcı bilgileri */
+    legal?: {
+      tradeName?: string;
+      address?: string;
+      phone?: string;
+      email?: string;
+      mersisNo?: string;
+      taxOffice?: string;
+      taxNo?: string;
+      website?: string;
+      caymaEmail?: string;
+      arbitrationInfo?: string;
+    };
   };
   /** Logo, favicon */
   branding?: {
@@ -184,10 +210,28 @@ export type SiteSettings = {
     metaKeywords?: string;
     ogImageUrl?: string;
     googleSiteVerification?: string;
+    yandexVerification?: string;
+    bingVerification?: string;
+    /** schema.org Organization adı */
+    organizationName?: string;
     googleAnalyticsId?: string;
     facebookPixelId?: string;
     robotsIndex?: boolean;
     extraHeadHtml?: string;
+    /** Koleksiyon listesi, blog listesi vb. sabit sayfa meta */
+    staticPages?: Record<
+      string,
+      { seoTitle?: string; seoDescription?: string; imageAlt?: string; imageUrl?: string }
+    >;
+  };
+  /** Statik sayfa özel ayarları */
+  pages?: {
+    contact?: {
+      /** Google Maps embed URL (iframe src) */
+      mapEmbedUrl?: string;
+      /** Harita konumu: left=sol (varsayılan), top=üst tam genişlik, bottom=alt tam genişlik, hidden=gizli */
+      mapPosition?: "left" | "top" | "bottom" | "hidden";
+    };
   };
   /** KVKK çerez banner — JSON (web-page ile uyumlu) */
   cookieConsentJson?: string | null;
@@ -195,6 +239,10 @@ export type SiteSettings = {
   efatura?: StoreEfaturaSettings;
   /** Ürün SEO AI — Gemini, OpenAI, Claude */
   seoAi?: StoreSeoAiSettings;
+  /** Blog otomasyon — arama kelimelerinden taslak/yayın */
+  blogAutomation?: import("@/lib/admin/blog-automation/settings").BlogAutomationSettings;
+  /** Google Search Console — organik arama sorguları */
+  gsc?: import("@/lib/admin/gsc/settings").GscSettings;
 };
 
 export type SeoAiProvider = "auto" | "gemini" | "openai" | "claude";
@@ -255,10 +303,14 @@ export function getSiteSeo(settings: SiteSettings, siteName: string) {
     metaKeywords: s.metaKeywords?.trim() || "",
     ogImageUrl: s.ogImageUrl?.trim() || "",
     googleSiteVerification: s.googleSiteVerification?.trim() || "",
+    yandexVerification: s.yandexVerification?.trim() || "",
+    bingVerification: s.bingVerification?.trim() || "",
+    organizationName: s.organizationName?.trim() || "",
     googleAnalyticsId: s.googleAnalyticsId?.trim() || "",
     facebookPixelId: s.facebookPixelId?.trim() || "",
     robotsIndex: s.robotsIndex !== false,
     extraHeadHtml: s.extraHeadHtml?.trim() || "",
+    staticPages: s.staticPages ?? {},
   };
 }
 
@@ -297,8 +349,8 @@ export async function getStoreNavigation(siteId?: string) {
 
 export function getDefaultProductExploreLooks(settings: SiteSettings): ProductExploreLook[] {
   const fromSettings = settings.theme?.defaultProductExploreLooks;
-  if (fromSettings?.length) return fromSettings;
-  return loadMirrorProductExploreLooks("creamy-foundation-for-all-skin-types");
+  if (fromSettings !== undefined) return fromSettings;
+  return [];
 }
 
 export function getDefaultProductMarqueeHtml(settings: SiteSettings): string {

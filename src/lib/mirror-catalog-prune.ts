@@ -12,9 +12,14 @@ export function productSlugFromMirrorHref(href: string): string | null {
 }
 
 function slugFromProductCard(el: Element): string | null {
-  const link = el.querySelector('a[href*="/products/"]');
-  if (!link) return null;
-  return productSlugFromMirrorHref(link.getAttribute("href") ?? "");
+  for (const link of el.querySelectorAll("a[href]")) {
+    const slug = productSlugFromMirrorHref(link.getAttribute("href") ?? "");
+    if (slug) return slug;
+    const href = (link.getAttribute("href") ?? "").trim();
+    const bare = href.match(/^(?:\.\/)?([a-z0-9-]+)\.html$/i);
+    if (bare) return bare[1]!.toLowerCase();
+  }
+  return null;
 }
 
 /** Yayında olmayan veya DB'de olmayan ürün kartlarını kaldırır */
@@ -35,11 +40,9 @@ export function pruneMirrorDocToPublishedCatalog(
   removeUnknown(".product--card");
   removeUnknown(".product-grid-card");
   removeUnknown("#MainContent .section-related-products .product--card");
+  removeUnknown(".discover-list [data-product-card]");
 
-  doc.querySelectorAll("trending-set").forEach((el) => {
-    const slug = slugFromProductCard(el);
-    if (slug && !publishedSlugs.has(slug)) el.remove();
-  });
+  /* Trend ürünler vitrin editöründen yönetilir; şablon skincare slug'ları budanırsa bölüm boş kalır */
 
   doc.documentElement.setAttribute("data-kn-catalog-pruned", "1");
 }

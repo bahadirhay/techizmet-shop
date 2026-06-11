@@ -55,11 +55,24 @@ export function resolveBlogImageFromArticleHtml(slug: string): string | null {
   return null;
 }
 
+function isDirectPublicImageUrl(url: string): boolean {
+  return (
+    url.startsWith("/uploads/") ||
+    url.startsWith("/api/media/") ||
+    url.startsWith("/brands/") ||
+    url.startsWith("http://") ||
+    url.startsWith("https://")
+  );
+}
+
 /** Ana sayfa / DB — çalışan public URL (yalnızca sunucu) */
 export function resolveBlogFeaturedImageUrl(slug: string, preferred?: string | null): string | null {
   if (preferred?.trim()) {
-    const fromPreferred = resolveMirrorPublicAsset(normalizeBlogImageUrl(preferred));
+    const norm = normalizeBlogImageUrl(preferred);
+    if (isDirectPublicImageUrl(norm)) return norm;
+    const fromPreferred = resolveMirrorPublicAsset(norm);
     if (fromPreferred) return fromPreferred;
+    if (norm.startsWith("/")) return norm;
   }
 
   const fromArticle = resolveBlogImageFromArticleHtml(slug);

@@ -30,9 +30,9 @@ const TRASH_SVG =
 /** Yalnızca kupon satırı — grid sidebar stilleri kaldırıldı */
 export const CART_PAGE_CSS = `<style id="kn-cart-page-css">
 .kn-cart-coupon-inline {
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px dashed var(--border_color, #e5e2dd);
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px dashed var(--border_color, #e5e2dd);
 }
 .kn-cart-coupon-inline .kn-cart-coupon-row {
   display: flex;
@@ -49,7 +49,40 @@ export const CART_PAGE_CSS = `<style id="kn-cart-page-css">
   background: var(--body_alternate_background, #f7f5f2);
   border-radius: 8px;
 }
+.kn-cart-free-shipping-under-total {
+  text-align: right;
+  margin-top: 6px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.kn-cart-free-shipping-under-total--active {
+  color: var(--color_success_text, #2e7d32);
+  font-weight: 600;
+}
 </style>`;
+
+function discountLabelSuffix(cart: CartView): string {
+  if (cart.discountMinor <= 0) return "";
+  const label = cart.couponLabel?.trim();
+  if (label && label !== "Ücretsiz kargo" && label !== "Free shipping") {
+    return ` (${esc(label)})`;
+  }
+  if (cart.couponCode?.trim()) {
+    return ` (${esc(cart.couponCode.trim())})`;
+  }
+  return "";
+}
+
+function buildFreeShippingUnderTotalHtml(cart: CartView, tr: boolean): string {
+  if (cart.freeShipping) {
+    return `<p class="kn-cart-free-shipping-under-total kn-cart-free-shipping-under-total--active">${tr ? "Ücretsiz kargo" : "Free shipping"}</p>`;
+  }
+  if (cart.freeShippingThresholdMinor > 0 && cart.freeShippingRemainingMinor > 0) {
+    const remaining = esc(formatTry(cart.freeShippingRemainingMinor));
+    return `<p class="kn-cart-free-shipping-under-total">${tr ? `Ücretsiz kargo için <strong>${remaining}</strong> daha ekleyin.` : `Add <strong>${remaining}</strong> more for free shipping.`}</p>`;
+  }
+  return "";
+}
 
 function cartLineHtml(line: CartView["items"][number], tr: boolean): string {
   const href = `/products/${encodeURIComponent(line.slug)}`;
@@ -93,24 +126,10 @@ function buildCartFeaturedMarkup(cart: CartView): string {
 
 function buildCartBottomMarkup(cart: CartView, tr: boolean): string {
   const couponVal = cart.couponCode ? esc(cart.couponCode) : "";
-  const couponLabel = cart.couponLabel
-    ? `<p class="text-small" style="margin-top:8px;color:var(--color_success_text)">${esc(cart.couponLabel)}</p>`
-    : "";
-
-  const freeShip =
-    !cart.freeShipping && cart.freeShippingThresholdMinor > 0 && cart.freeShippingRemainingMinor > 0
-      ? `<p class="text-small free-shipping-bar" style="margin-bottom:16px">${tr ? `Ücretsiz kargo için <strong>${esc(formatTry(cart.freeShippingRemainingMinor))}</strong> daha ekleyin.` : `Add <strong>${esc(formatTry(cart.freeShippingRemainingMinor))}</strong> more for free shipping.`}</p>`
-      : cart.freeShipping
-        ? `<p class="text-small" style="color:var(--color_success_text);margin-bottom:16px">${tr ? "Bu siparişte kargo ücretsiz" : "Free shipping on this order"}</p>`
-        : "";
+  const discountSuffix = discountLabelSuffix(cart);
 
   return `<div class="main-cart--bottom">
     <div class="main-cart--bottom-left">
-      ${freeShip}
-      <div class="cart-note-form">
-        <label class="text-medium" for="CartNote">${tr ? "Sipariş notu" : "Order special instructions"}</label>
-        <textarea id="CartNote" name="note" class="form-control" rows="5" data-kn-cart-note placeholder="${tr ? "Siparişiniz için özel talimatlar…" : "Special instructions for your order…"}"></textarea>
-      </div>
       <div class="kn-cart-coupon-inline">
         <label class="text-small">${tr ? "Kupon kodu" : "Coupon code"}</label>
         <div class="kn-cart-coupon-row">
@@ -118,7 +137,10 @@ function buildCartBottomMarkup(cart: CartView, tr: boolean): string {
           <button type="button" class="button medium-button" data-kn-coupon-apply>${tr ? "Uygula" : "Apply"}</button>
         </div>
         ${cart.couponCode ? `<button type="button" class="button text-button" style="margin-top:8px" data-kn-coupon-remove>${tr ? "Kuponu kaldır" : "Remove coupon"} (${couponVal})</button>` : ""}
-        ${couponLabel}
+      </div>
+      <div class="cart-note-form">
+        <label class="text-medium" for="CartNote">${tr ? "Sipariş notu" : "Order special instructions"}</label>
+        <textarea id="CartNote" name="note" class="form-control" rows="5" data-kn-cart-note placeholder="${tr ? "Siparişiniz için özel talimatlar…" : "Special instructions for your order…"}"></textarea>
       </div>
     </div>
     <div class="main-cart--bottom-right">
@@ -127,13 +149,13 @@ function buildCartBottomMarkup(cart: CartView, tr: boolean): string {
           <span>${tr ? "Ara toplam" : "Subtotal"}</span>
           <span data-kn-cart-subtotal>${esc(formatTry(cart.subtotalMinor))}</span>
         </div>
-        ${cart.discountMinor > 0 ? `<div class="cart-summary-price-item"><span>${tr ? "İndirim" : "Discount"}</span><span data-kn-cart-discount>−${esc(formatTry(cart.discountMinor))}</span></div>` : ""}
+        ${cart.discountMinor > 0 ? `<div class="cart-summary-price-item"><span>${tr ? "İndirim" : "Discount"}${discountSuffix}</span><span data-kn-cart-discount>−${esc(formatTry(cart.discountMinor))}</span></div>` : ""}
         <div class="cart-summary-price-item cart-summary-price-item--total">
           <span class="heading-font kn-cart-total-label">${tr ? "Toplam:" : "Total:"}</span>
           <strong class="heading-font" data-kn-cart-total>${esc(formatTry(cart.totalMinor))}</strong>
         </div>
+        ${buildFreeShippingUnderTotalHtml(cart, tr)}
       </div>
-      <p class="text-small" style="margin:12px 0 20px;opacity:.85">${tr ? "Vergi, indirim ve kargo ödeme adımında hesaplanır." : "Taxes, discounts and shipping calculated at checkout."}</p>
       <div class="cart-summary-buttons">
         <a href="/checkout" id="cartCheckout" class="button medium-button button-block">${tr ? "Ödemeye geç" : "Check out"}</a>
       </div>
@@ -289,21 +311,29 @@ export function buildCartPageBridgeScript(locale: "tr" | "en"): string {
       '<div class="cart-product-price"><span class="product--actual-price">'+esc(formatTry(line.discountMinor>0?line.lineTotalMinor:line.lineMinor))+'</span>'+
       '<button type="button" class="cart-product-remove" data-kn-cart-remove data-product-id="'+esc(line.productId)+'" data-variant-id="'+esc(line.variantId||"")+'">'+TRASH+"</button></div></div>";
   }
+  function discountSuffix(cart){
+    if(!cart||cart.discountMinor<=0)return "";
+    var label=cart.couponLabel?String(cart.couponLabel).trim():"";
+    if(label&&label!=="Ücretsiz kargo"&&label!=="Free shipping")return " ("+esc(label)+")";
+    if(cart.couponCode&&String(cart.couponCode).trim())return " ("+esc(String(cart.couponCode).trim())+")";
+    return "";
+  }
   function bottomHtml(cart){
     var couponVal=cart.couponCode?esc(cart.couponCode):"";
-    var couponLabel=cart.couponLabel?'<p class="text-small" style="margin-top:8px;color:var(--color_success_text)">'+esc(cart.couponLabel)+"</p>":"";
-    var freeShip=!cart.freeShipping&&cart.freeShippingThresholdMinor>0&&cart.freeShippingRemainingMinor>0
-      ?'<p class="text-small free-shipping-bar" style="margin-bottom:16px">'+(TR?"Ücretsiz kargo için <strong>"+esc(formatTry(cart.freeShippingRemainingMinor))+"</strong> daha ekleyin.":"Add <strong>"+esc(formatTry(cart.freeShippingRemainingMinor))+"</strong> more for free shipping.")+"</p>"
-      :cart.freeShipping?'<p class="text-small" style="color:var(--color_success_text);margin-bottom:16px">'+(TR?"Bu siparişte kargo ücretsiz":"Free shipping on this order")+"</p>":"";
-    return '<div class="main-cart--bottom"><div class="main-cart--bottom-left">'+freeShip+
-      '<div class="cart-note-form"><label class="text-medium" for="CartNote">'+(TR?"Sipariş notu":"Order special instructions")+'</label><textarea id="CartNote" name="note" class="form-control" rows="5" data-kn-cart-note placeholder="'+(TR?"Siparişiniz için özel talimatlar…":"Special instructions for your order…")+'"></textarea></div>'+
+    var discountNote=discountSuffix(cart);
+    return '<div class="main-cart--bottom"><div class="main-cart--bottom-left">'+
       '<div class="kn-cart-coupon-inline"><label class="text-small">'+(TR?"Kupon kodu":"Coupon code")+'</label><div class="kn-cart-coupon-row"><input class="form-control" type="text" data-kn-coupon-input value="'+couponVal+'" placeholder="'+(TR?"KUPON":"COUPON")+'" /><button type="button" class="button medium-button" data-kn-coupon-apply>'+(TR?"Uygula":"Apply")+"</button></div>"+
-      (cart.couponCode?'<button type="button" class="button text-button" style="margin-top:8px" data-kn-coupon-remove>'+(TR?"Kuponu kaldır":"Remove coupon")+" ("+couponVal+")</button>":"")+couponLabel+"</div></div>"+
+      (cart.couponCode?'<button type="button" class="button text-button" style="margin-top:8px" data-kn-coupon-remove>'+(TR?"Kuponu kaldır":"Remove coupon")+" ("+couponVal+")</button>":"")+"</div>"+
+      '<div class="cart-note-form"><label class="text-medium" for="CartNote">'+(TR?"Sipariş notu":"Order special instructions")+'</label><textarea id="CartNote" name="note" class="form-control" rows="5" data-kn-cart-note placeholder="'+(TR?"Siparişiniz için özel talimatlar…":"Special instructions for your order…")+'"></textarea></div></div>'+
       '<div class="main-cart--bottom-right"><div class="cart-summary-prices">'+
       '<div class="cart-summary-price-item"><span>'+(TR?"Ara toplam":"Subtotal")+'</span><span data-kn-cart-subtotal>'+esc(formatTry(cart.subtotalMinor))+"</span></div>"+
-      (cart.discountMinor>0?'<div class="cart-summary-price-item"><span>'+(TR?"İndirim":"Discount")+'</span><span data-kn-cart-discount>−'+esc(formatTry(cart.discountMinor))+"</span></div>":"")+
-      '<div class="cart-summary-price-item cart-summary-price-item--total"><span class="heading-font kn-cart-total-label">'+(TR?"Toplam:":"Total:")+'</span><strong class="heading-font" data-kn-cart-total>'+esc(formatTry(cart.totalMinor))+"</strong></div></div>"+
-      '<p class="text-small" style="margin:12px 0 20px;opacity:.85">'+(TR?"Vergi, indirim ve kargo ödeme adımında hesaplanır.":"Taxes, discounts and shipping calculated at checkout.")+'</p>'+
+      (cart.discountMinor>0?'<div class="cart-summary-price-item"><span>'+(TR?"İndirim":"Discount")+discountNote+'</span><span data-kn-cart-discount>−'+esc(formatTry(cart.discountMinor))+"</span></div>":"")+
+      '<div class="cart-summary-price-item cart-summary-price-item--total"><span class="heading-font kn-cart-total-label">'+(TR?"Toplam:":"Total:")+'</span><strong class="heading-font" data-kn-cart-total>'+esc(formatTry(cart.totalMinor))+'</strong></div>'+
+      (cart.freeShipping
+        ?'<p class="kn-cart-free-shipping-under-total kn-cart-free-shipping-under-total--active">'+(TR?"Ücretsiz kargo":"Free shipping")+"</p>"
+        :(cart.freeShippingThresholdMinor>0&&cart.freeShippingRemainingMinor>0
+          ?'<p class="kn-cart-free-shipping-under-total">'+(TR?"Ücretsiz kargo için <strong>"+esc(formatTry(cart.freeShippingRemainingMinor))+"</strong> daha ekleyin.":"Add <strong>"+esc(formatTry(cart.freeShippingRemainingMinor))+"</strong> more for free shipping.")+"</p>"
+          :""))+'</div>'+
       '<div class="cart-summary-buttons"><a href="/checkout" id="cartCheckout" class="button medium-button button-block">'+(TR?"Ödemeye geç":"Check out")+"</a></div></div></div>";
   }
   function emptyHtml(){

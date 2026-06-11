@@ -1,7 +1,12 @@
-/** Mirror HTML → admin form alanları (randevu.techizmet PageEditor benzeri) */
+import { parseMirrorSectionHead } from "@/lib/mirror-page-sections";
 
 import type { MirrorElementKind } from "@/lib/mirror-element-edits";
-import { pageBannerElementId, revealingTextElementId } from "@/lib/mirror-element-edits";
+import {
+  marqueeTextElementId,
+  pageBannerElementId,
+  revealingTextElementId,
+  richtextContentElementId,
+} from "@/lib/mirror-element-edits";
 
 export type EditableFieldDef = {
   id: string;
@@ -60,6 +65,52 @@ function extractFieldsFromSectionBlock(sectionKey: string, block: string): Edita
     );
   }
 
+  if (block.includes("section-richtext") || block.includes("richtext--content")) {
+    const contentInner =
+      block.match(/class="richtext--content[^"]*"[^>]*>([\s\S]*?)<\/div>/i)?.[1]?.trim() ?? "";
+    add(
+      richtextContentElementId(sectionKey),
+      contentInner.includes("<") ? "html" : "text",
+      "Metin bloğu — ana içerik",
+      contentInner,
+      "Metin, font, boyut ve renk — Görünüm alanından ayarlayın.",
+    );
+    let rhi = 0;
+    const headingRe = /class="richtext--heading[^"]*"[^>]*>([\s\S]*?)<\/h[1-6]>/gi;
+    let rhm: RegExpExecArray | null;
+    while ((rhm = headingRe.exec(block))) {
+      add(
+        `${sectionKey}--richtext-heading--${rhi}`,
+        rhm[1].includes("<") ? "html" : "text",
+        rhi === 0 ? "Metin bloğu — başlık" : `Metin bloğu — başlık ${rhi + 1}`,
+        rhm[1].trim(),
+      );
+      rhi += 1;
+    }
+    let rdi = 0;
+    const descRe = /class="richtext--description[^"]*"[^>]*>([\s\S]*?)<\/p>/gi;
+    while ((rhm = descRe.exec(block))) {
+      add(
+        `${sectionKey}--richtext-description--${rdi}`,
+        rhm[1].includes("<") ? "html" : "text",
+        rdi === 0 ? "Metin bloğu — açıklama" : `Metin bloğu — açıklama ${rdi + 1}`,
+        rhm[1].trim(),
+      );
+      rdi += 1;
+    }
+  }
+
+  if (block.includes("section-marquee")) {
+    const marqueeHtml = block.match(/class="marquee-text[^"]*"[^>]*>([\s\S]*?)<\/p>/i)?.[1]?.trim() ?? "";
+    add(
+      marqueeTextElementId(sectionKey),
+      "html",
+      "İndirim şeridi metni",
+      marqueeHtml,
+      "Konturlu kısım: *yıldız* ile — örn. %20 indirim *KODU*",
+    );
+  }
+
   const headingRe =
     /class="(media-content-heading|section--heading|section-heading|image-with-text--heading|collection--heading|product-card--title|section--description)[^"]*"[^>]*>([\s\S]*?)<\/[^>]+>/gi;
   let hm: RegExpExecArray | null;
@@ -69,10 +120,13 @@ function extractFieldsFromSectionBlock(sectionKey: string, block: string): Edita
     const hi = headingIdx.get(cls) ?? 0;
     headingIdx.set(cls, hi + 1);
     add(
-      `${sectionKey}--${cls}--${hi}`,
+      `${sectionKey}--section--heading--${hi}`,
       hm[2].includes("<") ? "html" : "text",
       cls.includes("description") ? `Metin ${hi + 1}` : `Başlık ${hi + 1}`,
       hm[2].trim(),
+      cls.includes("section--heading") || cls.includes("section-heading")
+        ? "Vurgulu kısım için *yıldız* kullanın — örn. Müşteri *Yorumları*"
+        : undefined,
     );
   }
 
@@ -197,11 +251,13 @@ function extractFieldsFromSectionBlock(sectionKey: string, block: string): Edita
       re: /class="author-title[^"]*"[^>]*>([\s\S]*?)<\//gi,
       kind: "text",
       label: (i) => `Yorum yazarı ${i + 1}`,
+      idBase: "author-title",
     },
     {
       re: /class="testimonial--desc[^"]*"[^>]*>([\s\S]*?)<\/p>/gi,
       kind: "text",
       label: (i) => `Yorum metni ${i + 1}`,
+      idBase: "testimonial--desc",
     },
     {
       re: /class="product-card--title[^"]*"[^>]*>([\s\S]*?)<\//gi,
@@ -258,11 +314,12 @@ function extractFieldsFromSectionBlock(sectionKey: string, block: string): Edita
 
 export function buildEditableCatalogFromHtml(html: string): Record<string, EditableFieldDef[]> {
   const catalog: Record<string, EditableFieldDef[]> = {};
-  const sectionRe =
-    /id="kn-section-template--[^"]+__([^"]+)"[^>]*class="kn-mirror-section\s+([^"]+)"/g;
+  const sectionOpenRe = /<section\b([^>]*)>/gi;
   let m: RegExpExecArray | null;
-  while ((m = sectionRe.exec(html))) {
-    const sectionKey = m[1];
+  while ((m = sectionOpenRe.exec(html))) {
+    const head = parseMirrorSectionHead(m[1]);
+    if (!head) continue;
+    const sectionKey = head.key;
     const block = sliceSectionHtml(html, sectionKey);
     if (!block) continue;
     const fields = extractFieldsFromSectionBlock(sectionKey, block);

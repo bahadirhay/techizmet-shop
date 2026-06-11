@@ -15,8 +15,18 @@ const LINK_BRIDGE_SCRIPT = `<script id="kn-link-bridge">(function(){
       ".predictive-search--products-list",
       ".main--collection--products-list",
       ".main-collection--products-list",
-      ".product--wrapper",
       "product-set"
+    ].join(","));
+  }
+  function isProductMediaContext(a){
+    return !!a.closest([
+      ".main--product-image-wrapper",
+      ".main--product-image-slider-outer",
+      ".main--product-image-slider",
+      ".main--product-img",
+      "[data-product-media-content]",
+      "product-media-popup",
+      "media-zoom-button"
     ].join(","));
   }
   function isCollectionContext(a){
@@ -46,6 +56,8 @@ const LINK_BRIDGE_SCRIPT = `<script id="kn-link-bridge">(function(){
     var blog=path.match(/(?:^|\\/)(?:[a-z]{2}(?:-[a-z]{2})?\\/)?blogs\\/([^/?#]+)\\.html$/i);
     if(blog)return "/blogs/"+blog[1]+".html"+search+hash;
     if(/(?:^|\\/)index\\.html$/i.test(path))return "/"+search+hash;
+    if(/(?:^|\\/)cart\\.html$/i.test(path))return "/cart"+search+hash;
+    if(/(?:^|\\/)checkout\\.html$/i.test(path))return "/checkout"+search+hash;
     var bare=path.match(/^([^/?#]+)\\.html$/i);
     if(bare){
       if(isProductContext(a))return "/products/"+bare[1]+search+hash;
@@ -53,8 +65,14 @@ const LINK_BRIDGE_SCRIPT = `<script id="kn-link-bridge">(function(){
     }
     return null;
   }
+  function isListingCartControl(el){
+    return !!el.closest("[data-add-to-cart], button[name='add'], .product-checkout-buttons, .product--card-detail-button, purchase-buttons, [data-kn-favorite]");
+  }
   function shouldSkip(a, rawHref){
     if(!rawHref)return true;
+    if(isListingCartControl(a))return true;
+    if(a.classList.contains("product--icon"))return true;
+    if(a.hasAttribute("data-kn-ignore-link")||isProductMediaContext(a))return true;
     var drawer=a.closest('account-drawer');
     if(drawer){
       if(a.closest('.kn-account-logged-in'))return false;
@@ -123,6 +141,7 @@ const LINK_BRIDGE_SCRIPT = `<script id="kn-link-bridge">(function(){
     if(e.defaultPrevented||e.button!==0||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;
     var t=e.target;
     if(!t||!t.closest)return;
+    if(isListingCartControl(t))return;
     var a=t.closest("a[href]");
     if(!a)return;
     var href=resolveTopHref(a);

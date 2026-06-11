@@ -1,7 +1,17 @@
-/** Vitrin tema kimliği — public/theme/{id}, DB themeId, preset dosyaları */
+/** Varsayılan tema paketi — public/theme/{id}/mirror */
 export const STORE_THEME_ID = "techizmet-shop";
 
 export const STORE_THEME_PUBLIC = `/theme/${STORE_THEME_ID}`;
+
+/** Mağaza satırındaki themeId — ileride müşteri başına farklı tema paketi */
+export function resolveSiteThemeId(themeId?: string | null): string {
+  const id = themeId?.trim();
+  return id || STORE_THEME_ID;
+}
+
+export function siteThemePublicPath(themeId?: string | null): string {
+  return `/theme/${resolveSiteThemeId(themeId)}`;
+}
 
 export function storeThemePath(subpath = ""): string {
   const tail = subpath.replace(/^\/+/, "");

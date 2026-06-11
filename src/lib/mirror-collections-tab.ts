@@ -1,6 +1,6 @@
 /** Koleksiyon sekmeleri — İPEKİ / PETAL / HYDRA + sekme ürünleri (TR + EN) */
 
-import { isAnchorNode, isImageNode } from "@/lib/mirror-dom-node";
+import { isAnchorNode, isElementNode, isImageNode } from "@/lib/mirror-dom-node";
 import type { ShopLocale } from "@/lib/i18n/locale";
 
 export type CollectionsTabProductEdit = {
@@ -11,6 +11,10 @@ export type CollectionsTabProductEdit = {
   titleTr: string;
   titleEn: string;
   imageUrl?: string;
+  /** Vitrin fiyat metni — mağaza ürününden (örn. 149,00 ₺) */
+  priceText?: string;
+  /** Vitrinde bu ürün kartını gizle */
+  hidden?: boolean;
 };
 
 export type CollectionsTabItemEdit = {
@@ -20,6 +24,12 @@ export type CollectionsTabItemEdit = {
   labelTr: string;
   labelEn: string;
   products: CollectionsTabProductEdit[];
+  /** Sekmeyi vitrinde gösterme (ör. yalnızca DOĞAL) */
+  hidden?: boolean;
+  /** Fiyat / sepet ikonu satırını göster (varsayılan: göster) */
+  showPricing?: boolean;
+  /** Sekmede kaç ürün kartı görünsün (boş = hepsi) */
+  visibleProductCount?: number;
 };
 
 const TAB_EN_FALLBACK: Record<string, string> = {
@@ -53,6 +63,12 @@ function tabContentBlock(sectionBlock: string, tabId: string): string {
   return next > 0 ? sectionBlock.slice(start, next) : sectionBlock.slice(start, start + 120000);
 }
 
+function productSlugFromHref(href: string): string | null {
+  const m = href.match(/\/products\/([^/?#]+)/i);
+  if (!m) return null;
+  return m[1].replace(/\.html$/i, "");
+}
+
 function extractProductsFromTabBlock(block: string): Omit<CollectionsTabProductEdit, "titleTr" | "titleEn">[] {
   const products: Omit<CollectionsTabProductEdit, "titleTr" | "titleEn">[] = [];
   const innerRe =
@@ -66,11 +82,15 @@ function extractProductsFromTabBlock(block: string): Omit<CollectionsTabProductE
     const imageUrl =
       chunk.match(/data-original="([^"]+)"/i)?.[1] ??
       chunk.match(/\ssrc="(\/theme\/techizmet-shop\/[^"]+)"/i)?.[1];
+    const priceText =
+      chunk.match(/class="product--actual-price[^"]*"[^>]*>([\s\S]*?)<\//i)?.[1]?.replace(/<[^>]+>/g, "").trim() ||
+      undefined;
     products.push({
       key: productKeyFromHref(href, i),
       href: href.trim(),
       title,
       imageUrl: imageUrl?.split("?")[0],
+      priceText,
     });
     i += 1;
   }
@@ -155,6 +175,32 @@ export function collectionsTabProductTitle(p: CollectionsTabProductEdit, locale:
   return p.titleEn?.trim() || p.title?.trim() || p.titleTr || "";
 }
 
+/** Mağaza ürün listesinden sekme kartlarını doldur (başlık, görsel, fiyat) */
+export function enrichCollectionsTabsFromProductOptions<
+  T extends { slug: string; title: string; imageUrl?: string | null; priceLabel: string },
+>(tabs: CollectionsTabItemEdit[], options: T[]): CollectionsTabItemEdit[] {
+  if (!options.length) return tabs;
+  const bySlug = new Map(options.map((o) => [o.slug, o]));
+  return tabs.map((tab) => ({
+    ...tab,
+    products: tab.products.map((p) => {
+      const slug = productSlugFromHref(p.href);
+      const product = slug ? bySlug.get(slug) : undefined;
+      if (!product) return p;
+      return {
+        ...p,
+        key: product.slug,
+        href: `/products/${product.slug}`,
+        titleTr: product.title,
+        titleEn: product.title,
+        title: product.title,
+        imageUrl: product.imageUrl ?? p.imageUrl,
+        priceText: product.priceLabel,
+      };
+    }),
+  }));
+}
+
 function setImg(el: Element, url: string) {
   const bust = url.includes("?") ? url : `${url}?kn=1`;
   el.querySelectorAll("img").forEach((img) => {
@@ -167,24 +213,60 @@ function setImg(el: Element, url: string) {
   });
 }
 
+function setElementDisplay(el: Element | null | undefined, display: string | null) {
+  if (!isElementNode(el)) return;
+  if (!display) el.style.removeProperty("display");
+  else el.style.display = display;
+}
+
 export function applyCollectionsTabToSection(
   sectionEl: Element,
   tabs: CollectionsTabItemEdit[],
   locale: ShopLocale = "tr",
 ) {
+  let firstVisibleTab = true;
+
   for (const tab of tabs) {
     const menuLi = sectionEl.querySelector(`[data-tab-id="${tab.tabId}"]`);
+    const content = sectionEl.querySelector(`[data-content-id="${tab.tabId}"]`);
+
+    if (tab.hidden) {
+      setElementDisplay(menuLi, "none");
+      setElementDisplay(content, "none");
+      content?.classList.remove("active");
+      menuLi?.classList.remove("active");
+      continue;
+    }
+
+    setElementDisplay(menuLi, null);
+    setElementDisplay(content, null);
+
+    const isActive = firstVisibleTab;
+    menuLi?.classList.toggle("active", isActive);
+    content?.classList.toggle("active", isActive);
+    if (isActive) firstVisibleTab = false;
+
     const labelEl = menuLi?.querySelector(".collections-tab--menu-item-link");
     const label = collectionsTabLabel(tab, locale);
     if (labelEl && label) labelEl.textContent = label;
 
-    const content = sectionEl.querySelector(`[data-content-id="${tab.tabId}"]`);
     if (!content || !tab.products.length) continue;
+
+    const showPricing = tab.showPricing !== false;
+    const maxVisible =
+      tab.visibleProductCount != null && tab.visibleProductCount > 0
+        ? Math.floor(tab.visibleProductCount)
+        : undefined;
 
     const boxes = content.querySelectorAll(".collections-tab--menu-content-item-box");
     tab.products.forEach((p, idx) => {
       const box = boxes[idx];
       if (!box) return;
+
+      const hideProduct = Boolean(p.hidden) || (maxVisible != null && idx >= maxVisible);
+      setElementDisplay(box, hideProduct ? "none" : null);
+      if (hideProduct) return;
+
       const link = box.querySelector("a.collections-tab--menu-content-item-inner");
       if (isAnchorNode(link) && p.href) link.href = p.href;
       const title = box.querySelector(".collections-tab--menu-content-title");
@@ -194,6 +276,11 @@ export function applyCollectionsTabToSection(
         const imgWrap = box.querySelector(".collections-tab--menu-content-image");
         if (imgWrap) setImg(imgWrap, p.imageUrl);
       }
+      if (p.priceText?.trim()) {
+        const priceEl = box.querySelector(".product--actual-price");
+        if (priceEl) priceEl.textContent = p.priceText.trim();
+      }
+      setElementDisplay(box.querySelector(".collections-tab--info"), showPricing ? null : "none");
     });
   }
 }
@@ -233,12 +320,17 @@ export function mergeCollectionsTabEdits(
         titleEn: ep.titleEn?.trim() || dp.titleEn,
         href: ep.href || dp.href,
         imageUrl: ep.imageUrl ?? dp.imageUrl,
+        priceText: ep.priceText?.trim() || dp.priceText,
+        hidden: ep.hidden ?? dp.hidden,
       };
     });
     return normalizeTab({
       ...d,
       labelTr: e.labelTr?.trim() || e.label?.trim() || d.labelTr,
       labelEn: e.labelEn?.trim() || d.labelEn,
+      hidden: e.hidden ?? d.hidden,
+      showPricing: e.showPricing ?? d.showPricing,
+      visibleProductCount: e.visibleProductCount ?? d.visibleProductCount,
       products,
     });
   });

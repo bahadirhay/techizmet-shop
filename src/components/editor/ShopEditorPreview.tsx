@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type { EditorShopBlock } from "@/lib/blocks/editor-ids";
+import { featureCardIconHtml, type FeatureCardIconKey } from "@/lib/feature-cards-icons";
 
 export function ShopEditorPreview({ blocks }: { blocks: EditorShopBlock[] }) {
   return (
@@ -163,6 +163,67 @@ function PreviewBlock({ block }: { block: EditorShopBlock }) {
           </div>
         </div>
       );
+    case "featureCards":
+      return (
+        <div
+          className="kn-fc-preview px-4 py-10"
+          style={{ background: block.props.backgroundColor ?? "#faf7f2" }}
+        >
+          <div className="mx-auto mb-8 max-w-xl text-center">
+            <h2 className="text-2xl font-bold text-zinc-900">{block.props.title}</h2>
+            {block.props.subtitle ? <p className="mt-3 text-sm text-zinc-500">{block.props.subtitle}</p> : null}
+          </div>
+          <div className="mx-auto grid max-w-5xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {block.props.items.map((item) => (
+              <div key={item.id} className="rounded-2xl bg-white p-6 shadow-md">
+                <div className="mb-4 text-2xl font-bold">
+                  {item.iconUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={item.iconUrl} alt="" className="h-12 w-12 object-contain" />
+                  ) : item.iconKey ? (
+                    <span
+                      className="inline-block [&_svg]:h-12 [&_svg]:w-12"
+                      dangerouslySetInnerHTML={{
+                        __html: featureCardIconHtml(item.iconKey as FeatureCardIconKey).replace(
+                          /^<div[^>]*>|<\/div>$/g,
+                          "",
+                        ),
+                      }}
+                    />
+                  ) : (
+                    item.iconText ?? "★"
+                  )}
+                </div>
+                <h3 className="font-bold text-zinc-900">{item.heading}</h3>
+                <p className="mt-2 text-sm text-zinc-500">{item.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    case "map": {
+      const url =
+        block.props.embedUrl?.trim() ||
+        (block.props.address?.trim()
+          ? `https://maps.google.com/maps?q=${encodeURIComponent(block.props.address.trim())}&output=embed`
+          : null);
+      if (!url) return (
+        <div className="flex h-32 items-center justify-center rounded-xl border-2 border-dashed border-zinc-600 text-sm text-zinc-400">
+          📍 Harita — URL veya adres girin
+        </div>
+      );
+      const fw = block.props.fullWidth;
+      return (
+        <div style={{ width: "100%", overflow: "hidden", borderRadius: fw ? "0" : "12px" }}>
+          <iframe
+            title="Harita önizleme"
+            src={url}
+            style={{ width: "100%", height: block.props.height ?? 400, border: "none", display: "block" }}
+            loading="lazy"
+          />
+        </div>
+      );
+    }
     default:
       return null;
   }

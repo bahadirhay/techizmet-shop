@@ -39,7 +39,10 @@ export default async function PagesListPage() {
       <section className="mt-8">
         <h2 className="text-lg font-semibold text-zinc-900">Vitrin sayfaları (canlı sitedeki içerik)</h2>
         <p className="mt-1 text-sm text-zinc-600">
-          Ana sayfa, koleksiyonlar, blog listesi, hakkımızda, iletişim ve SSS — bölüm düzenleme + widget ekleme (slayt, metin, görsel).
+          Ana sayfa, koleksiyonlar, blog listesi, hakkımızda, iletişim, SSS ve politika sayfaları — bölüm
+          düzenleme + widget ekleme
+          (slayt, metin, görsel, <strong>özellik kartları</strong>). Widget: sayfayı aç →{" "}
+          <strong>Widget&apos;lar</strong> → <strong>Ekle → Özellikler → Özellik kartları</strong>.
           Ana sayfadaki blog kartları: <Link href="/admin/blog" className="font-medium underline">Blog yazıları</Link>{" "}
           (öne çıkar işareti).
         </p>

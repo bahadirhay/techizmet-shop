@@ -23,6 +23,21 @@ function escapeHtml(s: string) {
     .replace(/"/g, "&quot;");
 }
 
+function resolveBlogBannerImageUrl(_slug: string, preferred?: string | null): string {
+  const norm = preferred?.trim() ? normalizeBlogImageUrl(preferred) : "";
+  if (!norm) return "";
+  if (
+    norm.startsWith("/uploads/") ||
+    norm.startsWith("/api/media/") ||
+    norm.startsWith("/brands/") ||
+    norm.startsWith("http://") ||
+    norm.startsWith("https://")
+  ) {
+    return norm;
+  }
+  return norm.startsWith("/") ? norm : `/${norm}`;
+}
+
 export function normalizeBlogImageUrl(url: string): string {
   const u = url.trim().split("?")[0]?.replace(/\{width\}/gi, "") ?? "";
   if (!u) return "";
@@ -38,7 +53,7 @@ export function setBlogImageInHtmlChunk(chunk: string, url: string, alt: string)
   const safeAlt = escapeHtml(alt);
   let out = chunk;
   out = out.replace(
-    /<img[^>]*class="[^"]*(?:lazyload|kn-blog-card-img)[^"]*"[^>]*>/i,
+    /<img[\s\S]*?class="[^"]*(?:lazyload|kn-blog-card-img)[^"]*"[\s\S]*?>/i,
     `<img class="no-js-hidden kn-blog-card-img" src="${safeUrl}" data-src="${safeUrl}" data-original="${safeUrl}" alt="${safeAlt}" loading="eager">`,
   );
   out = out.replace(
@@ -151,13 +166,32 @@ export function injectBlogArticleIntoHtml(
   const author = post.author?.trim() ?? "";
 
   let out = html;
-  out = out.replace(/<title>[\s\S]*?<\/title>/i, `<title>${escapeHtml(title)} — ${escapeHtml(siteName)}</title>`);
+  const safeTitle = escapeHtml(title);
+  const safeSite = escapeHtml(siteName);
+  out = out.replace(/<title>[\s\S]*?<\/title>/i, `<title>${safeTitle} — ${safeSite}</title>`);
   if (desc) {
+    const safeDesc = escapeHtml(desc);
     out = out.replace(
       /<meta name="description" content="[^"]*">/i,
-      `<meta name="description" content="${escapeHtml(desc)}">`,
+      `<meta name="description" content="${safeDesc}">`,
+    );
+    out = out.replace(
+      /<meta property="og:description" content="[^"]*">/i,
+      `<meta property="og:description" content="${safeDesc}">`,
+    );
+    out = out.replace(
+      /<meta name="twitter:description" content="[^"]*">/i,
+      `<meta name="twitter:description" content="${safeDesc}">`,
     );
   }
+  out = out.replace(
+    /<meta property="og:title" content="[^"]*">/i,
+    `<meta property="og:title" content="${safeTitle}">`,
+  );
+  out = out.replace(
+    /<meta name="twitter:title" content="[^"]*">/i,
+    `<meta name="twitter:title" content="${safeTitle}">`,
+  );
   out = out.replace(
     /<h2 class="page--title[^"]*">[\s\S]*?<\/h2>/i,
     `<h2 class="page--title page--item h2">${escapeHtml(title)}</h2>`,
@@ -174,17 +208,34 @@ export function injectBlogArticleIntoHtml(
       `<li class="blog--data text-large author--name">${escapeHtml(author)}</li>`,
     );
   }
-  if (post.imageUrl?.trim()) {
+  const bannerUrl = resolveBlogBannerImageUrl(post.slug, post.imageUrl);
+  if (bannerUrl) {
     const bannerBlock = out.match(/<div class="page--banner-img[\s\S]*?<\/div>\s*<\/div>/i)?.[0];
     if (bannerBlock) {
-      const patched = setBlogImageInHtmlChunk(bannerBlock, post.imageUrl.trim(), title);
+      const patched = setBlogImageInHtmlChunk(bannerBlock, bannerUrl, title);
       out = out.replace(bannerBlock, patched);
     }
+    const safeBanner = bannerUrl.replace(/"/g, "&quot;");
+    out = out.replace(
+      /<meta property="og:image" content="[^"]*">/i,
+      `<meta property="og:image" content="${safeBanner}">`,
+    );
+    out = out.replace(
+      /<meta name="twitter:image" content="[^"]*">/i,
+      `<meta name="twitter:image" content="${safeBanner}">`,
+    );
   }
-  out = out.replace(
-    /<div class="main-article--body rte">[\s\S]*?<\/div>\s*(?=<div class="main-article--related">)/i,
-    `<div class="main-article--body rte">${body || "<p></p>"}</div>\n      `,
-  );
+  const bodyBlock =
+    out.match(
+      /<div class="main-article--body rte">[\s\S]*?<\/div>\s*(?=<div class="main-article--related">)/i,
+    )?.[0] ??
+    out.match(/<div class="main-article--body rte">[\s\S]*?<\/div>/i)?.[0];
+  if (bodyBlock) {
+    out = out.replace(
+      bodyBlock,
+      `<div class="main-article--body rte">${body || "<p></p>"}</div>\n      `,
+    );
+  }
   return out;
 }
 

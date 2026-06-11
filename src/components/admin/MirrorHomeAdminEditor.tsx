@@ -104,8 +104,10 @@ export function MirrorHomeAdminEditor({
     [config.order, catalogMap],
   );
 
+  const sortableIds = useMemo(() => ordered.map((s) => s.key), [ordered]);
+
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
@@ -217,7 +219,7 @@ export function MirrorHomeAdminEditor({
         <aside className="ed-vitrin-sections">
           <p className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-400">Bölüm sırası</p>
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-            <SortableContext items={config.order} strategy={verticalListSortingStrategy}>
+            <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
               {ordered.map((s) => (
                 <SortableSectionRow
                   key={s.key}

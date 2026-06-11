@@ -21,6 +21,7 @@ const nextConfig: NextConfig = {
       { source: "/products/:slug.html", destination: "/products/:slug", permanent: true },
       { source: "/collections/:slug.html", destination: "/collections/:slug", permanent: true },
       { source: "/pages/:slug.html", destination: "/pages/:slug", permanent: true },
+      { source: "/policies/:slug.html", destination: "/pages/:slug", permanent: true },
       { source: "/blogs/news.html", destination: "/blogs/news", permanent: true },
       {
         source: "/blogs/news/:slug.html",
@@ -51,8 +52,14 @@ const nextConfig: NextConfig = {
       { source: "/api/admin/:path*", headers: [...noStore] },
       { source: "/_mirror-prebuilt/:path*", headers: [...prebuiltCache] },
       {
-        source: "/theme/techizmet-shop/mirror/:path*",
+        // JS/CSS/images — uzun süreli cache uygun
+        source: "/theme/techizmet-shop/mirror/:path((?!.*\\.html).*)",
         headers: [...prebuiltCache],
+      },
+      {
+        // HTML dosyaları — admin değişikliklerinin anında yansıması için kısa cache
+        source: "/theme/techizmet-shop/mirror/:path*.html",
+        headers: [{ key: "Cache-Control", value: "public, max-age=0, must-revalidate" }],
       },
     ];
   },

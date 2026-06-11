@@ -14,7 +14,10 @@ export type ProductSeoHealthInput = {
   seoDescription: string;
   description: string;
   descriptionHtml: string;
+  keyFeaturesHtml: string;
+  howToUseHtml: string;
   brandId: string;
+  categoryId: string;
   imageUrl: string;
   barcode: string;
   published: boolean;
@@ -22,17 +25,15 @@ export type ProductSeoHealthInput = {
   siteUrl?: string;
 };
 
-function len(s: string): number {
-  return s.trim().length;
-}
-
 export function evaluateProductSeoHealth(input: ProductSeoHealthInput): ProductSeoHealthItem[] {
   const items: ProductSeoHealthItem[] = [];
   const title = input.title.trim();
   const seoTitle = input.seoTitle.trim();
   const seoDesc = input.seoDescription.trim();
   const slug = input.slug.trim();
-  const hasBody = Boolean(input.description.trim() || input.descriptionHtml.trim());
+  const hasIntro = Boolean(input.description.trim() || input.descriptionHtml.trim());
+  const hasFeatures = Boolean(input.keyFeaturesHtml.trim());
+  const hasHowToUse = Boolean(input.howToUseHtml.trim());
   const previewUrl =
     input.siteUrl && slug ? `${input.siteUrl.replace(/\/$/, "")}/products/${slug}` : null;
 
@@ -41,6 +42,15 @@ export function evaluateProductSeoHealth(input: ProductSeoHealthInput): ProductS
     label: "Ürün adı",
     status: title.length >= 3 ? "ok" : "fail",
     detail: title.length >= 3 ? `"${title}"` : "Ürün adı zorunlu",
+  });
+
+  items.push({
+    id: "category",
+    label: "Kategori",
+    status: input.categoryId.trim() ? "ok" : "warn",
+    detail: input.categoryId.trim()
+      ? "Seçili — Google ve pazaryeri eşlemesi için"
+      : "Kategori seçin — SEO ve komisyon kuralları için",
   });
 
   items.push({
@@ -61,7 +71,7 @@ export function evaluateProductSeoHealth(input: ProductSeoHealthInput): ProductS
           : "fail",
     detail: seoTitle
       ? `${seoTitle.length} karakter${seoTitle.length > 65 ? " — 60 civarı ideal" : ""}`
-      : "Boş — Google için özel başlık önerilir",
+      : "Boş — «SEO çalışması yap» veya meta otomatik doldur",
   });
 
   items.push({
@@ -94,9 +104,25 @@ export function evaluateProductSeoHealth(input: ProductSeoHealthInput): ProductS
 
   items.push({
     id: "body",
-    label: "Ürün açıklaması",
-    status: hasBody ? "ok" : "warn",
-    detail: hasBody ? "Sayfa içeriği / snippet kaynağı" : "Kısa veya HTML açıklama ekleyin",
+    label: "Ürün tanıtımı (Description)",
+    status: hasIntro ? "ok" : "warn",
+    detail: hasIntro ? "Vitrin accordion — Google içerik sinyali" : "Tanıtım metni ekleyin veya SEO çalışması yapın",
+  });
+
+  items.push({
+    id: "features",
+    label: "Özellikler / besin değerleri",
+    status: hasFeatures ? "ok" : "warn",
+    detail: hasFeatures
+      ? "Key Features — içerik, besin tablosu, faydalar"
+      : "Pet food için besin değerleri buraya — SEO çalışması doldurur",
+  });
+
+  items.push({
+    id: "how-to-use",
+    label: "Kullanım talimatları",
+    status: hasHowToUse ? "ok" : "warn",
+    detail: hasHowToUse ? "Veriliş miktarı, saklama, uyarılar" : "How to Use — SEO çalışması ile oluşturulabilir",
   });
 
   items.push({
@@ -104,7 +130,7 @@ export function evaluateProductSeoHealth(input: ProductSeoHealthInput): ProductS
     label: "Barkod (GTIN)",
     status: input.barcode.trim() ? "ok" : "warn",
     detail: input.barcode.trim()
-      ? "JSON-LD gtin13 için kullanılır"
+      ? "JSON-LD gtin13 + pazaryeri eşleşmesi"
       : "Pazaryeri + zengin sonuç için önerilir",
   });
 
@@ -112,9 +138,9 @@ export function evaluateProductSeoHealth(input: ProductSeoHealthInput): ProductS
     items.push({
       id: "mirror",
       label: "Mirror vitrin",
-      status: "warn",
+      status: hasIntro && hasFeatures ? "ok" : "warn",
       detail:
-        "Ürün iframe içinde gösterilir; dış sayfadaki h1/açıklama ve meta alanları Google için ana kaynak. iframe SEO kalıntıları otomatik temizlenir.",
+        "Accordion alanları (Description, Features, How to Use) vitrin iframe'ine yazılır — meta alanları dış kabukta.",
     });
   }
 

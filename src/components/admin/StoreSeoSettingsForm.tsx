@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AdminField, btnPrimary, inputClass } from "@/components/admin/AdminForm";
 import { ImageUploadField } from "@/components/admin/ImageUploadField";
+import { SiteSeoAuditPanel } from "@/components/admin/SiteSeoAuditPanel";
 
 export function StoreSeoSettingsForm({
   initial,
@@ -18,6 +19,9 @@ export function StoreSeoSettingsForm({
       metaKeywords: string;
       ogImageUrl: string;
       googleSiteVerification: string;
+      yandexVerification: string;
+      bingVerification: string;
+      organizationName: string;
       googleAnalyticsId: string;
       facebookPixelId: string;
       robotsIndex: boolean;
@@ -36,10 +40,14 @@ export function StoreSeoSettingsForm({
   async function save() {
     setBusy(true);
     setMsg(null);
+    // staticPages yalnızca site SEO optimizasyonu ile doldurulur — form kaydında gönderilmez
+    const { staticPages: _ignored, ...seoFields } = seo as typeof seo & {
+      staticPages?: Record<string, unknown>;
+    };
     const res = await fetch("/api/admin/settings/seo", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ branding, seo }),
+      body: JSON.stringify({ branding, seo: seoFields }),
     });
     const j = (await res.json()) as {
       error?: string;
@@ -73,18 +81,15 @@ export function StoreSeoSettingsForm({
           label="Site logosu (koyu arka plan)"
           value={branding.logoUrl}
           onChange={(url) => setBranding((b) => ({ ...b, logoUrl: url }))}
-          aspectRatio={3}
-          outputWidth={480}
-          outputHeight={160}
-          hint="Sürükle-bırak veya seçin; kırpma penceresinde konumlandırın. Geniş logo (≈3:1)."
+          logoFit={{ maxWidth: 360, maxHeight: 96, trim: true }}
+          hint="PNG önerilir. Boş kenarlar otomatik kırpılır; oran bozulmaz. Açık zeminli koyu logo yükleyin."
         />
         <ImageUploadField
           label="Logo (açık / şeffaf header)"
           value={branding.logoUrlLight}
           onChange={(url) => setBranding((b) => ({ ...b, logoUrlLight: url }))}
-          aspectRatio={3}
-          outputWidth={480}
-          outputHeight={160}
+          logoFit={{ maxWidth: 360, maxHeight: 96, trim: true }}
+          hint="Koyu veya şeffaf header için beyaz/açık renkli logo."
         />
         <ImageUploadField
           label="Favicon"
@@ -141,6 +146,29 @@ export function StoreSeoSettingsForm({
             onChange={(e) => setSeo((s) => ({ ...s, googleSiteVerification: e.target.value }))}
           />
         </AdminField>
+        <AdminField label="Yandex doğrulama kodu">
+          <input
+            className={inputClass}
+            placeholder="yandex-verification"
+            value={seo.yandexVerification}
+            onChange={(e) => setSeo((s) => ({ ...s, yandexVerification: e.target.value }))}
+          />
+        </AdminField>
+        <AdminField label="Bing doğrulama kodu (msvalidate.01)">
+          <input
+            className={inputClass}
+            value={seo.bingVerification}
+            onChange={(e) => setSeo((s) => ({ ...s, bingVerification: e.target.value }))}
+          />
+        </AdminField>
+        <AdminField label="Kuruluş adı (schema.org)">
+          <input
+            className={inputClass}
+            value={seo.organizationName}
+            onChange={(e) => setSeo((s) => ({ ...s, organizationName: e.target.value }))}
+            placeholder={siteName}
+          />
+        </AdminField>
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
@@ -154,8 +182,14 @@ export function StoreSeoSettingsForm({
           <a href="/sitemap.xml" target="_blank" rel="noreferrer" className="text-[var(--kn-brand)] underline">
             {siteUrl}/sitemap.xml
           </a>
+          {" · "}
+          <a href="/robots.txt" target="_blank" rel="noreferrer" className="text-[var(--kn-brand)] underline">
+            robots.txt
+          </a>
         </p>
       </section>
+
+      <SiteSeoAuditPanel />
 
       <section className="admin-card admin-card-pad space-y-4">
         <h2 className="text-lg font-semibold">İzleme & piksel</h2>

@@ -1,3 +1,5 @@
+import type { ProductHighlight } from "@/lib/product-highlights";
+
 export type ProductSeoInsight = {
   source: "google" | "site" | "marketplace" | "analysis" | "ai";
   label: string;
@@ -16,6 +18,10 @@ export type ProductSeoOptimizeResult = {
   suggestedDescription?: string;
   suggestedDescriptionHtml?: string;
   suggestedKeyFeaturesHtml?: string;
+  /** Kullanım / veriliş talimatları (besin değerleri keyFeatures içinde) */
+  suggestedHowToUseHtml?: string;
+  /** Sepete ekle altı ikon şeridi */
+  suggestedHighlights?: ProductHighlight[];
   keywords: string[];
   score: number;
   insights: ProductSeoInsight[];
@@ -30,4 +36,8 @@ export type ProductSeoOptimizeInput = {
   categoryIds: string[];
   brandId?: string;
   productId?: string;
+  /** Net ürün ağırlığı (gram) — pazaryeri başlığına gramaj olarak eklenir */
+  weightGrams?: number;
+  /** Paketteki adet — başlıkta belirtilmemişse "X'li Paket" eklenir */
+  pieceCount?: number;
 };

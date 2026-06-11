@@ -45,7 +45,16 @@ export function mergeSiteSettings(current: SiteSettings, patch: SiteSettings): S
         }
       : current.theme,
     branding: patch.branding ? { ...current.branding, ...patch.branding } : current.branding,
-    seo: patch.seo ? { ...current.seo, ...patch.seo } : current.seo,
+    seo: patch.seo
+      ? {
+          ...current.seo,
+          ...patch.seo,
+          staticPages:
+            patch.seo.staticPages !== undefined
+              ? { ...current.seo?.staticPages, ...patch.seo.staticPages }
+              : current.seo?.staticPages,
+        }
+      : current.seo,
     payment: patch.payment
       ? {
           ...current.payment,
@@ -110,6 +119,7 @@ export function mergeSiteSettings(current: SiteSettings, patch: SiteSettings): S
           ...current.ops,
           ...patch.ops,
           cron: patch.ops.cron ? { ...current.ops?.cron, ...patch.ops.cron } : current.ops?.cron,
+          gsc: patch.ops.gsc !== undefined ? patch.ops.gsc : current.ops?.gsc,
         }
       : current.ops,
     customerAuth: patch.customerAuth
@@ -117,5 +127,9 @@ export function mergeSiteSettings(current: SiteSettings, patch: SiteSettings): S
       : current.customerAuth,
     efatura: patch.efatura ? { ...current.efatura, ...patch.efatura } : current.efatura,
     seoAi: patch.seoAi ? { ...current.seoAi, ...patch.seoAi } : current.seoAi,
+    blogAutomation: patch.blogAutomation
+      ? { ...current.blogAutomation, ...patch.blogAutomation }
+      : current.blogAutomation,
+    gsc: patch.gsc ? { ...current.gsc, ...patch.gsc } : current.gsc,
   };
 }

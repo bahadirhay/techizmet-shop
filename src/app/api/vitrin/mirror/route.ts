@@ -43,6 +43,15 @@ export async function GET(req: Request) {
   const locale = await getStoreLocaleFromHeaders();
   const pageKeyParam = url.searchParams.get("pageKey")?.trim() ?? "";
   const blogSlug = url.searchParams.get("blogSlug")?.trim().replace(/\.html$/i, "") ?? "";
+  const productSlug = url.searchParams.get("productSlug")?.trim().replace(/\.html$/i, "") ?? "";
+  const cmsSlug = url.searchParams.get("cmsSlug")?.trim() ?? "";
+  const layoutOrderRaw = url.searchParams.get("layoutOrder")?.trim() ?? "";
+  const layoutOrder = layoutOrderRaw
+    ? layoutOrderRaw
+        .split(",")
+        .map((k) => k.trim())
+        .filter(Boolean)
+    : undefined;
 
   let localized = await buildMirrorHtml({
     normalized,
@@ -51,6 +60,9 @@ export async function GET(req: Request) {
     siteName: site.name,
     pageKey: pageKeyParam || undefined,
     blogSlug: blogSlug || undefined,
+    productSlug: productSlug || undefined,
+    cmsSlug: cmsSlug || undefined,
+    layoutOrder,
   });
 
   const isProductMirror = /\/mirror\/products\/([^/]+)\.html$/i.test(normalized);
@@ -62,6 +74,7 @@ export async function GET(req: Request) {
       normalized,
       locale,
       settings,
+      productSlug || undefined,
     );
   }
 
@@ -110,7 +123,13 @@ export async function GET(req: Request) {
     }
   }
 
-  const cacheable = !isMirrorPathUncacheable(normalized, blogSlug);
+  const cacheable = !isMirrorPathUncacheable(
+    normalized,
+    blogSlug,
+    layoutOrder,
+    productSlug,
+    cmsSlug,
+  );
   const cacheControl = cacheable
     ? "public, s-maxage=300, stale-while-revalidate=600"
     : "private, no-cache, must-revalidate";

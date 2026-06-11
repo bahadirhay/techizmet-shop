@@ -11,16 +11,19 @@ export function loadImageFromFile(file: File): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
     const img = new Image();
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      resolve(img);
-    };
+    img.onload = () => resolve(img);
     img.onerror = () => {
       URL.revokeObjectURL(url);
       reject(new Error("Görsel okunamadı"));
     };
     img.src = url;
   });
+}
+
+/** loadImageFromFile sonrası blob önizleme URL'sini serbest bırak */
+export function releaseImageObjectUrl(img: HTMLImageElement | null | undefined) {
+  const src = img?.src;
+  if (src?.startsWith("blob:")) URL.revokeObjectURL(src);
 }
 
 /** Görseli kırpıp hedef boyuta ölçekler; JPEG/PNG çıktı */
@@ -51,6 +54,66 @@ export async function cropImageToBlob(
       quality,
     );
   });
+}
+
+function isTrimEmpty(r: number, g: number, b: number, a: number): boolean {
+  if (a < 16) return true;
+  return r >= 248 && g >= 248 && b >= 248;
+}
+
+/** Logo — boş kenarları kırp (şeffaf veya beyaz) */
+export function trimImageBounds(img: HTMLImageElement): CropRect {
+  const canvas = document.createElement("canvas");
+  canvas.width = img.naturalWidth;
+  canvas.height = img.naturalHeight;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    return { x: 0, y: 0, width: img.naturalWidth, height: img.naturalHeight };
+  }
+  ctx.drawImage(img, 0, 0);
+  const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const w = canvas.width;
+  const h = canvas.height;
+  let top = h;
+  let left = w;
+  let bottom = 0;
+  let right = 0;
+
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      if (!isTrimEmpty(data[i]!, data[i + 1]!, data[i + 2]!, data[i + 3]!)) {
+        top = Math.min(top, y);
+        left = Math.min(left, x);
+        bottom = Math.max(bottom, y);
+        right = Math.max(right, x);
+      }
+    }
+  }
+
+  if (top > bottom || left > right) {
+    return { x: 0, y: 0, width: w, height: h };
+  }
+
+  return {
+    x: left,
+    y: top,
+    width: Math.max(1, right - left + 1),
+    height: Math.max(1, bottom - top + 1),
+  };
+}
+
+/** Logo — oranı koru, kutuya sığdır, dosyada boş şerit bırakma */
+export async function prepareLogoImageBlob(
+  img: HTMLImageElement,
+  opts: { maxWidth: number; maxHeight: number; trim?: boolean; mime?: "image/png" | "image/jpeg" },
+): Promise<Blob> {
+  const bounds = opts.trim === false ? { x: 0, y: 0, width: img.naturalWidth, height: img.naturalHeight } : trimImageBounds(img);
+  const scale = Math.min(1, opts.maxWidth / bounds.width, opts.maxHeight / bounds.height);
+  const outW = Math.max(1, Math.round(bounds.width * scale));
+  const outH = Math.max(1, Math.round(bounds.height * scale));
+  const mime = opts.mime ?? "image/png";
+  return cropImageToBlob(img, bounds, { width: outW, height: outH, mime, quality: 0.95 });
 }
 
 /** Kırpmasız — en uzun kenarı maxPx ile küçült */

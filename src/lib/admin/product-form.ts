@@ -40,6 +40,7 @@ type ProductRow = {
   stockQty: number;
   lowStockThreshold: number;
   weightGrams: number | null;
+  pieceCount: number | null;
   desi: number | null;
   seoTitle: string | null;
   seoDescription: string | null;
@@ -83,6 +84,7 @@ export function emptyProductForm(): ProductFormData {
     stockQty: "0",
     lowStockThreshold: "5",
     weightGrams: "",
+    pieceCount: "",
     desi: "",
     seoTitle: "",
     seoDescription: "",
@@ -149,6 +151,7 @@ export function productToForm(
     stockQty: String(p.stockQty),
     lowStockThreshold: String(p.lowStockThreshold),
     weightGrams: p.weightGrams != null ? String(p.weightGrams) : "",
+    pieceCount: p.pieceCount != null ? String(p.pieceCount) : "",
     desi: p.desi != null ? String(p.desi) : "",
     seoTitle: p.seoTitle ?? "",
     seoDescription: p.seoDescription ?? "",

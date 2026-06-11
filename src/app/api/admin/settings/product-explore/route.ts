@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { revalidateStorePublicCache } from "@/lib/cache/revalidate-store-public";
+import { clearDevMirrorHtmlCache } from "@/lib/mirror-html-build";
 import { mergeSiteSettings } from "@/lib/merge-site-settings";
 import type { ProductPageBottomSettings } from "@/lib/product-page-bottom";
 import {
@@ -98,9 +99,6 @@ export async function PATCH(req: Request) {
 
   const body = (await req.json()) as { looks?: unknown; pageBottom?: unknown };
   const looks = cleanLooks(body.looks);
-  if (!looks.length) {
-    return NextResponse.json({ error: "En az bir Keşfet kartı (görsel) gerekli" }, { status: 400 });
-  }
 
   const pageBottom = cleanBottom(body.pageBottom);
   if (!pageBottom) {
@@ -134,6 +132,7 @@ export async function PATCH(req: Request) {
     revalidatePath(`/products/${p.slug}`);
   }
   revalidateStorePublicCache(auth.siteId);
+  clearDevMirrorHtmlCache();
 
   return NextResponse.json({ ok: true, looks, pageBottom });
 }

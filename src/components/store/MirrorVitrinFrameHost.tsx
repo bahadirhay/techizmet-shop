@@ -14,12 +14,14 @@ function MirrorVitrinFrameInner({
   src,
   title,
   locale,
+  usdRate,
   collectionsFromAdmin,
   categoriesFromAdmin,
 }: {
   src: string;
   title: string;
   locale: ShopLocale;
+  usdRate?: number;
   collectionsFromAdmin?: VitrinCollectionCard[];
   categoriesFromAdmin?: VitrinCollectionCategoryOption[];
 }) {
@@ -29,6 +31,7 @@ function MirrorVitrinFrameInner({
       src={src}
       title={title}
       locale={locale}
+      usdRate={usdRate}
       pageConfig={hydration?.pageConfig}
       branding={hydration?.branding}
       mirrorTexts={hydration?.mirrorTexts}
@@ -58,6 +61,7 @@ export function MirrorVitrinFrameHost({
   src,
   title,
   locale,
+  usdRate,
   hydrationPromise,
   collectionsFromAdmin,
   categoriesFromAdmin,
@@ -65,6 +69,7 @@ export function MirrorVitrinFrameHost({
   src: string;
   title: string;
   locale: ShopLocale;
+  usdRate?: number;
   hydrationPromise: Promise<MirrorVitrinHydration>;
   collectionsFromAdmin?: VitrinCollectionCard[];
   categoriesFromAdmin?: VitrinCollectionCategoryOption[];
@@ -77,6 +82,7 @@ export function MirrorVitrinFrameHost({
         src={src}
         title={title}
         locale={locale}
+        usdRate={usdRate}
         collectionsFromAdmin={collectionsFromAdmin}
         categoriesFromAdmin={categoriesFromAdmin}
       />

@@ -9,6 +9,9 @@ export type MirrorFooterData = {
   introHtml?: string;
   taglineHtml?: string;
   columns: MirrorFooterColumn[];
+  bottomLinks?: { href: string; label: string }[];
+  /** Undefined veya boş = hepsi görünür */
+  paymentIcons?: string[];
 };
 
 function footerLinkHtml(href: string, label: string): string {
@@ -39,19 +42,39 @@ export function applyMirrorFooter(doc: Document, footer: MirrorFooterData) {
       });
   }
 
-  if (!footer.columns.length) return;
+  if (footer.columns.length) {
+    const menus = doc.querySelectorAll(".footer--menu");
+    footer.columns.forEach((col, idx) => {
+      const menu = menus[idx];
+      if (!menu) return;
 
-  const menus = doc.querySelectorAll(".footer--menu");
-  footer.columns.forEach((col, idx) => {
-    const menu = menus[idx];
-    if (!menu) return;
+      const heading = menu.querySelector(".footer--menu-heading, summary.footer--menu-heading");
+      if (heading && col.title) setMenuHeading(heading, col.title);
 
-    const heading = menu.querySelector(".footer--menu-heading, summary.footer--menu-heading");
-    if (heading && col.title) setMenuHeading(heading, col.title);
+      const ul = menu.querySelector("ul.footer--menu-list");
+      if (ul && col.links.length) {
+        ul.innerHTML = col.links.map((l) => footerLinkHtml(l.href, l.label)).join("");
+      }
+    });
+  }
 
-    const ul = menu.querySelector("ul.footer--menu-list");
-    if (ul && col.links.length) {
-      ul.innerHTML = col.links.map((l) => footerLinkHtml(l.href, l.label)).join("");
-    }
-  });
+  if (footer.bottomLinks?.length) {
+    doc.querySelectorAll(".footer-quick-links").forEach((ul) => {
+      ul.innerHTML = footer
+        .bottomLinks!.map(
+          (l) =>
+            `<li><a href="${l.href.replace(/"/g, "&quot;")}" class="footer-quick-links-link text-small">${l.label.replace(/</g, "&lt;")}</a></li>`,
+        )
+        .join("");
+    });
+  }
+
+  if (footer.paymentIcons !== undefined) {
+    const allowed = new Set(footer.paymentIcons.map((s) => s.toLowerCase()));
+    doc.querySelectorAll(".payment-icons .payment-icons-item").forEach((li) => {
+      const title = li.querySelector("title")?.textContent?.toLowerCase() ?? "";
+      const matches = [...allowed].some((id) => title.includes(id));
+      (li as HTMLElement).style.display = matches ? "" : "none";
+    });
+  }
 }

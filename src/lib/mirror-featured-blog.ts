@@ -1,6 +1,8 @@
 import { setBlogImageInHtmlChunk } from "@/lib/blog/mirror-blog-inject";
 import { blogPostHref } from "@/lib/blog/blog-post-types";
 import {
+  BLOG_ITEM_OPEN_TOKEN,
+  normalizeBlogItemHtml,
   patchBlogLinksInChunk,
   reassembleBlogItemHtml,
   splitBlogItemHtmlParts,
@@ -52,7 +54,7 @@ export function extractFeaturedBlogPostsFromHtml(
   if (!block) return [];
 
   const posts: FeaturedBlogPostData[] = [];
-  const parts = block.split('class="blog--item');
+  const parts = normalizeBlogItemHtml(block).split(BLOG_ITEM_OPEN_TOKEN);
   for (let i = 1; i < parts.length; i++) {
     const chunk = parts[i];
     const href =

@@ -1,5 +1,10 @@
 import { normalizeMirrorCustomBlocks } from "@/lib/mirror-custom-block-types";
 import type { MirrorElementEdit, MirrorElementKind } from "@/lib/mirror-element-edits";
+import { canonicalElementEditId } from "@/lib/mirror-element-edits";
+import {
+  hasMirrorTypography,
+  sanitizeMirrorElementTypography,
+} from "@/lib/mirror-element-typography";
 import type { CollectionsTabItemEdit } from "@/lib/mirror-collections-tab";
 import type { MediaGridItemEdit } from "@/lib/mirror-media-grid";
 import type { ShopTheLookSectionEdit } from "@/lib/mirror-shop-the-look";
@@ -16,7 +21,7 @@ export function sanitizeMirrorPageConfig(
   body: unknown,
 ): MirrorPageConfig | null {
   if (!body || typeof body !== "object") return null;
-  const raw = body as { order?: unknown; sections?: unknown; elements?: unknown; customBlocks?: unknown };
+  const raw = body as { order?: unknown; sections?: unknown; elements?: unknown; customBlocks?: unknown; contactFormCentered?: unknown };
   if (!Array.isArray(raw.order)) return null;
 
   const catalogKeys = new Set(loadMirrorPageSectionsCatalog(pageKey).map((s) => s.key));
@@ -31,6 +36,10 @@ export function sanitizeMirrorPageConfig(
       if (e.hidden === true) edit.hidden = true;
       if (typeof e.headingHtml === "string" && e.headingHtml.trim()) {
         edit.headingHtml = e.headingHtml.trim().slice(0, 2000);
+      }
+      if (typeof (e as { marqueeHtml?: string }).marqueeHtml === "string") {
+        const marqueeHtml = (e as { marqueeHtml: string }).marqueeHtml.trim();
+        if (marqueeHtml) edit.marqueeHtml = marqueeHtml.slice(0, 8000);
       }
       if (Array.isArray(e.mediaGridItems)) {
         edit.mediaGridItems = e.mediaGridItems
@@ -48,6 +57,18 @@ export function sanitizeMirrorPageConfig(
               typeof it.linkHref === "string" ? it.linkHref.trim().slice(0, 300) : undefined,
             buttonText:
               typeof it.buttonText === "string" ? it.buttonText.trim().slice(0, 120) : undefined,
+            headingHtmlEn:
+              typeof (it as { headingHtmlEn?: unknown }).headingHtmlEn === "string"
+                ? ((it as { headingHtmlEn: string }).headingHtmlEn ?? "").trim().slice(0, 2000) || ""
+                : undefined,
+            descriptionHtmlEn:
+              typeof (it as { descriptionHtmlEn?: unknown }).descriptionHtmlEn === "string"
+                ? ((it as { descriptionHtmlEn: string }).descriptionHtmlEn ?? "").trim().slice(0, 2000) || ""
+                : undefined,
+            buttonTextEn:
+              typeof (it as { buttonTextEn?: unknown }).buttonTextEn === "string"
+                ? ((it as { buttonTextEn: string }).buttonTextEn ?? "").trim().slice(0, 120) || ""
+                : undefined,
           }))
           .filter((it) => it.itemId.startsWith("media-grid-grid_"));
       }
@@ -97,6 +118,25 @@ export function sanitizeMirrorPageConfig(
           (e as { featuredBlogPosts: FeaturedBlogPostEdit[] }).featuredBlogPosts,
         );
       }
+      if (Array.isArray((e as { trendingProducts?: unknown }).trendingProducts)) {
+        edit.trendingProducts = sanitizeTrendingProducts(
+          (e as { trendingProducts: import("@/lib/mirror-trending-products-section").TrendingProductItemEdit[] }).trendingProducts,
+        );
+      }
+      if (Array.isArray((e as { scrollingCollections?: unknown }).scrollingCollections)) {
+        edit.scrollingCollections = sanitizeScrollingCollections(
+          (e as { scrollingCollections: import("@/lib/mirror-scrolling-collections-section").ScrollingCollectionItemEdit[] }).scrollingCollections,
+        );
+      }
+      if (Array.isArray((e as { testimonials?: unknown }).testimonials)) {
+        edit.testimonials = sanitizeTestimonials(
+          (e as { testimonials: import("@/lib/mirror-testimonial-section").TestimonialItemEdit[] }).testimonials,
+        );
+      }
+      if (typeof (e as { testimonialVisibleCount?: unknown }).testimonialVisibleCount === "number") {
+        const n = Math.floor((e as { testimonialVisibleCount: number }).testimonialVisibleCount);
+        if (n >= 1 && n <= 20) edit.testimonialVisibleCount = n;
+      }
       if (Object.keys(edit).length) sections[key] = edit;
     }
   }
@@ -109,15 +149,22 @@ export function sanitizeMirrorPageConfig(
       const e = val as MirrorElementEdit;
       const kind = kinds.has(e.kind as MirrorElementKind) ? e.kind : "text";
       const edit: MirrorElementEdit = {
-        id: String(id).slice(0, 120),
+        id: canonicalElementEditId(String(id).slice(0, 120)),
         kind: kind as MirrorElementKind,
       };
       if (typeof e.html === "string" && e.html.trim()) edit.html = e.html.trim().slice(0, 8000);
+      // htmlEn: boş string de geçerli (EN locale'de TR override'ı istemiyorum → boş bırak)
+      if (typeof (e as { htmlEn?: unknown }).htmlEn === "string")
+        edit.htmlEn = ((e as { htmlEn: string }).htmlEn ?? "").trim().slice(0, 8000) || "";
       if (typeof e.text === "string" && e.text.trim()) edit.text = e.text.trim().slice(0, 4000);
       if (typeof e.imageUrl === "string" && e.imageUrl.trim())
         edit.imageUrl = e.imageUrl.trim().slice(0, 500);
       if (typeof e.href === "string" && e.href.trim()) edit.href = e.href.trim().slice(0, 500);
-      if (edit.html || edit.text || edit.imageUrl || edit.href) elements[edit.id] = edit;
+      const style = sanitizeMirrorElementTypography((e as { style?: unknown }).style);
+      if (style) edit.style = style;
+      if (edit.html || edit.text || edit.imageUrl || edit.href || hasMirrorTypography(edit.style)) {
+        elements[edit.id] = edit;
+      }
     }
   }
 
@@ -132,6 +179,7 @@ export function sanitizeMirrorPageConfig(
     sections,
     elements: Object.keys(elements).length ? elements : undefined,
     customBlocks: customBlocks.length ? customBlocks : undefined,
+    contactFormCentered: raw.contactFormCentered === true ? true : undefined,
   };
 }
 
@@ -149,6 +197,14 @@ function sanitizeCollectionsTabs(raw: CollectionsTabItemEdit[]): CollectionsTabI
         label: labelTr,
         labelTr,
         labelEn,
+        hidden: t.hidden === true ? true : undefined,
+        showPricing: t.showPricing === false ? false : undefined,
+        visibleProductCount:
+          typeof t.visibleProductCount === "number" &&
+          Number.isFinite(t.visibleProductCount) &&
+          t.visibleProductCount > 0
+            ? Math.min(24, Math.floor(t.visibleProductCount))
+            : undefined,
         products: (t.products ?? [])
           .filter((p) => p && typeof p.href === "string")
           .map((p, i) => {
@@ -176,6 +232,11 @@ function sanitizeCollectionsTabs(raw: CollectionsTabItemEdit[]): CollectionsTabI
                 typeof p.imageUrl === "string" && p.imageUrl.trim()
                   ? p.imageUrl.trim().slice(0, 500)
                   : undefined,
+              priceText:
+                typeof p.priceText === "string" && p.priceText.trim()
+                  ? p.priceText.trim().slice(0, 40)
+                  : undefined,
+              hidden: p.hidden === true ? true : undefined,
             };
           }),
       };
@@ -192,15 +253,58 @@ function sanitizeFeaturedBlogPosts(raw: FeaturedBlogPostEdit[]): FeaturedBlogPos
           ? p.imageUrl.trim().slice(0, 500)
           : undefined,
       href: typeof p.href === "string" && p.href.trim() ? p.href.trim().slice(0, 300) : undefined,
-      titleTr:
-        typeof p.titleTr === "string" ? p.titleTr.trim().slice(0, 300) : undefined,
-      titleEn:
-        typeof p.titleEn === "string" ? p.titleEn.trim().slice(0, 300) : undefined,
+      titleTr: typeof p.titleTr === "string" ? p.titleTr.trim().slice(0, 300) : undefined,
+      titleEn: typeof p.titleEn === "string" ? p.titleEn.trim().slice(0, 300) : undefined,
       descTr: typeof p.descTr === "string" ? p.descTr.trim().slice(0, 2000) : undefined,
       descEn: typeof p.descEn === "string" ? p.descEn.trim().slice(0, 2000) : undefined,
-      dateLabel:
-        typeof p.dateLabel === "string" ? p.dateLabel.trim().slice(0, 80) : undefined,
+      dateLabel: typeof p.dateLabel === "string" ? p.dateLabel.trim().slice(0, 80) : undefined,
       author: typeof p.author === "string" ? p.author.trim().slice(0, 80) : undefined,
+    }));
+}
+
+function sanitizeTrendingProducts(
+  raw: import("@/lib/mirror-trending-products-section").TrendingProductItemEdit[],
+) {
+  return raw
+    .filter((t) => t && typeof t.columnId === "string")
+    .map((t) => ({
+      columnId: t.columnId.slice(0, 80),
+      titleTr: String(t.titleTr ?? "").trim().slice(0, 200),
+      titleEn: String(t.titleEn ?? "").trim().slice(0, 200),
+      descTr: String(t.descTr ?? "").trim().slice(0, 500),
+      descEn: String(t.descEn ?? "").trim().slice(0, 500),
+      href: String(t.href ?? "").trim().slice(0, 300),
+      priceText: typeof t.priceText === "string" ? t.priceText.trim().slice(0, 80) : undefined,
+      imageUrl: typeof t.imageUrl === "string" ? t.imageUrl.trim().slice(0, 500) : undefined,
+    }));
+}
+
+function sanitizeScrollingCollections(
+  raw: import("@/lib/mirror-scrolling-collections-section").ScrollingCollectionItemEdit[],
+) {
+  return raw
+    .filter((c) => c && typeof c.cardId === "string")
+    .map((c) => ({
+      cardId: c.cardId.slice(0, 80),
+      titleTr: String(c.titleTr ?? "").trim().slice(0, 120),
+      titleEn: String(c.titleEn ?? "").trim().slice(0, 120),
+      href: String(c.href ?? "").trim().slice(0, 300),
+      imageUrl: typeof c.imageUrl === "string" ? c.imageUrl.trim().slice(0, 500) : undefined,
+      productCount:
+        typeof c.productCount === "string" ? c.productCount.trim().slice(0, 40) : undefined,
+    }));
+}
+
+function sanitizeTestimonials(raw: import("@/lib/mirror-testimonial-section").TestimonialItemEdit[]) {
+  return raw
+    .filter((t) => t && typeof t.blockId === "string")
+    .map((t) => ({
+      blockId: t.blockId.slice(0, 80),
+      authorTr: String(t.authorTr ?? "").trim().slice(0, 120),
+      authorEn: String(t.authorEn ?? "").trim().slice(0, 120),
+      quoteTr: String(t.quoteTr ?? "").trim().slice(0, 2000),
+      quoteEn: String(t.quoteEn ?? "").trim().slice(0, 2000),
+      imageUrl: typeof t.imageUrl === "string" ? t.imageUrl.trim().slice(0, 500) : undefined,
     }));
 }
 

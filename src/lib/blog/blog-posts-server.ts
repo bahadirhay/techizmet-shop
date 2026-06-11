@@ -80,7 +80,7 @@ export function blogPostsToListCards(posts: BlogPostRecord[], locale: ShopLocale
     slug: p.slug,
     title: blogTitle(p, locale),
     excerpt: blogExcerpt(p, locale),
-    imageUrl: p.imageUrl ?? undefined,
+    imageUrl: resolveBlogFeaturedImageUrl(p.slug, p.imageUrl) ?? p.imageUrl ?? undefined,
     dateLabel: formatBlogDateLabel(p.publishedAt, locale),
     author: p.author ?? undefined,
     href: blogPostHref(p.slug),

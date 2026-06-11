@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { revalidateStorePublicCache } from "@/lib/cache/revalidate-store-public";
+import { clearDevMirrorHtmlCache } from "@/lib/mirror-html-build";
 import { sanitizeMirrorPageConfig } from "@/lib/mirror-page-config-sanitize";
 import { parseSiteSettings } from "@/lib/site-settings";
 import { requireStaffApi } from "@/lib/staff-auth";
@@ -29,6 +30,8 @@ export async function PATCH(req: Request) {
     where: { id: auth.siteId },
     data: { settingsJson: JSON.stringify(settings) },
   });
+
+  clearDevMirrorHtmlCache();
 
   revalidatePath("/");
   revalidateStorePublicCache(auth.siteId);

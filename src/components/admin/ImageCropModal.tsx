@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   cropImageToBlob,
   loadImageFromFile,
+  releaseImageObjectUrl,
   viewportToCropRect,
   type CropRect,
 } from "@/lib/image-crop";
@@ -36,17 +37,30 @@ export function ImageCropModal({
 
   useEffect(() => {
     let cancelled = false;
-    void loadImageFromFile(file).then((loaded) => {
-      if (cancelled) return;
-      setImg(loaded);
-      const viewW = 360;
-      const frameH = viewW / aspectRatio;
-      const fit = Math.max(viewW / loaded.naturalWidth, frameH / loaded.naturalHeight) * 1.05;
-      setScale(fit);
-      setOffset({ x: 0, y: 0 });
-    });
+    setErr(null);
+    setImg(null);
+    void loadImageFromFile(file)
+      .then((loaded) => {
+        if (cancelled) {
+          releaseImageObjectUrl(loaded);
+          return;
+        }
+        setImg(loaded);
+        const viewW = 360;
+        const frameH = viewW / aspectRatio;
+        const fit = Math.max(viewW / loaded.naturalWidth, frameH / loaded.naturalHeight) * 1.05;
+        setScale(fit);
+        setOffset({ x: 0, y: 0 });
+      })
+      .catch((e) => {
+        if (!cancelled) setErr(e instanceof Error ? e.message : "Görsel okunamadı");
+      });
     return () => {
       cancelled = true;
+      setImg((prev) => {
+        releaseImageObjectUrl(prev);
+        return null;
+      });
     };
   }, [file, aspectRatio]);
 
@@ -96,6 +110,8 @@ export function ImageCropModal({
         height: outputHeight,
         mime,
       });
+      releaseImageObjectUrl(img);
+      setImg(null);
       onDone(blob);
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Kırpma hatası");
@@ -120,7 +136,14 @@ export function ImageCropModal({
 
         <div
           ref={viewRef}
-          className="relative mt-4 h-64 w-full overflow-hidden rounded-lg bg-zinc-900 touch-none select-none"
+          className="relative mt-4 h-64 w-full overflow-hidden rounded-lg touch-none select-none"
+          style={{
+            backgroundColor: "#18181b",
+            backgroundImage:
+              "linear-gradient(45deg,#27272a 25%,transparent 25%),linear-gradient(-45deg,#27272a 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#27272a 75%),linear-gradient(-45deg,transparent 75%,#27272a 75%)",
+            backgroundSize: "16px 16px",
+            backgroundPosition: "0 0, 0 8px, 8px -8px, -8px 0",
+          }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}

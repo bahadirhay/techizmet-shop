@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { ProductCard } from "@/components/store/ProductCard";
 import { MirrorSearchFrame } from "@/components/store/MirrorSearchFrame";
+import { SearchQueryTracker } from "@/components/store/SearchQueryTracker";
 import { StoreSearchForm } from "@/components/store/StoreSearchForm";
 import { prisma } from "@/lib/prisma";
 import { getLoggedInCustomerPricing } from "@/lib/store/customer-pricing";
@@ -89,8 +90,27 @@ export default async function SearchPage({
     return <MirrorSearchFrame q={q} />;
   }
 
+  const term = q.trim();
+  const resultCount =
+    term.length >= 2
+      ? await prisma.storeProduct.count({
+          where: {
+            siteId: site.id,
+            published: true,
+            OR: [
+              { title: { contains: term, mode: "insensitive" } },
+              { description: { contains: term, mode: "insensitive" } },
+              { sku: { contains: term, mode: "insensitive" } },
+              { slug: { contains: term, mode: "insensitive" } },
+              { barcode: { contains: term, mode: "insensitive" } },
+            ],
+          },
+        })
+      : undefined;
+
   return (
     <div className="kn-section kn-search-page">
+      <SearchQueryTracker query={term} resultCount={resultCount} />
       <h1>Arama</h1>
       <Suspense fallback={null}>
         <StoreSearchForm className="kn-search-form kn-search-form--page" />

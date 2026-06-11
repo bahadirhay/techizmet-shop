@@ -23,9 +23,22 @@ export type MirrorProductCommercePayload = {
   compareLabel: string | null;
   fromPrice: boolean;
   inStock: boolean;
+  /** Admin'de fiyat girilmediyse şablon USD fiyatını gösterme */
+  showPrice: boolean;
   texts?: MirrorProductCommerceTexts;
   share?: ProductSharePayload;
 };
+
+const HIDE_PRODUCT_PRICE_STYLE = `<style id="kn-hide-product-price">#MainContent .price-wrapper,#MainContent .product--pricing,#MainContent .product--installment-form,.sticky-buy-button-wrapper .product--pricing,sticky-buy-button .product--pricing{display:none!important}</style>`;
+
+export function hideMirrorProductPricing(doc: Document) {
+  doc.getElementById("kn-hide-product-price")?.remove();
+  const style = doc.createElement("style");
+  style.id = "kn-hide-product-price";
+  style.textContent =
+    "#MainContent .price-wrapper,#MainContent .product--pricing,#MainContent .product--installment-form,.sticky-buy-button-wrapper .product--pricing,sticky-buy-button .product--pricing{display:none!important}";
+  doc.head.appendChild(style);
+}
 
 function buildCommerceScript(data: MirrorProductCommercePayload): string {
   const json = JSON.stringify(data);
@@ -117,6 +130,16 @@ function buildCommerceScript(data: MirrorProductCommercePayload): string {
     return qs('#MainContent [id^="price--wrapper-template"] .product--cut-price');
   }
   function updatePrice(){
+    if(!DATA.showPrice){
+      var hideStyle=document.getElementById('kn-hide-product-price');
+      if(!hideStyle){
+        hideStyle=document.createElement('style');
+        hideStyle.id='kn-hide-product-price';
+        hideStyle.textContent='#MainContent .price-wrapper,#MainContent .product--pricing,#MainContent .product--installment-form,.sticky-buy-button-wrapper .product--pricing,sticky-buy-button .product--pricing{display:none!important}';
+        document.head.appendChild(hideStyle);
+      }
+      return;
+    }
     var v=selectedVariant();
     var el=mainPriceEl();
     if(el){
@@ -232,9 +255,20 @@ function buildCommerceScript(data: MirrorProductCommercePayload): string {
 }
 
 /** Sunucu — mirror ürün HTML’ine sepet köprüsü */
+function escapeAttr(s: string) {
+  return s.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+}
+
 export function injectMirrorProductCommerceHtml(html: string, data: MirrorProductCommercePayload): string {
   const script = `<script id="kn-product-commerce">${buildCommerceScript(data)}</script>`;
+  const productMeta = `<meta name="kn-product-id" content="${escapeAttr(data.productId)}">`;
   let out = html.replace(/<script id="kn-product-commerce">[\s\S]*?<\/script>/i, "");
+  out = out.replace(/<meta name="kn-product-id"[^>]*>/i, "");
+  out = out.replace(/<style id="kn-hide-product-price">[\s\S]*?<\/style>/i, "");
+  if (!data.showPrice) {
+    out = out.replace(/<\/head>/i, `${HIDE_PRODUCT_PRICE_STYLE}</head>`);
+  }
+  out = out.replace(/<\/head>/i, `${productMeta}</head>`);
   out = out.replace(/<\/body>/i, `${script}</body>`);
   if (data.share) out = injectMirrorProductShareHtml(out, data.share);
   return out;
@@ -242,6 +276,12 @@ export function injectMirrorProductCommerceHtml(html: string, data: MirrorProduc
 
 export function applyMirrorProductCommerce(doc: Document, data: MirrorProductCommercePayload) {
   doc.getElementById("kn-product-commerce")?.remove();
+
+  if (!data.showPrice) {
+    hideMirrorProductPricing(doc);
+  } else {
+    doc.getElementById("kn-hide-product-price")?.remove();
+  }
 
   for (const v of data.variants) {
     if (v.stockQty > 0) continue;
@@ -255,7 +295,7 @@ export function applyMirrorProductCommerce(doc: Document, data: MirrorProductCom
   }
 
   const el = mainPriceElSafe(doc);
-  if (el) {
+  if (el && data.showPrice) {
     const prefix = data.texts?.startingPricePrefix?.trim() || "Başlayan fiyat";
     el.textContent = data.fromPrice ? `${prefix}: ${data.priceLabel}` : data.priceLabel;
   }
@@ -263,7 +303,7 @@ export function applyMirrorProductCommerce(doc: Document, data: MirrorProductCom
   const stickyPrice = doc.querySelector(
     ".sticky-buy-button-wrapper .product--actual-price, sticky-buy-button .product--actual-price",
   );
-  if (stickyPrice) {
+  if (stickyPrice && data.showPrice) {
     const prefix = data.texts?.startingPricePrefix?.trim() || "Başlayan fiyat";
     stickyPrice.textContent = data.fromPrice ? `${prefix}: ${data.priceLabel}` : data.priceLabel;
   }

@@ -5,7 +5,9 @@ import { CookieConsentBanner } from "@/components/store/CookieConsentBanner";
 import { ConsentAwareAnalytics } from "@/components/store/ConsentAwareAnalytics";
 import { MirrorAnalyticsBridge } from "@/components/store/MirrorAnalyticsBridge";
 import { StoreEventTracker } from "@/components/store/StoreEventTracker";
+import { JsonLdScript } from "@/components/store/JsonLdScript";
 import { buildSiteMetadata } from "@/lib/site-metadata";
+import { buildOrganizationJsonLd, buildWebSiteJsonLd } from "@/lib/seo/site-json-ld";
 import { getCachedParsedSiteSettings } from "@/lib/cache/store-cache";
 import { getDefaultSite } from "@/lib/site";
 import { getSiteSeo } from "@/lib/site-settings";
@@ -27,6 +29,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const site = await getDefaultSite();
   const settings = await getCachedParsedSiteSettings(site.id);
   const seo = getSiteSeo(settings, site.name);
+  const siteJsonLd = [buildOrganizationJsonLd(settings, site.name), buildWebSiteJsonLd(settings, site.name)];
 
   return (
     <html lang="tr">
@@ -38,6 +41,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         />
       </head>
       <body className={`${poppins.variable} antialiased`}>
+        <JsonLdScript data={siteJsonLd} />
         <ConsentAwareAnalytics
           googleAnalyticsId={seo.googleAnalyticsId}
           facebookPixelId={seo.facebookPixelId}

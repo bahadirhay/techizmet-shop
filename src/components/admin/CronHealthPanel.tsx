@@ -6,6 +6,8 @@ import type { CronHealthSnapshot, CronJobId, CronRunRecord } from "@/lib/cron-he
 const JOB_LABELS: Record<CronJobId, string> = {
   cartAbandonmentRemind: "Sepet terk hatırlatma",
   marketplaceOrders: "Pazar yeri sipariş çekme",
+  blogAutomation: "Blog otomasyonu",
+  gscSync: "GSC arama senkronu",
 };
 
 function statusTone(record: CronRunRecord | undefined, stale: boolean) {
@@ -38,7 +40,7 @@ export function CronHealthPanel() {
 
   if (!health) return null;
 
-  const jobs: CronJobId[] = ["cartAbandonmentRemind", "marketplaceOrders"];
+  const jobs: CronJobId[] = ["cartAbandonmentRemind", "marketplaceOrders", "blogAutomation", "gscSync"];
 
   return (
     <section className="admin-card admin-card-pad">

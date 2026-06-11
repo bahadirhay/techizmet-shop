@@ -1,6 +1,7 @@
 export type StoreEventType =
   | "page_view"
   | "product_view"
+  | "search_query"
   | "add_to_cart"
   | "remove_from_cart"
   | "begin_checkout"
@@ -9,6 +10,7 @@ export type StoreEventType =
 export type StoreEventPayload = {
   page_view?: { path: string; title?: string };
   product_view?: { slug: string; productId?: string; title?: string };
+  search_query?: { query: string; source?: string; resultCount?: number };
   add_to_cart?: {
     productId: string;
     slug?: string;

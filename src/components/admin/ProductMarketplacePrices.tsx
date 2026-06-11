@@ -6,6 +6,7 @@ import { AdminField, inputClass } from "@/components/admin/AdminForm";
 import { formatTry, minorToTry } from "@/lib/admin/money";
 import type { ActiveMarketplaceOption } from "@/lib/marketplace/product-prices";
 import { DEFAULT_TARGET_MARGIN_PERCENT } from "@/lib/marketplace/commission-types";
+import { buildPlatformListingTitle } from "@/lib/marketplace/title-rules";
 
 export function ProductMarketplacePrices({
   webPrice,
@@ -14,6 +15,10 @@ export function ProductMarketplacePrices({
   platforms,
   prices,
   onChange,
+  title = "",
+  brandName = "",
+  weightGrams,
+  pieceCount,
 }: {
   webPrice: string;
   cost: string;
@@ -21,6 +26,10 @@ export function ProductMarketplacePrices({
   platforms: ActiveMarketplaceOption[];
   prices: Record<string, string>;
   onChange: (platform: string, value: string) => void;
+  title?: string;
+  brandName?: string;
+  weightGrams?: number;
+  pieceCount?: number;
 }) {
   const [suggestions, setSuggestions] = useState<Record<string, string>>({});
 
@@ -67,6 +76,17 @@ export function ProductMarketplacePrices({
     );
   }
 
+  const titlePreviews = title.trim()
+    ? platforms.map((p) => ({
+        id: p.id,
+        label: p.label,
+        computed: buildPlatformListingTitle(p.id, title, brandName || undefined, {
+          weightGrams,
+          pieceCount,
+        }),
+      }))
+    : [];
+
   return (
     <div className="rounded-lg border border-violet-200 bg-violet-50/60 p-4 space-y-3">
       <div>
@@ -76,6 +96,25 @@ export function ProductMarketplacePrices({
           komisyon tablosu varsa önerilen fiyat gösterilir (%{DEFAULT_TARGET_MARGIN_PERCENT} hedef marj).
         </p>
       </div>
+
+      {titlePreviews.length > 0 ? (
+        <div className="space-y-1">
+          <p className="text-xs font-medium text-violet-900">
+            Gönderilecek başlıklar{" "}
+            <span className="font-normal text-violet-700">(eşleştirmede bu başlık gider)</span>
+          </p>
+          {titlePreviews.map((p) => (
+            <div key={p.id} className="flex items-start gap-2 rounded bg-white/70 px-2 py-1.5 text-xs">
+              <span className="shrink-0 font-medium text-zinc-700 w-24">{p.label}</span>
+              <span className="text-zinc-800 break-all">{p.computed}</span>
+              <span className="shrink-0 text-zinc-400 ml-auto">{p.computed.length} kar.</span>
+            </div>
+          ))}
+          <p className="text-[10px] text-violet-700">
+            SEO Optimizer ile anahtar kelime eklendikten sonra değişebilir.
+          </p>
+        </div>
+      ) : null}
 
       {platforms.map((p) => {
         const val = prices[p.id] ?? "";

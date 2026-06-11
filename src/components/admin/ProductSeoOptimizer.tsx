@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { AdminField, btnPrimary, btnSecondary, inputClass } from "@/components/admin/AdminForm";
 import { MARKETPLACE_PLATFORMS } from "@/lib/admin/marketplace-platforms";
+import type { ProductHighlight } from "@/lib/product-highlights";
 import type { ProductSeoInsight, ProductSeoOptimizeResult } from "@/lib/admin/product-seo/types";
 
 const SOURCE_LABELS: Record<ProductSeoInsight["source"], string> = {
@@ -21,6 +22,8 @@ type Props = {
   categoryId: string;
   brandId: string;
   productId?: string;
+  weightGrams?: number;
+  pieceCount?: number;
   onApply: (patch: {
     title?: string;
     slug?: string;
@@ -29,6 +32,8 @@ type Props = {
     description?: string;
     descriptionHtml?: string;
     keyFeaturesHtml?: string;
+    howToUseHtml?: string;
+    highlights?: ProductHighlight[];
   }) => void;
 };
 
@@ -37,20 +42,22 @@ export function ProductSeoOptimizer(props: Props) {
   const [err, setErr] = useState<string | null>(null);
   const [result, setResult] = useState<ProductSeoOptimizeResult | null>(null);
 
-  function applySuggestions(next: ProductSeoOptimizeResult) {
+  function applySuggestions(next: ProductSeoOptimizeResult, options?: { title?: boolean }) {
     props.onApply({
-      title: next.suggestedTitle,
+      ...(options?.title !== false ? { title: next.suggestedTitle } : {}),
       slug: next.suggestedSlug,
       seoTitle: next.seoTitle,
       seoDescription: next.seoDescription,
       description: next.suggestedDescription,
       descriptionHtml: next.suggestedDescriptionHtml,
       keyFeaturesHtml: next.suggestedKeyFeaturesHtml,
+      howToUseHtml: next.suggestedHowToUseHtml,
+      highlights: next.suggestedHighlights,
     });
     setErr(null);
   }
 
-  async function runSeo() {
+  async function runSeo(applyTitle = true) {
     if (!props.title.trim()) {
       setErr("Önce ürün adını girin");
       return;
@@ -70,6 +77,8 @@ export function ProductSeoOptimizer(props: Props) {
         categoryId: props.categoryId,
         brandId: props.brandId || undefined,
         productId: props.productId,
+        weightGrams: props.weightGrams ?? undefined,
+        pieceCount: props.pieceCount ?? undefined,
       }),
     });
 
@@ -81,30 +90,35 @@ export function ProductSeoOptimizer(props: Props) {
     }
     const next = json.result ?? null;
     setResult(next);
-    if (next) applySuggestions(next);
-  }
-
-  function applyAll() {
-    if (!result) return;
-    applySuggestions(result);
+    if (next) applySuggestions(next, { title: applyTitle });
   }
 
   return (
     <div className="rounded-lg border border-violet-200 bg-violet-50/60 p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-violet-950">SEO çalışması</p>
+          <p className="text-sm font-semibold text-violet-950">SEO çalışması (tam paket)</p>
           <p className="mt-1 text-xs text-violet-900/80">
-            Normal ürün adınızı yazın; analiz sonrası önerilen pazaryeri uyumlu ad, slug, SEO alanları ve
-            açıklamalar forma otomatik uygulanır. AI anahtarları:{" "}
+            Meta başlık/açıklama, ürün tanıtımı, özellikler (besin değerleri), kullanım talimatları ve
+            pazaryeri başlıkları. Ürünü kaydetmeden çalışır. AI:{" "}
             <a href="/admin/settings/seo-ai" className="text-[var(--kn-brand)] underline">
               Ayarlar → SEO AI
             </a>
           </p>
         </div>
-        <button type="button" className={btnSecondary} disabled={busy} onClick={() => void runSeo()}>
-          {busy ? "Analiz ediliyor…" : "SEO çalışması yap"}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            className={btnSecondary}
+            disabled={busy}
+            onClick={() => void runSeo(false)}
+          >
+            {busy ? "…" : "Sadece içerik + meta"}
+          </button>
+          <button type="button" className={btnPrimary} disabled={busy} onClick={() => void runSeo(true)}>
+            {busy ? "Analiz ediliyor…" : "Tam SEO çalışması"}
+          </button>
+        </div>
       </div>
 
       {err ? <p className="mt-3 text-sm text-red-600">{err}</p> : null}
@@ -116,57 +130,61 @@ export function ProductSeoOptimizer(props: Props) {
               Skor: {result.score}/100
             </span>
             <span className="text-xs text-green-700">Forma uygulandı</span>
-            <button type="button" className={btnPrimary} onClick={applyAll}>
-              Tekrar uygula
-            </button>
           </div>
 
           <div className="grid gap-3 text-sm sm:grid-cols-2">
-            <AdminField label="Önerilen ürün adı (mağaza / Trendyol title)">
-              <input className={inputClass} readOnly value={result.suggestedTitle} />
-              <p className="mt-1 text-xs text-zinc-500">
-                Trendyol&apos;da marka ayrı alan (brandId) — başlıkta tekrarlanmaz.
-              </p>
-            </AdminField>
-            {result.marketplaceTitles && MARKETPLACE_PLATFORMS.some((p) => result.marketplaceTitles?.[p.id]) ? (
-              <div className="sm:col-span-2 space-y-2">
-                <p className="text-xs font-medium text-zinc-700">Pazaryeri başlıkları</p>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {MARKETPLACE_PLATFORMS.map((p) => {
-                    const t = result.marketplaceTitles?.[p.id];
-                    if (!t) return null;
-                    return (
-                      <div key={p.id} className="rounded border border-zinc-100 bg-zinc-50 px-2 py-1.5 text-xs">
-                        <span className="font-medium text-zinc-700">{p.label}</span>
-                        <p className="mt-0.5 text-zinc-600">{t}</p>
-                        <p className="text-[10px] text-zinc-400">{t.length} karakter</p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : null}
-            <AdminField label="Önerilen slug">
-              <input className={inputClass} readOnly value={result.suggestedSlug} />
-            </AdminField>
-            <AdminField label="SEO başlık">
+            <AdminField label="SEO başlık (Google)">
               <input className={inputClass} readOnly value={result.seoTitle} />
+              <p className="mt-1 text-xs text-zinc-500">{result.seoTitle.length} karakter</p>
             </AdminField>
             <AdminField label="SEO açıklama">
               <textarea className={inputClass} rows={2} readOnly value={result.seoDescription} />
+              <p className="mt-1 text-xs text-zinc-500">{result.seoDescription.length} karakter</p>
+            </AdminField>
+            <AdminField label="Pazaryeri ürün adı">
+              <input className={inputClass} readOnly value={result.suggestedTitle} />
+            </AdminField>
+            <AdminField label="Slug">
+              <input className={inputClass} readOnly value={result.suggestedSlug} />
             </AdminField>
           </div>
 
+          {result.marketplaceTitles && MARKETPLACE_PLATFORMS.some((p) => result.marketplaceTitles?.[p.id]) ? (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-zinc-700">Pazaryeri başlıkları</p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {MARKETPLACE_PLATFORMS.map((p) => {
+                  const t = result.marketplaceTitles?.[p.id];
+                  if (!t) return null;
+                  return (
+                    <div key={p.id} className="rounded border border-zinc-100 bg-zinc-50 px-2 py-1.5 text-xs">
+                      <span className="font-medium text-zinc-700">{p.label}</span>
+                      <p className="mt-0.5 text-zinc-600">{t}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+
           {result.suggestedDescription ? (
-            <div className="grid gap-3 text-sm">
-              <AdminField label="Önerilen kısa açıklama">
-                <textarea className={inputClass} rows={2} readOnly value={result.suggestedDescription} />
-              </AdminField>
-              {result.suggestedKeyFeaturesHtml ? (
-                <AdminField label="Önerilen Key Features">
-                  <textarea className={inputClass} rows={4} readOnly value={result.suggestedKeyFeaturesHtml} />
-                </AdminField>
-              ) : null}
+            <AdminField label="Ürün tanıtımı (Description)">
+              <textarea className={inputClass} rows={3} readOnly value={result.suggestedDescription} />
+            </AdminField>
+          ) : null}
+
+          {result.suggestedHighlights?.some((h) => h.label) ? (
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-zinc-700">İkon şeridi</p>
+              <ul className="text-xs text-zinc-600">
+                {result.suggestedHighlights.map((h, i) =>
+                  h.label ? (
+                    <li key={i}>
+                      {i + 1}. {h.label}
+                    </li>
+                  ) : null,
+                )}
+              </ul>
             </div>
           ) : null}
 
@@ -182,7 +200,7 @@ export function ProductSeoOptimizer(props: Props) {
             </p>
           ) : null}
 
-          <ul className="space-y-2 text-xs">
+          <ul className="max-h-48 space-y-2 overflow-y-auto text-xs">
             {result.insights.map((ins, i) => (
               <li key={i} className="rounded-md border border-zinc-100 bg-zinc-50 px-3 py-2">
                 <span className="font-medium text-zinc-800">
@@ -193,7 +211,12 @@ export function ProductSeoOptimizer(props: Props) {
             ))}
           </ul>
         </div>
-      ) : null}
+      ) : (
+        <p className="mt-3 text-xs text-violet-900">
+          «Tam SEO çalışması» ürün adını pazaryeri formatına da uyarlar. Mevcut adınızı korumak için «Sadece
+          içerik + meta» kullanın.
+        </p>
+      )}
     </div>
   );
 }

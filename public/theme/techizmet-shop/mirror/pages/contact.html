@@ -4236,8 +4236,8 @@ customElements.define('quick-short-menu', QuickShortMenu);
               
                 
         
-        <p class="page--desc page--item text"> Whether it’s about your skincare routine, product inquiries, or order details, <br />
-our team is here to help you glow with confidence.</p>
+        <p class="page--desc page--item text"> Whether it’s about our products, your order, or your furry friend’s needs, <br />
+our team is here to help you every step of the way.</p>
       
     
               
@@ -4280,17 +4280,10 @@ our team is here to help you glow with confidence.</p>
       
         
           <div class="contact-form--map-box width-100 media-wrapper">
-            <map-element class="d-block width-100 height-100 contact-form--map"  data-location=""
-              data-map-style="standard"
-                >
-                <div class="media d-media-fixed m-media-fixed" >
-                  
-<img src="/theme/techizmet-shop/cdn/shop/files/IWT2_6efa5056-1ca2-422e-b837-f5d4d4e017251adb.jpg?v=1750849433" alt="" srcset="/theme/techizmet-shop/cdn/shop/files/IWT2_6efa5056-1ca2-422e-b837-f5d4d4e017251adb.jpg?v=1750849433&amp;width=352 352w, /theme/techizmet-shop/cdn/shop/files/IWT2_6efa5056-1ca2-422e-b837-f5d4d4e017251adb.jpg?v=1750849433&amp;width=832 832w, /theme/techizmet-shop/cdn/shop/files/IWT2_6efa5056-1ca2-422e-b837-f5d4d4e017251adb.jpg?v=1750849433&amp;width=1200 1200w, /theme/techizmet-shop/cdn/shop/files/IWT2_6efa5056-1ca2-422e-b837-f5d4d4e017251adb.jpg?v=1750849433&amp;width=1246 1246w" width="1246" height="1245">
-                  
-                
-                </div>
-            </map-element>
-           
+            <iframe data-kn-map="1" src="about:blank"
+              style="width:100%;height:100%;border:none;display:block;"
+              loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade"
+              title="Location map"></iframe>
           </div>
          
       
@@ -4303,7 +4296,7 @@ our team is here to help you glow with confidence.</p>
                 <div class="section--header-inner" >
                   
 <h2 class="section--heading heading-font h5" data-saos="slide-up" >
-                    Reach Out for Radiance
+                    Send Us a Message
                   </h2>
                   
                   
@@ -4478,6 +4471,41 @@ our team is here to help you glow with confidence.</p>
 
 
 </section>
+
+<script>
+(function() {
+  function applyKnMap(url) {
+    if (!url || !url.startsWith('http')) return;
+    var box = document.querySelector('.contact-form--map-box');
+    if (!box) return;
+    box.innerHTML = '';
+    var iframe = document.createElement('iframe');
+    iframe.setAttribute('data-kn-map', '1');
+    iframe.src = url;
+    iframe.style.cssText = 'width:100%;height:100%;min-height:400px;border:none;display:block;';
+    iframe.setAttribute('allowfullscreen', '');
+    iframe.setAttribute('referrerpolicy', 'no-referrer-when-downgrade');
+    box.appendChild(iframe);
+  }
+
+  // 1. Öncelikli: URL query param'dan oku (?kn_map=...)
+  var params = new URLSearchParams(window.location.search);
+  var mapUrl = params.get('kn_map');
+  if (mapUrl) {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function() { applyKnMap(mapUrl); });
+    } else {
+      applyKnMap(mapUrl);
+    }
+  }
+
+  // 2. Yedek: postMessage ile parent'tan al
+  window.addEventListener('message', function(e) {
+    if (e.data && e.data.type === 'kn-map-url') applyKnMap(e.data.url);
+  });
+})();
+</script>
+
         </main>
         <!-- BEGIN sections: footer-group -->
 <footer id="kn-mirror-section-sections--18246407585964__footer" class="kn-mirror-section kn-section-group-footer-group section-footer"><link href="/theme/techizmet-shop/cdn/shop/t/5/assets/footer0e25.css?v=140586974396800402261750848849" rel="stylesheet" type="text/css" media="all" />

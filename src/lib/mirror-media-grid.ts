@@ -1,5 +1,6 @@
 import { plainTextToSimpleHtml } from "@/lib/html-plain-text";
 import { isAnchorNode } from "@/lib/mirror-dom-node";
+import type { ShopLocale } from "@/lib/i18n/locale";
 
 /** Media grid — sunucu (HTML parse) + istemci (DOM overlay) */
 
@@ -13,7 +14,21 @@ export type MediaGridItemData = {
   linkHref?: string;
 };
 
-export type MediaGridItemEdit = MediaGridItemData;
+export type MediaGridItemEdit = MediaGridItemData & {
+  /** EN vitrin için ayrı başlık (boşsa EN'de TR override uygulanmaz) */
+  headingHtmlEn?: string;
+  /** EN vitrin için ayrı açıklama */
+  descriptionHtmlEn?: string;
+  /** EN vitrin için ayrı buton yazısı */
+  buttonTextEn?: string;
+};
+
+function mediaGridItemEl(section: Element, itemId: string): Element | null {
+  const doc = section.ownerDocument;
+  if (doc?.getElementById(itemId)) return doc.getElementById(itemId);
+  const esc = itemId.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  return section.querySelector(`[id="${esc}"]`);
+}
 
 function sliceSectionHtml(html: string, sectionKey: string): string {
   const esc = sectionKey.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -81,6 +96,8 @@ export function extractMediaGridItemsFromHtml(
 function setItemImage(item: Element, url: string) {
   item.querySelectorAll("img.media_image, img").forEach((img) => {
     const el = img as HTMLImageElement;
+    el.classList.remove("lazyload", "lazyloading", "lazyloaded");
+    el.removeAttribute("loading");
     el.src = url;
     el.setAttribute("data-src", url);
     el.setAttribute("data-original", url);
@@ -93,29 +110,53 @@ function setItemImage(item: Element, url: string) {
 }
 
 /** Vitrin iframe — kayıtlı hero düzenlemeleri */
-export function applyMediaGridItemsToSection(section: Element, edits: MediaGridItemEdit[]) {
+export function applyMediaGridItemsToSection(
+  section: Element,
+  edits: MediaGridItemEdit[],
+  locale: ShopLocale = "tr",
+) {
   for (const edit of edits) {
-    const item = section.querySelector(`#${CSS.escape(edit.itemId)}`);
+    const item = mediaGridItemEl(section, edit.itemId);
     if (!item) continue;
 
     if (edit.imageUrl?.trim()) setItemImage(item, edit.imageUrl.trim());
 
-    if (edit.headingHtml?.trim()) {
+    // Başlık: EN'de headingHtmlEn varsa onu kullan; yoksa EN'de atla (TR override'ı gösterme)
+    const effectiveHeading =
+      locale === "en"
+        ? edit.headingHtmlEn !== undefined
+          ? edit.headingHtmlEn.trim() || null
+          : null
+        : edit.headingHtml?.trim() ?? null;
+    if (effectiveHeading) {
       const h = item.querySelector(".media-content-heading");
-      if (h) h.innerHTML = edit.headingHtml.trim();
+      if (h) h.innerHTML = effectiveHeading;
     }
 
-    if (edit.descriptionHtml?.trim()) {
+    // Açıklama
+    const effectiveDesc =
+      locale === "en"
+        ? edit.descriptionHtmlEn !== undefined
+          ? edit.descriptionHtmlEn.trim() || null
+          : null
+        : edit.descriptionHtml?.trim() ?? null;
+    if (effectiveDesc) {
       const d = item.querySelector(".media-content-description");
       if (d) {
-        const v = edit.descriptionHtml.trim();
-        d.innerHTML = v.includes("<") ? v : plainTextToSimpleHtml(v);
+        d.innerHTML = effectiveDesc.includes("<") ? effectiveDesc : plainTextToSimpleHtml(effectiveDesc);
       }
     }
 
-    if (edit.buttonText?.trim()) {
+    // Buton yazısı
+    const effectiveBtn =
+      locale === "en"
+        ? edit.buttonTextEn !== undefined
+          ? edit.buttonTextEn.trim() || null
+          : null
+        : edit.buttonText?.trim() ?? null;
+    if (effectiveBtn) {
       const label = item.querySelector(".button--text");
-      if (label) label.textContent = edit.buttonText.trim();
+      if (label) label.textContent = effectiveBtn;
     }
 
     if (edit.linkHref?.trim()) {

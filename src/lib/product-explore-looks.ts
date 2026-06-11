@@ -85,6 +85,28 @@ export type ExploreOverlayProduct = {
   href: string;
 };
 
+function setExploreSectionVisible(section: HTMLElement | null, visible: boolean) {
+  if (!section) return;
+  if (visible) {
+    section.style.removeProperty("display");
+    section.removeAttribute("data-kn-pdp-hidden");
+    section.removeAttribute("hidden");
+  } else {
+    section.style.setProperty("display", "none", "important");
+    section.setAttribute("data-kn-pdp-hidden", "1");
+    section.setAttribute("hidden", "");
+  }
+}
+
+/** Sunucu — Keşfet kapalıysa şablon EXPLORE bölümünü tamamen gizle */
+export function injectProductExploreMirrorHtml(html: string, looks: ProductExploreLook[]): string {
+  if (looks.length) return html;
+  return html.replace(
+    /(<section\b[^>]*\bsection-collections-grid\b[^>]*)(>)/i,
+    `$1 data-kn-pdp-hidden="1" style="display:none!important"$2`,
+  );
+}
+
 /** Vitrin iframe içinde EXPLORE kartlarını günceller; şablondan kalan ürünleri temizler */
 export function applyExploreLooksOverlay(
   doc: Document,
@@ -96,13 +118,11 @@ export function applyExploreLooksOverlay(
   ) as HTMLElement | null;
 
   if (!looks.length) {
-    // İstemci henüz JSON getirmediyse şablonu bozma (yanlışlıkla gizleme)
-    if (Object.keys(productsBySlug).length === 0) return;
-    if (section) section.style.display = "none";
+    setExploreSectionVisible(section, false);
     return;
   }
 
-  if (section) section.style.display = "";
+  setExploreSectionVisible(section, true);
 
   const cards = doc.querySelectorAll(".collection-list-grid .product-grid-card");
   cards.forEach((card, i) => {

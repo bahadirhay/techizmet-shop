@@ -18,7 +18,7 @@ import {
 import { getSiteBranding } from "@/lib/site-settings-branding";
 import type { SiteSettings } from "@/lib/site-settings";
 import { getSiteSettingsUncached } from "@/lib/site-settings-load";
-import { hasMirrorPageEdits } from "@/lib/mirror-has-page-edits";
+import { hasMirrorPageEdits, shouldApplyMirrorPageOverlay } from "@/lib/mirror-has-page-edits";
 import { resolveMirrorCollectionTexts } from "@/lib/store-static-texts";
 import type { MirrorBranding } from "@/lib/mirror-branding-overlay";
 import type { ResolvedMirrorCollectionTexts } from "@/lib/store-static-texts";
@@ -41,16 +41,17 @@ export function getMirrorVitrinHydration(
       const settings: SiteSettings = await getCachedParsedSiteSettings(siteId);
       const freshSettings =
         pageKey === "home" ? await getSiteSettingsUncached(siteId) : settings;
-      let pageConfig = getMirrorPageConfig(settings, pageKey);
+      const settingsForPage = pageKey === "home" ? freshSettings : settings;
+      let pageConfig = getMirrorPageConfig(settingsForPage, pageKey);
       if (pageKey === "home" && hasMirrorPageEdits(pageConfig)) {
         const featured = await listFeaturedBlogPostsForHome(siteId, locale);
         if (featured.length) pageConfig = mergeFeaturedBlogIntoPageConfig(pageConfig, featured);
       }
       const payload: MirrorVitrinHydration = {
-        branding: getSiteBranding(settings),
-        mirrorTexts: resolveMirrorCollectionTexts(locale, settings.store?.texts),
+        branding: getSiteBranding(settingsForPage),
+        mirrorTexts: resolveMirrorCollectionTexts(locale, settingsForPage.store?.texts),
       };
-      if (hasMirrorPageEdits(pageConfig)) payload.pageConfig = pageConfig;
+      if (shouldApplyMirrorPageOverlay(pageConfig)) payload.pageConfig = pageConfig;
       if (pageKey === "home") {
         payload.siteMarquee = getProductPageBottomSettings(freshSettings, locale).marquee;
       }

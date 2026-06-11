@@ -3,6 +3,7 @@ import "server-only";
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { getDefaultSite } from "@/lib/site";
+import { getSiteBranding, getSiteSettings, getSiteSeo } from "@/lib/site-settings";
 
 export type CollectionSeoContext =
   | {
@@ -40,6 +41,11 @@ export const loadCollectionSeo = cache(
   async (slug: string, categorySlug?: string | null): Promise<CollectionSeoContext | null> => {
     const site = await getDefaultSite();
 
+    const settings = await getSiteSettings(site.id);
+    const seo = getSiteSeo(settings, site.name);
+    const branding = getSiteBranding(settings);
+    const defaultOg = seo.ogImageUrl?.trim() || branding.logoUrl?.trim() || null;
+
     if (categorySlug?.trim()) {
       const cat = await prisma.storeCategory.findFirst({
         where: { siteId: site.id, slug: categorySlug.trim(), active: true },
@@ -57,7 +63,7 @@ export const loadCollectionSeo = cache(
         kind: "category",
         metaTitle: label,
         metaDescription: cat.seoDescription?.trim() || cat.description?.trim().slice(0, 160) || null,
-        imageUrl: cat.imageUrl,
+        imageUrl: cat.imageUrl?.trim() || defaultOg,
         canonicalPath: `/collections/all?category=${encodeURIComponent(categorySlug.trim())}`,
         breadcrumbLabel: cat.title,
         collectionName: cat.title,
@@ -66,15 +72,17 @@ export const loadCollectionSeo = cache(
     }
 
     if (slug === "all") {
+      const staticMeta = seo.staticPages?.["/collections/all"];
       return {
         kind: "all",
-        metaTitle: "Tüm ürünler",
-        metaDescription: "Mağazadaki tüm ürünleri keşfedin.",
-        imageUrl: null,
+        metaTitle: staticMeta?.seoTitle?.trim() || `Tüm ürünler | ${site.name}`,
+        metaDescription:
+          staticMeta?.seoDescription?.trim() || "Mağazadaki tüm ürünleri keşfedin.",
+        imageUrl: staticMeta?.imageUrl?.trim() || defaultOg,
         canonicalPath: "/collections/all",
         breadcrumbLabel: "Tüm ürünler",
         collectionName: "Tüm ürünler",
-        collectionDescription: null,
+        collectionDescription: staticMeta?.seoDescription ?? null,
       };
     }
 
@@ -92,9 +100,9 @@ export const loadCollectionSeo = cache(
 
     return {
       kind: "collection",
-      metaTitle: collection.title,
+      metaTitle: `${collection.title} | ${site.name}`,
       metaDescription: collection.description?.trim().slice(0, 160) || null,
-      imageUrl: collection.imageUrl,
+      imageUrl: collection.imageUrl?.trim() || defaultOg,
       canonicalPath: `/collections/${slug}`,
       breadcrumbLabel: collection.title,
       collectionName: collection.title,

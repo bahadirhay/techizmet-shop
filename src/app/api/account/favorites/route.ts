@@ -18,24 +18,45 @@ export async function GET() {
 
   const rows = await prisma.customerFavorite.findMany({
     where: { customerId: auth.customerId! },
-    select: { productId: true },
+    select: { productId: true, product: { select: { slug: true } } },
   });
-  return NextResponse.json({ productIds: rows.map((r) => r.productId) });
+  return NextResponse.json({
+    productIds: rows.map((r) => r.productId),
+    slugs: rows.map((r) => r.product.slug),
+  });
 }
 
 export async function POST(req: Request) {
   const auth = await requireCustomer();
   if (auth.error) return auth.error;
 
-  const body = (await req.json()) as { productId?: string };
-  const productId = body.productId?.trim();
-  if (!productId) {
-    return NextResponse.json({ error: "productId gerekli" }, { status: 400 });
+  const body = (await req.json()) as { productId?: string; slug?: string };
+  let productId = body.productId?.trim();
+  let productSlug: string | undefined;
+
+  if (!productId && body.slug?.trim()) {
+    const bySlug = await prisma.storeProduct.findFirst({
+      where: { slug: body.slug.trim(), siteId: auth.site.id, published: true },
+      select: { id: true, slug: true },
+    });
+    if (!bySlug) {
+      return NextResponse.json({ error: "Ürün bulunamadı" }, { status: 404 });
+    }
+    productId = bySlug.id;
+    productSlug = bySlug.slug;
   }
 
-  const product = await prisma.storeProduct.findFirst({
-    where: { id: productId, siteId: auth.site.id, published: true },
-  });
+  if (!productId) {
+    return NextResponse.json({ error: "productId veya slug gerekli" }, { status: 400 });
+  }
+
+  const product =
+    productSlug !== undefined
+      ? { id: productId, slug: productSlug }
+      : await prisma.storeProduct.findFirst({
+          where: { id: productId, siteId: auth.site.id, published: true },
+          select: { id: true, slug: true },
+        });
   if (!product) {
     return NextResponse.json({ error: "Ürün bulunamadı" }, { status: 404 });
   }
@@ -46,11 +67,11 @@ export async function POST(req: Request) {
 
   if (existing) {
     await prisma.customerFavorite.delete({ where: { id: existing.id } });
-    return NextResponse.json({ favorited: false });
+    return NextResponse.json({ favorited: false, productId: product.id, slug: product.slug });
   }
 
   await prisma.customerFavorite.create({
-    data: { customerId: auth.customerId!, productId },
+    data: { customerId: auth.customerId!, productId: product.id },
   });
-  return NextResponse.json({ favorited: true });
+  return NextResponse.json({ favorited: true, productId: product.id, slug: product.slug });
 }

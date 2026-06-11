@@ -20,13 +20,13 @@ const LABELS: Record<string, string> = {
   "scrolling-collections": "Koleksiyon şeridi",
   "collections-tab": "Koleksiyon sekmeleri",
   "trending-products": "Trend ürünler",
-  "testimonial": "Müşteri yorumları",
+  testimonial: "Müşteri yorumları",
   "shop-the-look": "Yüz hotspot (Shop the look)",
   "best-selling-products": "Çok satanlar",
-  "categories": "Kategoriler",
-  "richtext": "Metin bloğu",
+  categories: "Kategoriler",
+  richtext: "Metin bloğu",
   "collections-grid": "EXPLORE / Koleksiyon grid",
-  "marquee": "Kampanya şeridi",
+  marquee: "İndirim şeridi",
   "image-with-text": "Görsel + metin",
   "featured-blog": "Blog",
   "main-blog": "Blog listesi",
@@ -38,8 +38,31 @@ const LABELS: Record<string, string> = {
   "main-collection": "Ürün listesi",
 };
 
+/** @deprecated — yalnızca geriye dönük import; yeni kod parseMirrorSectionHead kullanır */
+export const MIRROR_SECTION_HEAD_RE =
+  /id="kn-(?:mirror-section-template|section-template)--[^"]+__([^"]+)"[^>]*class="kn-mirror-section\s+([^"]+)"/;
+
+const SECTION_ID_RE =
+  /\bid="kn-(?:mirror-section-template|section-template)--[^"]+__([^"]+)"/;
+const SECTION_CLASS_RE = /\bclass="([^"]+)"/;
+
+export function parseMirrorSectionHead(attrs: string): { key: string; classAttr: string } | null {
+  const idMatch = attrs.match(SECTION_ID_RE);
+  const classMatch = attrs.match(SECTION_CLASS_RE);
+  if (!idMatch || !classMatch?.[1]?.includes("kn-mirror-section")) return null;
+  return { key: idMatch[1], classAttr: classMatch[1] };
+}
+
 function labelForType(type: string) {
   return LABELS[type] ?? type;
+}
+
+function typeFromClassAttr(classAttr: string) {
+  return (
+    classAttr.match(/\bsection-([^\s]+)/)?.[1] ??
+    classAttr.split(/\s+/).find((c) => c !== "kn-mirror-section") ??
+    classAttr
+  );
 }
 
 export function extractMirrorPageSections(html: string, pageKey: VitrinPageKey): MirrorPageSection[] {
@@ -48,20 +71,18 @@ export function extractMirrorPageSections(html: string, pageKey: VitrinPageKey):
   const main =
     mainStart >= 0 && mainEnd > mainStart ? html.slice(mainStart, mainEnd) : html;
 
-  const re =
-    /id="kn-section-template--[^"]+__([^"]+)"[^>]*class="kn-mirror-section\s+([^"]+)"/g;
   const sections: MirrorPageSection[] = [];
   const seen = new Set<string>();
+  const sectionOpenRe = /<section\b([^>]*)>/gi;
   let m: RegExpExecArray | null;
-  while ((m = re.exec(main))) {
-    const key = m[1];
+
+  while ((m = sectionOpenRe.exec(main))) {
+    const head = parseMirrorSectionHead(m[1]);
+    if (!head) continue;
+    const { key, classAttr } = head;
     if (seen.has(key)) continue;
     seen.add(key);
-    const classAttr = m[2];
-    const type =
-      classAttr.match(/\bsection-([^\s]+)/)?.[1] ??
-      classAttr.split(/\s+/).find((c) => c !== "kn-mirror-section") ??
-      classAttr;
+    const type = typeFromClassAttr(classAttr);
     const section: MirrorPageSection = { key, type, label: labelForType(type) };
     if (type === "media-grid") {
       section.mediaGridDefaults = extractMediaGridItemsFromHtml(main, key);

@@ -1,6 +1,9 @@
 import "server-only";
 
+import { cardFeeMinorFromGross } from "@/lib/finance/economics-math";
 import type { SiteSettings } from "@/lib/site-settings";
+
+export { cardFeeMinorFromGross };
 
 const DEFAULT_CARD_FEE_PERCENT = 2.4;
 
@@ -9,11 +12,6 @@ export function resolveCardFeePercent(settings: SiteSettings): number {
   const raw = settings.finance?.cardFeePercent;
   if (typeof raw === "number" && raw >= 0 && raw <= 15) return raw;
   return DEFAULT_CARD_FEE_PERCENT;
-}
-
-export function cardFeeMinorFromGross(grossMinor: number, percent: number): number {
-  if (percent <= 0 || grossMinor <= 0) return 0;
-  return Math.round((grossMinor * percent) / 100);
 }
 
 export async function resolvePaymentFeeForOrder(

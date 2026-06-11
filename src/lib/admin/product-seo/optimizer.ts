@@ -3,41 +3,36 @@ import "server-only";
 import { slugify } from "@/lib/admin/slug";
 import { aiSeoAvailableFromConfig, generateAiSeoCopy } from "@/lib/admin/product-seo/ai-copy";
 import { getSeoAiConfig } from "@/lib/admin/product-seo/ai-settings";
+import {
+  buildProductSeoDescription,
+  buildProductSeoTitle,
+  isPetFoodContext,
+  normalizeProductTitle,
+} from "@/lib/admin/product-seo/content-builders";
 import { collectKeywordSuggestions } from "@/lib/admin/product-seo/google-suggest";
 import {
   fetchMarketplaceCompetitorTitles,
-  refineTitleFromCompetitors,
 } from "@/lib/admin/product-seo/marketplace-search";
+import {
+  filterRelevantCompetitorTitles,
+  safeRefineTitleFromCompetitors,
+  sanitizeKeywordsForProduct,
+} from "@/lib/admin/product-seo/title-integrity";
+import { fetchPetNutritionFromWeb, formatNutritionLines } from "@/lib/admin/product-seo/nutrition-search";
+import { suggestProductHighlights } from "@/lib/admin/product-seo/product-highlights-suggest";
 import type { ProductSeoInsight, ProductSeoOptimizeInput, ProductSeoOptimizeResult } from "@/lib/admin/product-seo/types";
 import { MARKETPLACE_PLATFORMS } from "@/lib/admin/marketplace-platforms";
 import {
   MARKETPLACE_TITLE_RULES,
   buildAllPlatformListingTitles,
   buildCanonicalProductTitle,
+  containsWord,
 } from "@/lib/marketplace/title-rules";
 import { listCategoryMappings } from "@/lib/marketplace/category-mapping";
 import { prisma } from "@/lib/prisma";
 import { getSiteSettings, getSiteSeo } from "@/lib/site-settings";
 
 export type { ProductSeoInsight, ProductSeoOptimizeInput, ProductSeoOptimizeResult } from "@/lib/admin/product-seo/types";
-
-function truncate(text: string, max: number): string {
-  const t = text.trim();
-  if (t.length <= max) return t;
-  const cut = t.slice(0, max - 1);
-  const lastSpace = cut.lastIndexOf(" ");
-  return (lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).trim() + "…";
-}
-
-function normalizeTitle(s: string): string {
-  return s.trim().replace(/\s+/g, " ");
-}
-
-function containsWord(haystack: string, needle: string): boolean {
-  if (!needle.trim()) return true;
-  const re = new RegExp(`\\b${needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
-  return re.test(haystack);
-}
 
 function extractTokens(text: string): string[] {
   return text
@@ -63,79 +58,12 @@ function scoreTitle(title: string, keywords: string[], categoryTitles: string[])
   return Math.min(100, Math.max(0, score));
 }
 
-/**
- * Google / meta title — pazaryeri başlığından bağımsız.
- * Sıra: ürün adı | marka | mağaza (kategori buraya eklenmez; tekrar ve kısıt yaratır).
- */
-function buildSeoTitle(
-  rawProductTitle: string,
-  brandTitle: string | undefined,
-  siteName: string,
-  maxLen = 60,
-): string {
-  let product = normalizeTitle(rawProductTitle);
-  const brand = brandTitle?.trim();
-  const site = siteName.trim();
-
-  if (brand && product.toLowerCase().startsWith(`${brand.toLowerCase()} `)) {
-    product = product.slice(brand.length).trim();
-  }
-
-  const segments: string[] = [product];
-  if (brand && !containsWord(product, brand)) {
-    segments.push(brand);
-  }
-  segments.push(site);
-
-  const full = segments.join(" | ");
-  if (full.length <= maxLen) return full;
-
-  if (brand && !containsWord(product, brand)) {
-    const productBrand = `${product} | ${brand}`;
-    if (productBrand.length <= maxLen) return productBrand;
-    return truncate(productBrand, maxLen).replace(/…$/, "");
-  }
-
-  return truncate(product, maxLen).replace(/…$/, "");
-}
-
-function buildSeoDescription(input: {
-  productTitle: string;
-  categoryTitles: string[];
-  brandTitle?: string;
-  description?: string;
-  keywords: string[];
-  siteName: string;
-}): string {
-  const cat = input.categoryTitles.join(", ") || "ürün";
-  const brand = input.brandTitle?.trim();
-  const descSnippet = (input.description ?? "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 80);
-
-  const kwPhrase = input.keywords
-    .filter((k) => k.length > 4 && !k.includes(input.productTitle.toLowerCase()))
-    .slice(0, 3)
-    .join(", ");
-
-  const parts = [
-    brand ? `${brand} ${input.productTitle}` : input.productTitle,
-    `${cat} kategorisinde`,
-    descSnippet || `${input.siteName} güvenilir alışveriş`,
-    kwPhrase ? `Anahtar kelimeler: ${kwPhrase}` : "",
-    "Hızlı kargo, güvenli ödeme.",
-  ].filter(Boolean);
-
-  return truncate(parts.join(" · "), 160).replace(/…$/, "");
-}
-
 export async function optimizeProductSeo(
   siteId: string,
   input: ProductSeoOptimizeInput,
 ): Promise<ProductSeoOptimizeResult> {
   const insights: ProductSeoInsight[] = [];
-  const title = normalizeTitle(input.title);
+  const title = normalizeProductTitle(input.title);
   if (!title) {
     return {
       suggestedTitle: "",
@@ -212,6 +140,15 @@ export async function optimizeProductSeo(
     ...competitors.hepsiburada,
     ...competitors.localStore,
   ];
+  const relevantCompetitorTitles = filterRelevantCompetitorTitles(title, allCompetitorTitles);
+
+  if (relevantCompetitorTitles.length < allCompetitorTitles.length && allCompetitorTitles.length) {
+    insights.push({
+      source: "analysis",
+      label: "Rakip başlık filtresi",
+      detail: `${allCompetitorTitles.length - relevantCompetitorTitles.length} alakasız pazaryeri başlığı ürün adına karıştırılmadı (farklı içerik/tür).`,
+    });
+  }
 
   if (competitors.trendyol.length) {
     const src = competitors.diagnostics.trendyolSource;
@@ -357,19 +294,25 @@ export async function optimizeProductSeo(
     });
   }
 
-  const keywords = [...new Set([...googleKeywords, ...extractTokens(title), ...extractTokens(categoryTitles.join(" "))])];
+  const keywords = sanitizeKeywordsForProduct(
+    title,
+    [...new Set([...googleKeywords, ...extractTokens(title), ...extractTokens(categoryTitles.join(" "))])],
+  );
 
-  let suggestedTitle = buildCanonicalProductTitle(title, brandTitle, categoryTitles, keywords);
-  if (allCompetitorTitles.length) {
-    suggestedTitle = refineTitleFromCompetitors(suggestedTitle, allCompetitorTitles, 100);
-  }
-  const marketplaceTitles = buildAllPlatformListingTitles(suggestedTitle, brandTitle, {
+  const suggestedTitle = buildCanonicalProductTitle(title, brandTitle, categoryTitles, keywords);
+  const marketplaceListingTitle =
+    relevantCompetitorTitles.length > 0
+      ? safeRefineTitleFromCompetitors(suggestedTitle, relevantCompetitorTitles, 100)
+      : suggestedTitle;
+  const marketplaceTitles = buildAllPlatformListingTitles(marketplaceListingTitle, brandTitle, {
     categoryTitles,
     keywords,
+    weightGrams: input.weightGrams,
+    pieceCount: input.pieceCount,
   });
   const suggestedSlug = input.slug?.trim() ? slugify(input.slug) : slugify(suggestedTitle);
-  const seoTitle = buildSeoTitle(title, brandTitle, siteName);
-  let seoDescription = buildSeoDescription({
+  let seoTitle = buildProductSeoTitle(title, brandTitle, siteName);
+  let seoDescription = buildProductSeoDescription({
     productTitle: suggestedTitle,
     categoryTitles,
     brandTitle,
@@ -378,19 +321,63 @@ export async function optimizeProductSeo(
     siteName,
   });
 
+  const petFood = isPetFoodContext(suggestedTitle, categoryTitles);
+  let nutritionResult = petFood
+    ? await fetchPetNutritionFromWeb({
+        title: suggestedTitle,
+        categoryTitle: categoryTitles[0],
+        brandTitle,
+        categoryTitles,
+      })
+    : { nutrition: { source: "none" as const }, notes: [] as string[] };
+
+  for (const note of nutritionResult.notes) {
+    insights.push({
+      source: "google",
+      label: "Besin değerleri",
+      detail: note,
+    });
+  }
+
+  if (petFood && nutritionResult.nutrition.source !== "none") {
+    const lines = formatNutritionLines(nutritionResult.nutrition);
+    if (lines.length) {
+      insights.push({
+        source: "analysis",
+        label: "Analitik bileşenler",
+        detail: lines.map((l) => l.trim()).join(" · "),
+      });
+    }
+  }
+
+  const suggestedHighlights = suggestProductHighlights({
+    title: suggestedTitle,
+    categoryTitles,
+    brandTitle,
+    isPetFood: petFood,
+  });
+
+  insights.push({
+    source: "analysis",
+    label: "İkon şeridi",
+    detail: suggestedHighlights.map((h) => h.label).filter(Boolean).join(" · "),
+  });
+
   const aiCopy = await generateAiSeoCopy(
     {
       title: suggestedTitle,
       categoryTitles,
       brandTitle,
       keywords,
-      competitorTitles: allCompetitorTitles,
+      competitorTitles: relevantCompetitorTitles,
       siteName,
       existingDescription: input.description,
+      nutrition: nutritionResult.nutrition,
     },
     aiConfig,
   );
-  if (aiCopy.seoDescription) seoDescription = aiCopy.seoDescription;
+  if (aiCopy.seoTitle?.trim()) seoTitle = aiCopy.seoTitle;
+  if (aiCopy.seoDescription?.trim()) seoDescription = aiCopy.seoDescription;
   insights.push({
     source: "ai",
     label: aiCopy.used ? "AI açıklama üretildi" : "Şablon açıklama",
@@ -439,6 +426,8 @@ export async function optimizeProductSeo(
     suggestedDescription: aiCopy.description,
     suggestedDescriptionHtml: aiCopy.descriptionHtml,
     suggestedKeyFeaturesHtml: aiCopy.keyFeaturesHtml,
+    suggestedHowToUseHtml: aiCopy.howToUseHtml,
+    suggestedHighlights,
     keywords,
     score,
     insights,

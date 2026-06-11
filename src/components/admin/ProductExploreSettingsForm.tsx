@@ -75,6 +75,7 @@ export function ProductExploreSettingsForm({
   productOptions: ProductOpt[];
 }) {
   const [looks, setLooks] = useState<ProductExploreLook[]>(() => [...initialLooks]);
+  const [exploreEnabled, setExploreEnabled] = useState(() => initialLooks.length > 0);
   const [plain, setPlain] = useState(() => bottomToPlainDraft(initialPageBottom));
   const [bottom, setBottom] = useState<ProductPageBottomSettings>(() => ({
     marquee: { ...initialPageBottom.marquee },
@@ -113,12 +114,14 @@ export function ProductExploreSettingsForm({
     setBusy(true);
     setErr(null);
     setOk(false);
-    const cleaned = looks
-      .filter((l) => l.imageUrl.trim())
-      .map((l) => ({
-        ...l,
-        productSlugs: l.productSlugs.filter(Boolean),
-      }));
+    const cleaned = exploreEnabled
+      ? looks
+          .filter((l) => l.imageUrl.trim())
+          .map((l) => ({
+            ...l,
+            productSlugs: l.productSlugs.filter(Boolean),
+          }))
+      : [];
     const pageBottom: ProductPageBottomSettings = {
       marquee: {
         enabled: bottom.marquee.enabled,
@@ -147,6 +150,7 @@ export function ProductExploreSettingsForm({
     }
     setOk(true);
     setLooks(cleaned);
+    setExploreEnabled(cleaned.length > 0);
     setBottom(pageBottom);
   }
 
@@ -154,7 +158,7 @@ export function ProductExploreSettingsForm({
     <div className="mx-auto max-w-3xl space-y-6">
       <SectionToggle
         label="Kayan kampanya yazısı"
-        hint="Ana sayfa ve tüm ürün detay sayfalarında üstteki kayan şerit. Tekrarlı görünüm normaldir."
+        hint="Ana sayfa ve ürün sayfalarında sayfa içindeki kayan şerit (header üstündeki duyuru şeridi değil). Tekrarlı görünüm normaldir."
         enabled={bottom.marquee.enabled}
         onEnabledChange={(enabled) => setBottom((b) => ({ ...b, marquee: { ...b.marquee, enabled } }))}
       >
@@ -168,12 +172,24 @@ export function ProductExploreSettingsForm({
         </AdminField>
       </SectionToggle>
 
-      <ProductExploreEditor
-        variant="site"
-        looks={looks}
-        onLooksChange={setLooks}
-        productOptions={productOptions}
-      />
+      <SectionToggle
+        label="Keşfet (EXPLORE) bölümü"
+        hint="Ürün sayfası altındaki lifestyle görseller ve + ile açılan ürün listesi."
+        enabled={exploreEnabled}
+        onEnabledChange={(enabled) => {
+          setExploreEnabled(enabled);
+          if (enabled && looks.length === 0) {
+            setLooks([{ imageUrl: "", label: "EXPLORE", productSlugs: [] }]);
+          }
+        }}
+      >
+        <ProductExploreEditor
+          variant="site"
+          looks={looks}
+          onLooksChange={setLooks}
+          productOptions={productOptions}
+        />
+      </SectionToggle>
 
       <SectionToggle
         label="Açılış metni (büyük paragraf)"

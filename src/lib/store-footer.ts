@@ -15,12 +15,33 @@ export type FooterMenuColumn = {
   links: FooterLinkItem[];
 };
 
+export const PAYMENT_ICON_IDS = [
+  "visa",
+  "mastercard",
+  "amex",
+  "paypal",
+  "diners",
+  "discover",
+] as const;
+export type PaymentIconId = (typeof PAYMENT_ICON_IDS)[number];
+
+export type FooterBottomLink = {
+  id: string;
+  href: string;
+  labelTr: string;
+  labelEn: string;
+};
+
 export type StoreFooterConfig = {
   introTr?: string;
   introEn?: string;
   taglineTr?: string;
   taglineEn?: string;
   columns?: FooterMenuColumn[];
+  /** Alt bar policy linkleri */
+  bottomLinks?: FooterBottomLink[];
+  /** Gösterilecek ödeme ikonları; boş / undefined = hepsi görünür */
+  paymentIcons?: PaymentIconId[];
 };
 
 function link(
@@ -32,7 +53,24 @@ function link(
   return { id, href, labelTr, labelEn };
 }
 
+function blink(
+  id: string,
+  href: string,
+  labelTr: string,
+  labelEn: string,
+): FooterBottomLink {
+  return { id, href, labelTr, labelEn };
+}
+
+export const DEFAULT_FOOTER_BOTTOM_LINKS: FooterBottomLink[] = [
+  blink("bp1", "/pages/privacy-policy", "Gizlilik politikası", "Privacy policy"),
+  blink("bp2", "/pages/terms-of-service", "Hizmet şartları", "Terms of service"),
+  blink("bp3", "/pages/refund-policy", "İade politikası", "Refund policy"),
+];
+
 export const DEFAULT_STORE_FOOTER: StoreFooterConfig = {
+  bottomLinks: DEFAULT_FOOTER_BOTTOM_LINKS,
+  paymentIcons: [...PAYMENT_ICON_IDS],
   introTr:
     "Doğal güzelliğinizi öne çıkarmak yalnızca bir slogan değil — kim olduğunuzu kucaklayan bir felsefedir. Cildinize güven duymanızı teşvik eder.",
   introEn:
@@ -72,9 +110,9 @@ export const DEFAULT_STORE_FOOTER: StoreFooterConfig = {
       links: [
         link("h1", "/pages/contact", "İletişim", "Contact"),
         link("h2", "/pages/faq", "SSS", "FAQ"),
-        link("h3", "/policies/privacy-policy.html", "Gizlilik", "Privacy Policy"),
-        link("h4", "/policies/terms-of-service.html", "Kullanım şartları", "Terms of Use"),
-        link("h5", "/policies/refund-policy.html", "İade politikası", "Return Policy"),
+        link("h3", "/pages/privacy-policy", "Gizlilik", "Privacy Policy"),
+        link("h4", "/pages/terms-of-service", "Kullanım şartları", "Terms of Use"),
+        link("h5", "/pages/refund-policy", "İade politikası", "Return Policy"),
       ],
     },
   ],
@@ -104,6 +142,17 @@ export function getStoreFooterConfig(settings: SiteSettings): StoreFooterConfig 
           })),
       }))
       .filter((c) => c.links.length > 0),
+    bottomLinks: raw.bottomLinks?.length
+      ? raw.bottomLinks
+          .filter((l) => l?.href?.trim())
+          .map((l) => ({
+            id: l.id || `bp-${l.href}`,
+            href: l.href.trim(),
+            labelTr: l.labelTr?.trim() || l.labelEn?.trim() || "Link",
+            labelEn: l.labelEn?.trim() || l.labelTr?.trim() || "Link",
+          }))
+      : DEFAULT_FOOTER_BOTTOM_LINKS,
+    paymentIcons: raw.paymentIcons ?? [...PAYMENT_ICON_IDS],
   };
 }
 
@@ -122,4 +171,8 @@ export function footerIntroHtml(config: StoreFooterConfig, locale: ShopLocale): 
 
 export function footerTaglineHtml(config: StoreFooterConfig, locale: ShopLocale): string {
   return (locale === "tr" ? config.taglineTr : config.taglineEn) ?? "";
+}
+
+export function footerBottomLinkLabel(item: FooterBottomLink, locale: ShopLocale): string {
+  return locale === "tr" ? item.labelTr : item.labelEn;
 }

@@ -5,6 +5,7 @@ import {
   seoHealthScore,
   type ProductSeoHealthItem,
 } from "@/lib/admin/product-seo/health";
+import { btnSecondary } from "@/components/admin/AdminForm";
 
 const STATUS_STYLES: Record<ProductSeoHealthItem["status"], string> = {
   ok: "text-green-800 bg-green-50 border-green-100",
@@ -25,12 +26,16 @@ export function ProductSeoHealthPanel({
   seoDescription,
   description,
   descriptionHtml,
+  keyFeaturesHtml,
+  howToUseHtml,
   brandId,
+  categoryId,
   imageUrl,
   barcode,
   published,
   homepageMode,
   siteUrl,
+  onFillMeta,
 }: {
   title: string;
   slug: string;
@@ -38,12 +43,16 @@ export function ProductSeoHealthPanel({
   seoDescription: string;
   description: string;
   descriptionHtml: string;
+  keyFeaturesHtml: string;
+  howToUseHtml: string;
   brandId: string;
+  categoryId: string;
   imageUrl: string;
   barcode: string;
   published: boolean;
   homepageMode: "mirror" | "blocks";
   siteUrl?: string;
+  onFillMeta?: () => void;
 }) {
   const items = evaluateProductSeoHealth({
     title,
@@ -52,7 +61,10 @@ export function ProductSeoHealthPanel({
     seoDescription,
     description,
     descriptionHtml,
+    keyFeaturesHtml,
+    howToUseHtml,
     brandId,
+    categoryId,
     imageUrl,
     barcode,
     published,
@@ -61,18 +73,25 @@ export function ProductSeoHealthPanel({
   });
   const score = seoHealthScore(items);
   const preview = items.find((i) => i.id === "preview");
+  const needsMeta = !seoTitle.trim() || !seoDescription.trim();
 
   return (
     <div className="rounded-lg border border-zinc-200 bg-zinc-50/80 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm font-semibold text-zinc-900">SEO sağlık kontrolü</p>
-        <span className="rounded-full bg-white px-2.5 py-0.5 text-xs font-medium text-zinc-700 ring-1 ring-zinc-200">
-          {score}/100
-        </span>
+        <div className="flex items-center gap-2">
+          {needsMeta && onFillMeta ? (
+            <button type="button" className={btnSecondary} onClick={onFillMeta}>
+              Meta alanlarını doldur
+            </button>
+          ) : null}
+          <span className="rounded-full bg-white px-2.5 py-0.5 text-xs font-medium text-zinc-700 ring-1 ring-zinc-200">
+            {score}/100
+          </span>
+        </div>
       </div>
       <p className="mt-1 text-xs text-zinc-500">
-        Google meta, içerik ve {homepageMode === "mirror" ? "mirror dış kabuk" : "sayfa yapısı"} için
-        otomatik kontrol.
+        Google meta, tanıtım, besin değerleri, kullanım ve pazaryeri başlıkları için kontrol.
       </p>
       <ul className="mt-3 space-y-2">
         {items

@@ -8,6 +8,7 @@ const eventSchema = z.object({
   type: z.enum([
     "page_view",
     "product_view",
+    "search_query",
     "add_to_cart",
     "remove_from_cart",
     "begin_checkout",

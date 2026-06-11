@@ -968,6 +968,16 @@
   padding-top: 0.75rem !important;
   margin-top: 0.5rem !important;
 }
+.kn-cart-free-shipping-under-total {
+  text-align: right;
+  margin: 0.35rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+.kn-cart-free-shipping-under-total--active {
+  color: #059669;
+  font-weight: 600;
+}
 .kn-cart-summary__coupon-row {
   display: flex;
   gap: 0.5rem;
@@ -1293,6 +1303,87 @@
 .kn-checkout__err {
   color: #b91c1c;
   font-size: 0.875rem;
+}
+/* Kupon */
+.kn-checkout__coupon-toggle {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.8125rem;
+  color: #6366f1;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  margin: 4px 0 8px;
+}
+.kn-checkout__coupon-toggle:hover { color: #4f46e5; }
+.kn-checkout__coupon-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin: 4px 0 8px;
+}
+.kn-checkout__coupon-input {
+  flex: 1;
+  min-width: 120px;
+  font-size: 0.875rem !important;
+  padding: 6px 10px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.kn-checkout__coupon-btn {
+  padding: 6px 14px !important;
+  font-size: 0.8125rem !important;
+  white-space: nowrap;
+}
+.kn-checkout__coupon-cancel {
+  background: none;
+  border: none;
+  font-size: 0.8125rem;
+  color: #6b7280;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.kn-checkout__coupon-err {
+  width: 100%;
+  font-size: 0.8125rem;
+  color: #b91c1c;
+  margin: 0;
+}
+.kn-checkout__coupon-applied {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 0.8125rem;
+  margin: 4px 0 8px;
+  color: #166534;
+}
+.kn-checkout__coupon-remove {
+  background: none;
+  border: none;
+  font-size: 0.75rem;
+  color: #6b7280;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  white-space: nowrap;
+}
+.kn-checkout__coupon-badge {
+  font-style: normal;
+  font-weight: 600;
+  color: #166534;
+}
+.kn-checkout__discount-row span:first-child {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 .kn-checkout-success {
   text-align: center;
@@ -1681,4 +1772,202 @@
 }
 .kn-muted {
   color: var(--kn-muted);
+}
+
+/* Özellik kartları widget — vitrin + CMS sayfalar */
+.kn-feature-cards-section,
+.kn-custom-block-root.kn-cb-feature-cards {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 48px 20px 56px;
+}
+.kn-feature-cards-section .kn-fc-header,
+.kn-custom-block-root.kn-cb-feature-cards .kn-fc-header {
+  text-align: center;
+  max-width: 720px;
+  margin: 0 auto 36px;
+  padding: 0 8px;
+}
+.kn-feature-cards-section .kn-fc-header h2,
+.kn-custom-block-root.kn-cb-feature-cards .kn-fc-header h2 {
+  font-size: clamp(1.5rem, 2.5vw, 1.875rem);
+  font-weight: 700;
+  line-height: 1.25;
+  margin: 0 0 12px;
+  color: #111;
+}
+.kn-feature-cards-section .kn-fc-header p,
+.kn-custom-block-root.kn-cb-feature-cards .kn-fc-header p {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #64748b;
+  margin: 0;
+}
+.kn-feature-cards-section .kn-fc-grid,
+.kn-custom-block-root.kn-cb-feature-cards .kn-fc-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+  max-width: 1280px;
+  margin: 0 auto;
+  width: 100%;
+}
+.kn-feature-cards-section .kn-fc-card,
+.kn-custom-block-root.kn-cb-feature-cards .kn-fc-card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.08);
+  padding: 28px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-decoration: none;
+  color: inherit;
+  min-width: 0;
+}
+.kn-feature-cards-section a.kn-fc-card:hover,
+.kn-custom-block-root.kn-cb-feature-cards a.kn-fc-card:hover {
+  text-decoration: none;
+  color: inherit;
+  box-shadow: 0 12px 36px rgba(15, 23, 42, 0.12);
+}
+.kn-feature-cards-section .kn-fc-icon,
+.kn-custom-block-root.kn-cb-feature-cards .kn-fc-icon {
+  width: 52px;
+  height: 52px;
+  margin-bottom: 18px;
+  padding-top: 4px;
+  border-top: 3px solid transparent;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  flex-shrink: 0;
+}
+.kn-feature-cards-section .kn-fc-card:first-child .kn-fc-icon,
+.kn-custom-block-root.kn-cb-feature-cards .kn-fc-card:first-child .kn-fc-icon {
+  border-top-color: #c9a227;
+}
+.kn-feature-cards-section .kn-fc-icon img,
+.kn-feature-cards-section .kn-fc-icon svg,
+.kn-custom-block-root.kn-cb-feature-cards .kn-fc-icon img,
+.kn-custom-block-root.kn-cb-feature-cards .kn-fc-icon svg {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  display: block;
+}
+.kn-feature-cards-section .kn-fc-icon--text,
+.kn-custom-block-root.kn-cb-feature-cards .kn-fc-icon--text {
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #111;
+}
+.kn-feature-cards-section .kn-fc-card h3,
+.kn-custom-block-root.kn-cb-feature-cards .kn-fc-card h3 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.35;
+  margin: 0 0 10px;
+  color: #111;
+}
+.kn-feature-cards-section .kn-fc-card p,
+.kn-custom-block-root.kn-cb-feature-cards .kn-fc-card p {
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: #64748b;
+  margin: 0;
+}
+@media (max-width: 1024px) {
+  .kn-feature-cards-section .kn-fc-grid,
+  .kn-custom-block-root.kn-cb-feature-cards .kn-fc-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 640px) {
+  .kn-feature-cards-section,
+  .kn-custom-block-root.kn-cb-feature-cards {
+    padding: 32px 16px 40px;
+  }
+  .kn-feature-cards-section .kn-fc-grid,
+  .kn-custom-block-root.kn-cb-feature-cards .kn-fc-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.kn-distance-sales-agreement,
+.kn-distance-sales-page {
+  font-size: 0.9375rem;
+  line-height: 1.65;
+}
+.kn-dsa-title {
+  text-align: center;
+  font-size: 1.35rem;
+  margin: 0 0 1rem;
+}
+.kn-dsa-meta {
+  margin: 0 0 1.5rem;
+}
+.kn-distance-sales-agreement h2 {
+  font-size: 1.05rem;
+  margin: 1.75rem 0 0.75rem;
+}
+.kn-distance-sales-agreement h3 {
+  font-size: 0.98rem;
+  margin: 1rem 0 0.5rem;
+}
+.kn-dsa-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.5rem 0 1rem;
+  font-size: 0.875rem;
+}
+.kn-dsa-table th,
+.kn-dsa-table td {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  padding: 0.5rem 0.65rem;
+  text-align: left;
+  vertical-align: top;
+}
+.kn-dsa-table th {
+  width: 38%;
+  background: rgba(0, 0, 0, 0.04);
+  font-weight: 600;
+}
+.kn-dsa-placeholder {
+  color: #6b7280;
+  font-style: italic;
+}
+.kn-dsa-products {
+  margin: 0.5rem 0 1rem;
+  padding-left: 1.25rem;
+}
+.kn-dsa-signatures {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+.kn-distance-sales-checkout {
+  margin: 1.25rem 0;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+  background: #fff;
+}
+.kn-distance-sales-checkout summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.75rem 1rem;
+  list-style-position: inside;
+}
+.kn-distance-sales-checkout__body {
+  max-height: 22rem;
+  overflow: auto;
+  padding: 0 1rem 1rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+.kn-distance-sales-page-wrap {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 4rem;
 }

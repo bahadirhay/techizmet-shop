@@ -45,28 +45,54 @@ export function injectFooterIntoMirrorHtml(html: string, footer: MirrorFooterDat
     );
   }
 
-  if (!footer.columns.length) return out;
+  if (footer.columns.length) {
+    const menuBlocks = [...out.matchAll(/<details\s+class="footer--menu[\s\S]*?<\/details>/gi)];
+    footer.columns.forEach((col, idx) => {
+      const block = menuBlocks[idx]?.[0];
+      if (!block) return;
 
-  const menuBlocks = [...out.matchAll(/<details\s+class="footer--menu[\s\S]*?<\/details>/gi)];
-  footer.columns.forEach((col, idx) => {
-    const block = menuBlocks[idx]?.[0];
-    if (!block) return;
+      let next = block;
+      if (col.title) {
+        next = next.replace(
+          /(<summary[^>]*class="footer--menu-heading[^"]*"[^>]*>)\s*[\s\S]*?(\s*<span class="accordion--icon)/i,
+          `$1\n                                      ${escHtml(col.title)}\n                                      $2`,
+        );
+      }
+      if (col.links.length) {
+        next = next.replace(
+          /(<ul class="footer--menu-list"[^>]*>)[\s\S]*?(<\/ul>)/i,
+          `$1${footerLinksHtml(col.links)}$2`,
+        );
+      }
+      out = out.replace(block, next);
+    });
+  }
 
-    let next = block;
-    if (col.title) {
-      next = next.replace(
-        /(<summary[^>]*class="footer--menu-heading[^"]*"[^>]*>)\s*[\s\S]*?(\s*<span class="accordion--icon)/i,
-        `$1\n                                      ${escHtml(col.title)}\n                                      $2`,
-      );
-    }
-    if (col.links.length) {
-      next = next.replace(
-        /(<ul class="footer--menu-list"[^>]*>)[\s\S]*?(<\/ul>)/i,
-        `$1${footerLinksHtml(col.links)}$2`,
-      );
-    }
-    out = out.replace(block, next);
-  });
+  if (footer.bottomLinks?.length) {
+    const items = footer.bottomLinks
+      .map(
+        (l) =>
+          `<li><a href="${escHtml(l.href)}" class="footer-quick-links-link text-small">${escHtml(l.label)}</a></li>`,
+      )
+      .join("");
+    out = out.replace(
+      /(<ul class="footer-quick-links[^"]*"[^>]*>)[\s\S]*?(<\/ul>)/i,
+      `$1${items}$2`,
+    );
+  }
+
+  if (footer.paymentIcons !== undefined) {
+    const allowed = new Set(footer.paymentIcons.map((s) => s.toLowerCase()));
+    out = out.replace(
+      /<li class="payment-icons-item"[\s\S]*?<\/li>/gi,
+      (block) => {
+        const titleMatch = block.match(/<title[^>]*>([^<]*)<\/title>/i);
+        const title = (titleMatch?.[1] ?? "").toLowerCase();
+        const show = [...allowed].some((id) => title.includes(id));
+        return show ? block : block.replace("<li ", `<li style="display:none" `);
+      },
+    );
+  }
 
   return out;
 }

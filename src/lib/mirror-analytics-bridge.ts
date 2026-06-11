@@ -16,9 +16,6 @@ export function injectMirrorAnalyticsBridge(html: string, storePath: string | nu
   }
   ping();
   window.addEventListener("load",ping);
-  document.addEventListener("click",function(){
-    window.setTimeout(ping,120);
-  },true);
 })();</script>`;
 
   let out = html;

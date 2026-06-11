@@ -1,5 +1,6 @@
 /** Ürün PDP alt bölümleri — marquee, keşfet, revealing text, video metin */
 
+import { parseHTML } from "linkedom";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import {
   htmlToPlainText,
@@ -13,19 +14,19 @@ export const DEFAULT_PRODUCT_MARQUEE_PLAIN_EN = "Up to *40% Off* Bestsellers";
 export const DEFAULT_PRODUCT_MARQUEE_PLAIN_TR = "En çok satanlarda *%40'a varan* indirim";
 
 export const DEFAULT_REVEALING_TEXT_PLAIN_EN =
-  "Your skin works hard every day, and it deserves the highest quality care. Our products are thoughtfully crafted with premium ingredients to hydrate, protect, and enhance your natural glow.";
+  "Produced in Turkey, loved across Europe — 100% natural, additive-free dog treats. Anatolian Paw quality, now available in Turkey.";
 
 export const DEFAULT_REVEALING_TEXT_PLAIN_TR =
-  "Cildiniz her gün yoğun çalışır ve en kaliteli bakımı hak eder. Ürünlerimiz premium içeriklerle nemlendirmek, korumak ve doğal ışıltınızı artırmak için özenle hazırlanmıştır.";
+  "Türkiye'de üretilen, %100 doğal ve katkısız ödül mamalarıyla köpeğinize en iyisini sunuyoruz. Avrupa'nın güvendiği kalite, şimdi Türkiye'de.";
 
-export const DEFAULT_VIDEO_HEADING_PLAIN_EN = "Your Skin Deserves the *Best*";
-export const DEFAULT_VIDEO_HEADING_PLAIN_TR = "Cildiniz *En İyisini* Hak Ediyor";
+export const DEFAULT_VIDEO_HEADING_PLAIN_EN = "Your Dog Deserves the *Best*";
+export const DEFAULT_VIDEO_HEADING_PLAIN_TR = "Köpeğiniz *En İyisini* Hak Ediyor";
 
 export const DEFAULT_VIDEO_DESCRIPTION_PLAIN_EN =
-  "Our skincare range is made with carefully selected, high-quality ingredients designed to nourish, protect, and enhance your natural beauty.";
+  "Our natural treats are made with carefully selected, high-quality ingredients designed to nourish and delight your dog.";
 
 export const DEFAULT_VIDEO_DESCRIPTION_PLAIN_TR =
-  "Cilt bakım serimiz; cildinizi beslemek, korumak ve doğal güzelliğinizi öne çıkarmak için özenle seçilmiş yüksek kaliteli içeriklerle hazırlanmıştır.";
+  "Doğal ödül mamalarımız; köpeğinizi beslemek ve mutlu etmek için özenle seçilmiş yüksek kaliteli içeriklerle hazırlanmıştır.";
 
 /** @deprecated vitrin — yalnızca EN şablon karşılaştırması */
 export const DEFAULT_PRODUCT_MARQUEE_HTML = plainTextToMarkedHtml(DEFAULT_PRODUCT_MARQUEE_PLAIN_EN);
@@ -267,38 +268,80 @@ export function applySiteMarqueeOverlay(
   }
 }
 
+function serializeMirrorHtml(html: string, document: Document): string {
+  const doctype = html.match(/^<!DOCTYPE[^>]*>/i)?.[0] ?? "<!DOCTYPE html>";
+  return `${doctype}\n${document.documentElement.outerHTML}`;
+}
+
+/** Sunucu — animasyonlu metin: reveal-text yerine her zaman görünür statik metin */
+export function injectRevealingTextMirrorHtml(
+  html: string,
+  config: { enabled: boolean; html: string },
+): string {
+  const out = stripBrokenSectionDisplayAttr(html);
+  if (!out.includes("section-revealing-text")) return out;
+
+  const { document } = parseHTML(out);
+  injectRevealingStaticStyles(document);
+
+  const section =
+    document.querySelector("#MainContent .section-revealing-text") ??
+    document.querySelector(".section-revealing-text");
+
+  if (!section) return serializeMirrorHtml(out, document);
+
+  if (!config.enabled) {
+    setSectionVisible(section, false);
+    document.getElementById("kn-revealing-static-guard")?.remove();
+    return serializeMirrorHtml(out, document);
+  }
+
+  setSectionVisible(section, true);
+  // config.html (DB'de kayıtlı değer) varsa onu kullan; yoksa HTML'deki metni oku
+  const existingPlain =
+    section.querySelector(".revealing-text--content")?.textContent?.replace(/\s+/g, " ").trim() ?? "";
+  const text = config.html || existingPlain;
+  applyRevealingTextStatic(document, section, text);
+  injectRevealingStaticGuard(document, text);
+
+  return serializeMirrorHtml(out, document);
+}
+
 /** Sunucu — mirror ürün HTML (reveal-text yüklenmeden önce) */
+/** İlk boyamadan önce kapalı PDP alt bölümlerini gizle — şablon flaşını önler */
+export function injectProductPageBottomCriticalCss(
+  html: string,
+  config: ProductPageBottomSettings,
+  hideExplore = false,
+): string {
+  const rules: string[] = [];
+  if (!config.marquee.enabled) {
+    rules.push("#MainContent .section-marquee{display:none!important;visibility:hidden!important;height:0!important;overflow:hidden!important;margin:0!important;padding:0!important}");
+  }
+  if (!config.revealingText.enabled) {
+    rules.push("#MainContent .section-revealing-text{display:none!important;visibility:hidden!important;height:0!important;overflow:hidden!important;margin:0!important;padding:0!important}");
+  }
+  if (!config.videoPromo.enabled) {
+    rules.push("#MainContent .section-video{display:none!important;visibility:hidden!important;height:0!important;overflow:hidden!important;margin:0!important;padding:0!important}");
+  }
+  if (hideExplore) {
+    rules.push("#MainContent .section-collections-grid{display:none!important;visibility:hidden!important;height:0!important;overflow:hidden!important;margin:0!important;padding:0!important}");
+  }
+  if (!rules.length) return html;
+  if (html.includes('id="kn-pdp-bottom-critical"')) return html;
+
+  const style = `<style id="kn-pdp-bottom-critical">${rules.join("")}</style>`;
+  if (html.includes("<head>")) {
+    return html.replace("<head>", `<head>${style}`);
+  }
+  return html.replace(/<head([^>]*)>/i, `<head$1>${style}`);
+}
+
 export function injectProductPageBottomMirrorHtml(
   html: string,
   config: ProductPageBottomSettings,
 ): string {
-  let out = stripBrokenSectionDisplayAttr(html);
-  if (!out.includes("kn-revealing-static-style")) {
-    out = out.replace(/<\/head>/i, `${REVEALING_STATIC_CSS}</head>`);
-  }
-
-  if (!config.revealingText.enabled) {
-    out = out.replace(
-      /(<section\b[^>]*\bsection-revealing-text\b[^>]*)(>)/i,
-      `$1 data-kn-pdp-hidden="1" style="display:none!important"$2`,
-    );
-  } else {
-    const text = config.revealingText.html;
-    out = out.replace(
-      /(<section\b[^>]*\bsection-revealing-text\b[^>]*)(>)([\s\S]*?)(<\/section>)/i,
-      (_match, open, gt, body, close) => {
-        let sectionBody = body;
-        sectionBody = sectionBody.replace(/<reveal-text\b[^>]*>/gi, '<div class="kn-revealing-static">');
-        sectionBody = sectionBody.replace(/<\/reveal-text>/gi, "</div>");
-        sectionBody = sectionBody.replace(/\sdata-text-reveal\b(="[^"]*")?/gi, "");
-        sectionBody = sectionBody.replace(
-          /(<div class="revealing-text--wrapper[^>]*>)[\s\S]*?(<\/div>\s*\n\s*<\/div>)/i,
-          `$1<div class="kn-revealing-static"><p class="kn-revealing-static-text heading-font h2">${text}</p></div>$2`,
-        );
-        return `${open} data-kn-revealing-ready="1"${gt}${sectionBody}${close}`;
-      },
-    );
-  }
+  let out = injectRevealingTextMirrorHtml(html, config.revealingText);
 
   if (!config.marquee.enabled) {
     out = out.replace(

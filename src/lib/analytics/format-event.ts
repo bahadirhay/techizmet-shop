@@ -3,6 +3,7 @@ import type { StoreEventType } from "@/lib/analytics/types";
 export const EVENT_LABELS: Record<StoreEventType, string> = {
   page_view: "Sayfa görüntüleme",
   product_view: "Ürün görüntüleme",
+  search_query: "Site araması",
   add_to_cart: "Sepete ekleme",
   remove_from_cart: "Sepetten çıkarma",
   begin_checkout: "Ödeme başlangıcı",
@@ -32,6 +33,15 @@ export function formatEventDetail(eventType: string, payloadJson: string): strin
       const title = String(p.title ?? "").trim();
       if (title && slug) return `${title} (${slug})`;
       return slug || title || "—";
+    }
+    case "search_query": {
+      const query = String(p.query ?? "").trim();
+      const source = String(p.source ?? "").trim();
+      const count = Number(p.resultCount);
+      const parts = [query || "—"];
+      if (source) parts.push(`(${source})`);
+      if (Number.isFinite(count) && count >= 0) parts.push(`→ ${count} sonuç`);
+      return parts.join(" ");
     }
     case "add_to_cart": {
       const title = String(p.title ?? "").trim();

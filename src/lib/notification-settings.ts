@@ -39,7 +39,17 @@ export function resolveMailFrom(settings: SiteSettings, siteName: string): strin
     return `${name} <${e.fromEmail.trim()}>`;
   }
   if (envFrom) return envFrom;
-  return `${siteName} <siparis@localhost>`;
+  const smtpUser = settings.notifications?.smtp?.user?.trim();
+  if (smtpUser?.includes("@")) {
+    const name = e.fromName?.trim() || siteName;
+    return `${name} <${smtpUser}>`;
+  }
+  const envUser = process.env.SMTP_USER?.trim();
+  if (envUser?.includes("@")) {
+    const name = e.fromName?.trim() || siteName;
+    return `${name} <${envUser}>`;
+  }
+  return `${siteName} <noreply@localhost>`;
 }
 
 export function parseAdminEmails(raw: string | undefined): string[] {

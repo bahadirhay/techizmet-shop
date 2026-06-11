@@ -5,9 +5,13 @@ import { useState } from "react";
 import { btnPrimary, btnSecondary } from "@/components/admin/AdminForm";
 import type { SiteSettings } from "@/lib/site-settings";
 import {
+  DEFAULT_FOOTER_BOTTOM_LINKS,
   DEFAULT_STORE_FOOTER,
+  PAYMENT_ICON_IDS,
+  type FooterBottomLink,
   type FooterLinkItem,
   type FooterMenuColumn,
+  type PaymentIconId,
   type StoreFooterConfig,
 } from "@/lib/store-footer";
 import type {
@@ -55,6 +59,15 @@ function newFooterLink(): FooterLinkItem {
   };
 }
 
+function newBottomLink(): FooterBottomLink {
+  return {
+    id: crypto.randomUUID(),
+    href: "/",
+    labelTr: "Yeni link",
+    labelEn: "New link",
+  };
+}
+
 function newFooterColumn(): FooterMenuColumn {
   return {
     id: crypto.randomUUID(),
@@ -66,8 +79,12 @@ function newFooterColumn(): FooterMenuColumn {
 
 function initFooter(initial: SiteSettings): StoreFooterConfig {
   const f = initial.theme?.footer;
-  if (f?.columns?.length) return f;
-  return DEFAULT_STORE_FOOTER;
+  if (!f?.columns?.length) return DEFAULT_STORE_FOOTER;
+  return {
+    ...f,
+    bottomLinks: f.bottomLinks?.length ? f.bottomLinks : DEFAULT_FOOTER_BOTTOM_LINKS,
+    paymentIcons: f.paymentIcons ?? [...PAYMENT_ICON_IDS],
+  };
 }
 
 export function StoreNavigationForm({ initial }: { initial: SiteSettings }) {
@@ -249,6 +266,43 @@ export function StoreNavigationForm({ initial }: { initial: SiteSettings }) {
     }));
   }
 
+  function updateBottomLink(linkId: string, patch: Partial<FooterBottomLink>) {
+    setFooter((prev) => ({
+      ...prev,
+      bottomLinks: (prev.bottomLinks ?? []).map((l) => (l.id === linkId ? { ...l, ...patch } : l)),
+    }));
+  }
+
+  function removeBottomLink(linkId: string) {
+    setFooter((prev) => ({
+      ...prev,
+      bottomLinks: (prev.bottomLinks ?? []).filter((l) => l.id !== linkId),
+    }));
+  }
+
+  function moveBottomLink(linkId: string, dir: -1 | 1) {
+    setFooter((prev) => {
+      const links = [...(prev.bottomLinks ?? [])];
+      const idx = links.findIndex((l) => l.id === linkId);
+      if (idx < 0) return prev;
+      const next = idx + dir;
+      if (next < 0 || next >= links.length) return prev;
+      [links[idx], links[next]] = [links[next], links[idx]];
+      return { ...prev, bottomLinks: links };
+    });
+  }
+
+  function togglePaymentIcon(icon: PaymentIconId) {
+    setFooter((prev) => {
+      const current = prev.paymentIcons ?? [...PAYMENT_ICON_IDS];
+      const has = current.includes(icon);
+      return {
+        ...prev,
+        paymentIcons: has ? current.filter((i) => i !== icon) : [...current, icon],
+      };
+    });
+  }
+
   async function save() {
     setBusy(true);
     setMsg(null);
@@ -289,7 +343,11 @@ export function StoreNavigationForm({ initial }: { initial: SiteSettings }) {
   }
 
   function resetFooter() {
-    setFooter(DEFAULT_STORE_FOOTER);
+    setFooter({
+      ...DEFAULT_STORE_FOOTER,
+      bottomLinks: DEFAULT_FOOTER_BOTTOM_LINKS,
+      paymentIcons: [...PAYMENT_ICON_IDS],
+    });
     setMsg("Footer varsayılanına döndü — Kaydet ile uygulayın.");
   }
 
@@ -481,15 +539,138 @@ export function StoreNavigationForm({ initial }: { initial: SiteSettings }) {
           ))}
         </div>
 
-        <button
-          type="button"
-          className={btnSecondary}
-          onClick={() =>
-            updateFooter({ columns: [...columns, newFooterColumn()] })
-          }
-        >
-          + Menü sütunu ekle
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            className={btnSecondary}
+            onClick={() =>
+              updateFooter({ columns: [...columns, newFooterColumn()] })
+            }
+          >
+            + Menü sütunu ekle
+          </button>
+          {(() => {
+            const existingIds = new Set(columns.map((c) => c.id));
+            const missing = (DEFAULT_STORE_FOOTER.columns ?? []).filter(
+              (c) => !existingIds.has(c.id),
+            );
+            if (!missing.length) return null;
+            return (
+              <button
+                type="button"
+                className={btnSecondary}
+                title={`Eklenecek: ${missing.map((c) => c.titleTr).join(", ")}`}
+                onClick={() =>
+                  updateFooter({
+                    columns: [
+                      ...columns,
+                      ...missing.map((c) => ({
+                        ...c,
+                        links: c.links.map((l) => ({ ...l, id: crypto.randomUUID() })),
+                      })),
+                    ],
+                  })
+                }
+              >
+                + Şablon sütunlarını ekle ({missing.map((c) => c.titleTr).join(", ")})
+              </button>
+            );
+          })()}
+        </div>
+
+        <div className="space-y-3 border-t pt-4">
+          <h3 className="text-sm font-medium">Alt bar linkleri</h3>
+          <p className="text-xs text-zinc-500">
+            Footer&apos;ın en alt satırındaki politika bağlantıları (Gizlilik, Hizmet şartları, vb.)
+          </p>
+          {(footer.bottomLinks ?? []).map((link, linkIndex) => {
+            const blinks = footer.bottomLinks ?? [];
+            return (
+              <div key={link.id} className="rounded border bg-zinc-50/80 p-3 space-y-2">
+                <div className="flex gap-1 justify-end">
+                  <button
+                    type="button"
+                    className={btnSecondary}
+                    disabled={linkIndex === 0}
+                    onClick={() => moveBottomLink(link.id, -1)}
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    className={btnSecondary}
+                    disabled={linkIndex === blinks.length - 1}
+                    onClick={() => moveBottomLink(link.id, 1)}
+                  >
+                    ↓
+                  </button>
+                  <button
+                    type="button"
+                    className={btnSecondary}
+                    onClick={() => removeBottomLink(link.id)}
+                  >
+                    Sil
+                  </button>
+                </div>
+                <input
+                  className="w-full rounded border px-3 py-2 text-sm"
+                  value={link.href}
+                  placeholder="/policies/privacy-policy.html"
+                  onChange={(e) => updateBottomLink(link.id, { href: e.target.value })}
+                />
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <input
+                    className="rounded border px-3 py-2 text-sm"
+                    value={link.labelTr}
+                    placeholder="TR"
+                    onChange={(e) => updateBottomLink(link.id, { labelTr: e.target.value })}
+                  />
+                  <input
+                    className="rounded border px-3 py-2 text-sm"
+                    value={link.labelEn}
+                    placeholder="EN"
+                    onChange={(e) => updateBottomLink(link.id, { labelEn: e.target.value })}
+                  />
+                </div>
+              </div>
+            );
+          })}
+          <button
+            type="button"
+            className={btnSecondary}
+            onClick={() =>
+              setFooter((prev) => ({
+                ...prev,
+                bottomLinks: [...(prev.bottomLinks ?? []), newBottomLink()],
+              }))
+            }
+          >
+            + Alt bar linki ekle
+          </button>
+        </div>
+
+        <div className="space-y-3 border-t pt-4">
+          <h3 className="text-sm font-medium">Ödeme ikonları</h3>
+          <p className="text-xs text-zinc-500">
+            Footer sağ alt köşesinde görünen ödeme yöntemi ikonları
+          </p>
+          <div className="flex flex-wrap gap-3">
+            {PAYMENT_ICON_IDS.map((icon) => {
+              const checked = (footer.paymentIcons ?? [...PAYMENT_ICON_IDS]).includes(icon);
+              return (
+                <label key={icon} className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => togglePaymentIcon(icon)}
+                    className="h-4 w-4"
+                  />
+                  <span className="text-sm capitalize">{icon}</span>
+                </label>
+              );
+            })}
+          </div>
+        </div>
 
         <button type="button" className={btnSecondary} disabled={busy} onClick={resetFooter}>
           Footer varsayılana dön

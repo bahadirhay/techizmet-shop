@@ -33,7 +33,11 @@ import type { ShopLocale } from "@/lib/i18n/locale";
 import type { MirrorFooterData } from "@/lib/mirror-footer-overlay";
 import type { MirrorNavItem } from "@/lib/mirror-nav-overlay";
 import type { MirrorElementEdit, MirrorElementPick } from "@/lib/mirror-element-edits";
+import { canonicalElementEditId, resolveMirrorElementEdit } from "@/lib/mirror-element-edits";
+import { isMirrorHeadingFieldId, isMirrorMarqueeFieldId } from "@/lib/mirror-element-typography";
+import { marqueePlainToHtml } from "@/lib/html-plain-text";
 import type { MirrorPageConfig, MirrorPageSection, MirrorPageSectionEdit } from "@/lib/mirror-home-overlay";
+import { enrichCollectionsTabsFromProductOptions, mergeCollectionsTabEdits } from "@/lib/mirror-collections-tab";
 import { mirrorVitrinApiSrc } from "@/lib/mirror-iframe-src";
 import { getVitrinPage, vitrinMirrorFileRel, type VitrinPageKey } from "@/lib/mirror-vitrin-pages";
 import { CustomBlocksEditor, toEditorCustomBlocks } from "@/components/editor/CustomBlocksEditor";
@@ -50,6 +54,7 @@ function SortableSectionRow({
   hidden,
   selected,
   onSelect,
+  onToggleHidden,
 }: {
   id: string;
   label: string;
@@ -57,6 +62,7 @@ function SortableSectionRow({
   hidden?: boolean;
   selected: boolean;
   onSelect: () => void;
+  onToggleHidden: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.85 : 1 };
@@ -76,6 +82,20 @@ function SortableSectionRow({
         onClick={onSelect}
       >
         <span className={hidden ? "text-zinc-500 line-through" : "text-zinc-100"}>{label}</span>
+      </button>
+      <button
+        type="button"
+        className={`shrink-0 rounded-lg px-2 py-1.5 text-xs ${
+          hidden ? "text-zinc-500 hover:text-zinc-300" : "text-sky-300 hover:text-sky-200"
+        }`}
+        title={hidden ? "Bölümü vitrinde göster" : "Bölümü vitrinde gizle"}
+        aria-label={hidden ? "Bölümü göster" : "Bölümü gizle"}
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggleHidden();
+        }}
+      >
+        {hidden ? "Göster" : "Gizle"}
       </button>
     </div>
   );
@@ -170,13 +190,23 @@ export function MirrorVitrinAdminEditor({
           sections[s.key] = { ...cur, productGridColumns: s.productGridDefaults };
         }
       }
+      if (s.type === "collections-tab" && s.collectionsTabDefaults?.length) {
+        const cur = sections[s.key];
+        sections[s.key] = {
+          ...cur,
+          collectionsTabs: enrichCollectionsTabsFromProductOptions(
+            mergeCollectionsTabEdits(s.collectionsTabDefaults, cur?.collectionsTabs),
+            productOptions,
+          ),
+        };
+      }
     }
     return {
       ...config,
       sections,
       customBlocks: customBlocks.length ? stripMirrorCustomBlocks(customBlocks) : undefined,
     };
-  }, [config, catalog, customBlocks]);
+  }, [config, catalog, customBlocks, productOptions]);
   const ordered = useMemo(
     () =>
       config.order
@@ -185,8 +215,10 @@ export function MirrorVitrinAdminEditor({
     [config.order, catalogMap],
   );
 
+  const sortableIds = useMemo(() => ordered.map((s) => s.key), [ordered]);
+
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
@@ -201,6 +233,8 @@ export function MirrorVitrinAdminEditor({
         value: String(data.value ?? ""),
         label: String(data.label ?? ""),
       });
+      const sectionKey = id.split("--")[0];
+      if (sectionKey && catalogMap.has(sectionKey)) setSelectedKey(sectionKey);
       const bannerKey = id.match(/^(.+)--banner-(?:title|desc|image)$/)?.[1];
       if (bannerKey) setSelectedKey(bannerKey);
       setMessage(null);
@@ -218,7 +252,7 @@ export function MirrorVitrinAdminEditor({
         );
       }
     }
-  }, [setPicked, setSelectedKey]);
+  }, [setPicked, setSelectedKey, catalogMap]);
 
   useEffect(() => {
     window.addEventListener("message", onMessage);
@@ -226,10 +260,48 @@ export function MirrorVitrinAdminEditor({
   }, [onMessage]);
 
   function patchElement(edit: MirrorElementEdit) {
-    setConfig((prev) => ({
-      ...prev,
-      elements: { ...prev.elements, [edit.id]: edit },
-    }));
+    setConfig((prev) => {
+      const id = canonicalElementEditId(edit.id);
+      const prevEdit = resolveMirrorElementEdit(id, prev.elements);
+      const nextElements = { ...prev.elements };
+      if (id !== edit.id) delete nextElements[edit.id];
+      const next: MirrorPageConfig = {
+        ...prev,
+        elements: {
+          ...nextElements,
+          [id]: { ...prevEdit, ...edit, id },
+        },
+      };
+      const sectionKey = id.split("--")[0] ?? "";
+      if (sectionKey && catalogMap.has(sectionKey)) {
+        if (edit.html?.trim() && isMirrorHeadingFieldId(id)) {
+          next.sections = {
+            ...prev.sections,
+            [sectionKey]: { ...prev.sections[sectionKey], headingHtml: edit.html.trim() },
+          };
+        } else if (isMirrorMarqueeFieldId(id) && (edit.text?.trim() || edit.html?.trim())) {
+          const html = edit.html?.trim() || marqueePlainToHtml(edit.text ?? "");
+          next.sections = {
+            ...prev.sections,
+            [sectionKey]: { ...prev.sections[sectionKey], marqueeHtml: html || undefined },
+          };
+        }
+      }
+      return next;
+    });
+  }
+
+  function toggleSectionHidden(sectionKey: string) {
+    setConfig((prev) => {
+      const wasHidden = Boolean(prev.sections[sectionKey]?.hidden);
+      return {
+        ...prev,
+        sections: {
+          ...prev.sections,
+          [sectionKey]: { ...prev.sections[sectionKey], hidden: wasHidden ? undefined : true },
+        },
+      };
+    });
   }
 
   function onDragEnd(e: DragEndEvent) {
@@ -269,8 +341,14 @@ export function MirrorVitrinAdminEditor({
     }
   }
 
-  /** Widget önizlemesi — her zaman canlı API (prebuild widget içermeyebilir) */
-  const mirrorSrc = mirrorVitrinApiSrc(vitrinMirrorFileRel(pageKey, locale), pageKey);
+  /** Önizleme — layoutOrder ile anlık sıra sunucuda uygulanır (soldaki sürükleme) */
+  const mirrorSrc = useMemo(
+    () =>
+      mirrorVitrinApiSrc(vitrinMirrorFileRel(pageKey, locale), pageKey, {
+        layoutOrder: config.order.join(","),
+      }),
+    [pageKey, locale, config.order],
+  );
   const elementCount = Object.keys(config.elements ?? {}).length;
   const selectedSection = selectedKey ? catalogMap.get(selectedKey) : undefined;
   const isCollectionListSection = selectedSection?.type === "main-collection-list";
@@ -344,14 +422,29 @@ export function MirrorVitrinAdminEditor({
       {editorMode === "blocks" ? (
         <div className="ed-vitrin-workspace mx-4 mb-4 mt-3 md:mx-6">
           <div className="flex min-h-[520px] min-w-0 flex-1 flex-col gap-3 overflow-hidden rounded-xl border border-zinc-700 bg-zinc-900 lg:flex-row">
-            <div className="min-h-[320px] min-w-0 flex-1 overflow-hidden">
+            <div className="min-h-[320px] min-w-0 flex-1 overflow-hidden flex flex-col">
               <CustomBlocksEditor
                 blocks={customBlocks}
                 onChange={setCustomBlocks}
                 sectionOptions={widgetSectionOptions}
                 compact
-                hint="Konum: sağ panel. Sıra: Sıra sekmesi. Gizle: sağ paneldeki kutu veya Gizle."
+                hint="Her vitrin sayfasına ayrı widget ekleyebilirsiniz. Ekle → Özellikler → Özellik kartları. Konum: sağ panel."
               />
+              {pageKey === "contact" ? (
+                <div className="border-t border-zinc-700 px-4 py-3 text-sm">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">Sayfa düzeni</p>
+                  <label className="flex cursor-pointer items-center gap-2 text-zinc-300">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(config.contactFormCentered)}
+                      onChange={(e) =>
+                        setConfig((prev) => ({ ...prev, contactFormCentered: e.target.checked || undefined }))
+                      }
+                    />
+                    Formu ortala (harita kutusunu gizle, form tam genişlik)
+                  </label>
+                </div>
+              ) : null}
             </div>
             <div className="ed-vitrin-preview min-h-[320px] min-w-0 flex-1 border-t border-zinc-700 lg:border-t-0 lg:border-l">
               <MirrorVitrinFrameClient
@@ -372,6 +465,15 @@ export function MirrorVitrinAdminEditor({
       <div className="ed-vitrin-workspace mx-4 mb-4 mt-3 md:mx-6">
         <aside className="ed-vitrin-sections">
           <p className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-400">Bölümler</p>
+          <p className="mb-2 text-[11px] leading-snug text-zinc-500">
+            Sürükleyerek sıralayın. <strong className="text-zinc-400">Gizle / Göster</strong> ile bölümü vitrinde
+            kapatıp açın; sağ paneldeki onay kutusu da aynı işi yapar.
+          </p>
+          {ordered.length === 0 ? (
+            <p className="text-xs text-amber-200/90">
+              Bölüm listesi yüklenemedi. Dev sunucuyu yeniden başlatın veya mirror HTML dosyasını kontrol edin.
+            </p>
+          ) : null}
           {dndReady ? (
             <DndContext
               id="kn-vitrin-sections"
@@ -379,7 +481,7 @@ export function MirrorVitrinAdminEditor({
               collisionDetection={closestCenter}
               onDragEnd={onDragEnd}
             >
-              <SortableContext items={config.order} strategy={verticalListSortingStrategy}>
+              <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
                 {ordered.map((s) => (
                   <SortableSectionRow
                     key={s.key}
@@ -392,6 +494,7 @@ export function MirrorVitrinAdminEditor({
                       setSelectedKey(s.key);
                       setPicked(null);
                     }}
+                    onToggleHidden={() => toggleSectionHidden(s.key)}
                   />
                 ))}
               </SortableContext>
@@ -446,6 +549,16 @@ export function MirrorVitrinAdminEditor({
         </div>
 
         <aside className="ed-vitrin-props">
+          {picked ? (
+            <div className="mb-4 border-b border-zinc-700 pb-4">
+              <MirrorElementEditPanel
+                pick={picked}
+                edit={resolveMirrorElementEdit(picked.id, config.elements)}
+                onChange={patchElement}
+                onClear={() => setPicked(null)}
+              />
+            </div>
+          ) : null}
           {selectedKey && selectedSection ? (
             <MirrorSectionFieldsPanel
               section={selectedSection}
@@ -469,16 +582,6 @@ export function MirrorVitrinAdminEditor({
           )}
           {pageKey === "collections" && isCollectionListSection && collectionsFromAdmin?.length ? (
             <MirrorCollectionsSortPanel collections={collectionsFromAdmin} />
-          ) : null}
-          {picked ? (
-            <div className="mt-4 border-t border-zinc-700 pt-4">
-              <MirrorElementEditPanel
-                pick={picked}
-                edit={config.elements?.[picked.id]}
-                onChange={patchElement}
-                onClear={() => setPicked(null)}
-              />
-            </div>
           ) : null}
           <p className="mt-4 text-xs text-zinc-500">Kayıtlı alan: {elementCount}</p>
         </aside>

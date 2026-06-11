@@ -11,6 +11,12 @@ import { getDefaultSite } from "@/lib/site";
 import { getPageBySlug } from "@/lib/site";
 import { StorePublicBlocks } from "@/components/store/StorePublicBlocks";
 import { MirrorStaticPageFrame } from "@/components/store/MirrorStaticPageFrame";
+import { MirrorCmsPageFrame } from "@/components/store/MirrorCmsPageFrame";
+import { JsonLdScript } from "@/components/store/JsonLdScript";
+import { DistanceSalesAgreementView } from "@/components/legal/DistanceSalesAgreementView";
+import { buildWebPageJsonLd } from "@/lib/seo/site-json-ld";
+import { resolveLegalSellerProfile } from "@/lib/legal/seller-profile";
+import { buildPageMetadata } from "@/lib/seo/metadata";
 import { buildSiteMetadata } from "@/lib/site-metadata";
 import { resolveStoreBlockMessages } from "@/lib/store-static-texts";
 
@@ -23,11 +29,11 @@ export async function generateMetadata({
   const page = await getPageBySlug(slug);
   const base = await buildSiteMetadata();
   if (!page) return base;
-  return {
-    ...base,
+  return buildPageMetadata(base, {
     title: page.seoTitle?.trim() || page.title,
     description: page.seoDescription?.trim() || base.description,
-  };
+    canonicalPath: `/pages/${slug}`,
+  });
 }
 
 export default async function CmsPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -47,17 +53,43 @@ export default async function CmsPage({ params }: { params: Promise<{ slug: stri
 
   const page = await getPageBySlug(slug);
   if (!page?.published) notFound();
+
+  if (slug === "mesafeli-satis") {
+    if (homepageMode === "mirror") {
+      return <MirrorCmsPageFrame slug={slug} locale={locale} title={page.title} />;
+    }
+    const profile = resolveLegalSellerProfile(settings, site);
+    return (
+      <div className="kn-section kn-distance-sales-page-wrap">
+        <DistanceSalesAgreementView seller={profile} />
+      </div>
+    );
+  }
+
+  if (homepageMode === "mirror") {
+    return <MirrorCmsPageFrame slug={slug} locale={locale} title={page.title} />;
+  }
+
   const blocks = parseBlocks(page.blocks);
   const messages = getStoreMessages(locale);
+  const jsonLd = buildWebPageJsonLd({
+    name: page.seoTitle?.trim() || page.title,
+    description: page.seoDescription,
+    path: `/pages/${slug}`,
+    siteName: site.name,
+  });
   return (
-    <article>
-      <h1 className="kn-section__title" style={{ paddingTop: "2rem" }}>
-        {page.title}
-      </h1>
-      <StorePublicBlocks
-        blocks={blocks}
-        messages={resolveStoreBlockMessages(locale, settings.store?.texts, messages.blocks)}
-      />
-    </article>
+    <>
+      <JsonLdScript data={jsonLd} />
+      <article>
+        <h1 className="kn-section__title" style={{ paddingTop: "2rem" }}>
+          {page.title}
+        </h1>
+        <StorePublicBlocks
+          blocks={blocks}
+          messages={resolveStoreBlockMessages(locale, settings.store?.texts, messages.blocks)}
+        />
+      </article>
+    </>
   );
 }

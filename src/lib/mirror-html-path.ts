@@ -1,6 +1,6 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { prebuiltMirrorPublicUrl } from "@/lib/mirror-iframe-src";
+import { mirrorVitrinApiSrc, prebuiltMirrorPublicUrl } from "@/lib/mirror-iframe-src";
 import {
   hasPrebuiltMirrorHtml,
   preferPrebuiltMirrorHtml,
@@ -82,9 +82,15 @@ export function mirrorBlogArticleHtmlExists(slug: string) {
   return existsSync(join(blogNewsRoot(), `${slug}.html`));
 }
 
-/** Yazı şablonu — ilk mevcut makale HTML'i */
-export function resolveMirrorBlogArticleTemplateSlug(slug: string): string | null {
-  if (mirrorBlogArticleHtmlExists(slug)) return slug;
+/** DB enjeksiyonu için sabit şablon — slug başına klon dosyalar skincare kalıntısı taşır */
+export const BLOG_ARTICLE_MIRROR_TEMPLATE_SLUG =
+  "how-to-build-the-perfect-skincare-routine-for-your-skin-type";
+
+/** Yazı şablonu — her zaman tek şablon + blogSlug ile DB içeriği */
+export function resolveMirrorBlogArticleTemplateSlug(_slug: string): string | null {
+  if (mirrorBlogArticleHtmlExists(BLOG_ARTICLE_MIRROR_TEMPLATE_SLUG)) {
+    return BLOG_ARTICLE_MIRROR_TEMPLATE_SLUG;
+  }
   try {
     const first = readdirSync(blogNewsRoot()).find(
       (name) =>
@@ -164,24 +170,31 @@ export function buildCollectionMirrorSrc(
 }
 
 export function buildProductMirrorSrc(slug: string, locale: ShopLocale, templateSlug: string): string {
+  const outRel = productMirrorFileRel(slug, locale);
+  if (preferPrebuiltMirrorHtml(outRel) && hasPrebuiltMirrorHtml(outRel)) {
+    return resolveStoreMirrorIframeSrc(outRel);
+  }
+
   const diskSlug = mirrorProductHtmlExists(slug) ? slug : templateSlug;
-  return resolveStoreMirrorIframeSrc(productMirrorFileRel(diskSlug, locale));
+  const sourceRel = productMirrorFileRel(diskSlug, locale);
+
+  if (diskSlug === slug) {
+    return resolveStoreMirrorIframeSrc(sourceRel);
+  }
+
+  return mirrorVitrinApiSrc(sourceRel, undefined, { productSlug: slug });
 }
 
 export function buildBlogArticleMirrorSrc(slug: string, locale: ShopLocale): string | null {
   const templateSlug = resolveMirrorBlogArticleTemplateSlug(slug);
   if (!templateSlug) return null;
 
-  const slugRel = blogArticleMirrorFileRel(slug, locale);
-  if (preferPrebuiltMirrorHtml(slugRel) && mirrorBlogArticleHtmlExists(slug)) {
-    return resolveStoreMirrorIframeSrc(slugRel);
+  const outRel = blogArticleMirrorFileRel(slug, locale);
+  if (preferPrebuiltMirrorHtml(outRel) && hasPrebuiltMirrorHtml(outRel)) {
+    return resolveStoreMirrorIframeSrc(outRel);
   }
 
-  if (mirrorBlogArticleHtmlExists(slug)) {
-    return resolveStoreMirrorIframeSrc(slugRel);
-  }
-
-  return resolveStoreMirrorIframeSrc(blogArticleMirrorFileRel(templateSlug, locale), undefined, {
+  return mirrorVitrinApiSrc(blogArticleMirrorFileRel(templateSlug, locale), undefined, {
     blogSlug: slug,
   });
 }

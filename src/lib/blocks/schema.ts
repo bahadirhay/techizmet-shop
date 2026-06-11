@@ -91,6 +91,30 @@ const newsletterProps = z.object({
   buttonLabel: z.string().optional(),
 });
 
+const featureCardsItem = z.object({
+  id: z.string(),
+  iconUrl: z.string().optional(),
+  iconKey: z.enum(["tr", "globe", "leaf", "trophy"]).optional(),
+  iconText: z.string().optional(),
+  heading: z.string(),
+  description: z.string(),
+  linkHref: z.string().optional(),
+});
+
+const featureCardsProps = z.object({
+  title: z.string(),
+  subtitle: z.string().optional(),
+  backgroundColor: z.string().optional(),
+  items: z.array(featureCardsItem).min(1).max(6),
+});
+
+const mapProps = z.object({
+  embedUrl: z.string().optional(),
+  address: z.string().optional(),
+  height: z.number().int().min(200).max(800).optional(),
+  fullWidth: z.boolean().optional(),
+});
+
 export const shopBlockSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("announcementBar"), props: announcementBarProps }),
   z.object({ type: z.literal("heroSlider"), props: heroSliderProps }),
@@ -103,6 +127,8 @@ export const shopBlockSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("testimonials"), props: testimonialsProps }),
   z.object({ type: z.literal("promoMarquee"), props: promoMarqueeProps }),
   z.object({ type: z.literal("newsletter"), props: newsletterProps }),
+  z.object({ type: z.literal("featureCards"), props: featureCardsProps }),
+  z.object({ type: z.literal("map"), props: mapProps }),
 ]);
 
 export type ShopBlock = z.infer<typeof shopBlockSchema>;
@@ -132,6 +158,7 @@ export function sanitizeShopBlocks(raw: unknown): ShopBlock[] {
 }
 
 export const SHOP_BLOCK_LABELS: Record<ShopBlock["type"], string> = {
+  map: "Harita",
   announcementBar: "Duyuru şeridi",
   heroSlider: "Slayt",
   text: "Metin",
@@ -143,4 +170,5 @@ export const SHOP_BLOCK_LABELS: Record<ShopBlock["type"], string> = {
   testimonials: "Müşteri yorumları",
   promoMarquee: "Kampanya şeridi (kayan)",
   newsletter: "Bülten kayıt",
+  featureCards: "Özellik kartları",
 };

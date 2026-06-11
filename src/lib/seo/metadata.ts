@@ -26,7 +26,8 @@ export function buildPageMetadata(base: Metadata, input: PageSeoInput): Metadata
 
   return {
     ...base,
-    title,
+    // absolute: şablon uygulanmaz — "X | Marka · Marka" tekrarını önler
+    title: { absolute: title },
     description,
     alternates: { canonical },
     openGraph,

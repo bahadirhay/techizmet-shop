@@ -20,9 +20,14 @@ export default async function AdminBlogListPage() {
         title="Blog yazıları"
         description="Haber / blog içerikleri — vitrinde /blogs/news altında yayınlanır. Ana sayfa kartları buradan yönetilir."
         actions={
-          <Link href="/admin/blog/new" className={btnPrimary}>
-            + Yeni yazı
-          </Link>
+          <>
+            <Link href="/admin/blog/automation" className="text-sm font-medium text-[var(--kn-brand)] underline">
+              Otomasyon
+            </Link>
+            <Link href="/admin/blog/new" className={btnPrimary}>
+              + Yeni yazı
+            </Link>
+          </>
         }
       />
 

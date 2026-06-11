@@ -2,6 +2,10 @@ import "server-only";
 
 import type { ResolvedSeoAiConfig } from "@/lib/admin/product-seo/ai-settings";
 import { providerOrder, seoAiAvailable } from "@/lib/admin/product-seo/ai-settings";
+import { isPetFoodContext } from "@/lib/admin/product-seo/content-builders";
+import type { PetNutritionAnalysis } from "@/lib/admin/product-seo/nutrition-search";
+import { buildPetNutritionKeyFeaturesBlock } from "@/lib/admin/product-seo/nutrition-search";
+import { plainToAccordionHtml, plainToDescriptionHtml } from "@/lib/product-content-format";
 
 export type AiSeoCopyInput = {
   title: string;
@@ -11,6 +15,7 @@ export type AiSeoCopyInput = {
   competitorTitles: string[];
   siteName: string;
   existingDescription?: string;
+  nutrition?: PetNutritionAnalysis | null;
 };
 
 export type AiSeoCopyResult = {
@@ -20,12 +25,16 @@ export type AiSeoCopyResult = {
   description?: string;
   descriptionHtml?: string;
   keyFeaturesHtml?: string;
+  howToUseHtml?: string;
+  seoTitle?: string;
   seoDescription?: string;
 };
 
 type AiPayload = {
   description: string;
   keyFeatures: string;
+  howToUse: string;
+  seoTitle?: string;
   seoDescription: string;
 };
 
@@ -39,6 +48,8 @@ function parseAiJson(text: string): AiPayload | null {
     return {
       description: String(o.description).trim(),
       keyFeatures: String(o.keyFeatures ?? "").trim(),
+      howToUse: String(o.howToUse ?? "").trim(),
+      seoTitle: o.seoTitle ? String(o.seoTitle).trim().slice(0, 65) : undefined,
       seoDescription: String(o.seoDescription ?? o.description).trim().slice(0, 160),
     };
   } catch {
@@ -47,24 +58,48 @@ function parseAiJson(text: string): AiPayload | null {
 }
 
 function buildPrompt(input: AiSeoCopyInput): string {
-  return `Sen Türkiye e-ticaret SEO uzmanısın. JSON döndür, başka metin yazma.
+  const pet = isPetFoodContext(input.title, input.categoryTitles);
+  const nutritionBlock =
+    input.nutrition && input.nutrition.source !== "none"
+      ? [
+          input.nutrition.protein != null ? `Ham protein: ${input.nutrition.protein}%` : null,
+          input.nutrition.fat != null ? `Ham yağ: ${input.nutrition.fat}%` : null,
+          input.nutrition.fiber != null ? `Ham selüloz: ${input.nutrition.fiber}%` : null,
+          input.nutrition.moisture != null ? `Nem: ${input.nutrition.moisture}%` : null,
+          input.nutrition.ash != null ? `Kül: ${input.nutrition.ash}%` : null,
+        ]
+          .filter(Boolean)
+          .join(", ")
+      : "—";
+
+  return `Sen Türkiye e-ticaret SEO ve ürün içerik uzmanısın. Yalnızca JSON döndür.
 
 Ürün: ${input.title}
 Marka: ${input.brandTitle ?? "—"}
 Kategori: ${input.categoryTitles.join(" > ") || "—"}
 Site: ${input.siteName}
-Anahtar kelimeler: ${input.keywords.slice(0, 8).join(", ") || "—"}
-Rakip başlıklar (Trendyol/HB): ${input.competitorTitles.slice(0, 5).join(" | ") || "—"}
-Mevcut açıklama: ${input.existingDescription?.slice(0, 200) ?? "—"}
+Anahtar kelimeler: ${input.keywords.slice(0, 10).join(", ") || "—"}
+Rakip başlıklar (Trendyol/HB): ${input.competitorTitles.slice(0, 6).join(" | ") || "—"}
+Mevcut açıklama: ${input.existingDescription?.slice(0, 300) ?? "—"}
+Ürün tipi: ${pet ? "Pet food / ödül maması — besin değerleri zorunlu" : "Genel e-ticaret"}
+${pet ? `Web'den bulunan besin değerleri (varsa bunları keyFeatures'a aynen yaz): ${nutritionBlock}` : ""}
 
-Şu JSON formatında yanıt ver:
+JSON formatı:
 {
-  "description": "2-3 cümle kısa Türkçe ürün tanıtımı",
-  "keyFeatures": "Her satır bir madde, 4-6 madde, - ile başlasın",
-  "seoDescription": "max 155 karakter meta açıklama"
+  "seoTitle": "max 60 karakter Google meta başlık — ürün | marka | site",
+  "seoDescription": "120-155 karakter meta açıklama, CTA ile",
+  "description": "2-4 cümle ürün tanıtımı — faydalar, hedef kitle, güven",
+  "keyFeatures": "Madde madde; pet food ise 'Besin Değerleri' bölümü: protein, yağ, ham selüloz, nem, kül (%)",
+  "howToUse": "Kullanım / veriliş miktarı, saklama, yaş grubu uyarıları"
 }
 
-Kurallar: Türkçe, doğal, abartısız. Pazaryeri ve Google uyumlu.`;
+Kurallar:
+- Türkçe, doğal, abartısız, Google + Trendyol + Hepsiburada uyumlu
+- Pet food: katkısız/doğal vurgusu, tek porsiyon, köpek/kedi yaşı notu
+- Ürün adındaki ana içeriği (dana, tavuk, akciğer vb.) ASLA değiştirme veya başka ürün adı ekleme
+- Açıklamalarda yalnızca "${input.title}" ürününü anlat; farklı ödül türleri (tavuk ayağı, kemik vb.) ekleme
+- keyFeatures ve howToUse düz metin; satır başına madde (- veya numara)
+- seoDescription en az 100 karakter`;
 }
 
 function templateCopy(input: AiSeoCopyInput): AiPayload {
@@ -72,38 +107,69 @@ function templateCopy(input: AiSeoCopyInput): AiPayload {
   const cat = input.categoryTitles[0] ?? "ürün";
   const kw = input.keywords.slice(0, 3).join(", ");
   const name = brand ? `${brand} ${input.title}` : input.title;
+  const pet = isPetFoodContext(input.title, input.categoryTitles);
 
-  const description = `${name}, ${cat} kategorisinde ${input.siteName} güvenilir alışveriş deneyimi sunar.${
-    kw ? ` ${kw} aramaları için uygun formül.` : ""
-  } Hızlı kargo ve güvenli ödeme.`;
+  const description = pet
+    ? `${name}, ${cat} kategorisinde evcil dostunuz için özenle hazırlanmış doğal bir ödül mamasıdır. Tek ingredient veya minimal içerik yaklaşımıyla besin değerlerini korur; eğitim ödülü ve günlük atıştırmalık olarak kullanıma uygundur. ${input.siteName} güvenilir alışveriş ve hızlı kargo sunar.`
+    : `${name}, ${cat} kategorisinde kalite ve güveni bir araya getirir.${kw ? ` ${kw} arayanlar için uygun formül.` : ""} ${input.siteName} üzerinden hızlı kargo ve güvenli ödeme ile sipariş verebilirsiniz.`;
 
-  const keyFeatures = [
-    `- ${cat} kategorisinde özenle seçilmiş formül`,
-    brand ? `- ${brand} marka güvencesi` : `- Kaliteli içerik`,
-    `- Online ve pazaryeri satışına uygun ürün adı`,
-    kw ? `- SEO: ${input.keywords.slice(0, 2).join(", ")}` : `- Günlük kullanıma uygun`,
-    `- ${input.siteName} hızlı teslimat`,
-  ].join("\n");
+  const keyFeatures = pet
+    ? buildPetNutritionKeyFeaturesBlock({
+        title: input.title,
+        brandTitle: input.brandTitle,
+        siteName: input.siteName,
+        nutrition: input.nutrition ?? null,
+      })
+    : [
+        `- ${cat} kategorisinde özenle seçilmiş formül`,
+        brand ? `- ${brand} marka güvencesi` : `- Güvenilir içerik ve kalite`,
+        `- Google ve pazaryeri aramalarına uygun ürün adı`,
+        kw ? `- SEO: ${input.keywords.slice(0, 2).join(", ")}` : `- Günlük kullanıma uygun`,
+        `- ${input.siteName} hızlı teslimat`,
+        `- Müşteri memnuniyeti odaklı satış`,
+      ].join("\n");
 
-  return {
-    description,
-    keyFeatures,
-    seoDescription: description.slice(0, 155),
-  };
+  const howToUse = pet
+    ? [
+        `1. Günlük ödül miktarını evcil hayvanınızın kilosuna göre ayarlayın (aşırı vermeyin).`,
+        `2. Ana mama öğünlerinin %10'unu geçmeyecek şekilde verin.`,
+        `3. Her zaman taze su bulundurun.`,
+        `4. Serin ve kuru yerde, direkt güneş almayan ortamda saklayın.`,
+        `5. Ambalaj açıldıktan sonra hava almayan kapta muhafaza edin.`,
+        `6. Yavru / yaşlı / hassas dönemlerde veterinere danışın.`,
+      ].join("\n")
+    : [
+        `1. Ürünü kullanım talimatına uygun şekilde uygulayın.`,
+        `2. İlk kullanımda küçük miktarda test edin.`,
+        `3. Çocukların erişemeyeceği yerde saklayın.`,
+        `4. Orijinal ambalajında, kuru ve serin ortamda muhafaza edin.`,
+      ].join("\n");
+
+  const seoTitle = truncate(`${name} | ${brand ?? input.siteName}`, 60);
+  const seoDescription = truncate(
+    `${name} — ${cat}. ${pet ? "Doğal içerik, besin değerleri ve kullanım bilgisi." : "Detaylı tanıtım ve güvenli alışveriş."} ${input.siteName}'da hızlı kargo.`,
+    155,
+  );
+
+  return { description, keyFeatures, howToUse, seoTitle, seoDescription };
 }
 
-function successResult(
-  provider: "gemini" | "openai" | "claude",
-  label: string,
-  parsed: AiPayload,
-): AiSeoCopyResult {
+function truncate(s: string, max: number): string {
+  const t = s.trim();
+  if (t.length <= max) return t;
+  return t.slice(0, max - 1).trim() + "…";
+}
+
+function toResult(provider: "gemini" | "openai" | "claude", label: string, parsed: AiPayload): AiSeoCopyResult {
   return {
     used: true,
     provider,
     message: `${label} ile üretildi`,
     description: parsed.description,
-    descriptionHtml: parsed.description,
-    keyFeaturesHtml: parsed.keyFeatures,
+    descriptionHtml: plainToDescriptionHtml(parsed.description),
+    keyFeaturesHtml: plainToAccordionHtml(parsed.keyFeatures),
+    howToUseHtml: plainToAccordionHtml(parsed.howToUse),
+    seoTitle: parsed.seoTitle,
     seoDescription: parsed.seoDescription,
   };
 }
@@ -113,10 +179,10 @@ async function callGemini(prompt: string, apiKey: string, model: string): Promis
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    signal: AbortSignal.timeout(25000),
+    signal: AbortSignal.timeout(30000),
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.4, maxOutputTokens: 1024 },
+      generationConfig: { temperature: 0.35, maxOutputTokens: 2048 },
     }),
   });
   if (!res.ok) return null;
@@ -133,12 +199,12 @@ async function callOpenAi(prompt: string, apiKey: string, model: string): Promis
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
     },
-    signal: AbortSignal.timeout(25000),
+    signal: AbortSignal.timeout(30000),
     body: JSON.stringify({
       model,
       messages: [{ role: "user", content: prompt }],
-      temperature: 0.4,
-      max_tokens: 1024,
+      temperature: 0.35,
+      max_tokens: 2048,
     }),
   });
   if (!res.ok) return null;
@@ -154,10 +220,10 @@ async function callClaude(prompt: string, apiKey: string, model: string): Promis
       "x-api-key": apiKey,
       "anthropic-version": "2023-06-01",
     },
-    signal: AbortSignal.timeout(25000),
+    signal: AbortSignal.timeout(30000),
     body: JSON.stringify({
       model,
-      max_tokens: 1024,
+      max_tokens: 2048,
       messages: [{ role: "user", content: prompt }],
     }),
   });
@@ -177,17 +243,17 @@ async function tryProvider(
   if (name === "gemini" && config.geminiApiKey) {
     const raw = await callGemini(prompt, config.geminiApiKey, config.geminiModel);
     const parsed = raw ? parseAiJson(raw) : null;
-    if (parsed) return successResult("gemini", "Google Gemini", parsed);
+    if (parsed) return toResult("gemini", "Google Gemini", parsed);
   }
   if (name === "openai" && config.openaiApiKey) {
     const raw = await callOpenAi(prompt, config.openaiApiKey, config.openaiModel);
     const parsed = raw ? parseAiJson(raw) : null;
-    if (parsed) return successResult("openai", "OpenAI", parsed);
+    if (parsed) return toResult("openai", "OpenAI", parsed);
   }
   if (name === "claude" && config.claudeApiKey) {
     const raw = await callClaude(prompt, config.claudeApiKey, config.claudeModel);
     const parsed = raw ? parseAiJson(raw) : null;
-    if (parsed) return successResult("claude", "Claude (Anthropic)", parsed);
+    if (parsed) return toResult("claude", "Claude (Anthropic)", parsed);
   }
   return null;
 }
@@ -206,20 +272,50 @@ export async function generateAiSeoCopy(
   if (config.enabled && avail.any) {
     for (const p of providerOrder(config)) {
       const result = await tryProvider(p, prompt, config);
-      if (result) return result;
+      if (result) return withNutritionKeyFeatures(result, input);
     }
   }
 
   const tpl = templateCopy(input);
-  return {
-    used: false,
-    provider: "template",
-    message: avail.any
-      ? "AI yanıt alınamadı — şablon metin kullanıldı"
-      : "AI kapalı veya API anahtarı yok — Ayarlar → SEO AI bölümünden Gemini, Claude veya OpenAI ekleyin",
-    description: tpl.description,
-    descriptionHtml: tpl.description,
-    keyFeaturesHtml: tpl.keyFeatures,
-    seoDescription: tpl.seoDescription,
-  };
+  return withNutritionKeyFeatures(
+    {
+      used: false,
+      provider: "template",
+      message: avail.any
+        ? "AI yanıt alınamadı — gelişmiş şablon kullanıldı (besin değerlerini güncelleyin)"
+        : "AI kapalı — gelişmiş şablon kullanıldı. Ayarlar → SEO AI ile AI metin açabilirsiniz.",
+      description: tpl.description,
+      descriptionHtml: plainToDescriptionHtml(tpl.description),
+      keyFeaturesHtml: plainToAccordionHtml(tpl.keyFeatures),
+      howToUseHtml: plainToAccordionHtml(tpl.howToUse),
+      seoTitle: tpl.seoTitle,
+      seoDescription: tpl.seoDescription,
+    },
+    input,
+  );
+}
+
+function htmlToPlainFeatures(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .trim();
+}
+
+function withNutritionKeyFeatures(result: AiSeoCopyResult, input: AiSeoCopyInput): AiSeoCopyResult {
+  if (!isPetFoodContext(input.title, input.categoryTitles) || input.nutrition?.source === "none") {
+    return result;
+  }
+  const plain = htmlToPlainFeatures(result.keyFeaturesHtml ?? "");
+  const hasNumbers = /ham\s*protein[^%\n]*[\d]+(?:[.,]\d+)?\s*%/i.test(plain);
+  if (hasNumbers && !plain.includes("…")) return result;
+
+  const keyFeatures = buildPetNutritionKeyFeaturesBlock({
+    title: input.title,
+    brandTitle: input.brandTitle,
+    siteName: input.siteName,
+    nutrition: input.nutrition ?? null,
+  });
+  return { ...result, keyFeaturesHtml: plainToAccordionHtml(keyFeatures) };
 }

@@ -4,9 +4,9 @@ import { parseHTML } from "linkedom";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import {
   applyMirrorPageOverlay,
-  hasMirrorPageEdits,
   type MirrorPageConfig,
 } from "@/lib/mirror-home-overlay";
+import { shouldApplyMirrorPageOverlay } from "@/lib/mirror-has-page-edits";
 import { stripBrokenSectionDisplayAttr } from "@/lib/product-page-bottom";
 
 export function applyMirrorPageOverlayToHtml(
@@ -14,7 +14,7 @@ export function applyMirrorPageOverlayToHtml(
   config: MirrorPageConfig,
   locale: ShopLocale = "tr",
 ): string {
-  if (!hasMirrorPageEdits(config)) {
+  if (!shouldApplyMirrorPageOverlay(config)) {
     return html;
   }
 

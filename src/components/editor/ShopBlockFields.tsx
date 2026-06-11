@@ -341,11 +341,162 @@ export function ShopBlockFields({
           </label>
         </div>
       );
+    case "map":
+      return (
+        <div className="space-y-4 text-sm">
+          <p className="text-xs leading-relaxed" style={{ color: "var(--ed-muted, #a1a1aa)" }}>
+            Google Maps &rarr; Paylaş &rarr; Haritayı göm &rarr; iframe kodunu veya sadece src URL&apos;sini yapıştırın.
+            Adres girerseniz URL otomatik oluşturulur.
+          </p>
+          <label className={lbl}>
+            Embed URL <span style={{ color: "var(--ed-muted, #a1a1aa)" }}>(öncelikli)</span>
+            <textarea
+              className={inp}
+              rows={3}
+              value={block.props.embedUrl ?? ""}
+              placeholder="https://www.google.com/maps/embed?pb=... veya tam <iframe> kodunu yapıştırın"
+              onChange={(e) => {
+                const raw = e.target.value;
+                const match = raw.match(/\bsrc=["']([^"']+)["']/);
+                const url = match ? match[1] : raw;
+                set({ ...block, props: { ...block.props, embedUrl: url || undefined } });
+              }}
+            />
+          </label>
+          <label className={lbl}>
+            Adres <span style={{ color: "var(--ed-muted, #a1a1aa)" }}>(Embed URL yoksa kullanılır)</span>
+            <input
+              className={inp}
+              value={block.props.address ?? ""}
+              placeholder="Bakırköy, İstanbul"
+              onChange={(e) => set({ ...block, props: { ...block.props, address: e.target.value || undefined } })}
+            />
+          </label>
+          <label className={lbl}>
+            Yükseklik (px)
+            <input
+              type="number"
+              min={200}
+              max={800}
+              className={inp}
+              value={block.props.height ?? 400}
+              onChange={(e) => set({ ...block, props: { ...block.props, height: Number(e.target.value) } })}
+            />
+          </label>
+          <label className="flex cursor-pointer items-center gap-2 text-xs text-zinc-300">
+            <input
+              type="checkbox"
+              checked={block.props.fullWidth === true}
+              onChange={(e) => set({ ...block, props: { ...block.props, fullWidth: e.target.checked || undefined } })}
+            />
+            Tam genişlik (sayfa genişliği kadar)
+          </label>
+        </div>
+      );
+    case "featureCards": {
+      const items = block.props.items;
+      const patchItems = (next: typeof items) => set({ ...block, props: { ...block.props, items: next } });
+      return (
+        <div className="space-y-4 text-sm">
+          <label className={lbl}>
+            Bölüm başlığı
+            <input className={inp} value={block.props.title} onChange={(e) => set({ ...block, props: { ...block.props, title: e.target.value } })} />
+          </label>
+          <label className={lbl}>
+            Alt başlık / açıklama
+            <textarea className={inp} rows={3} value={block.props.subtitle ?? ""} onChange={(e) => set({ ...block, props: { ...block.props, subtitle: e.target.value } })} />
+          </label>
+          <label className={lbl}>
+            Arka plan rengi
+            <input className={inp} type="color" value={block.props.backgroundColor ?? "#faf7f2"} onChange={(e) => set({ ...block, props: { ...block.props, backgroundColor: e.target.value } })} />
+          </label>
+          {items.map((it, idx) => (
+            <div key={it.id} className="space-y-3 rounded-lg border p-3" style={{ borderColor: "var(--ed-border, #3f3f46)", background: "#27272a" }}>
+              <div className="flex justify-between text-xs font-medium" style={{ color: "var(--ed-muted, #a1a1aa)" }}>
+                Kart {idx + 1}
+                <button type="button" className="text-red-600" disabled={items.length <= 1} onClick={() => patchItems(items.filter((x) => x.id !== it.id))}>
+                  Sil
+                </button>
+              </div>
+              <ImageUploadField
+                label="İkon görseli (isteğe bağlı — yüklerseniz hazır ikon yerine geçer)"
+                value={it.iconUrl ?? ""}
+                onChange={(url) => patchItems(items.map((x) => (x.id === it.id ? { ...x, iconUrl: url || undefined } : x)))}
+                editorChrome
+              />
+              <label className={lbl}>
+                Hazır ikon
+                <select
+                  className={inp}
+                  value={it.iconKey ?? ""}
+                  onChange={(e) =>
+                    patchItems(
+                      items.map((x) =>
+                        x.id === it.id
+                          ? {
+                              ...x,
+                              iconKey: (e.target.value || undefined) as
+                                | "tr"
+                                | "globe"
+                                | "leaf"
+                                | "trophy"
+                                | undefined,
+                            }
+                          : x,
+                      ),
+                    )
+                  }
+                >
+                  <option value="">— Özel / metin —</option>
+                  <option value="tr">TR (Türkiye)</option>
+                  <option value="globe">Dünya</option>
+                  <option value="leaf">Yaprak (doğal)</option>
+                  <option value="trophy">Kupa (kalite)</option>
+                </select>
+              </label>
+              <label className={lbl}>
+                İkon metni (hazır ikon yoksa)
+                <input className={inp} value={it.iconText ?? ""} onChange={(e) => patchItems(items.map((x) => (x.id === it.id ? { ...x, iconText: e.target.value || undefined } : x)))} placeholder="TR" />
+              </label>
+              <label className={lbl}>
+                Kart başlığı
+                <input className={inp} value={it.heading} onChange={(e) => patchItems(items.map((x) => (x.id === it.id ? { ...x, heading: e.target.value } : x)))} />
+              </label>
+              <label className={lbl}>
+                Açıklama
+                <textarea className={inp} rows={3} value={it.description} onChange={(e) => patchItems(items.map((x) => (x.id === it.id ? { ...x, description: e.target.value } : x)))} />
+              </label>
+              <label className={lbl}>
+                Link (isteğe bağlı)
+                <input className={inp} value={it.linkHref ?? ""} onChange={(e) => patchItems(items.map((x) => (x.id === it.id ? { ...x, linkHref: e.target.value || undefined } : x)))} placeholder="/collections/all" />
+              </label>
+            </div>
+          ))}
+          <button
+            type="button"
+            className="text-sm font-medium"
+            style={{ color: "#fda4af" }}
+            disabled={items.length >= 6}
+            onClick={() =>
+              patchItems([
+                ...items,
+                { id: nanoid(8), iconKey: "trophy", heading: "Yeni kart", description: "Açıklama metni" },
+              ])
+            }
+          >
+            + Kart ekle
+          </button>
+        </div>
+      );
+    }
     default:
       return <p className="text-sm" style={{ color: "var(--ed-muted)" }}>Bu blok için alan yok.</p>;
   }
 }
 
 export function blockSummary(block: EditorShopBlock): string {
+  if (block.type === "featureCards") {
+    return `${SHOP_BLOCK_LABELS.featureCards}: ${block.props.title}`;
+  }
   return SHOP_BLOCK_LABELS[block.type];
 }

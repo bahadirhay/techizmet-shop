@@ -60,13 +60,21 @@ export function NotificationSettingsForm({ initial }: { initial: SiteSettings })
   }
 
   async function save() {
+    setBusy(true);
     setMsg(null);
     const res = await fetch("/api/admin/integrations/settings", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(s),
     });
-    setMsg(res.ok ? "Kaydedildi" : "Kayıt başarısız");
+    const j = (await res.json()) as { error?: string; settings?: SiteSettings };
+    setBusy(false);
+    if (res.ok && j.settings) {
+      setS(j.settings);
+      setMsg("Kaydedildi");
+    } else {
+      setMsg(j.error ?? "Kayıt başarısız");
+    }
   }
 
   async function testTelegram() {
@@ -101,14 +109,37 @@ export function NotificationSettingsForm({ initial }: { initial: SiteSettings })
     }
     setBusy(true);
     setMsg(null);
+    const emailDraft = {
+      ...email,
+      fromEmail: email.fromEmail?.trim() || smtp.user?.trim() || "",
+      fromName: email.fromName?.trim() || undefined,
+    };
     const res = await fetch("/api/admin/integrations/smtp/test", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ to: testEmail.trim(), smtpDraft: { smtp } }),
+      body: JSON.stringify({
+        to: testEmail.trim(),
+        smtpDraft: {
+          smtp: { ...smtp, provider: "smtp" },
+          email: emailDraft,
+        },
+      }),
     });
-    const j = (await res.json()) as { message?: string; error?: string };
+    const j = (await res.json()) as {
+      message?: string;
+      error?: string;
+      detail?: string;
+      hint?: string;
+    };
     setBusy(false);
-    setMsg(j.message ?? j.error ?? (res.ok ? "Test e-postası gönderildi" : "Gönderilemedi"));
+    if (res.ok) {
+      setMsg(j.message ?? "Test e-postası gönderildi");
+    } else {
+      const lines = [j.message ?? j.error, j.detail, j.hint].filter(
+        (line, i, arr) => line && arr.indexOf(line) === i,
+      );
+      setMsg(lines.length ? lines.join("\n") : "Gönderilemedi");
+    }
   }
 
   return (
@@ -120,6 +151,27 @@ export function NotificationSettingsForm({ initial }: { initial: SiteSettings })
           <code className="text-xs">SMTP_*</code> / <code className="text-xs">RESEND_API_KEY</code>{" "}
           (.env) değerleri panel boşken yedek olarak kullanılır.
         </p>
+        <div className="mt-3 rounded-lg bg-sky-50 px-4 py-3 text-sm text-sky-950">
+          <p className="font-medium">Yandex (anatolianpaw.com)</p>
+          <ul className="mt-1 list-inside list-disc text-sky-900/90">
+            <li>Sunucu: <code>smtp.yandex.com</code> — port <strong>465</strong> + SSL işaretli</li>
+            <li>Kullanıcı: tam adres (<code>web@anatolianpaw.com</code>)</li>
+            <li>
+              İki adımlı doğrulama açıksa{" "}
+              <a
+                href="https://id.yandex.com/security/app-passwords"
+                className="underline"
+                target="_blank"
+                rel="noreferrer"
+              >
+                uygulama şifresi
+              </a>{" "}
+              kullanın (normal Yandex şifresi çalışmaz)
+            </li>
+            <li>Gönderen e-posta = SMTP kullanıcı (aynı adres)</li>
+            <li>Test için <strong>Yalnızca SMTP</strong> seçin; Resend anahtarı gerekmez</li>
+          </ul>
+        </div>
 
         <div className="mt-4 flex flex-wrap gap-4 text-sm">
           <label className="flex items-center gap-2">
@@ -238,8 +290,9 @@ export function NotificationSettingsForm({ initial }: { initial: SiteSettings })
           </button>
         </div>
         <p className="mt-2 text-xs text-zinc-500">
-          Test, kaydetmeden önce formdaki değerlerle dener. Kalıcı ayar için alttaki Kaydet&apos;e
-          basın.
+          Test, kaydetmeden önce formdaki SMTP ve gönderen e-posta alanlarını kullanır. Gönderen
+          adresi SMTP kullanıcısıyla aynı domain olmalıdır (ör. <code>siparis@anatolianpaw.com</code>
+          ). Kalıcı ayar için alttaki Kaydet&apos;e basın.
         </p>
       </section>
 
@@ -518,7 +571,13 @@ export function NotificationSettingsForm({ initial }: { initial: SiteSettings })
         <button type="button" className={btnPrimary} onClick={save}>
           Kaydet
         </button>
-        {msg ? <p className="text-sm text-zinc-600">{msg}</p> : null}
+        {msg ? (
+          <p
+            className={`whitespace-pre-line text-sm ${msg.includes("gönderildi") ? "text-emerald-700" : "text-red-700"}`}
+          >
+            {msg}
+          </p>
+        ) : null}
       </div>
     </div>
   );

@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { sendStoreEvents } from "@/lib/analytics/client";
 
 export function StoreSearchForm({ className }: { className?: string }) {
   const router = useRouter();
@@ -12,6 +13,7 @@ export function StoreSearchForm({ className }: { className?: string }) {
     e.preventDefault();
     const term = q.trim();
     if (term.length < 2) return;
+    sendStoreEvents([{ type: "search_query", payload: { query: term, source: "form" } }]);
     router.push(`/search?q=${encodeURIComponent(term)}`);
   }
 

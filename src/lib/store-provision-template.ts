@@ -17,11 +17,14 @@ export function buildEmptyStoreSettings(input: {
   siteName: string;
   publicUrl?: string;
   locale?: ShopLocale;
+  homepageMode?: "mirror" | "blocks";
+  metaDescription?: string;
 }): SiteSettings {
   const locale = input.locale ?? "tr";
+  const homepageMode = input.homepageMode ?? "blocks";
   return {
     theme: {
-      homepageMode: "blocks",
+      homepageMode,
       navItems: EMPTY_STORE_HEADER_MENU.map((item) => ({
         id: item.linkTarget,
         href:
@@ -59,9 +62,10 @@ export function buildEmptyStoreSettings(input: {
     seo: {
       siteTitle: input.siteName,
       metaDescription:
-        locale === "tr"
+        input.metaDescription?.trim() ||
+        (locale === "tr"
           ? `${input.siteName} — online mağaza`
-          : `${input.siteName} — online store`,
+          : `${input.siteName} — online store`),
       robotsIndex: false,
     },
     payment: { codEnabled: true, bankTransferEnabled: true },
@@ -78,4 +82,16 @@ export function buildEmptyStoreSettings(input: {
       telegram: { enabled: false, onNewOrder: true },
     },
   };
+}
+
+/** Anatolian Paw — aynı tema paketi (techizmet-shop), farklı içerik */
+export function buildAnatolianPawStoreSettings(publicUrl?: string): SiteSettings {
+  return buildEmptyStoreSettings({
+    siteName: "Anatolian Paw",
+    publicUrl,
+    locale: "tr",
+    homepageMode: "mirror",
+    metaDescription:
+      "Anatolian Paw — doğal kurutulmuş köpek ödül mamaları. Güvenilir içerik, hızlı kargo.",
+  });
 }

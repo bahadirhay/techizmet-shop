@@ -3,11 +3,14 @@ import type { VitrinCollectionCard, VitrinCollectionCategoryOption } from "@/lib
 import { getMirrorVitrinHydration } from "@/lib/mirror-vitrin-data";
 import { getVitrinPage, vitrinMirrorFileRel, type VitrinPageKey } from "@/lib/mirror-vitrin-pages";
 import { resolveStoreMirrorIframeSrc } from "@/lib/mirror-prebuilt-resolve";
+import { hasCustomAnnouncementBarSettings } from "@/lib/mirror-announcement-bar";
+import { shouldApplyMirrorPageOverlay } from "@/lib/mirror-has-page-edits";
 import { getMirrorPageConfig } from "@/lib/mirror-page-settings";
 import { getStoreLocaleFromHeaders } from "@/lib/i18n/server";
 import { getSiteSettings } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
 import { prisma } from "@/lib/prisma";
+import { getEffectiveUsdTryRate } from "@/lib/currency/exchange-rate";
 import { notFound } from "next/navigation";
 
 /** Koleksiyon kartları prebuild’de gömülür; yalnızca kategori filtresi sayfasında canlı DB */
@@ -26,10 +29,24 @@ export async function MirrorVitrinFrame({
   const site = await getDefaultSite();
   const locale = await getStoreLocaleFromHeaders();
   const settings = await getSiteSettings(site.id);
+  const usdRate =
+    locale === "en"
+      ? await getEffectiveUsdTryRate(settings.store?.usdMarkupPercent ?? 0)
+      : null;
   const pageConfig = getMirrorPageConfig(settings, pageKey);
+  const branding = settings.branding ?? {};
+  const hasCustomBranding = Boolean(
+    branding.logoUrl?.includes("/uploads/") ||
+      branding.logoUrl?.includes("/api/media/") ||
+      branding.logoUrlLight?.includes("/uploads/") ||
+      branding.logoUrlLight?.includes("/api/media/"),
+  );
   const fileRel = vitrinMirrorFileRel(pageKey, locale);
   const src = resolveStoreMirrorIframeSrc(fileRel, pageKey, undefined, {
     hasCustomBlocks: (pageConfig.customBlocks?.length ?? 0) > 0,
+    hasMirrorEdits: shouldApplyMirrorPageOverlay(pageConfig),
+    hasCustomBranding,
+    hasAnnouncementBarSettings: hasCustomAnnouncementBarSettings(settings),
   });
   const hydrationPromise = getMirrorVitrinHydration(site.id, pageKey, locale);
 
@@ -49,6 +66,7 @@ export async function MirrorVitrinFrame({
       src={src}
       title={def.label}
       locale={locale}
+      usdRate={usdRate ?? undefined}
       hydrationPromise={hydrationPromise}
       collectionsFromAdmin={collectionsFromAdmin}
       categoriesFromAdmin={categoriesFromAdmin}

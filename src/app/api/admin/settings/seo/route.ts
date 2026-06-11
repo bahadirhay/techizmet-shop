@@ -27,9 +27,13 @@ export async function PATCH(req: Request) {
 
   const body = (await req.json()) as { branding?: SiteSettings["branding"]; seo?: SiteSettings["seo"] };
   const current = parseSiteSettings(site.settingsJson);
+  const seoPatch = body.seo ? { ...body.seo } : undefined;
+  if (seoPatch && !("staticPages" in (body.seo ?? {}))) {
+    delete seoPatch.staticPages;
+  }
   const next = mergeSiteSettings(current, {
     branding: body.branding,
-    seo: body.seo,
+    seo: seoPatch,
   });
 
   await prisma.storeSite.update({

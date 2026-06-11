@@ -1,4 +1,5 @@
 import { MirrorSearchFrameClient } from "@/components/store/MirrorSearchFrameClient";
+import { SearchQueryTracker } from "@/components/store/SearchQueryTracker";
 import type { VitrinCollectionProductCard } from "@/lib/mirror-collections-sync";
 import { getStoreLocale } from "@/lib/i18n/server";
 import { toBrandedMirrorSrc } from "@/lib/mirror-html-branding";
@@ -90,7 +91,9 @@ export async function MirrorSearchFrame({ q = "" }: { q?: string }) {
   const src = toBrandedMirrorSrc(searchMirrorRel(locale), "collections-all");
 
   return (
-    <MirrorSearchFrameClient
+    <>
+      <SearchQueryTracker query={term} resultCount={products.length} />
+      <MirrorSearchFrameClient
       src={src}
       title={pageTitle}
       searchTerm={term}
@@ -103,5 +106,6 @@ export async function MirrorSearchFrame({ q = "" }: { q?: string }) {
       productsFromAdmin={products}
       mirrorTexts={mirrorTexts}
     />
+    </>
   );
 }

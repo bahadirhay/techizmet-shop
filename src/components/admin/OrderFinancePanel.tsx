@@ -78,6 +78,8 @@ export function OrderFinancePanel({
         ? snap.grossMinor -
           snap.totalCommissionMinor -
           snap.shippingDeductionMinor -
+          (snap.shippingCostMinor ?? 0) -
+          (snap.packagingCostMinor ?? 0) -
           paymentFeeMinor -
           (snap.totalCostMinor ?? 0)
         : null;
@@ -112,6 +114,23 @@ export function OrderFinancePanel({
               <div className="flex justify-between gap-4 text-amber-900">
                 <span>Tahmini kargo kesintisi</span>
                 <span>−{formatTry(snap.shippingDeductionMinor)}</span>
+              </div>
+            ) : null}
+            {!marketplacePlatform && (snap.shippingCostMinor ?? 0) > 0 ? (
+              <div className="flex justify-between gap-4 text-amber-900">
+                <span>
+                  Kargo maliyeti (sizin gideriniz)
+                  {snap.shippingMinor > 0
+                    ? ` — müşteri ${formatTry(snap.shippingMinor)} ödedi`
+                    : " — müşteri ücretsiz kargo"}
+                </span>
+                <span>−{formatTry(snap.shippingCostMinor ?? 0)}</span>
+              </div>
+            ) : null}
+            {!marketplacePlatform && (snap.packagingCostMinor ?? 0) > 0 ? (
+              <div className="flex justify-between gap-4 text-amber-900">
+                <span>Paketleme gideri</span>
+                <span>−{formatTry(snap.packagingCostMinor ?? 0)}</span>
               </div>
             ) : null}
             {paymentFeeMinor > 0 ? (

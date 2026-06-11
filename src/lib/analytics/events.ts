@@ -8,6 +8,7 @@ import { ensureVisitorProfile, linkVisitorToCustomer } from "@/lib/analytics/vis
 const ALLOWED: StoreEventType[] = [
   "page_view",
   "product_view",
+  "search_query",
   "add_to_cart",
   "remove_from_cart",
   "begin_checkout",

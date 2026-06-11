@@ -5,6 +5,12 @@ import { injectMirrorProductCommerceHtml } from "@/lib/mirror-product-commerce";
 import type { ProductContentOverlay } from "@/lib/mirror-product-overlay";
 import { applyProductContentOverlay } from "@/lib/mirror-product-overlay";
 import type { ProductHighlight } from "@/lib/product-highlights";
+import {
+  rewriteMirrorTemplateSlugReferences,
+  suppressAliasedTemplateProductSections,
+  injectTemplateSlugNavigationGuard,
+  stripMirrorPostMessageScripts,
+} from "@/lib/mirror-product-template-slug";
 
 export type VitrinProductMedia = {
   url: string;
@@ -100,16 +106,26 @@ function detectProductMediaSectionId(doc: Document): string | null {
     return popupId.slice("product-media-content-".length);
   }
 
-  const section = doc.querySelector(
-    '#MainContent .kn-mirror-section.section-main-product, #MainContent [id^="kn-section-template--"][id$="__main"]',
-  );
-  if (section?.id?.startsWith("kn-section-")) {
-    return section.id.slice("kn-section-".length);
-  }
-
+  // legacyBtn: template'daki orijinal zoom butonlarından section id oku (en güvenilir)
   const legacyBtn = doc.querySelector('#MainContent media-zoom-button[data-section]');
   const legacySection = legacyBtn?.getAttribute("data-section");
-  return legacySection?.trim() || null;
+  if (legacySection?.trim()) return legacySection.trim();
+
+  // section id'den çıkar — sadece "kn-mirror-section-" ve "kn-section-" önekini kırp,
+  // "template--" kısmını koru (popup: product-media-content-template--{id}__main)
+  const section = doc.querySelector(
+    '#MainContent .kn-mirror-section.section-main-product, #MainContent [id^="kn-mirror-section-template--"][id$="__main"], #MainContent [id^="kn-section-template--"][id$="__main"]',
+  );
+  if (section?.id) {
+    for (const prefix of [
+      "kn-mirror-section-",
+      "kn-section-",
+    ] as const) {
+      if (section.id.startsWith(prefix)) return section.id.slice(prefix.length);
+    }
+  }
+
+  return null;
 }
 
 function mediaSlideHtml(
@@ -137,7 +153,7 @@ function mediaSlideHtml(
     <div class="main--product-img media-wrapper width-100 height-100">
       <div class="media" style="--image_ratio:130%;">
         ${zoomBtn}
-        <img src="${url}" data-original="${url}" alt="${alt}" width="1946" height="2503" sizes="auto">
+        <img src="${url}" data-original="${url}" alt="${alt}" width="1946" height="2503" sizes="auto"${index === 0 ? ' loading="eager" fetchpriority="high"' : ' loading="lazy"'}>
       </div>
     </div>
   </div>`;
@@ -178,17 +194,103 @@ function patchProductMediaZoomTemplate(
   product: VitrinProductDetail,
   media: VitrinProductMedia[],
 ) {
-  const templateRoot = doc.querySelector("[data-product-media-content] template") as HTMLTemplateElement | null;
-  const wrapper = templateRoot?.content?.querySelector(".swiper-wrapper");
-  if (!wrapper) return;
+  const newSlides = media.map((item, index) => zoomModalSlideHtml(item, product, index)).join("");
 
-  wrapper.innerHTML = media.map((item, index) => zoomModalSlideHtml(item, product, index)).join("");
-  fixPopupCloseIconInTemplate(doc);
+  // linkedom'da template.content'e yapılan DOM yazımları outerHTML serialize
+  // edilirken kaybolur — template.innerHTML'i doğrudan string olarak yazıyoruz.
+  const templateRoot = doc.querySelector(
+    "[data-product-media-content] template",
+  ) as HTMLTemplateElement | null;
+  if (templateRoot) {
+    const current = templateRoot.innerHTML;
+    const next = current.replace(
+      /<div\b([^>]*\bclass="[^"]*\bswiper-wrapper\b[^"]*"[^>]*)>[\s\S]*?<\/div>\s*(?=<\/div>\s*<\/swiper-content>|<\/div>\s*<div class="swiper--button-wrapper")/i,
+      `<div$1>${newSlides}</div>`,
+    );
+    templateRoot.innerHTML =
+      next !== current
+        ? next
+        : current.replace(
+            /<div\b([^>]*\bclass="[^"]*\bswiper-wrapper\b[^"]*"[^>]*)>[\s\S]*?<\/div>/i,
+            `<div$1>${newSlides}</div>`,
+          );
+    fixPopupCloseIconInTemplate(doc);
+  }
+
+  // Bazı tema versiyonlarında popup zaten DOM'da render edilmiş gelir (template dışında);
+  // bu wrapper'ları da güncelle.
+  doc.querySelectorAll("[data-product-media-content] .swiper-wrapper").forEach((liveWrapper) => {
+    liveWrapper.innerHTML = newSlides;
+  });
+}
+
+function ensureGalleryFallbackStyles(doc: Document) {
+  if (doc.getElementById("kn-product-gallery-fallback")) return;
+  const style = doc.createElement("style");
+  style.id = "kn-product-gallery-fallback";
+  style.textContent = `#MainContent .main--product-image-slider-outer.kn-gallery-static .main--product-image-slider{display:flex!important;transform:none!important;}
+#MainContent .main--product-image-slider-outer.kn-gallery-static .swiper-slide{width:100%!important;max-width:100%!important;opacity:1!important;visibility:visible!important;}
+#MainContent .main--product-image-slider-outer.kn-gallery-static .main--product-item{width:100%!important;}
+#MainContent .main--product-image-slider-outer.kn-gallery-static img{display:block!important;width:100%;height:auto;object-fit:contain;opacity:1!important;visibility:visible!important;}
+#MainContent .main--product-image-slider-outer:not([data-kn-gallery-slug]){opacity:0;}`;
+  doc.head.appendChild(style);
+}
+
+function patchSwiperConfigForSlideCount(outer: Element, slideCount: number) {
+  const raw = outer.getAttribute("data-swiper");
+  if (!raw) return;
+  try {
+    const cfg = JSON.parse(raw.trim()) as {
+      loop?: boolean;
+      slidesPerView?: number;
+      spaceBetween?: number;
+      breakpoints?: Record<string, { loop?: boolean; slidesPerView?: number }>;
+    };
+    if (slideCount < 2) {
+      cfg.loop = false;
+      cfg.slidesPerView = 1;
+      cfg.spaceBetween = 0;
+      if (cfg.breakpoints) {
+        for (const key of Object.keys(cfg.breakpoints)) {
+          const bp = cfg.breakpoints[key];
+          if (!bp) continue;
+          bp.loop = false;
+          bp.slidesPerView = 1;
+        }
+      }
+    }
+    outer.setAttribute("data-swiper", JSON.stringify(cfg));
+  } catch {
+    /* şablon JSON bozuksa yoksay */
+  }
 }
 
 function injectProductGallerySwiperReinit(doc: Document, slideCount: number) {
+  ensureGalleryFallbackStyles(doc);
   const id = "kn-product-gallery-reinit";
   doc.getElementById(id)?.remove();
+
+  if (slideCount < 2) {
+    const script = doc.createElement("script");
+    script.id = id;
+    script.textContent = `(function(){
+  function showStatic(){
+    var outer=document.querySelector("#MainContent .main--product-image-slider-outer");
+    if(!outer)return;
+    outer.classList.add("kn-gallery-static");
+    try{if(outer.swiper&&typeof outer.swiper.destroy==="function"){outer.swiper.destroy(false,false);}}catch(e){}
+    var slide=outer.querySelector(".swiper-slide");
+    if(slide instanceof HTMLElement){slide.style.width="100%";slide.style.maxWidth="100%";}
+    var img=outer.querySelector(".swiper-slide img");
+    if(img instanceof HTMLImageElement){img.style.opacity="1";img.style.visibility="visible";}
+  }
+  showStatic();
+  setTimeout(showStatic,80);
+  setTimeout(showStatic,400);
+})();`;
+    (doc.body ?? doc.documentElement).appendChild(script);
+    return;
+  }
 
   const script = doc.createElement("script");
   script.id = id;
@@ -196,6 +298,7 @@ function injectProductGallerySwiperReinit(doc: Document, slideCount: number) {
   function boot(){
     var outer = document.querySelector("#MainContent .main--product-image-slider-outer");
     if (!outer) return;
+    outer.classList.remove("kn-gallery-static");
     if (typeof Swiper === "undefined") { setTimeout(boot, 120); return; }
     try {
       if (outer.swiper && typeof outer.swiper.destroy === "function") {
@@ -209,19 +312,23 @@ function injectProductGallerySwiperReinit(doc: Document, slideCount: number) {
       var n = ${slideCount};
       if (n < 2) {
         cfg.loop = false;
-        if (cfg.breakpoints) {
-          Object.keys(cfg.breakpoints).forEach(function(k) {
-            var b = cfg.breakpoints[k];
-            if (!b) return;
+        cfg.slidesPerView = 1;
+        cfg.spaceBetween = 0;
+      }
+      if (cfg.breakpoints) {
+        Object.keys(cfg.breakpoints).forEach(function(k) {
+          var b = cfg.breakpoints[k];
+          if (!b) return;
+          if (n < 2) {
             b.loop = false;
-            if (typeof b.slidesPerView === "number" && b.slidesPerView > n) {
-              b.slidesPerView = n;
-            }
-          });
-        }
-        if (typeof cfg.slidesPerView === "number" && cfg.slidesPerView > n) {
-          cfg.slidesPerView = n;
-        }
+            b.slidesPerView = 1;
+          } else if (typeof b.slidesPerView === "number" && b.slidesPerView > n) {
+            b.slidesPerView = n;
+          }
+        });
+      }
+      if (typeof cfg.slidesPerView === "number" && cfg.slidesPerView > n) {
+        cfg.slidesPerView = n;
       }
       var sw = new Swiper(outer, cfg);
       outer.swiper = sw;
@@ -234,15 +341,51 @@ function injectProductGallerySwiperReinit(doc: Document, slideCount: number) {
   (doc.body ?? doc.documentElement).appendChild(script);
 }
 
+/** Thumbnail sidebar — ana galeri ile data-media-id eşleşmesini garanti eder */
+function patchThumbnailSlider(
+  doc: Document,
+  product: VitrinProductDetail,
+  media: VitrinProductMedia[],
+) {
+  const thumbWrapper = doc.querySelector(
+    "#MainContent .main--product-thumbnail-outer .swiper-wrapper, " +
+    "#MainContent [data-product-thumbnail-slider] .swiper-wrapper, " +
+    "#MainContent .main--product-thumbnail-slider .swiper-wrapper, " +
+    "#MainContent .main--product-thumbnail-slider",
+  );
+  if (!thumbWrapper) return;
+
+  thumbWrapper.innerHTML = media
+    .map((item, index) => {
+      const url = escAttr(item.url);
+      const alt = escAttr(item.alt || product.title);
+      const mediaId = item.mediaType === "video" ? `admin-video-${index}` : `admin-image-${index}`;
+      return `<div class="swiper-slide main--thumbnail-item" data-media-id="${mediaId}">
+        <div class="main--product-thumbnail media-wrapper">
+          <div class="media">
+            <img src="${url}" data-original="${url}" alt="${alt}"
+              width="80" height="103" loading="${index === 0 ? "eager" : "lazy"}">
+          </div>
+        </div>
+      </div>`;
+    })
+    .join("");
+}
+
 function patchMainImage(doc: Document, product: VitrinProductDetail) {
   const media = normalizedMedia(product);
   if (!media.length) return;
 
+  ensureGalleryFallbackStyles(doc);
+
+  const outer = doc.querySelector("#MainContent .main--product-image-slider-outer") as HTMLElement | null;
+  if (!outer) return;
+
+  if (outer.getAttribute("data-kn-gallery-slug") === product.slug) return;
+
   const sectionId = detectProductMediaSectionId(doc);
   patchProductMediaZoomTemplate(doc, product, media);
-
-  const outer = doc.querySelector("#MainContent .main--product-image-slider-outer");
-  if (!outer) return;
+  patchSwiperConfigForSlideCount(outer, media.length);
 
   const wrapper =
     outer.querySelector(".main--product-image-slider[data-main-product-slider]") ??
@@ -265,6 +408,16 @@ function patchMainImage(doc: Document, product: VitrinProductDetail) {
     outer.classList.add("swiper");
   }
 
+  if (media.length < 2) {
+    outer.classList.add("kn-gallery-static");
+  } else {
+    outer.classList.remove("kn-gallery-static");
+  }
+
+  outer.setAttribute("data-kn-gallery-slug", product.slug);
+  outer.style.opacity = "1";
+
+  patchThumbnailSlider(doc, product, media);
   injectProductGallerySwiperReinit(doc, media.length);
 }
 
@@ -288,6 +441,36 @@ function patchDescription(doc: Document, product: VitrinProductDetail) {
   doc.querySelectorAll("#MainContent .product--description").forEach((el) => {
     el.textContent = short;
   });
+}
+
+/** PDP ana görsel / zoom alanı ürün linki değildir; tema şablon linklerini taşırsa top-route'a kaçmasın. */
+function neutralizeProductMediaNavigation(doc: Document) {
+  const mediaRootSelectors = [
+    "#MainContent .main--product-image-wrapper",
+    "#MainContent .main--product-image-slider-outer",
+    "#MainContent [data-product-media-content]",
+    "#MainContent product-media-popup",
+  ];
+
+  for (const selector of mediaRootSelectors) {
+    doc.querySelectorAll(`${selector} a[href]`).forEach((el) => {
+      el.setAttribute("href", "#kn-product-media");
+      el.setAttribute("data-kn-ignore-link", "1");
+      el.removeAttribute("data-url");
+      el.removeAttribute("data-product-url");
+    });
+
+    doc.querySelectorAll(`${selector} [data-url], ${selector} [data-product-url]`).forEach((el) => {
+      el.removeAttribute("data-url");
+      el.removeAttribute("data-product-url");
+      el.setAttribute("data-kn-ignore-link", "1");
+    });
+  }
+}
+
+function patchProductStorePathMeta(doc: Document, product: VitrinProductDetail) {
+  const meta = doc.querySelector('meta[name="kn-store-path"]');
+  if (meta) meta.setAttribute("content", productHref(product.slug));
 }
 
 /** Sağ alt sabit sepet kartı — şablon ürünü yerine incelenen ürün */
@@ -464,13 +647,39 @@ function patchVariants(doc: Document, product: VitrinProductDetail) {
 }
 
 /** Generic mirror PDP template -> DB product data */
-export function applyProductDetailFromAdmin(doc: Document, product: VitrinProductDetail) {
+export function productGalleryReady(doc: Document, product?: VitrinProductDetail): boolean {
+  if (!product) return true;
+  const media = normalizedMedia(product);
+  if (!media.length) return true;
+  const outer = doc.querySelector("#MainContent .main--product-image-slider-outer");
+  return outer?.getAttribute("data-kn-gallery-slug") === product.slug;
+}
+
+export function applyProductDetailFromAdmin(
+  doc: Document,
+  product: VitrinProductDetail,
+  options?: { templateSlug?: string },
+) {
   patchTitle(doc, product);
   patchDescription(doc, product);
   patchMainImage(doc, product);
+  neutralizeProductMediaNavigation(doc);
+  patchProductStorePathMeta(doc, product);
   patchVariants(doc, product);
   patchStickyBuyButton(doc, product);
   if (product.highlights?.length) patchProductHighlights(doc, product.highlights);
+
+  // postMessage içeren tüm inline scriptleri kaldır — templateSlug olsun ya da olmasın.
+  // ping / route-sync mekanizmaları DB verisiyle çalışan sayfada zararlı.
+  stripMirrorPostMessageScripts(doc);
+
+  const templateSlug = options?.templateSlug?.trim();
+  if (templateSlug && templateSlug.toLowerCase() !== product.slug.toLowerCase()) {
+    rewriteMirrorTemplateSlugReferences(doc, templateSlug, product.slug);
+    suppressAliasedTemplateProductSections(doc);
+    injectTemplateSlugNavigationGuard(doc, templateSlug, product.slug);
+  }
+
   doc.documentElement.setAttribute("data-kn-product-sync", "1");
 }
 
@@ -482,12 +691,13 @@ export function applyProductDetailToMirrorHtml(
   product: VitrinProductDetail,
   overlay: ProductContentOverlay = {},
   commerce?: MirrorProductCommercePayload | null,
+  options?: { templateSlug?: string },
 ): string {
   const { document } = parseHTML(html);
   if (!document.getElementById("kn-product-sync-guard")) {
     document.head.insertAdjacentHTML("beforeend", PRODUCT_SYNC_GUARD);
   }
-  applyProductDetailFromAdmin(document, product);
+  applyProductDetailFromAdmin(document, product, options);
   applyProductContentOverlay(document, overlay);
   const doctype = html.match(/^<!DOCTYPE[^>]*>/i)?.[0] ?? "<!DOCTYPE html>";
   let out = `${doctype}\n${document.documentElement.outerHTML}`;

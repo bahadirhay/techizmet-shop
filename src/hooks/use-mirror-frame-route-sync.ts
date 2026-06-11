@@ -20,6 +20,7 @@ function isIgnoredFramePath(pathname: string, expectedMirrorPath: string) {
 export function useMirrorFrameRouteSync(
   iframeRef: RefObject<HTMLIFrameElement | null>,
   src: string,
+  enabled = true,
 ) {
   const router = useRouter();
   const lastPushedHrefRef = useRef("");
@@ -29,10 +30,20 @@ export function useMirrorFrameRouteSync(
   }, [src]);
 
   useEffect(() => {
+    if (!enabled) return;
+
     const expectedMirrorPath = new URL(src, window.location.origin).pathname;
 
     function pushTopRoute(href: string | null | undefined) {
       if (!href || href === lastPushedHrefRef.current) return false;
+      // Eski mirror HTML hesap sayfasını "/" sanıp ana sayfaya atmasın
+      if (
+        href === "/" &&
+        typeof window !== "undefined" &&
+        window.location.pathname.startsWith("/account")
+      ) {
+        return false;
+      }
       lastPushedHrefRef.current = href;
       router.replace(href);
       return true;
@@ -77,5 +88,5 @@ export function useMirrorFrameRouteSync(
       window.removeEventListener("message", onMessage);
       window.removeEventListener("popstate", onPopState);
     };
-  }, [iframeRef, router, src]);
+  }, [enabled, iframeRef, router, src]);
 }

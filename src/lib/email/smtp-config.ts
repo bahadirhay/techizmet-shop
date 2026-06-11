@@ -25,12 +25,12 @@ export function resolveSmtpConfig(settings: SiteSettings): SmtpConnectionConfig 
     s.secure === true ||
     process.env.SMTP_SECURE?.trim() === "true" ||
     port === 465;
-  const user = s.user?.trim() || process.env.SMTP_USER?.trim() || undefined;
+  const user = (s.user?.trim() || process.env.SMTP_USER?.trim() || "").replace(/\s/g, "") || undefined;
   const password =
-    s.password?.trim() ||
-    process.env.SMTP_PASSWORD?.trim() ||
-    process.env.SMTP_PASS?.trim() ||
-    undefined;
+    (s.password?.trim() ||
+      process.env.SMTP_PASSWORD?.trim() ||
+      process.env.SMTP_PASS?.trim() ||
+      "") || undefined;
   const tlsRejectUnauthorized =
     s.tlsRejectUnauthorized === false || process.env.SMTP_TLS_REJECT_UNAUTHORIZED === "false"
       ? false

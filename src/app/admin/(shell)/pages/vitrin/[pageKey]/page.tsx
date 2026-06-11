@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { MirrorVitrinAdminEditor } from "@/components/admin/MirrorVitrinAdminEditor";
 import { getMirrorPageConfig } from "@/lib/mirror-page-settings";
 import { buildEditableCatalogFromHtml, extractSwiperAutoplayMs, sliceSectionHtml } from "@/lib/mirror-editable-catalog";
+import { localizeEditableCatalogDefaults } from "@/lib/mirror-editable-catalog-server";
 import { loadMirrorPageSectionsCatalog } from "@/lib/mirror-page-sections";
 import { readMirrorPageHtml } from "@/lib/mirror-page-html";
 import { isVitrinPageKey } from "@/lib/mirror-vitrin-pages";
@@ -43,7 +44,10 @@ export default async function VitrinPageEditRoute({
   const catalog = loadMirrorPageSectionsCatalog(pageKey);
   const initialConfig = getMirrorPageConfig(settings, pageKey);
   const mirrorHtml = readMirrorPageHtml(pageKey);
-  const editableCatalog = mirrorHtml ? buildEditableCatalogFromHtml(mirrorHtml) : {};
+  const editableCatalog = localizeEditableCatalogDefaults(
+    mirrorHtml ? buildEditableCatalogFromHtml(mirrorHtml) : {},
+    locale,
+  );
   const sectionSwiperMs: Record<string, number | null> = {};
   if (mirrorHtml) {
     for (const s of catalog) {

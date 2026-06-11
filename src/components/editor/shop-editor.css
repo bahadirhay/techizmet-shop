@@ -91,6 +91,12 @@
   overflow: auto;
   background: #0a0a0b;
 }
+.shop-page-editor .ed-vitrin-preview .kn-home-mirror {
+  min-width: 1280px;
+}
+.shop-page-editor .ed-vitrin-preview .mirror-home-frame {
+  min-width: 1280px;
+}
 .shop-page-editor .ed-vitrin-props {
   width: 18rem;
   flex-shrink: 0;

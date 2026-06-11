@@ -1,7 +1,7 @@
 import { Prisma, PrismaClient } from "@prisma/client";
 
 /** Şemaya model eklendiğinde artırın — dev HMR eski client’ı atar */
-const PRISMA_SCHEMA_VERSION = 5;
+const PRISMA_SCHEMA_VERSION = 6;
 
 type GlobalPrisma = {
   prisma?: PrismaClient;
@@ -10,10 +10,59 @@ type GlobalPrisma = {
 
 const globalForPrisma = globalThis as unknown as GlobalPrisma;
 
-function createClient() {
-  return new PrismaClient({
+function isPgConnectionClosed(error: unknown): boolean {
+  const msg = error instanceof Error ? error.message : String(error);
+  return /Closed|ECONNRESET|Connection terminated|connection.*not open|Can't reach database|Connection reset|P1001|P1017/i.test(
+    msg,
+  );
+}
+
+function invalidateCachedClient() {
+  const cached = globalForPrisma.prisma;
+  globalForPrisma.prisma = undefined;
+  globalForPrisma.prismaSchemaVersion = undefined;
+  void cached?.$disconnect().catch(() => undefined);
+}
+
+type QueryContext = {
+  model: string;
+  operation: string;
+  args: unknown;
+  query: (args: unknown) => Promise<unknown>;
+};
+
+async function runWithReconnect(ctx: QueryContext): Promise<unknown> {
+  try {
+    return await ctx.query(ctx.args);
+  } catch (error) {
+    if (!isPgConnectionClosed(error)) throw error;
+
+    invalidateCachedClient();
+    const fresh = resolveClient();
+    await fresh.$connect().catch(() => undefined);
+
+    const delegate = (fresh as unknown as Record<string, Record<string, unknown>>)[ctx.model];
+    const fn = delegate?.[ctx.operation];
+    if (typeof fn === "function") {
+      return (fn as (args: unknown) => Promise<unknown>).call(delegate, ctx.args);
+    }
+
+    throw error;
+  }
+}
+
+function createClient(): PrismaClient {
+  const client = new PrismaClient({
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
   });
+
+  return client.$extends({
+    query: {
+      $allOperations(ctx) {
+        return runWithReconnect(ctx);
+      },
+    },
+  }) as unknown as PrismaClient;
 }
 
 function navMenuSupportsLinkFields(): boolean {
@@ -42,8 +91,7 @@ function resolveClient(): PrismaClient {
     return cached;
   }
 
-  globalForPrisma.prisma = undefined;
-  globalForPrisma.prismaSchemaVersion = undefined;
+  invalidateCachedClient();
 
   const client = createClient();
   if (!prismaClientReady(client)) {
@@ -59,6 +107,7 @@ function resolveClient(): PrismaClient {
 
   globalForPrisma.prisma = client;
   globalForPrisma.prismaSchemaVersion = PRISMA_SCHEMA_VERSION;
+  void client.$connect().catch(() => undefined);
 
   return client;
 }

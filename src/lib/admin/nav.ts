@@ -47,7 +47,7 @@ const VITRIN_PAGE_NAV_CHILDREN: AdminNavLink[] = [
     perm: "content.pages" as const,
   })),
   {
-    href: "/admin/pages/edit/mesafeli-satis",
+    href: "/admin/integrations#mesafeli-satis-legal",
     label: "Mesafeli Satış",
     perm: "content.pages" as const,
   },
@@ -234,7 +234,10 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
         href: "/admin/blog",
         label: "Blog Yazıları",
         perm: "content.pages",
-        children: [{ href: "/admin/blog/new", label: "Yeni Yazı", perm: "content.pages" }],
+        children: [
+          { href: "/admin/blog/new", label: "Yeni Yazı", perm: "content.pages" },
+          { href: "/admin/blog/automation", label: "Otomasyon", perm: "content.pages" },
+        ],
       },
       {
         href: "/admin/pages",

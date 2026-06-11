@@ -16,6 +16,8 @@ import { ProductExploreEditor } from "@/components/admin/ProductExploreEditor";
 import { ProductHighlightsEditor } from "@/components/admin/ProductHighlightsEditor";
 import { ProductSeoHealthPanel } from "@/components/admin/ProductSeoHealthPanel";
 import { ProductSeoOptimizer } from "@/components/admin/ProductSeoOptimizer";
+import { ProductProfitEstimate } from "@/components/admin/ProductProfitEstimate";
+import { ProductCompetitorPrices } from "@/components/admin/ProductCompetitorPrices";
 import { VatRateSelect } from "@/components/admin/VatRateSelect";
 import { ProductMarketplacePrices } from "@/components/admin/ProductMarketplacePrices";
 import { DEFAULT_TR_VAT_RATE } from "@/lib/tr-vat-rates";
@@ -25,6 +27,8 @@ import {
   serializeProductHighlights,
   type ProductHighlight,
 } from "@/lib/product-highlights";
+import { buildQuickSeoDefaults } from "@/lib/admin/product-seo/content-builders";
+import { htmlToPlainText } from "@/lib/product-content-format";
 
 type Opt = { id: string; title: string };
 type ProductOpt = { slug: string; title: string };
@@ -52,6 +56,7 @@ export type ProductFormData = {
   stockQty: string;
   lowStockThreshold: string;
   weightGrams: string;
+  pieceCount: string;
   desi: string;
   seoTitle: string;
   seoDescription: string;
@@ -77,6 +82,11 @@ export function ProductForm({
   defaultAutoGenerateBarcode = false,
   homepageMode = "mirror",
   siteUrl = "",
+  siteName = "Mağaza",
+  webShippingCostMinor = 0,
+  packagingCostMinor = 0,
+  cardFeePercent = 2.4,
+  freeShippingOverMinor = 0,
 }: {
   initial: ProductFormData;
   collections: Opt[];
@@ -88,6 +98,11 @@ export function ProductForm({
   defaultAutoGenerateBarcode?: boolean;
   homepageMode?: "mirror" | "blocks";
   siteUrl?: string;
+  siteName?: string;
+  webShippingCostMinor?: number;
+  packagingCostMinor?: number;
+  cardFeePercent?: number;
+  freeShippingOverMinor?: number;
 }) {
   const router = useRouter();
   const [form, setForm] = useState(initial);
@@ -118,6 +133,50 @@ export function ProductForm({
     );
     setErr(null);
   }, [galleryKey]);
+
+  function fillSeoMeta() {
+    if (!form.title.trim()) return;
+    const brandTitle = brands.find((b) => b.id === form.brandId)?.title;
+    const categoryTitles = form.categoryIds
+      .map((id) => categories.find((c) => c.id === id)?.title)
+      .filter(Boolean) as string[];
+    const defaults = buildQuickSeoDefaults({
+      title: form.title,
+      brandTitle,
+      siteName,
+      categoryTitles,
+      description: form.description || form.descriptionHtml,
+    });
+    setForm((f) => ({
+      ...f,
+      seoTitle: f.seoTitle.trim() ? f.seoTitle : defaults.seoTitle,
+      seoDescription: f.seoDescription.trim() ? f.seoDescription : defaults.seoDescription,
+    }));
+  }
+
+  useEffect(() => {
+    if (!form.title.trim()) return;
+    if (form.seoTitle.trim() && form.seoDescription.trim()) return;
+    const brandTitle = brands.find((b) => b.id === form.brandId)?.title;
+    const categoryTitles = form.categoryIds
+      .map((id) => categories.find((c) => c.id === id)?.title)
+      .filter(Boolean) as string[];
+    const defaults = buildQuickSeoDefaults({
+      title: form.title,
+      brandTitle,
+      siteName,
+      categoryTitles,
+      description: form.description || form.descriptionHtml,
+    });
+    setForm((f) => {
+      if (f.seoTitle.trim() && f.seoDescription.trim()) return f;
+      return {
+        ...f,
+        seoTitle: f.seoTitle.trim() ? f.seoTitle : defaults.seoTitle,
+        seoDescription: f.seoDescription.trim() ? f.seoDescription : defaults.seoDescription,
+      };
+    });
+  }, [form.title, form.brandId, form.categoryId, form.categoryIds.join("|"), siteName]);
 
   function set<K extends keyof ProductFormData>(key: K, val: ProductFormData[K]) {
     setForm((f) => ({ ...f, [key]: val }));
@@ -248,9 +307,31 @@ export function ProductForm({
         <AdminField label="URL slug" hint="Boş bırakılırsa başlıktan üretilir">
           <input className={inputClass} value={form.slug} onChange={(e) => set("slug", e.target.value)} />
         </AdminField>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-4">
           <AdminField label="SKU">
             <input className={inputClass} value={form.sku} onChange={(e) => set("sku", e.target.value)} />
+          </AdminField>
+          <AdminField label="Ağırlık (g)" hint="Kargo ve pazaryeri başlıkları için (ör. 80, 100, 250)">
+            <input
+              className={inputClass}
+              type="number"
+              step="1"
+              min={0}
+              value={form.weightGrams}
+              onChange={(e) => set("weightGrams", e.target.value)}
+              placeholder="ör. 100"
+            />
+          </AdminField>
+          <AdminField label="Adet / Paket" hint="Pakette kaç ürün var? (ör. 5'li paket için 5)">
+            <input
+              className={inputClass}
+              type="number"
+              step="1"
+              min={0}
+              value={form.pieceCount}
+              onChange={(e) => set("pieceCount", e.target.value)}
+              placeholder="ör. 5"
+            />
           </AdminField>
           <AdminField label="Barkod" hint="Pazaryeri eşleşmesi için EAN-13 önerilir">
             <div className="flex flex-wrap gap-2">
@@ -324,6 +405,24 @@ export function ProductForm({
             />
           </AdminField>
         </div>
+
+        <ProductCompetitorPrices
+          title={form.title}
+          barcode={form.barcode}
+          sku={form.sku}
+          categoryId={form.categoryId}
+          brandId={form.brandId}
+          webPrice={form.price}
+        />
+
+        <ProductProfitEstimate
+          price={form.price}
+          cost={form.cost}
+          webShippingCostMinor={webShippingCostMinor}
+          packagingCostMinor={packagingCostMinor}
+          cardFeePercent={cardFeePercent}
+          freeShippingOverMinor={freeShippingOverMinor}
+        />
         <AdminField label="KDV oranı" hint="Satış fiyatı KDV dahildir. Fatura ön izlemesi ve e-Arşiv kesiminde kullanılır.">
           <VatRateSelect value={form.vatRate} onChange={(vatRate) => set("vatRate", vatRate)} />
         </AdminField>
@@ -337,6 +436,10 @@ export function ProductForm({
           onChange={(platform, value) =>
             set("marketplacePrices", { ...form.marketplacePrices, [platform]: value })
           }
+          title={form.title}
+          brandName={brands.find((b) => b.id === form.brandId)?.title ?? ""}
+          weightGrams={parseFloat(form.weightGrams) > 0 ? parseFloat(form.weightGrams) : undefined}
+          pieceCount={parseInt(form.pieceCount) > 0 ? parseInt(form.pieceCount) : undefined}
         />
 
         <div className="grid gap-4 sm:grid-cols-3">
@@ -587,10 +690,85 @@ export function ProductForm({
           </div>
         </AdminField>
 
+        <ProductSeoHealthPanel
+          title={form.title}
+          slug={form.slug}
+          seoTitle={form.seoTitle}
+          seoDescription={form.seoDescription}
+          description={form.description}
+          descriptionHtml={form.descriptionHtml}
+          keyFeaturesHtml={form.keyFeaturesHtml}
+          howToUseHtml={form.howToUseHtml}
+          brandId={form.brandId}
+          categoryId={form.categoryId}
+          imageUrl={form.imageUrl || primaryProductImageUrl(form.mediaItems) || ""}
+          barcode={form.barcode}
+          published={form.published}
+          homepageMode={homepageMode}
+          siteUrl={siteUrl}
+          onFillMeta={fillSeoMeta}
+        />
+        <ProductSeoOptimizer
+          title={form.title}
+          slug={form.slug}
+          description={form.description || form.descriptionHtml}
+          categoryIds={form.categoryIds}
+          categoryId={form.categoryId}
+          brandId={form.brandId}
+          productId={form.id}
+          weightGrams={parseFloat(form.weightGrams) > 0 ? parseFloat(form.weightGrams) : undefined}
+          pieceCount={parseInt(form.pieceCount) > 0 ? parseInt(form.pieceCount) : undefined}
+          onApply={(patch) => {
+            if (patch.title != null) set("title", patch.title);
+            if (patch.slug != null) set("slug", patch.slug);
+            if (patch.seoTitle != null) set("seoTitle", patch.seoTitle);
+            if (patch.seoDescription != null) set("seoDescription", patch.seoDescription);
+            if (patch.description != null) set("description", patch.description);
+            if (patch.descriptionHtml != null) {
+              set("descriptionHtml", htmlToPlainText(patch.descriptionHtml) || patch.descriptionHtml);
+            }
+            if (patch.keyFeaturesHtml != null) {
+              set("keyFeaturesHtml", htmlToPlainText(patch.keyFeaturesHtml) || patch.keyFeaturesHtml);
+            }
+            if (patch.howToUseHtml != null) {
+              set("howToUseHtml", htmlToPlainText(patch.howToUseHtml) || patch.howToUseHtml);
+            }
+            if (patch.highlights != null) {
+              set("highlights", patch.highlights);
+            }
+          }}
+        />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <AdminField
+            label="SEO başlık (Google meta)"
+            hint={`${form.seoTitle.length} karakter — ideal 25–60`}
+          >
+            <input
+              className={inputClass}
+              value={form.seoTitle}
+              onChange={(e) => set("seoTitle", e.target.value)}
+              placeholder="Ürün | Marka | Mağaza"
+            />
+          </AdminField>
+          <AdminField
+            label="SEO açıklama (snippet)"
+            hint={`${form.seoDescription.length} karakter — ideal 70–155`}
+          >
+            <textarea
+              className={inputClass}
+              rows={3}
+              value={form.seoDescription}
+              onChange={(e) => set("seoDescription", e.target.value)}
+              placeholder="Arama sonuçlarında görünen açıklama"
+            />
+          </AdminField>
+        </div>
+
         <div className="rounded-lg border border-zinc-200 bg-zinc-50/80 p-4 space-y-4">
-          <p className="text-sm font-semibold text-zinc-800">Ürün sayfası içeriği</p>
+          <p className="text-sm font-semibold text-zinc-800">Ürün sayfası içeriği (vitrin accordion)</p>
           <p className="text-xs text-zinc-500 -mt-2">
-            Vitrindeki Description, Key Features ve How to Use metinleri. Düz metin yazın; satır sonları vitrinde korunur.
+            Google ve pazaryeri için tanıtım, besin değerleri (Key Features) ve kullanım talimatları. «Tam SEO
+            çalışması» bu alanları otomatik doldurur — düz metin yazın.
           </p>
           <AdminField label="Kısa açıklama (sayfa üstü)">
             <textarea
@@ -601,28 +779,31 @@ export function ProductForm({
               placeholder="Ürün kartı ve sayfa üstündeki kısa metin"
             />
           </AdminField>
-          <AdminField label="Description">
+          <AdminField label="Description — ürün tanıtımı">
             <textarea
               className={inputClass}
               rows={5}
               value={form.descriptionHtml}
               onChange={(e) => set("descriptionHtml", e.target.value)}
+              placeholder="Detaylı tanıtım: faydalar, hedef kitle, neden bu ürün"
             />
           </AdminField>
-          <AdminField label="Key Features">
+          <AdminField label="Key Features — özellikler & besin değerleri">
             <textarea
               className={inputClass}
               rows={12}
               value={form.keyFeaturesHtml}
               onChange={(e) => set("keyFeaturesHtml", e.target.value)}
+              placeholder="İçerik listesi, protein/yağ/lif/nem/kül (%), katkısız vurgusu…"
             />
           </AdminField>
-          <AdminField label="How to Use">
+          <AdminField label="How to Use — kullanım / veriliş">
             <textarea
               className={inputClass}
-              rows={12}
+              rows={8}
               value={form.howToUseHtml}
               onChange={(e) => set("howToUseHtml", e.target.value)}
+              placeholder="Günlük miktar, saklama, yaş grubu uyarıları"
             />
           </AdminField>
           <ProductHighlightsEditor
@@ -630,53 +811,6 @@ export function ProductForm({
             onChange={(highlights) => set("highlights", highlights)}
           />
         </div>
-        <ProductSeoHealthPanel
-          title={form.title}
-          slug={form.slug}
-          seoTitle={form.seoTitle}
-          seoDescription={form.seoDescription}
-          description={form.description}
-          descriptionHtml={form.descriptionHtml}
-          brandId={form.brandId}
-          imageUrl={form.imageUrl || primaryProductImageUrl(form.mediaItems) || ""}
-          barcode={form.barcode}
-          published={form.published}
-          homepageMode={homepageMode}
-          siteUrl={siteUrl}
-        />
-        <ProductSeoOptimizer
-          title={form.title}
-          slug={form.slug}
-          description={form.description || form.descriptionHtml}
-          categoryIds={form.categoryIds}
-          categoryId={form.categoryId}
-          brandId={form.brandId}
-          productId={form.id}
-          onApply={(patch) => {
-            if (patch.title != null) set("title", patch.title);
-            if (patch.slug != null) set("slug", patch.slug);
-            if (patch.seoTitle != null) set("seoTitle", patch.seoTitle);
-            if (patch.seoDescription != null) set("seoDescription", patch.seoDescription);
-            if (patch.description != null) set("description", patch.description);
-            if (patch.descriptionHtml != null) set("descriptionHtml", patch.descriptionHtml);
-            if (patch.keyFeaturesHtml != null) set("keyFeaturesHtml", patch.keyFeaturesHtml);
-          }}
-        />
-        <AdminField label="SEO başlık">
-          <input
-            className={inputClass}
-            value={form.seoTitle}
-            onChange={(e) => set("seoTitle", e.target.value)}
-          />
-        </AdminField>
-        <AdminField label="SEO açıklama">
-          <textarea
-            className={inputClass}
-            rows={2}
-            value={form.seoDescription}
-            onChange={(e) => set("seoDescription", e.target.value)}
-          />
-        </AdminField>
 
         <ProductExploreEditor
           looks={exploreLooks}

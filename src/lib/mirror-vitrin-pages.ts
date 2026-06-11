@@ -9,10 +9,20 @@ export type VitrinPageKey =
   | "about"
   | "contact"
   | "faq"
+  | "privacy-policy"
+  | "terms-of-service"
+  | "refund-policy"
   | "blog-news";
 
 /** Mirror HTML var; CMS blok editörü yerine vitrin editörü kullanılır */
-export const MIRROR_CONTENT_PAGE_SLUGS = ["about", "contact", "faq"] as const;
+export const MIRROR_CONTENT_PAGE_SLUGS = [
+  "about",
+  "contact",
+  "faq",
+  "privacy-policy",
+  "terms-of-service",
+  "refund-policy",
+] as const;
 
 export type VitrinPageDef = {
   key: VitrinPageKey;
@@ -49,6 +59,18 @@ const MIRROR_FILE: Record<VitrinPageKey, { tr: string; en: string }> = {
   faq: {
     tr: "theme/techizmet-shop/mirror/pages/faq-tr.html",
     en: "theme/techizmet-shop/mirror/pages/faq.html",
+  },
+  "privacy-policy": {
+    tr: "theme/techizmet-shop/mirror/pages/privacy-policy-tr.html",
+    en: "theme/techizmet-shop/mirror/pages/privacy-policy.html",
+  },
+  "terms-of-service": {
+    tr: "theme/techizmet-shop/mirror/pages/terms-of-service-tr.html",
+    en: "theme/techizmet-shop/mirror/pages/terms-of-service.html",
+  },
+  "refund-policy": {
+    tr: "theme/techizmet-shop/mirror/pages/refund-policy-tr.html",
+    en: "theme/techizmet-shop/mirror/pages/refund-policy.html",
   },
   "blog-news": {
     tr: "theme/techizmet-shop/mirror/blogs/news/index-tr.html",
@@ -109,6 +131,33 @@ export const VITRIN_PAGES: VitrinPageDef[] = [
     adminPath: "/admin/pages/vitrin/faq",
     mirrorFileRel: (locale) => vitrinMirrorFileRel("faq", locale),
     mirrorPath: (locale) => buildMirrorIframeSrc(vitrinMirrorFileRel("faq", locale), "faq"),
+  },
+  {
+    key: "privacy-policy",
+    label: "Gizlilik politikası",
+    route: "/pages/privacy-policy",
+    adminPath: "/admin/pages/vitrin/privacy-policy",
+    mirrorFileRel: (locale) => vitrinMirrorFileRel("privacy-policy", locale),
+    mirrorPath: (locale) =>
+      buildMirrorIframeSrc(vitrinMirrorFileRel("privacy-policy", locale), "privacy-policy"),
+  },
+  {
+    key: "terms-of-service",
+    label: "Hizmet şartları",
+    route: "/pages/terms-of-service",
+    adminPath: "/admin/pages/vitrin/terms-of-service",
+    mirrorFileRel: (locale) => vitrinMirrorFileRel("terms-of-service", locale),
+    mirrorPath: (locale) =>
+      buildMirrorIframeSrc(vitrinMirrorFileRel("terms-of-service", locale), "terms-of-service"),
+  },
+  {
+    key: "refund-policy",
+    label: "İade politikası",
+    route: "/pages/refund-policy",
+    adminPath: "/admin/pages/vitrin/refund-policy",
+    mirrorFileRel: (locale) => vitrinMirrorFileRel("refund-policy", locale),
+    mirrorPath: (locale) =>
+      buildMirrorIframeSrc(vitrinMirrorFileRel("refund-policy", locale), "refund-policy"),
   },
   {
     key: "blog-news",

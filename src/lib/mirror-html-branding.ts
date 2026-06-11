@@ -27,6 +27,8 @@ function patchMirrorLogoImgTags(html: string, dark: string, light: string): stri
     const url = isLight ? lightUrl : dark;
     let next = attrs.replace(/\s+srcset="[^"]*"/i, "");
     next = next.replace(/\s+src="[^"]*"/i, "");
+    next = next.replace(/\s+width="[^"]*"/i, "");
+    next = next.replace(/\s+height="[^"]*"/i, "");
     return `<img${next} src="${escAttr(url)}" srcset="${logoSrcset(url)}">`;
   });
 }
@@ -37,6 +39,29 @@ function patchLogoPreloads(html: string, dark: string, light: string): string {
     /<link([^>]*rel=["']preload["'][^>]*as=["']image["'][^>]*href=["'])([^"']*noor-(?:white|dark)-logo[^"']*)(["'][^>]*>)/gi,
     (_m, pre, _href, post) => `<link${pre}${escAttr(lightUrl)}${post}`,
   );
+}
+
+/** Mirror HTML'de icon link yoksa ekle (tema dosyalarında genelde yok) */
+function injectFaviconLinks(html: string, favicon: string): string {
+  const u = escAttr(favicon);
+  const path = favicon.split("?")[0]?.toLowerCase() ?? "";
+  const type =
+    path.endsWith(".svg")
+      ? "image/svg+xml"
+      : path.endsWith(".ico")
+        ? "image/x-icon"
+        : "image/png";
+  let out = html.replace(/<link[^>]*\brel=["'](?:shortcut )?icon["'][^>]*>/gi, "");
+  out = out.replace(/<link[^>]*\brel=["']apple-touch-icon["'][^>]*>/gi, "");
+  const block = [
+    `<link id="kn-favicon" rel="icon" href="${u}" type="${type}" sizes="128x128">`,
+    `<link rel="shortcut icon" href="${u}">`,
+    `<link rel="apple-touch-icon" href="${u}">`,
+  ].join("\n");
+  if (out.includes("</head>")) {
+    out = out.replace(/<\/head>/i, `${block}\n</head>`);
+  }
+  return out;
 }
 
 /** Mirror HTML — Techizmet Shop gömülü logo URL’lerini admin markası ile değiştirir (ilk boyamada flaş yok) */
@@ -53,18 +78,10 @@ export function injectBrandingIntoMirrorHtml(html: string, branding: MirrorBrand
     out = out.replace(NOOR_WHITE, lightUrl);
     out = patchMirrorLogoImgTags(out, dark, lightUrl);
     out = patchLogoPreloads(out, dark, lightUrl);
-
-    if (dark === lightUrl) {
-      const dedupeStyle = `<style id="kn-logo-dedupe">.header--logo .transparent-logo-img{display:none!important}.header:not(.is-sticky).desktop-transparent:not(:hover) .header--logo-img:not(.transparent-logo-img),.header:not(.is-sticky).mobile-transparent:not(:hover) .header--logo-img:not(.transparent-logo-img){opacity:1!important}</style>`;
-      out = out.replace(/<\/head>/i, `${dedupeStyle}\n</head>`);
-    }
   }
 
   if (favicon) {
-    out = out.replace(
-      /<link([^>]*rel=["'](?:shortcut )?icon["'][^>]*)>/gi,
-      `<link$1 href="${escAttr(favicon)}">`,
-    );
+    out = injectFaviconLinks(out, favicon);
   }
 
   const bootstrap = buildHeadBootstrap(branding);
@@ -85,5 +102,5 @@ function buildHeadBootstrap(branding: MirrorBranding): string {
     fallbackDark: FALLBACK_DARK,
     fallbackLight: FALLBACK_LIGHT,
   });
-  return `<script id="kn-branding-bootstrap">(function(){var P=${payload};function bust(u){if(!u)return u;return u+(u.indexOf("?")>=0?"&":"?")+"kn=1";}function pathOf(u){return(u||"").split("?")[0];}function set(el,u,fallback){if(!el||!u)return;var n=bust(u);var fb=fallback?bust(fallback):"";el.removeAttribute("data-src");el.onerror=function(){if(fb&&pathOf(el.src)!==pathOf(fb)){el.onerror=null;set(el,fb,"");return;}el.style.visibility="hidden";};el.src=n;el.setAttribute("srcset",n+" 1x, "+n+" 2x");}function apply(){if(P.logo)document.querySelectorAll("img.header--logo-img:not(.transparent-logo-img)").forEach(function(el){set(el,P.logo,P.fallbackDark);});if(P.light)document.querySelectorAll("img.transparent-logo-img,img.footer--logo-img").forEach(function(el){set(el,P.light,P.fallbackLight);});if(P.favicon)["icon","shortcut icon","apple-touch-icon"].forEach(function(r){var l=document.querySelector('link[rel="'+r+'"]');if(!l){l=document.createElement("link");l.rel=r;document.head.appendChild(l);}l.href=bust(P.favicon);});document.querySelectorAll('link[rel="preload"][as="image"]').forEach(function(l){if(/logo/i.test(l.href))l.href=bust(P.light||P.logo);});}function boot(){apply();var moScheduled=false;new MutationObserver(function(){if(moScheduled)return;moScheduled=true;requestAnimationFrame(function(){moScheduled=false;apply();});}).observe(document.documentElement,{subtree:true,attributes:true,attributeFilter:["src","srcset","href"]});}if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot);else boot();})();</script>`;
+  return `<script id="kn-branding-bootstrap">(function(){var P=${payload};function bust(u){if(!u)return u;return u+(u.indexOf("?")>=0?"&":"?")+"kn=1";}function pathOf(u){return(u||"").split("?")[0];}function unified(){return!!document.querySelector("[id^=kn-logo-unify-script]");}function set(el,u,fallback){if(!el||!u)return;var n=bust(u);var fb=fallback?bust(fallback):"";el.removeAttribute("data-src");el.removeAttribute("width");el.removeAttribute("height");el.onerror=function(){if(fb&&pathOf(el.src)!==pathOf(fb)){el.onerror=null;set(el,fb,"");return;}el.style.visibility="hidden";};el.src=n;el.setAttribute("srcset",n+" 1x, "+n+" 2x");}function apply(){if(unified()){if(P.light)document.querySelectorAll("img.footer--logo-img").forEach(function(el){set(el,P.light,P.fallbackLight);});}else{if(P.logo)document.querySelectorAll("img.header--logo-img:not(.transparent-logo-img)").forEach(function(el){set(el,P.logo,P.fallbackDark);});if(P.light)document.querySelectorAll("img.transparent-logo-img,img.footer--logo-img").forEach(function(el){set(el,P.light,P.fallbackLight);});}if(P.favicon)["icon","shortcut icon","apple-touch-icon"].forEach(function(r){var l=document.querySelector('link[rel="'+r+'"]');if(!l){l=document.createElement("link");l.rel=r;document.head.appendChild(l);}l.href=bust(P.favicon);});if(!unified())document.querySelectorAll('link[rel="preload"][as="image"]').forEach(function(l){if(/logo/i.test(l.href))l.href=bust(P.light||P.logo);});}function boot(){apply();var moScheduled=false;new MutationObserver(function(){if(unified())return;if(moScheduled)return;moScheduled=true;requestAnimationFrame(function(){moScheduled=false;apply();});}).observe(document.documentElement,{subtree:true,attributes:true,attributeFilter:["src","srcset","href"]});}if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot);else boot();})();</script>`;
 }

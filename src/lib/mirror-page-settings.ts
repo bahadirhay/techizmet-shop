@@ -26,6 +26,7 @@ export function getMirrorPageConfig(
     sections: saved?.sections ?? {},
     elements: saved?.elements ?? {},
     customBlocks: saved?.customBlocks,
+    contactFormCentered: saved?.contactFormCentered,
   };
 }
 

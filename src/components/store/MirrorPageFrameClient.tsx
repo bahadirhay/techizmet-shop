@@ -7,6 +7,7 @@ import type { MirrorBranding } from "@/lib/mirror-branding-overlay";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import type { MirrorFooterData } from "@/lib/mirror-footer-overlay";
 import type { MirrorNavItem } from "@/lib/mirror-nav-overlay";
+import type { MirrorContactData } from "@/lib/mirror-contact-overlay";
 
 export function MirrorPageFrameClient({
   src,
@@ -15,6 +16,7 @@ export function MirrorPageFrameClient({
   nav,
   footer,
   locale,
+  contact,
 }: {
   src: string;
   title: string;
@@ -22,10 +24,11 @@ export function MirrorPageFrameClient({
   nav?: MirrorNavItem[];
   footer?: MirrorFooterData;
   locale?: ShopLocale;
+  contact?: MirrorContactData;
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [frameReady, setFrameReady] = useState(false);
-  const patchKey = JSON.stringify({ branding, nav, footer, locale });
+  const patchKey = JSON.stringify({ branding, nav, footer, locale, contact });
 
   useMirrorLocaleMessage();
 
@@ -48,6 +51,7 @@ export function MirrorPageFrameClient({
           nav,
           footer,
           locale,
+          contact,
         });
         setFrameReady(true);
       } catch {
@@ -73,6 +77,25 @@ export function MirrorPageFrameClient({
     };
   }, [patchKey, branding, nav, src]);
 
+  // postMessage yedek — query param zaten URL'i taşısa da bu ekstra güvence sağlar
+  useEffect(() => {
+    const mapUrl = contact?.mapEmbedUrl;
+    if (!mapUrl) return;
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+    function sendMap() {
+      try {
+        iframe?.contentWindow?.postMessage({ type: "kn-map-url", url: mapUrl }, "*");
+      } catch {}
+    }
+    // load sonrası gönder (query param ile zaten yüklü olsa da)
+    function onLoad() { sendMap(); }
+    iframe.addEventListener("load", onLoad);
+    // Sayfa zaten yüklüyse hemen gönder
+    if (iframe.contentDocument?.readyState === "complete") sendMap();
+    return () => iframe.removeEventListener("load", onLoad);
+  }, [contact?.mapEmbedUrl, src]);
+
   return (
     <div className="kn-home-mirror">
       <iframe
@@ -80,6 +103,8 @@ export function MirrorPageFrameClient({
         title={title}
         src={src}
         className="mirror-home-frame"
+        // data-kn-map-url: aynı origin olduğu için DOMContentLoaded'da da okunabilir
+        data-kn-map-url={contact?.mapEmbedUrl ?? ""}
         style={{
           display: "block",
           width: "100%",

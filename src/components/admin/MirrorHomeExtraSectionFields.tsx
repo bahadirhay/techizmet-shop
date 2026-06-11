@@ -1,7 +1,10 @@
 "use client";
 
 import { MirrorImageField } from "@/components/admin/MirrorImageField";
+import { MirrorTypographyFields } from "@/components/admin/MirrorTypographyFields";
 import type { AdminProductOption } from "@/lib/admin-product-options";
+import type { MirrorElementEdit } from "@/lib/mirror-element-edits";
+import { resolveMirrorElementEdit } from "@/lib/mirror-element-edits";
 import type { ScrollingCollectionItemEdit } from "@/lib/mirror-scrolling-collections-section";
 import type { TestimonialItemEdit } from "@/lib/mirror-testimonial-section";
 import type { TrendingProductItemEdit } from "@/lib/mirror-trending-products-section";
@@ -48,19 +51,44 @@ function BilingualPair({
 
 export function TestimonialSectionFields({
   items,
+  visibleCount,
+  sectionKey,
+  elements,
+  onPatchElement,
   onChange,
 }: {
   items: TestimonialItemEdit[];
+  visibleCount: number;
+  sectionKey?: string;
+  elements?: Record<string, MirrorElementEdit>;
+  onPatchElement?: (edit: MirrorElementEdit) => void;
   onChange: (items: TestimonialItemEdit[]) => void;
 }) {
   return (
     <div className="space-y-3">
       <p className="text-xs text-zinc-500">
-        Her yorum kartı — isim ve alıntı TR/EN ayrı. Görsel isteğe bağlı.
+        Her yorum kartı — isim, alıntı (TR/EN) ve profil görseli. İlk {visibleCount} kart vitrinde
+        görünür.
       </p>
       {items.map((item, i) => (
-        <div key={item.blockId} className="space-y-2 rounded-lg border border-zinc-600 p-3">
-          <p className="text-xs font-medium text-zinc-400">Yorum {i + 1}</p>
+        <div
+          key={item.blockId}
+          className={`space-y-2 rounded-lg border p-3 ${
+            i < visibleCount ? "border-zinc-600" : "border-zinc-700/60 opacity-80"
+          }`}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs font-medium text-zinc-400">Yorum {i + 1}</p>
+            <span
+              className={`rounded px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${
+                i < visibleCount
+                  ? "bg-emerald-950/80 text-emerald-300"
+                  : "bg-zinc-800 text-zinc-500"
+              }`}
+            >
+              {i < visibleCount ? "Vitrinde" : "Gizli"}
+            </span>
+          </div>
           <BilingualPair
             label="Müşteri adı"
             tr={item.authorTr}
@@ -94,7 +122,9 @@ export function TestimonialSectionFields({
             rows={3}
           />
           <MirrorImageField
+            editorChrome
             label="Profil görseli"
+            hint="Yuvarlak avatar — önerilen 140×140 px veya daha büyük kare görsel."
             value={item.imageUrl ?? ""}
             onChange={(imageUrl) => {
               const next = [...items];
@@ -102,6 +132,34 @@ export function TestimonialSectionFields({
               onChange(next);
             }}
           />
+          {sectionKey && onPatchElement ? (
+            <>
+              <MirrorTypographyFields
+                compact
+                value={resolveMirrorElementEdit(`${sectionKey}--author-title--${i}`, elements)?.style}
+                onChange={(style) =>
+                  onPatchElement({
+                    id: `${sectionKey}--author-title--${i}`,
+                    kind: "text",
+                    style,
+                  })
+                }
+              />
+              <p className="text-[10px] text-zinc-600">↑ Müşteri adı görünümü</p>
+              <MirrorTypographyFields
+                compact
+                value={resolveMirrorElementEdit(`${sectionKey}--testimonial--desc--${i}`, elements)?.style}
+                onChange={(style) =>
+                  onPatchElement({
+                    id: `${sectionKey}--testimonial--desc--${i}`,
+                    kind: "html",
+                    style,
+                  })
+                }
+              />
+              <p className="text-[10px] text-zinc-600">↑ Yorum metni görünümü</p>
+            </>
+          ) : null}
         </div>
       ))}
     </div>

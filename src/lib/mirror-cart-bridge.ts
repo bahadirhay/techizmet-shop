@@ -9,7 +9,6 @@ const CART_BRIDGE_SCRIPT = `<script id="kn-cart-bridge">(function(){
     viewCart:document.documentElement.lang&&document.documentElement.lang.indexOf("tr")===0?"Sepeti görüntüle":"View cart",
     checkout:document.documentElement.lang&&document.documentElement.lang.indexOf("tr")===0?"Ödemeye geç":"Checkout",
     total:document.documentElement.lang&&document.documentElement.lang.indexOf("tr")===0?"Toplam:":"Total:",
-    footerNote:document.documentElement.lang&&document.documentElement.lang.indexOf("tr")===0?"Vergi, indirim ve kargo ödeme adımında hesaplanır.":"Taxes, discounts and shipping calculated at checkout.",
     remove:document.documentElement.lang&&document.documentElement.lang.indexOf("tr")===0?"Kaldır":"Remove",
     qty:document.documentElement.lang&&document.documentElement.lang.indexOf("tr")===0?"Adet":"Qty"
   };
@@ -114,8 +113,7 @@ const CART_BRIDGE_SCRIPT = `<script id="kn-cart-bridge">(function(){
         foot.innerHTML='<div class="cart-drawer--footer-content">'+
           '<div class="cart-summary-price-item"><span>'+esc(L.subtotal)+'</span><span data-kn-subtotal>'+esc(formatTry(sub))+'</span></div>'+
           '<div class="cart-summary-price-item cart-summary-price-item--total"><span class="kn-cart-total-label heading-font">'+esc(L.total)+'</span><strong class="heading-font" data-kn-cart-total>'+esc(formatTry(total))+'</strong></div>'+
-          '<div class="cart-drawer-buttons"><a href="/cart" class="button medium-button button-secondary button-block">'+esc(L.viewCart)+'</a><a href="/checkout" class="button medium-button button-block cart-checkout-btn">'+BAG+'<span>'+esc(L.checkout)+' '+esc(formatTry(total))+'</span></a></div>'+
-          '<p class="text-small kn-cart-footer-note">'+esc(L.footerNote)+'</p></div>';
+          '<div class="cart-drawer-buttons"><a href="/cart" class="button medium-button button-secondary button-block">'+esc(L.viewCart)+'</a><a href="/checkout" class="button medium-button button-block cart-checkout-btn">'+BAG+'<span>'+esc(L.checkout)+' '+esc(formatTry(total))+'</span></a></div></div>';
       }
     }
   }

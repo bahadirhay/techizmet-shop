@@ -7,14 +7,29 @@ import {
 } from "@/lib/mirror-iframe-src";
 import { hasPrebuiltMirrorHtml, isMirrorDevLiveRebuild } from "@/lib/mirror-prebuilt-io";
 
-/** Kayıtlı widget varsa statik prebuild yerine canlı API HTML (widget enjeksiyonu) */
-export function mirrorIframePrefersLiveApi(opts?: { hasCustomBlocks?: boolean }): boolean {
-  return Boolean(opts?.hasCustomBlocks);
+export type MirrorIframeSrcOpts = {
+  hasCustomBlocks?: boolean;
+  /** Admin mirror düzenlemeleri (hero grid, metin vb.) */
+  hasMirrorEdits?: boolean;
+  /** Üst duyuru şeridi ayarı kaydedildiyse prebuild yerine canlı HTML */
+  hasAnnouncementBarSettings?: boolean;
+  /** Logo/görsel /uploads veya /api/media — prebuild enjekte etmez */
+  hasCustomBranding?: boolean;
+};
+
+/** Widget veya mağaza özelleştirmesi varsa statik prebuild yerine canlı API HTML */
+export function mirrorIframePrefersLiveApi(opts?: MirrorIframeSrcOpts): boolean {
+  return Boolean(
+    opts?.hasCustomBlocks ||
+      opts?.hasMirrorEdits ||
+      opts?.hasCustomBranding ||
+      opts?.hasAnnouncementBarSettings,
+  );
 }
 
 /** Hesap auth/favoriler — oturuma göre API; sepet artık prebuild + /api/cart hidrasyon */
 function needsLiveMirrorApi(path: string): boolean {
-  if (/\/mirror\/account\/(?:favorites|login|register|forgot-password)/i.test(path)) return true;
+  if (/\/mirror\/account\/(?:index|favorites|login|register|forgot-password)/i.test(path)) return true;
   return false;
 }
 
@@ -29,9 +44,13 @@ export function resolveStoreMirrorIframeSrc(
   normalized: string,
   pageKey?: string,
   extra?: Record<string, string | undefined>,
-  opts?: { hasCustomBlocks?: boolean },
+  opts?: MirrorIframeSrcOpts,
 ): string {
   const path = normalized.startsWith("/") ? normalized.slice(1) : normalized;
+
+  if (extra?.cmsSlug?.trim()) {
+    return mirrorVitrinApiSrc(path, pageKey, extra);
+  }
 
   if (needsLiveMirrorApi(path) || mirrorIframePrefersLiveApi(opts)) {
     return mirrorVitrinApiSrc(path, pageKey, extra);

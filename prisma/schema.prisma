@@ -354,6 +354,8 @@ model StoreProduct {
   stockQty         Int      @default(0)
   lowStockThreshold Int     @default(5)
   weightGrams      Int?
+  /** Paketteki ürün adedi — ör. 5'li paket için 5 */
+  pieceCount       Int?
   desi             Float?
   seoTitle         String?
   seoDescription   String?

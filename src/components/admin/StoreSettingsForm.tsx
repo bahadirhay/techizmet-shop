@@ -10,12 +10,33 @@ import {
   DEFAULT_MAINTENANCE_TITLE_TR,
 } from "@/lib/maintenance-mode";
 import type { SiteSettings } from "@/lib/site-settings";
+import type { AnnouncementBarSlide } from "@/lib/mirror-announcement-bar";
+import {
+  normalizeAnnouncementSlidesFromSettings,
+  serializeAnnouncementBarForSave,
+} from "@/lib/mirror-announcement-bar";
 import type { StoreTextSettings } from "@/lib/store-static-texts";
 
 type ShipFromForm = NonNullable<NonNullable<SiteSettings["store"]>["shipFrom"]>;
+type LegalForm = NonNullable<NonNullable<SiteSettings["store"]>["legal"]>;
 
 function emptyShipFrom(): ShipFromForm {
   return { name: "", line1: "", line2: "", district: "", city: "", postalCode: "", phone: "" };
+}
+
+function emptyLegal(): Required<LegalForm> {
+  return {
+    tradeName: "",
+    address: "",
+    phone: "",
+    email: "",
+    mersisNo: "",
+    taxOffice: "",
+    taxNo: "",
+    website: "",
+    caymaEmail: "",
+    arbitrationInfo: "",
+  };
 }
 
 function minorToTryInput(minor: number | undefined): string {
@@ -47,18 +68,38 @@ export function StoreSettingsForm({ initial }: { initial: SiteSettings }) {
     ...emptyShipFrom(),
     ...initial.store?.shipFrom,
   });
+  const [legal, setLegal] = useState<LegalForm>({
+    ...emptyLegal(),
+    ...initial.store?.legal,
+  });
+  const [usdMarkup, setUsdMarkup] = useState(
+    String(initial.store?.usdMarkupPercent ?? ""),
+  );
   const [msg, setMsg] = useState<string | null>(null);
 
   function updateShipFrom<K extends keyof ShipFromForm>(key: K, value: ShipFromForm[K]) {
     setShipFrom((prev) => ({ ...prev, [key]: value }));
   }
 
+  function updateLegal<K extends keyof LegalForm>(key: K, value: LegalForm[K]) {
+    setLegal((prev) => ({ ...prev, [key]: value }));
+  }
+
   async function save() {
+    const announcementSlides = normalizeAnnouncementSlidesFromSettings(s.theme?.announcementBar);
     const payload: SiteSettings = {
       ...s,
+      theme: {
+        ...s.theme,
+        announcementBar: serializeAnnouncementBarForSave(s.theme?.announcementBar, announcementSlides),
+      },
       store: {
         ...s.store,
         freeShippingOverMinor: tryInputToMinor(freeShippingTry),
+        usdMarkupPercent: (() => {
+          const n = parseFloat(usdMarkup.replace(",", "."));
+          return Number.isFinite(n) && n >= 0 ? n : undefined;
+        })(),
         orderNumberPrefix: sanitizeOrderNumberPrefix(orderPrefix),
         autoGenerateBarcode,
         barcodePrefix: barcodePrefix.replace(/\D/g, "").slice(0, 3) || DEFAULT_BARCODE_PREFIX,
@@ -71,6 +112,18 @@ export function StoreSettingsForm({ initial }: { initial: SiteSettings }) {
           postalCode: shipFrom.postalCode?.trim() || undefined,
           phone: shipFrom.phone?.trim() || undefined,
         },
+        legal: {
+          tradeName: legal.tradeName?.trim() || undefined,
+          address: legal.address?.trim() || undefined,
+          phone: legal.phone?.trim() || undefined,
+          email: legal.email?.trim() || undefined,
+          mersisNo: legal.mersisNo?.trim() || undefined,
+          taxOffice: legal.taxOffice?.trim() || undefined,
+          taxNo: legal.taxNo?.trim() || undefined,
+          website: legal.website?.trim() || undefined,
+          caymaEmail: legal.caymaEmail?.trim() || undefined,
+          arbitrationInfo: legal.arbitrationInfo?.trim() || undefined,
+        },
       },
     };
     const res = await fetch("/api/admin/integrations/settings", {
@@ -82,11 +135,31 @@ export function StoreSettingsForm({ initial }: { initial: SiteSettings }) {
     if (res.ok) {
       setS(payload);
       setShipFrom({ ...emptyShipFrom(), ...payload.store?.shipFrom });
+      setLegal({ ...emptyLegal(), ...payload.store?.legal });
     }
   }
 
   const threshold = tryInputToMinor(freeShippingTry);
   const storeTexts = s.store?.texts ?? {};
+  const announcementBar = s.theme?.announcementBar ?? {};
+  const announcementSlides = normalizeAnnouncementSlidesFromSettings(announcementBar);
+
+  function updateAnnouncementSlide(index: number, patch: Partial<AnnouncementBarSlide>) {
+    setS((prev) => {
+      const prevSlides = normalizeAnnouncementSlidesFromSettings(prev.theme?.announcementBar);
+      prevSlides[index] = { ...prevSlides[index], ...patch };
+      return {
+        ...prev,
+        theme: {
+          ...prev.theme,
+          announcementBar: {
+            ...prev.theme?.announcementBar,
+            slides: prevSlides,
+          },
+        },
+      };
+    });
+  }
 
   function updateStoreText<K extends keyof StoreTextSettings>(key: K, value: StoreTextSettings[K]) {
     setS((prev) => ({
@@ -364,6 +437,105 @@ export function StoreSettingsForm({ initial }: { initial: SiteSettings }) {
         )}
       </section>
 
+      <section id="mesafeli-satis-legal" className="scroll-mt-6 rounded-xl border bg-white p-6 space-y-4">
+        <h2 className="font-semibold">Mesafeli satış sözleşmesi — satıcı bilgileri</h2>
+        <p className="text-sm text-zinc-600">
+          Bu alanlar{" "}
+          <Link href="/pages/mesafeli-satis" target="_blank" className="text-[var(--kn-brand)] underline">
+            mesafeli satış sözleşmesi
+          </Link>{" "}
+          ve ödeme ekranındaki ön bilgilendirme formuna otomatik yazılır. Boş bırakılan alanlar e-fatura
+          satıcı bilgileri ve kargo gönderici adresinden tamamlanır.
+        </p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <AdminField label="Ticari unvan">
+            <input
+              className={inputClass}
+              value={legal.tradeName ?? ""}
+              onChange={(e) => updateLegal("tradeName", e.target.value)}
+              placeholder="Anatolian Paw Pet Gıda Ltd. Şti."
+            />
+          </AdminField>
+          <AdminField label="MERSİS No">
+            <input
+              className={inputClass}
+              value={legal.mersisNo ?? ""}
+              onChange={(e) => updateLegal("mersisNo", e.target.value)}
+            />
+          </AdminField>
+          <div className="sm:col-span-2">
+            <AdminField label="E-posta">
+              <input
+                className={inputClass}
+                type="email"
+                value={legal.email ?? ""}
+                onChange={(e) => updateLegal("email", e.target.value)}
+                placeholder="info@anatolianpaw.com"
+              />
+            </AdminField>
+          </div>
+          <AdminField label="Cayma bildirimi e-postası">
+            <input
+              className={inputClass}
+              type="email"
+              value={legal.caymaEmail ?? ""}
+              onChange={(e) => updateLegal("caymaEmail", e.target.value)}
+              placeholder="cayma@anatolianpaw.com"
+            />
+          </AdminField>
+          <AdminField label="Telefon">
+            <input
+              className={inputClass}
+              value={legal.phone ?? ""}
+              onChange={(e) => updateLegal("phone", e.target.value)}
+            />
+          </AdminField>
+          <AdminField label="Web sitesi" hint="Boşsa mağaza URL'si kullanılır">
+            <input
+              className={inputClass}
+              value={legal.website ?? ""}
+              onChange={(e) => updateLegal("website", e.target.value)}
+              placeholder="https://www.anatolianpaw.com"
+            />
+          </AdminField>
+          <div className="sm:col-span-2">
+            <AdminField label="Vergi dairesi">
+              <input
+                className={inputClass}
+                value={legal.taxOffice ?? ""}
+                onChange={(e) => updateLegal("taxOffice", e.target.value)}
+              />
+            </AdminField>
+          </div>
+          <AdminField label="Vergi no (VKN)">
+            <input
+              className={inputClass}
+              value={legal.taxNo ?? ""}
+              onChange={(e) => updateLegal("taxNo", e.target.value.replace(/\D/g, "").slice(0, 11))}
+            />
+          </AdminField>
+          <div className="sm:col-span-2">
+            <AdminField label="Açık adres" hint="Boşsa kargo gönderici adresi kullanılır">
+              <textarea
+                className={textareaClass}
+                value={legal.address ?? ""}
+                onChange={(e) => updateLegal("address", e.target.value)}
+              />
+            </AdminField>
+          </div>
+          <div className="sm:col-span-2">
+            <AdminField label="Tüketici hakem heyeti bilgisi">
+              <textarea
+                className={textareaClass}
+                value={legal.arbitrationInfo ?? ""}
+                onChange={(e) => updateLegal("arbitrationInfo", e.target.value)}
+                placeholder="İl/ilçe Tüketici Hakem Heyeti"
+              />
+            </AdminField>
+          </div>
+        </div>
+      </section>
+
       <section className="rounded-xl border bg-white p-6 space-y-4">
         <h2 className="font-semibold">Ücretsiz kargo eşiği</h2>
         <p className="text-sm text-zinc-600">
@@ -388,6 +560,105 @@ export function StoreSettingsForm({ initial }: { initial: SiteSettings }) {
         ) : (
           <p className="text-sm text-zinc-500">Boş veya 0 = ücretsiz kargo eşiği kapalı.</p>
         )}
+      </section>
+
+      <section className="rounded-xl border bg-white p-6 space-y-4">
+        <h2 className="font-semibold">İngilizce vitrin — USD döviz kuru marjı</h2>
+        <p className="text-sm text-zinc-600">
+          İngilizce sayfada fiyatlar serbest piyasa USD/TRY kuruna göre dolara çevrilir.
+          Marjı siz belirleyin — piyasa kuruna bu yüzde kadar eklenir.
+          Örn. 5 = piyasa kuru × 1,05 (sizi kur dalgalanmalarına karşı korur).
+        </p>
+        <AdminField label="Kur marjı (%)">
+          <input
+            className={inputClass}
+            type="number"
+            min={0}
+            max={100}
+            step={0.5}
+            placeholder="Örn. 5"
+            value={usdMarkup}
+            onChange={(e) => setUsdMarkup(e.target.value)}
+          />
+        </AdminField>
+        {(() => {
+          const n = parseFloat(usdMarkup.replace(",", "."));
+          if (Number.isFinite(n) && n > 0) {
+            return (
+              <p className="text-sm text-blue-700">
+                Aktif: piyasa kuruna %{n} eklenir. Örn. kur 35 TL ise vitrinde {(35 * (1 + n / 100)).toFixed(2)} TL karşılığı dolar gösterilir.
+              </p>
+            );
+          }
+          return <p className="text-sm text-zinc-500">0 veya boş = piyasa kuru aynen kullanılır.</p>;
+        })()}
+      </section>
+
+      <section className="rounded-xl border bg-white p-6 space-y-4">
+        <div className="space-y-1">
+          <h2 className="font-semibold">Üst duyuru şeridi</h2>
+          <p className="text-sm text-zinc-600">
+            Sitenin en üstündeki kayan yazılar (ücretsiz kargo + kampanya metni). Tüm sayfalarda
+            görünür. İlk slayt boş bırakılırsa ücretsiz kargo eşiğinden otomatik üretilir.
+          </p>
+        </div>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={announcementBar.enabled !== false}
+            onChange={(e) =>
+              setS((prev) => ({
+                ...prev,
+                theme: {
+                  ...prev.theme,
+                  announcementBar: {
+                    ...prev.theme?.announcementBar,
+                    enabled: e.target.checked,
+                  },
+                },
+              }))
+            }
+          />
+          Duyuru şeridi görünsün
+        </label>
+        <AdminField label="1. slayt (ücretsiz kargo vb.)">
+          <input
+            className={inputClass}
+            value={announcementSlides[0]?.text ?? ""}
+            onChange={(e) => updateAnnouncementSlide(0, { text: e.target.value })}
+            placeholder={
+              threshold > 0
+                ? `${threshold / 100} TL üzeri siparişlerde ücretsiz kargo`
+                : "300 TL üzeri siparişlerde ücretsiz kargo"
+            }
+          />
+        </AdminField>
+        <div className="grid gap-4 md:grid-cols-2">
+          <AdminField label="2. slayt — metin">
+            <input
+              className={inputClass}
+              value={announcementSlides[1]?.text ?? ""}
+              onChange={(e) => updateAnnouncementSlide(1, { text: e.target.value })}
+              placeholder="Örn. Premium kedi mamalarında %20 indirim"
+            />
+          </AdminField>
+          <AdminField label="2. slayt — link metni (isteğe bağlı)" hint="Boş bırakırsanız sayfada link görünmez.">
+            <input
+              className={inputClass}
+              value={announcementSlides[1]?.linkLabel ?? ""}
+              onChange={(e) => updateAnnouncementSlide(1, { linkLabel: e.target.value })}
+              placeholder="Hemen Al!"
+            />
+          </AdminField>
+        </div>
+        <AdminField label="2. slayt — link adresi (isteğe bağlı)" hint="Boş bırakırsanız yalnızca metin gösterilir.">
+          <input
+            className={inputClass}
+            value={announcementSlides[1]?.linkHref ?? ""}
+            onChange={(e) => updateAnnouncementSlide(1, { linkHref: e.target.value })}
+            placeholder="/collections"
+          />
+        </AdminField>
       </section>
 
       <section className="rounded-xl border bg-white p-6 space-y-6">

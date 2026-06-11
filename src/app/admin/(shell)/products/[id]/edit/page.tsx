@@ -6,7 +6,12 @@ import { loadActiveMarketplacePlatforms } from "@/lib/marketplace/active-integra
 import { prisma } from "@/lib/prisma";
 import { requireStaffPage } from "@/lib/staff-auth";
 import { getProductBarcodeSettings } from "@/lib/admin/product-barcode";
-import { getDefaultProductExploreLooks, getHomepageMode, getSiteSettings } from "@/lib/site-settings";
+import { getDefaultProductExploreLooks, getHomepageMode, getSiteSettings, getSiteSeo } from "@/lib/site-settings";
+import {
+  resolvePackagingCostMinor,
+  resolveWebShippingCostMinor,
+} from "@/lib/finance/economics-settings";
+import { resolveCardFeePercent } from "@/lib/finance/payment-fee";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +44,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
       stockQty: true,
       lowStockThreshold: true,
       weightGrams: true,
+      pieceCount: true,
       desi: true,
       seoTitle: true,
       seoDescription: true,
@@ -79,6 +85,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
   const formInitial = productToForm(product, activeMarketplaces);
   const siteDefaultExplore = getDefaultProductExploreLooks(settings);
   const { autoGenerate: defaultAutoGenerateBarcode } = getProductBarcodeSettings(settings);
+  const siteName = getSiteSeo(settings).siteTitle;
 
   return (
     <ProductForm
@@ -93,6 +100,11 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
       defaultAutoGenerateBarcode={defaultAutoGenerateBarcode && !formInitial.barcode.trim()}
       homepageMode={getHomepageMode(settings)}
       siteUrl={process.env.NEXT_PUBLIC_SITE_URL ?? ""}
+      siteName={siteName}
+      webShippingCostMinor={resolveWebShippingCostMinor(settings)}
+      packagingCostMinor={resolvePackagingCostMinor(settings)}
+      cardFeePercent={resolveCardFeePercent(settings)}
+      freeShippingOverMinor={settings.store?.freeShippingOverMinor ?? 0}
     />
   );
 }

@@ -15,15 +15,20 @@ import {
   openAccountDrawer,
   type AccountDrawerForm,
 } from "@/lib/mirror-account-drawer-client";
+import { applyMirrorLogoUnify } from "@/lib/mirror-logo-unify";
+import { setMirrorFavicon } from "@/lib/mirror-branding-overlay";
 import { scheduleMirrorFramePatches, isMirrorServerReady } from "@/lib/mirror-frame-patch";
 import type { MirrorBranding } from "@/lib/mirror-branding-overlay";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import type { MirrorFooterData } from "@/lib/mirror-footer-overlay";
 import type { MirrorNavItem } from "@/lib/mirror-nav-overlay";
-import { applyMirrorPageOverlay } from "@/lib/mirror-home-overlay";
+import {
+  applyMirrorPageOverlay,
+  applyMirrorSectionOrderToDocument,
+} from "@/lib/mirror-home-overlay";
 import { applySiteMarqueeOverlay } from "@/lib/product-page-bottom";
 import type { ProductPageBottomSettings } from "@/lib/product-page-bottom";
-import { hasMirrorPageEdits } from "@/lib/mirror-has-page-edits";
+import { shouldApplyMirrorPageOverlay } from "@/lib/mirror-has-page-edits";
 import {
   applyCollectionsCardsFromAdmin,
   applyCollectionCategoryFiltersFromAdmin,
@@ -31,7 +36,14 @@ import {
   type VitrinCollectionCard,
 } from "@/lib/mirror-collections-sync";
 import type { ResolvedMirrorCollectionTexts } from "@/lib/store-static-texts";
-import { stampMirrorEditableElements } from "@/lib/mirror-element-edits";
+import { stampMirrorEditableElements, hasMarqueeElementOverride } from "@/lib/mirror-element-edits";
+import { applyMirrorUsdPrices } from "@/lib/mirror-usd-price-overlay";
+
+function vitrinOverridesMarquee(config: MirrorPageConfig | undefined): boolean {
+  if (!config) return false;
+  if (hasMarqueeElementOverride(config.elements)) return true;
+  return Object.values(config.sections ?? {}).some((section) => Boolean(section?.marqueeHtml?.trim()));
+}
 import {
   MIRROR_VISUAL_EDITOR_SCRIPT,
   MIRROR_VISUAL_EDITOR_VERSION,
@@ -64,6 +76,7 @@ export function MirrorVitrinFrameClient({
   siteMarquee,
   sectionCatalog,
   focusSectionKey,
+  usdRate,
 }: {
   src: string;
   title: string;
@@ -79,6 +92,7 @@ export function MirrorVitrinFrameClient({
   siteMarquee?: ProductPageBottomSettings["marquee"];
   sectionCatalog?: MirrorPageSection[];
   focusSectionKey?: string | null;
+  usdRate?: number;
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const baseSrcRef = useRef(src);
@@ -94,11 +108,17 @@ export function MirrorVitrinFrameClient({
       : undefined;
 
   const overlaySig = JSON.stringify(pageConfig ?? null);
+  const orderSig = pageConfig?.order?.join("\0") ?? "";
+  const pageConfigRef = useRef(pageConfig);
+  pageConfigRef.current = pageConfig;
   const isCartOrCheckoutShell =
     pathname === "/cart" || pathname === "/checkout" || pathname.startsWith("/checkout/");
 
   useMirrorLocaleMessage();
-  useMirrorFrameRouteSync(iframeRef, src);
+  // Sepet/ödeme shell'lerinde iframe içinde sayfa geçişi olmaz — parent URL değişmemeli
+  const syncParentRoute =
+    !visualEditMode && !pathname.startsWith("/admin") && !isCartOrCheckoutShell;
+  useMirrorFrameRouteSync(iframeRef, src, syncParentRoute);
 
   const [marqueeLive, setMarqueeLive] = useState(siteMarquee);
 
@@ -119,6 +139,7 @@ export function MirrorVitrinFrameClient({
     visualEditMode,
     src,
     isCartOrCheckoutShell,
+    usdRate,
   });
 
   useEffect(() => {
@@ -126,7 +147,7 @@ export function MirrorVitrinFrameClient({
   }, [src]);
 
   useEffect(() => {
-    if (pathname !== "/" || marqueeLive) return;
+    if (visualEditMode || pathname !== "/" || marqueeLive) return;
     let cancelled = false;
     fetch("/api/vitrin/home-marquee", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
@@ -139,7 +160,7 @@ export function MirrorVitrinFrameClient({
     return () => {
       cancelled = true;
     };
-  }, [pathname, marqueeLive]);
+  }, [pathname, marqueeLive, visualEditMode]);
 
   useEffect(() => {
     const iframe = iframeRef.current;
@@ -197,6 +218,7 @@ export function MirrorVitrinFrameClient({
               el,
               mergeTestimonialEdits(s.testimonialDefaults, edit?.testimonials),
               loc,
+              edit?.testimonialVisibleCount,
             );
           }
         }
@@ -216,6 +238,28 @@ export function MirrorVitrinFrameClient({
       }
     }
 
+    let overlayTimers: number[] = [];
+
+    function applyPageOverlayToDoc(doc: Document) {
+      if (!config) return;
+      applyMirrorPageOverlay(doc, config, undefined, locale ?? "tr");
+      overlayKeyRef.current = overlaySig;
+    }
+
+    function scheduleVisualOverlayReapply(doc: Document) {
+      applyPageOverlayToDoc(doc);
+      overlayTimers.forEach((t) => window.clearTimeout(t));
+      overlayTimers = [120, 450, 1200].map((ms) =>
+        window.setTimeout(() => {
+          if (disposed) return;
+          const d = iframeRef.current?.contentDocument;
+          if (d?.getElementById("MainContent") && config) {
+            applyMirrorPageOverlay(d, config, undefined, locale ?? "tr");
+          }
+        }, ms),
+      );
+    }
+
     function runPatches() {
       if (disposed) return;
       const frame = iframeRef.current;
@@ -225,14 +269,35 @@ export function MirrorVitrinFrameClient({
 
       setFrameReady(true);
 
+      // İngilizce vitrin: TRY fiyatlarını USD'ye çevir
+      if (usdRate && usdRate > 0) {
+        applyMirrorUsdPrices(doc, usdRate);
+      }
+
+      if (branding?.logoUrl?.trim()) {
+        applyMirrorLogoUnify(doc, branding);
+      }
+      if (branding?.faviconUrl?.trim()) {
+        setMirrorFavicon(doc, branding.faviconUrl);
+      }
+
       const serverReady = isMirrorServerReady(doc);
       const serverOverlay = doc.documentElement.getAttribute("data-kn-overlay-server") === "1";
       const collectionsOnServer =
         doc.documentElement.getAttribute("data-kn-collections-server") === "1";
       const hasWidgets = (config?.customBlocks?.length ?? 0) > 0;
-      const mustApplyPageConfig = Boolean(pageConfig && hasMirrorPageEdits(pageConfig));
+      const mustApplyPageConfig = Boolean(pageConfig && shouldApplyMirrorPageOverlay(pageConfig));
+      // Sunucu overlay'i uyguladıysa + widget/koleksiyon yoksa client tekrar uygulamaz
+      const serverDidAllWork =
+        serverOverlay &&
+        serverReady &&
+        !hasWidgets &&
+        !visualEditMode &&
+        !collectionsFromAdmin?.length &&
+        !categoriesFromAdmin?.length;
       const skipClientWork =
         isCartOrCheckoutShell ||
+        serverDidAllWork ||
         (!mustApplyPageConfig &&
           !hasWidgets &&
           serverReady &&
@@ -241,7 +306,7 @@ export function MirrorVitrinFrameClient({
           !visualEditMode &&
           !collectionsFromAdmin?.length &&
           !categoriesFromAdmin?.length &&
-          (!config || !hasMirrorPageEdits(config) || serverOverlay));
+          (!config || !shouldApplyMirrorPageOverlay(config) || serverOverlay));
 
       applyMirrorAccountDrawerClient(doc, locale);
       if (pathname === "/account") {
@@ -250,13 +315,6 @@ export function MirrorVitrinFrameClient({
         applyMirrorAccountDashboardClient(doc);
       }
       if (accountDrawerForm) openAccountDrawer(doc, accountDrawerForm);
-
-      if (marqueeLive && pathname === "/") {
-        const applyMarquee = () => applySiteMarqueeOverlay(doc, marqueeLive);
-        applyMarquee();
-        window.setTimeout(applyMarquee, 150);
-        window.setTimeout(applyMarquee, 800);
-      }
 
       if (skipClientWork) return;
 
@@ -271,21 +329,30 @@ export function MirrorVitrinFrameClient({
         });
       }
 
+      // Sunucu zaten overlay uyguladıysa client tekrar uygulamaz (görsel titreme önlenir)
       const needsClientOverlay =
+        !visualEditMode &&
         config &&
-        hasMirrorPageEdits(config) &&
-        (hasWidgets ||
-          pageConfig != null ||
-          !serverOverlay ||
-          (visualEditMode && overlaySig !== overlayKeyRef.current));
+        shouldApplyMirrorPageOverlay(config) &&
+        (hasWidgets || !serverOverlay);
 
-      if (needsClientOverlay) {
-        applyMirrorPageOverlay(doc, config, undefined, locale ?? "tr");
-        overlayKeyRef.current = overlaySig;
+      if (!visualEditMode && needsClientOverlay) {
+        applyPageOverlayToDoc(doc);
+      }
+
+      if (
+        marqueeLive &&
+        pathname === "/" &&
+        !visualEditMode &&
+        !vitrinOverridesMarquee(config ?? undefined)
+      ) {
+        applySiteMarqueeOverlay(doc, marqueeLive);
       }
 
       if (collectionsFromAdmin?.length) {
         applyCollectionsCardsFromAdmin(doc, collectionsFromAdmin);
+        // Yeni eklenen kartlardaki TRY fiyatları da USD'ye çevir
+        if (usdRate && usdRate > 0) applyMirrorUsdPrices(doc, usdRate);
       }
       if (categoriesFromAdmin?.length) {
         applyCollectionCategoryFiltersFromAdmin(doc, categoriesFromAdmin, locale, undefined, mirrorTexts);
@@ -293,6 +360,18 @@ export function MirrorVitrinFrameClient({
 
       if (visualEditMode) {
         runVisualEditOnly(doc);
+        if (config) {
+          applyPageOverlayToDoc(doc);
+          requestAnimationFrame(() => {
+            if (disposed) return;
+            const d = iframeRef.current?.contentDocument;
+            if (d?.getElementById("MainContent") && config) {
+              applyMirrorPageOverlay(d, config, undefined, locale ?? "tr");
+            }
+          });
+        }
+      } else if (config && shouldApplyMirrorPageOverlay(config)) {
+        scheduleVisualOverlayReapply(doc);
       }
     }
 
@@ -344,6 +423,7 @@ export function MirrorVitrinFrameClient({
 
     return () => {
       disposed = true;
+      overlayTimers.forEach((t) => window.clearTimeout(t));
       cancelBranding?.();
       if (cancelIdle) {
         if (typeof window.cancelIdleCallback === "function") {
@@ -374,6 +454,22 @@ export function MirrorVitrinFrameClient({
     src,
     parentRouteKey,
   ]);
+
+  useEffect(() => {
+    if (!visualEditMode || !orderSig || !frameReady) return;
+
+    const applyOrder = () => {
+      const cfg = pageConfigRef.current;
+      const doc = iframeRef.current?.contentDocument;
+      if (!cfg?.order?.length || !doc?.getElementById("MainContent")) return;
+      applyMirrorSectionOrderToDocument(doc, cfg.order);
+      applyMirrorPageOverlay(doc, cfg, undefined, locale ?? "tr");
+    };
+
+    applyOrder();
+    const timers = [80, 250, 600].map((ms) => window.setTimeout(applyOrder, ms));
+    return () => timers.forEach((t) => window.clearTimeout(t));
+  }, [orderSig, visualEditMode, frameReady, locale, src]);
 
   useEffect(() => {
     if (!visualEditMode || !focusSectionKey || !frameReady) return;

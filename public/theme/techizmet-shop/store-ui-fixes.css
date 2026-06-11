@@ -370,6 +370,58 @@ account-drawer.kn-account-is-logged-in .kn-account-logout {
   width: 9rem !important;
 }
 
+/* Header logo — kalıcı kurallar mirror-logo-unify (body sonu) */
+.section-header,
+sticky-always.header,
+sticky-on-scroll.header {
+  --logo_width: 320px !important;
+}
+
+@media (max-width: 767px) {
+  .section-header,
+  sticky-always.header,
+  sticky-on-scroll.header {
+    --logo_width: 240px !important;
+  }
+}
+
+.header--logo {
+  width: auto !important;
+  max-width: min(var(--logo_width, 320px), 50vw) !important;
+  min-height: 56px !important;
+  background: transparent !important;
+}
+
+.header--logo-img:not(.transparent-logo-img),
+.header--logo .header--logo-img:not(.transparent-logo-img) {
+  width: auto !important;
+  height: 56px !important;
+  max-height: 56px !important;
+  max-width: min(var(--logo_width, 320px), 50vw) !important;
+  object-fit: contain !important;
+  object-position: left center !important;
+  background: transparent !important;
+}
+
+.header--logo .transparent-logo-img {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  object-fit: contain !important;
+  object-position: left center !important;
+  background: transparent !important;
+}
+
+/* Sticky header — arka plan ve logo geçişi senkron */
+.header.desktop-transparent.is-sticky:not(.style-half-width-menu):before,
+.header.mobile-transparent.is-sticky:before {
+  opacity: 1 !important;
+  transition: opacity 0.35s cubic-bezier(0.104, 0.204, 0.492, 1) 0s !important;
+}
+
 /* Mobil — header ikonları ekrana sığsın, hesap ikonu görünsün */
 @media (max-width: 991px) {
   html,
@@ -395,15 +447,12 @@ account-drawer.kn-account-is-logged-in .kn-account-logout {
   }
 
   .header--logo {
-    max-width: min(var(--logo_width, 130px), 36vw) !important;
-    margin: 4px 0 !important;
     justify-self: center;
   }
 
   .header--logo-img,
   .header--logo .transparent-logo-img {
-    max-width: 100% !important;
-    height: auto !important;
+    max-height: 52px !important;
   }
 
   .header--right {
@@ -615,4 +664,67 @@ product-media-popup.popup {
   transform: rotate(45deg);
   margin-top: 4px;
   flex-shrink: 0;
+}
+
+/* Müşteri yorumları — az kart varken ortala, kaydırma yok (geniş ekran) */
+@media (min-width: 1025px) {
+  .section-testimonial.kn-testimonial-fits .testimonial--outer.swiper-initialized .swiper-wrapper {
+    justify-content: center;
+    transform: none !important;
+  }
+  .section-testimonial.kn-testimonial-fits .testimonial--outer.swiper-initialized .swiper-slide {
+    width: min(
+      300px,
+      calc((100% - 20px * (var(--kn-testimonial-visible, 4) - 1)) / var(--kn-testimonial-visible, 4))
+    ) !important;
+    max-width: 300px;
+  }
+  .section-testimonial.kn-testimonial-fits .swiper-button-prev,
+  .section-testimonial.kn-testimonial-fits .swiper-button-next,
+  .section-testimonial.kn-testimonial-fits .swiper-scrollbar,
+  .section-testimonial.kn-testimonial-fits .swiper--custom-buttons {
+    display: none !important;
+  }
+  .section-testimonial.kn-testimonial-fits .testimonial--outer.swiper-initialized {
+    cursor: default;
+    overflow: hidden;
+  }
+}
+
+/* İndirim şeridi — kayan + okunabilir (uzun metin / kontur sorunu) */
+.section-marquee.kn-marquee-readable #marqueBlock-marque_34RhxW,
+.section-marquee.kn-marquee-readable .marquee--block-node {
+  --marque_text_size: clamp(18px, 3.2vw, 42px);
+}
+
+@media (max-width: 767px) {
+  .section-marquee.kn-marquee-readable #marqueBlock-marque_34RhxW,
+  .section-marquee.kn-marquee-readable .marquee--block-node {
+    --marque_text_size: clamp(14px, 4.5vw, 22px) !important;
+  }
+}
+
+.section-marquee.kn-marquee-readable .marquee--block-node.autoplay--infinite .marquee--block {
+  animation: text-marque var(--marquee_speed, 45s) linear infinite;
+}
+
+.section-marquee.kn-marquee-readable .marquee-text {
+  letter-spacing: 0.02em;
+}
+
+.section-marquee.kn-marquee-readable .marquee-text .kn-marquee-solid {
+  color: var(--node_color, #111) !important;
+  -webkit-text-stroke: 0;
+  background: none !important;
+}
+
+.section-marquee.kn-marquee-readable .marquee-text .outline--filled.outline-animate {
+  color: var(--highlight_color, #111) !important;
+  background-size: 100% 100%;
+  -webkit-text-stroke: 1px var(--highlight_color, #111);
+}
+
+.section-marquee.kn-marquee-readable .marquee--block-node-inner {
+  width: max-content;
+  min-width: 100%;
 }

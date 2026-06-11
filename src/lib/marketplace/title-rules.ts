@@ -122,35 +122,98 @@ export function ensureBrandPrefix(title: string, brand?: string): string {
   return `${b} ${t}`;
 }
 
-function titleCaseWords(s: string): string {
-  return s
-    .split(/\s+/)
-    .map((w) => (w.length <= 2 ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()))
-    .join(" ");
+/**
+ * Başlıkta geçmeyen ama önemli olan anahtar kelimeleri otomatik ekler.
+ * Sıralama: hayvan türü → ürün tipi → nitelik → gramaj/adet
+ */
+function injectMissingKeywords(
+  title: string,
+  keywords: string[],
+  weightGrams?: number,
+  pieceCount?: number,
+): string {
+  let t = title;
+  const kws = keywords.map((k) => k.toLowerCase());
+
+  // ── Hayvan türü ──────────────────────────────────────────────
+  const hasPet = /köpek|kedi|kuş|balık|kemirgen|dog|cat|pet/i.test(t);
+  if (!hasPet) {
+    if (kws.some((k) => /köpek|dog/i.test(k))) t = `${t} Köpek`;
+    else if (kws.some((k) => /kedi|cat/i.test(k))) t = `${t} Kedi`;
+  }
+
+  // ── Ürün tipi ─────────────────────────────────────────────────
+  const hasTreatType = /ödül|ödüllük|çiğneme|atıştırmalık|mama|treat|chew/i.test(t);
+  if (!hasTreatType) {
+    if (kws.some((k) => /çiğneme|chew/i.test(k))) t = `${t} Çiğneme Ödülü`;
+    else if (kws.some((k) => /ödül|treat/i.test(k))) t = `${t} Ödül`;
+  }
+
+  // ── Doğal / katkısız ─────────────────────────────────────────
+  const hasNatural = /doğal|natural|organik|organic/i.test(t);
+  if (!hasNatural && kws.some((k) => /doğal|natural/i.test(k))) {
+    t = `${t} %100 Doğal`;
+  }
+
+  const hasAdditiveFree = /katkısız|katkı maddesi|additive/i.test(t);
+  if (!hasAdditiveFree && kws.some((k) => /katkısız/i.test(k))) {
+    t = `${t} Katkısız`;
+  }
+
+  // ── Gramaj ───────────────────────────────────────────────────
+  const hasWeight = /\d+\s*g\b|\d+\s*gr\b|\d+\s*gram/i.test(t);
+  if (!hasWeight && weightGrams && weightGrams > 0) {
+    t = `${t} ${weightGrams}g`;
+  }
+
+  // ── Adet / Paket ─────────────────────────────────────────────
+  const hasPiece = /\d+\s*(adet|'?li paket|'?lü paket|li|lü|lu|piece|pcs|pack)/i.test(t);
+  if (!hasPiece && pieceCount && pieceCount > 1) {
+    t = `${t} ${pieceCount}'li Paket`;
+  }
+
+  return t.trim();
 }
+
+export type BuildTitleOptions = {
+  categoryTitles?: string[];
+  keywords?: string[];
+  /** Net ürün ağırlığı (gram) — başlıkta gramaj yoksa otomatik eklenir */
+  weightGrams?: number;
+  /** Paketteki adet — başlıkta belirtilmemişse "X'li Paket" eklenir */
+  pieceCount?: number;
+};
 
 /**
  * Mağaza + Trendyol için kanonik ürün adı: marka öneksiz, açıklayıcı.
+ * Eksik önemli anahtar kelimeler (doğal, katkısız, köpek, gramaj) otomatik eklenir.
  */
 export function buildCanonicalProductTitle(
   rawTitle: string,
   brand?: string,
-  categoryTitles: string[] = [],
-  keywords: string[] = [],
+  categoryTitlesOrOptions: string[] | BuildTitleOptions = [],
+  keywordsOrUndefined: string[] = [],
 ): string {
-  let t = stripBrandFromTitle(rawTitle, brand);
-  const primaryCat = categoryTitles[0]?.trim();
+  // Geriye dönük uyumluluk: eski imza (rawTitle, brand, categoryTitles[], keywords[])
+  const opts: BuildTitleOptions =
+    Array.isArray(categoryTitlesOrOptions)
+      ? { categoryTitles: categoryTitlesOrOptions, keywords: keywordsOrUndefined }
+      : categoryTitlesOrOptions;
 
-  if (primaryCat) {
-    const catWord = primaryCat.split(/\s+/)[0] ?? "";
-    if (catWord.length > 3 && !containsWord(t, catWord)) {
-      const kw = keywords.find((k) => k.includes(catWord.toLowerCase()));
-      if (kw) {
-        const extra = kw.split(/\s+/).find((w) => w.length > 3 && !containsWord(t, w));
-        if (extra) t = `${t} ${titleCaseWords(extra)}`;
-      }
-    }
-  }
+  const categoryTitles = opts.categoryTitles ?? [];
+  const keywords = opts.keywords ?? [];
+  const weightGrams = opts.weightGrams;
+  const pieceCount = opts.pieceCount;
+
+  let t = stripBrandFromTitle(rawTitle, brand);
+
+  // Kategori ve keyword'lerden yardımcı terim listesi oluştur
+  const allHints = [
+    ...keywords,
+    ...categoryTitles.flatMap((c) => c.split(/[\s,/|]+/)),
+  ].filter(Boolean);
+
+  t = injectMissingKeywords(t, allHints, weightGrams, pieceCount);
 
   return truncate(t, 100).replace(/…$/, "");
 }
@@ -160,15 +223,10 @@ export function buildPlatformListingTitle(
   platform: string,
   rawTitle: string,
   brand?: string,
-  options?: { categoryTitles?: string[]; keywords?: string[] },
+  options?: BuildTitleOptions,
 ): string {
   const rule = MARKETPLACE_TITLE_RULES[platform];
-  const canonical = buildCanonicalProductTitle(
-    rawTitle,
-    brand,
-    options?.categoryTitles ?? [],
-    options?.keywords ?? [],
-  );
+  const canonical = buildCanonicalProductTitle(rawTitle, brand, options ?? {});
 
   if (!rule) return truncate(canonical, 100);
 
@@ -181,7 +239,7 @@ export function buildPlatformListingTitle(
 export function buildAllPlatformListingTitles(
   rawTitle: string,
   brand?: string,
-  options?: { categoryTitles?: string[]; keywords?: string[] },
+  options?: BuildTitleOptions,
 ): Record<string, string> {
   const out: Record<string, string> = {};
   for (const p of MARKETPLACE_PLATFORMS) {

@@ -82,6 +82,7 @@ function looksEnglish(text: string): boolean {
 
 function applyTrToElement(el: Element) {
   if (el.closest("script, style, noscript, svg defs, .header--icons, list-set")) return;
+  if (el.hasAttribute("data-kn-user-applied")) return;
   const tag = el.tagName.toLowerCase();
   if (tag === "textpath") {
     const t = el.textContent ?? "";
@@ -117,6 +118,8 @@ export function applyMirrorLocaleOverlay(doc: Document, locale: ShopLocale) {
 
   doc.querySelectorAll(TEXT_SELECTORS).forEach((el) => {
     if (el.closest("script, style, noscript, svg defs, .header--icons, list-set")) return;
+    if (el.hasAttribute("data-kn-user-applied")) return;
+    if (el.closest("[data-kn-user-applied]")) return;
     const tag = el.tagName.toLowerCase();
     if (tag === "textpath") {
       const t = el.textContent ?? "";

@@ -1,5 +1,6 @@
 import { nanoid } from "nanoid";
 import type { ShopBlock } from "@/lib/blocks/schema";
+import { defaultFeatureCardsBlock } from "@/lib/blocks/presets/feature-cards-block";
 import { storeHomePreset } from "@/lib/blocks/presets/techizmet-shop-home";
 import { ensureEditorBlocks, type EditorShopBlock } from "@/lib/blocks/editor-ids";
 
@@ -12,6 +13,16 @@ export type PaletteItem = {
 };
 
 export const SHOP_PALETTE_CATEGORIES: { title: string; items: PaletteItem[] }[] = [
+  {
+    title: "Özellikler",
+    items: [
+      {
+        label: "Özellik kartları",
+        icon: "⭐",
+        factory: () => ({ ...defaultFeatureCardsBlock(), id: nid() }),
+      },
+    ],
+  },
   {
     title: "Üst alan",
     items: [
@@ -122,6 +133,20 @@ export const SHOP_PALETTE_CATEGORIES: { title: string; items: PaletteItem[] }[] 
           id: nid(),
           type: "productGrid",
           props: { title: "Ürünler", limit: 8 },
+        }),
+      },
+    ],
+  },
+  {
+    title: "Diğer",
+    items: [
+      {
+        label: "Harita",
+        icon: "📍",
+        factory: () => ({
+          id: nid(),
+          type: "map" as const,
+          props: { address: "İstanbul", height: 400 },
         }),
       },
     ],

@@ -6,6 +6,10 @@ import {
 } from "@/lib/marketplace/commission-types";
 import { resolveCommissionRule } from "@/lib/marketplace/commission-rules";
 import { ensureFinanceDefaults } from "@/lib/finance/defaults";
+import {
+  resolvePackagingCostMinor,
+  resolveWebShippingCostMinor,
+} from "@/lib/finance/economics-settings";
 import { prisma } from "@/lib/prisma";
 
 export type OrderFinanceLineSnapshot = {
@@ -28,6 +32,10 @@ export type OrderFinanceSnapshot = {
   lines: OrderFinanceLineSnapshot[];
   totalCommissionMinor: number;
   shippingDeductionMinor: number;
+  /** Web: sizin ödediğiniz giden kargo maliyeti (müşteri ücretsiz kargo alsın bile) */
+  shippingCostMinor: number;
+  /** Sipariş başı paketleme / malzeme gideri */
+  packagingCostMinor: number;
   shippingModel: ShippingModelId;
   totalCostMinor: number | null;
   /** Tahmini PayTR / kart komisyonu (web + kart) */
@@ -137,8 +145,21 @@ export async function buildOrderFinanceSnapshot(order: OrderInput): Promise<Orde
     grossMinor,
   );
 
+  let shippingCostMinor = 0;
+  let packagingCostMinor = 0;
+  if (!isMarketplace) {
+    const { getSiteSettings } = await import("@/lib/site-settings");
+    const settings = await getSiteSettings(order.siteId);
+    shippingCostMinor = resolveWebShippingCostMinor(settings);
+    packagingCostMinor = resolvePackagingCostMinor(settings);
+  }
+
   const deductions =
-    totalCommissionMinor + shippingDeductionMinor + paymentFeeMinor;
+    totalCommissionMinor +
+    shippingDeductionMinor +
+    paymentFeeMinor +
+    shippingCostMinor +
+    packagingCostMinor;
   const expectedNetProfitMinor =
     totalCostMinor > 0 ? grossMinor - deductions - totalCostMinor : null;
 
@@ -151,6 +172,8 @@ export async function buildOrderFinanceSnapshot(order: OrderInput): Promise<Orde
     lines,
     totalCommissionMinor,
     shippingDeductionMinor,
+    shippingCostMinor,
+    packagingCostMinor,
     shippingModel,
     totalCostMinor: totalCostMinor > 0 ? totalCostMinor : null,
     paymentFeeMinor,

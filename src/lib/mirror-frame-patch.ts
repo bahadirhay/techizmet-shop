@@ -1,6 +1,8 @@
+import { applyMirrorLogoUnify } from "@/lib/mirror-logo-unify";
 import {
   applyMirrorBranding,
   installMirrorBrandingGuard,
+  setMirrorFavicon,
   type MirrorBranding,
 } from "@/lib/mirror-branding-overlay";
 import type { ShopLocale } from "@/lib/i18n/locale";
@@ -19,12 +21,15 @@ import {
 } from "@/lib/mirror-account-drawer-client";
 import { KN_LEGACY_STUB_IDS } from "@/lib/mirror-html-shopify-strip";
 import { applyMirrorNavigation, rebindMirrorNavDropdown, type MirrorNavItem } from "@/lib/mirror-nav-overlay";
+import { applyMirrorContact, type MirrorContactData } from "@/lib/mirror-contact-overlay";
 
 export type MirrorFramePatchOpts = {
   branding?: MirrorBranding;
   nav?: MirrorNavItem[];
   footer?: MirrorFooterData;
   locale?: ShopLocale;
+  /** İletişim sayfası harita ayarları */
+  contact?: MirrorContactData;
   /** Ana sayfada çekmeceyi aç — ?account=create */
   accountDrawerForm?: AccountDrawerForm;
 };
@@ -48,6 +53,12 @@ export function applyMirrorFramePatches(doc: Document, opts: MirrorFramePatchOpt
   if (opts.accountDrawerForm) openAccountDrawer(doc, opts.accountDrawerForm);
 
   applyMirrorHeaderIconsFix(doc);
+  if (opts.branding?.logoUrl?.trim()) {
+    applyMirrorLogoUnify(doc, opts.branding);
+  }
+  if (opts.branding?.faviconUrl?.trim()) {
+    setMirrorFavicon(doc, opts.branding.faviconUrl);
+  }
   if (!serverReady) {
     if (opts.branding) {
       applyMirrorBranding(doc, opts.branding);
@@ -62,6 +73,7 @@ export function applyMirrorFramePatches(doc: Document, opts: MirrorFramePatchOpt
     rebindMirrorNavDropdown(doc);
   }
   if (opts.footer) applyMirrorFooter(doc, opts.footer);
+  if (opts.contact) applyMirrorContact(doc, opts.contact);
 
   if (locale === "en") {
     applyMirrorEnLocaleOverlay(doc, locale);

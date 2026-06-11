@@ -2,7 +2,12 @@
 
 import { useCallback, useRef, useState } from "react";
 import { ImageCropModal } from "@/components/admin/ImageCropModal";
-import { loadImageFromFile, resizeImageToBlob } from "@/lib/image-crop";
+import {
+  loadImageFromFile,
+  prepareLogoImageBlob,
+  releaseImageObjectUrl,
+  resizeImageToBlob,
+} from "@/lib/image-crop";
 
 export type ImageUploadFieldProps = {
   label: string;
@@ -19,6 +24,8 @@ export type ImageUploadFieldProps = {
   outputHeight?: number;
   /** Kırpma yok; uzun kenar bu pikseli geçmez */
   maxEdgePx?: number;
+  /** Logo modu — oran korunur, boş kenarlar kırpılır, 3:1 zorlaması yok */
+  logoFit?: { maxWidth: number; maxHeight: number; trim?: boolean };
   /** URL alanını gizle (yalnızca yükle) */
   hideUrlInput?: boolean;
 };
@@ -43,6 +50,7 @@ export function ImageUploadField({
   outputWidth,
   outputHeight,
   maxEdgePx = 2000,
+  logoFit,
   hideUrlInput = false,
 }: ImageUploadFieldProps) {
   const [busy, setBusy] = useState(false);
@@ -91,7 +99,7 @@ export function ImageUploadField({
       }
       return;
     }
-    if (needsCrop) {
+    if (needsCrop && !logoFit) {
       setCropFile(file);
       return;
     }
@@ -99,13 +107,24 @@ export function ImageUploadField({
     setErr(null);
     try {
       const img = await loadImageFromFile(file);
-      const blob = await resizeImageToBlob(
-        img,
-        maxEdgePx,
-        file.type === "image/png" ? "image/png" : "image/jpeg",
-      );
-      const ext = blob.type === "image/png" ? "png" : "jpg";
-      await uploadProcessed(blob, `image.${ext}`);
+      try {
+        const blob = logoFit
+          ? await prepareLogoImageBlob(img, {
+              maxWidth: logoFit.maxWidth,
+              maxHeight: logoFit.maxHeight,
+              trim: logoFit.trim !== false,
+              mime: file.type === "image/jpeg" ? "image/jpeg" : "image/png",
+            })
+          : await resizeImageToBlob(
+              img,
+              maxEdgePx,
+              file.type === "image/png" ? "image/png" : "image/jpeg",
+            );
+        const ext = blob.type === "image/png" ? "png" : "jpg";
+        await uploadProcessed(blob, logoFit ? `logo.${ext}` : `image.${ext}`);
+      } finally {
+        releaseImageObjectUrl(img);
+      }
     } catch (e) {
       setErr(e instanceof Error ? e.message : "İşlem hatası");
       setBusy(false);
@@ -162,7 +181,7 @@ export function ImageUploadField({
             <img
               src={value}
               alt=""
-              className="max-h-40 max-w-[min(100%,280px)] object-contain"
+              className={`max-h-40 object-contain object-left ${logoFit ? "max-w-[min(100%,360px)]" : "max-w-[min(100%,280px)]"}`}
               onError={(e) => {
                 (e.target as HTMLImageElement).style.opacity = "0.35";
               }}

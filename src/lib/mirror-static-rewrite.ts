@@ -15,7 +15,14 @@ const COLLECTION_SLUGS = new Set([
   "pure-by-nature",
 ]);
 
-const PAGE_SLUGS = new Set(["about", "contact", "faq"]);
+const PAGE_SLUGS = new Set([
+  "about",
+  "contact",
+  "faq",
+  "privacy-policy",
+  "terms-of-service",
+  "refund-policy",
+]);
 
 /** mirror-product-variants.json anahtarları */
 const PRODUCT_SLUGS = new Set([

@@ -3,13 +3,26 @@ import { notFound } from "next/navigation";
 import { MirrorVitrinFrame } from "@/components/store/MirrorVitrinFrame";
 import { listPublishedBlogPosts } from "@/lib/blog/blog-posts-server";
 import { mirrorBlogListHtmlExists } from "@/lib/mirror-html-path";
+import { buildPageMetadata } from "@/lib/seo/metadata";
 import { buildSiteMetadata } from "@/lib/site-metadata";
-import { getHomepageMode, getSiteSettings } from "@/lib/site-settings";
+import { getHomepageMode, getSiteBranding, getSiteSeo, getSiteSettings } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
 
 export async function generateMetadata(): Promise<Metadata> {
+  const site = await getDefaultSite();
+  const settings = await getSiteSettings(site.id);
+  const seo = getSiteSeo(settings, site.name);
+  const branding = getSiteBranding(settings);
   const base = await buildSiteMetadata();
-  return { ...base, title: `Blog — ${base.title ?? "Mağaza"}` };
+  const staticMeta = seo.staticPages?.["/blogs/news"];
+  return buildPageMetadata(base, {
+    title: staticMeta?.seoTitle?.trim() || `Blog | ${site.name}`,
+    description:
+      staticMeta?.seoDescription?.trim() ||
+      `${site.name} blog — haberler, ipuçları ve güncellemeler.`,
+    imageUrl: staticMeta?.imageUrl?.trim() || seo.ogImageUrl?.trim() || branding.logoUrl?.trim() || null,
+    canonicalPath: "/blogs/news",
+  });
 }
 
 export default async function BlogNewsListPage() {

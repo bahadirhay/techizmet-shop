@@ -308,3 +308,18 @@
 .kn-checkout-page--embed .kn-checkout--empty .button {
   margin-top: 16px;
 }
+
+.kn-distance-sales-agreement { font-size: 0.875rem; line-height: 1.65; }
+.kn-dsa-title { text-align: center; font-size: 1.15rem; margin: 0 0 0.75rem; }
+.kn-dsa-meta { margin: 0 0 1rem; }
+.kn-distance-sales-agreement h2 { font-size: 0.95rem; margin: 1.25rem 0 0.5rem; }
+.kn-distance-sales-agreement h3 { font-size: 0.9rem; margin: 0.75rem 0 0.35rem; }
+.kn-dsa-table { width: 100%; border-collapse: collapse; margin: 0.35rem 0 0.75rem; font-size: 0.8125rem; }
+.kn-dsa-table th, .kn-dsa-table td { border: 1px solid var(--border_color, #e5e2dd); padding: 0.4rem 0.55rem; text-align: left; vertical-align: top; }
+.kn-dsa-table th { width: 38%; background: var(--body_alternate_background, #f7f5f2); font-weight: 600; }
+.kn-dsa-placeholder { color: #6b7280; font-style: italic; }
+.kn-dsa-products { margin: 0.35rem 0 0.75rem; padding-left: 1.1rem; }
+.kn-dsa-signatures { margin-top: 1.25rem; padding-top: 0.75rem; border-top: 1px dashed var(--border_color, #e5e2dd); }
+.kn-distance-sales-checkout { margin: 1rem 0; border: 1px solid var(--border_color, #e5e2dd); border-radius: var(--card_radius, 8px); background: #fff; }
+.kn-distance-sales-checkout summary { cursor: pointer; font-weight: 600; font-size: 0.8125rem; padding: 0.65rem 0.85rem; }
+.kn-distance-sales-checkout__body { max-height: 18rem; overflow: auto; padding: 0 0.85rem 0.85rem; border-top: 1px solid var(--border_color, #e5e2dd); }

@@ -106,10 +106,13 @@ export async function injectPublishedProductIntoMirrorHtml(
   slug: string,
   locale: ShopLocale,
   settings: SiteSettings,
+  templateSlug?: string,
 ): Promise<string> {
   const patch = await loadPublishedProductMirrorPatch(siteId, slug, locale, settings);
   if (!patch) return html;
-  return applyProductDetailToMirrorHtml(html, patch.detail, patch.overlay, patch.commerce);
+  return applyProductDetailToMirrorHtml(html, patch.detail, patch.overlay, patch.commerce, {
+    templateSlug,
+  });
 }
 
 export { getProductPageBottomSettings };

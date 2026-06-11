@@ -3,6 +3,7 @@ import { readCatalogTitleCache } from "@/lib/marketplace/catalog-title-cache";
 import { fetchTrendyolCatalog } from "@/lib/marketplace/trendyol/products";
 import { parseTrendyolConfig } from "@/lib/marketplace/trendyol/client";
 import { prisma } from "@/lib/prisma";
+import { safeRefineTitleFromCompetitors } from "@/lib/admin/product-seo/title-integrity";
 
 const FETCH_TIMEOUT_MS = 8000;
 
@@ -23,9 +24,21 @@ export type MarketplaceSearchDiagnostics = {
   hepsiburada: "ok" | "empty" | "error";
 };
 
-function buildQuery(title: string, categoryTitle?: string, brandTitle?: string): string {
+export function buildMarketplaceSearchQuery(title: string, categoryTitle?: string, brandTitle?: string): string {
   const parts = [brandTitle, categoryTitle, title].filter(Boolean);
   return parts.join(" ").trim().slice(0, 120);
+}
+
+function buildQuery(title: string, categoryTitle?: string, brandTitle?: string): string {
+  return buildMarketplaceSearchQuery(title, categoryTitle, brandTitle);
+}
+
+export function marketplaceQueryTokens(query: string): string[] {
+  return queryTokens(query);
+}
+
+export function scoreMarketplaceTitleMatch(title: string, tokens: string[]): number {
+  return scoreTitleMatch(title, tokens);
 }
 
 function queryTokens(query: string): string[] {
@@ -290,30 +303,5 @@ export function refineTitleFromCompetitors(
   competitorTitles: string[],
   maxLen = 100,
 ): string {
-  if (!competitorTitles.length) return baseTitle;
-
-  const tokens = new Map<string, number>();
-  for (const t of competitorTitles) {
-    for (const w of t.toLowerCase().split(/\s+/)) {
-      if (w.length < 4) continue;
-      if (/^\d+$/.test(w)) continue;
-      tokens.set(w, (tokens.get(w) ?? 0) + 1);
-    }
-  }
-
-  const frequent = [...tokens.entries()]
-    .filter(([, c]) => c >= 2)
-    .sort((a, b) => b[1] - a[1])
-    .map(([w]) => w)
-    .slice(0, 3);
-
-  let result = baseTitle.trim();
-  for (const w of frequent) {
-    if (result.length >= maxLen - 5) break;
-    if (!result.toLowerCase().includes(w)) {
-      const add = w.charAt(0).toUpperCase() + w.slice(1);
-      if (result.length + add.length + 1 <= maxLen) result = `${result} ${add}`;
-    }
-  }
-  return result.slice(0, maxLen);
+  return safeRefineTitleFromCompetitors(baseTitle, competitorTitles, maxLen);
 }

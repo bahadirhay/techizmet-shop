@@ -14,6 +14,8 @@ export async function POST(req: Request) {
     categoryId?: string;
     brandId?: string;
     productId?: string;
+    weightGrams?: number;
+    pieceCount?: number;
   };
 
   const title = body.title?.trim() ?? "";
@@ -33,6 +35,12 @@ export async function POST(req: Request) {
     categoryIds: [...new Set(categoryIds)],
     brandId: body.brandId,
     productId: body.productId,
+    weightGrams: typeof body.weightGrams === "number" && body.weightGrams > 0
+      ? body.weightGrams
+      : undefined,
+    pieceCount: typeof body.pieceCount === "number" && body.pieceCount > 0
+      ? body.pieceCount
+      : undefined,
   });
 
   return NextResponse.json({ result });

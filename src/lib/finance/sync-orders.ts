@@ -45,12 +45,10 @@ export async function syncOrdersToFinance(
     });
     if (existing) {
       skipped++;
-      if (!o.financeSnapshotJson) {
-        try {
-          await applyOrderFinanceSnapshot(siteId, o.id);
-        } catch {
-          /* backfill */
-        }
+      try {
+        await applyOrderFinanceSnapshot(siteId, o.id);
+      } catch {
+        /* snapshot yenileme */
       }
       continue;
     }

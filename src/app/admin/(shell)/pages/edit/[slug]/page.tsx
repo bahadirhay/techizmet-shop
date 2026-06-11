@@ -10,6 +10,9 @@ export default async function EditCmsPageBySlugRoute({
 }) {
   const auth = await requireStaffPage();
   const { slug } = await params;
+  if (slug === "mesafeli-satis") {
+    redirect("/admin/integrations#mesafeli-satis-legal");
+  }
   const page = await prisma.shopPage.findFirst({
     where: { siteId: auth.siteId, slug },
     select: { id: true },

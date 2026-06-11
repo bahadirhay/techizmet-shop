@@ -6,10 +6,12 @@ import {
   resolveResendApiKey,
   resolveSmtpConfig,
 } from "@/lib/email/smtp-config";
-import { createSmtpTransport } from "@/lib/email/smtp-transport";
+import { sendSmtpMail } from "@/lib/email/smtp-send";
+import { resolveMailFrom } from "@/lib/notification-settings";
 import type { SiteSettings } from "@/lib/site-settings";
 
 /** Resend API, SMTP (panel veya .env) veya konsol (geliştirme) */
+
 export async function sendTemplateEmail(params: {
   to: string;
   subject: string;
@@ -17,14 +19,19 @@ export async function sendTemplateEmail(params: {
   from?: string;
   replyTo?: string;
   settings?: SiteSettings;
-}): Promise<{ sent: boolean; reason?: string }> {
+  siteName?: string;
+  /** Test SMTP — Resend yedeklemesini atla */
+  smtpOnly?: boolean;
+}): Promise<{ sent: boolean; reason?: string; detail?: string; hint?: string }> {
   if (!params.to?.trim()) return { sent: false, reason: "no_email" };
 
   const settings = params.settings ?? {};
+  const siteName = params.siteName?.trim() || "Mağaza";
   const from =
     params.from?.trim() ||
+    resolveMailFrom(settings, siteName) ||
     process.env.MAIL_FROM?.trim() ||
-    "Techizmet Shop <siparis@techizmet.local>";
+    `${siteName} <noreply@localhost>`;
 
   if (!emailTransportReady(settings)) {
     if (process.env.NODE_ENV === "development") {
@@ -40,20 +47,14 @@ export async function sendTemplateEmail(params: {
   async function sendViaSmtp() {
     const config = resolveSmtpConfig(settings);
     if (!config) return { sent: false as const, reason: "not_configured" as const };
-    try {
-      const transport = createSmtpTransport(config);
-      await transport.sendMail({
-        from,
-        to: params.to.trim(),
-        subject: params.subject,
-        html: params.html,
-        ...(params.replyTo?.trim() ? { replyTo: params.replyTo.trim() } : {}),
-      });
-      return { sent: true as const };
-    } catch (err) {
-      console.error("[email] SMTP hata:", err);
-      return { sent: false as const, reason: "smtp_error" as const };
-    }
+    return sendSmtpMail({
+      config,
+      from,
+      to: params.to.trim(),
+      subject: params.subject,
+      html: params.html,
+      replyTo: params.replyTo,
+    });
   }
 
   async function sendViaResend() {
@@ -76,7 +77,7 @@ export async function sendTemplateEmail(params: {
     if (!res.ok) {
       const err = await res.text();
       console.error("[email] Resend hata:", err);
-      return { sent: false as const, reason: "api_error" as const };
+      return { sent: false as const, reason: "api_error" as const, detail: err.slice(0, 400) };
     }
     return { sent: true as const };
   }
@@ -91,7 +92,7 @@ export async function sendTemplateEmail(params: {
   if (trySmtpFirst) {
     const s = await sendViaSmtp();
     if (s.sent) return s;
-    if (provider === "smtp") return s;
+    if (provider === "smtp" || params.smtpOnly) return s;
     return sendViaResend();
   }
 

@@ -13,6 +13,7 @@ import { parseProductMediaInput } from "@/lib/product-media";
 import { vatRateFromRequestBody } from "@/lib/admin/product-vat";
 import { serializeMarketplacePricesFromForm } from "@/lib/marketplace/product-prices";
 import { resolveProductCategorySelection, syncProductCategoryLinks } from "@/lib/store-product-categories";
+import { resolveProductSeoFields } from "@/lib/admin/product-seo/ensure-seo";
 import { SITE_DEFAULT_EXPLORE_SENTINEL } from "@/lib/product-explore-looks";
 import { productAdminErrorResponse } from "@/lib/admin/product-api-errors";
 
@@ -81,6 +82,24 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       });
     }
 
+    const seoFields = await resolveProductSeoFields(auth.siteId, {
+      title,
+      brandId:
+        body.brandId !== undefined ? String(body.brandId ?? "").trim() || null : existing.brandId,
+      categoryId: categorySelection?.primaryCategoryId ?? existing.categoryId,
+      categoryIds: categorySelection?.categoryIds,
+      description:
+        body.description != null
+          ? String(body.description).trim() || null
+          : existing.description,
+      seoTitle:
+        body.seoTitle != null ? String(body.seoTitle).trim() || null : existing.seoTitle,
+      seoDescription:
+        body.seoDescription != null
+          ? String(body.seoDescription).trim() || null
+          : existing.seoDescription,
+    });
+
     await prisma.storeProduct.update({
       where: { id },
       data: {
@@ -136,10 +155,15 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
               ? parseInt(String(body.weightGrams), 10)
               : null
             : undefined,
+        pieceCount:
+          body.pieceCount !== undefined
+            ? body.pieceCount
+              ? parseInt(String(body.pieceCount), 10)
+              : null
+            : undefined,
         desi: body.desi !== undefined ? (body.desi ? parseFloat(String(body.desi)) : null) : undefined,
-        seoTitle: body.seoTitle != null ? String(body.seoTitle).trim() || null : undefined,
-        seoDescription:
-          body.seoDescription != null ? String(body.seoDescription).trim() || null : undefined,
+        seoTitle: seoFields.seoTitle,
+        seoDescription: seoFields.seoDescription,
         imageUrl:
           primaryImageUrl !== undefined
             ? primaryImageUrl

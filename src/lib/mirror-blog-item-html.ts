@@ -1,6 +1,15 @@
 /** Blog kart HTML parçalama — son karttan sonraki footer / script korunur */
 
-export const BLOG_ITEM_CLASS_TOKEN = 'class="blog--item';
+export const BLOG_ITEM_OPEN_TOKEN = "<div class=\"blog--item";
+
+/** Mirror şablonundaki kırık kart etiketlerini düzelt */
+export function normalizeBlogItemHtml(html: string): string {
+  return html
+    .replace(/<div\s+[\r\n\s]+class="blog--item/gi, "<div class=\"blog--item")
+    .replace(/<\/div>\s*class="blog--item/gi, "</div><div class=\"blog--item")
+    // blog--content kapanışından sonra dış blog--item </div> eksikse ekle
+    .replace(/<\/div><div class="blog--item/gi, "</div></div><div class=\"blog--item");
+}
 
 export function truncateBlogItemChunk(chunk: string): { item: string; suffix: string } {
   const m = chunk.match(
@@ -17,7 +26,7 @@ export type BlogItemHtmlParts = {
 };
 
 export function splitBlogItemHtmlParts(html: string): BlogItemHtmlParts {
-  const parts = html.split(BLOG_ITEM_CLASS_TOKEN);
+  const parts = normalizeBlogItemHtml(html).split(BLOG_ITEM_OPEN_TOKEN);
   const prefix = parts[0] ?? "";
   if (parts.length < 2) {
     return { prefix: html, items: [], suffix: "" };
@@ -49,5 +58,5 @@ export function patchBlogLinksInChunk(chunk: string, href: string): string {
 }
 
 export function reassembleBlogItemHtml(prefix: string, items: string[], suffix: string): string {
-  return prefix + items.map((item) => BLOG_ITEM_CLASS_TOKEN + item).join("") + suffix;
+  return prefix + items.map((item) => BLOG_ITEM_OPEN_TOKEN + item).join("") + suffix;
 }

@@ -5,6 +5,9 @@ import { getPublishedBlogPostBySlug } from "@/lib/blog/blog-posts-server";
 import { blogTitle } from "@/lib/blog/blog-post-types";
 import { getStoreLocale } from "@/lib/i18n/server";
 import { resolveMirrorBlogArticleTemplateSlug } from "@/lib/mirror-html-path";
+import { JsonLdScript } from "@/components/store/JsonLdScript";
+import { buildPageMetadata } from "@/lib/seo/metadata";
+import { buildBlogPostingJsonLd } from "@/lib/seo/site-json-ld";
 import { buildSiteMetadata } from "@/lib/site-metadata";
 import { getHomepageMode, getSiteSettings } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
@@ -21,11 +24,13 @@ export async function generateMetadata({
   const base = await buildSiteMetadata();
   if (!post) return base;
   const locale = await getStoreLocale();
-  return {
-    ...base,
-    title: post.seoTitle?.trim() || `${blogTitle(post, locale)} — Blog`,
-    description: post.seoDescription?.trim() || base.description,
-  };
+  const title = post.seoTitle?.trim() || `${blogTitle(post, locale)} | ${site.name}`;
+  return buildPageMetadata(base, {
+    title,
+    description: post.seoDescription?.trim() || post.excerptTr?.trim() || base.description,
+    imageUrl: post.imageUrl,
+    canonicalPath: `/blogs/news/${slug}`,
+  });
 }
 
 export default async function BlogArticlePage({ params }: { params: Promise<{ slug: string }> }) {
@@ -42,5 +47,20 @@ export default async function BlogArticlePage({ params }: { params: Promise<{ sl
   const post = await getPublishedBlogPostBySlug(site.id, slug);
   if (!post) notFound();
 
-  return <MirrorBlogArticleFrame slug={slug} locale={locale} />;
+  const jsonLd = buildBlogPostingJsonLd({
+    headline: post.seoTitle?.trim() || blogTitle(post, locale),
+    description: post.seoDescription?.trim() || post.excerptTr,
+    path: `/blogs/news/${slug}`,
+    imageUrl: post.imageUrl,
+    datePublished: post.publishedAt?.toISOString() ?? null,
+    author: post.author,
+    siteName: site.name,
+  });
+
+  return (
+    <>
+      <JsonLdScript data={jsonLd} />
+      <MirrorBlogArticleFrame slug={slug} locale={locale} />
+    </>
+  );
 }

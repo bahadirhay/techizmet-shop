@@ -3,7 +3,7 @@
  * Vercel build: DATABASE_URL + STORE_SITE_SLUG (Production + Build) gerekir.
  */
 import "dotenv/config";
-import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { listPublishedBlogPosts } from "../src/lib/blog/blog-posts-server";
 import { applyCartShellForPrebuild } from "../src/lib/mirror-cart-page";
@@ -119,21 +119,9 @@ async function main() {
     }
   }
 
-  const productFiles = await readdir(PRODUCT_DIR);
-  for (const file of productFiles) {
-    if (!file.endsWith(".html") || SKIP_PRODUCT_FILES.has(file)) continue;
-    const normalized = `${MIRROR_THEME}/products/${file}`;
-    const locale = file.endsWith("-tr.html") ? "tr" : "en";
-    const html = await buildMirrorHtmlCore({
-      normalized,
-      locale,
-      siteId: site.id,
-      siteName: site.name,
-    });
-    await writePrebuilt(normalized, html);
-    written.push(normalized);
-    console.log(`[mirror:prebuild] ${normalized}`);
-  }
+  // Ürün şablon dosyalarını doğrudan public route olarak prebuild etme.
+  // Anatolian Paw ürün sayfaları DB'deki published storeProduct kayıtlarından üretilir.
+  // Aksi halde skincare şablonları (örn. spectrum-sunscreen-spf-50) olmayan ürün route'u olarak canlanır.
 
   const blogFiles = await readdir(BLOG_DIR);
   for (const file of blogFiles) {
@@ -176,6 +164,24 @@ async function main() {
     where: { siteId: site.id, published: true },
     select: { slug: true },
   });
+  const publishedProductFiles = new Set(
+    publishedProducts.flatMap((product) => [
+      `${product.slug}-tr.html`,
+      `${product.slug}.html`,
+    ]),
+  );
+  const prebuiltProductsDir = prebuiltMirrorAbs(`${MIRROR_THEME}/products/index.html`).replace(/index\.html$/i, "");
+  try {
+    const oldPrebuiltProducts = await readdir(prebuiltProductsDir);
+    for (const file of oldPrebuiltProducts) {
+      if (!file.endsWith(".html") || publishedProductFiles.has(file)) continue;
+      await rm(join(prebuiltProductsDir, file), { force: true });
+      console.log(`[mirror:prebuild] removed stale product ${file}`);
+    }
+  } catch {
+    // prebuilt products dir yoksa sorun değil
+  }
+
   for (const product of publishedProducts) {
     const templateSlug = resolveMirrorProductTemplateSlug(product.slug);
     if (!templateSlug) continue;

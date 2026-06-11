@@ -75,8 +75,26 @@ export function isComplexHtml(html: string): boolean {
 const MARKERS_ACCENT_SPAN =
   '<span class="markers-text accent-font no-markers">';
 
+const MARKERS_OUTLINE_SPAN =
+  '<span class="markers-text heading-font outline--filled">';
+
+const MARKERS_MARQUEE_SOLID =
+  '<span class="markers-text heading-font kn-marquee-solid">';
+
 /** Düz metin — *vurgu* → tema span (ürün sayfası kayan yazı / video başlığı) */
 export function plainTextToMarkedHtml(text: string): string {
+  return plainTextToMarkerHtml(text, MARKERS_ACCENT_SPAN);
+}
+
+/**
+ * Kayan indirim şeridi — *KOD* kontur; geri kalan düz okunur metin.
+ * Örn: %20 indirim için *P-A-W-20* kodunu kullanabilirsiniz
+ */
+export function plainTextToOutlineMarkedHtml(text: string): string {
+  return plainTextToMarqueeHtml(text);
+}
+
+export function plainTextToMarqueeHtml(text: string): string {
   const normalized = text.replace(/\r\n/g, "\n").trim();
   if (!normalized) return "";
 
@@ -84,19 +102,60 @@ export function plainTextToMarkedHtml(text: string): string {
     .split(/(\*[^*\n]+\*)/g)
     .map((part) => {
       if (part.startsWith("*") && part.endsWith("*") && part.length > 2) {
-        return `${MARKERS_ACCENT_SPAN}${escapeHtml(part.slice(1, -1))}</span>`;
+        return `${MARKERS_OUTLINE_SPAN}${escapeHtml(part.slice(1, -1).trim())}</span>`;
+      }
+      if (!part.trim()) return "";
+      return `${MARKERS_MARQUEE_SOLID}${escapeHtml(part)}</span>`;
+    })
+    .join("");
+}
+
+function plainTextToMarkerHtml(text: string, openSpan: string): string {
+  const normalized = text.replace(/\r\n/g, "\n").trim();
+  if (!normalized) return "";
+
+  return normalized
+    .split(/(\*[^*\n]+\*)/g)
+    .map((part) => {
+      if (part.startsWith("*") && part.endsWith("*") && part.length > 2) {
+        return `${openSpan}${escapeHtml(part.slice(1, -1))}</span>`;
       }
       return escapeHtml(part);
     })
     .join("");
 }
 
-/** Vitrin HTML → admin düzenleme kutusu (*vurgu* ile) */
+/** Vitrin HTML → admin düzenleme kutusu (*yalnızca vurgulu* kısımlar yıldızlı) */
 export function markedHtmlToPlainText(html: string): string {
   if (!html?.trim()) return "";
-  let s = html.replace(
-    /<span[^>]*class="[^"]*markers-text[^"]*"[^>]*>([\s\S]*?)<\/span>/gi,
+  let s = html;
+  s = s.replace(
+    /<span[^>]*class="[^"]*outline--filled[^"]*"[^>]*>([\s\S]*?)<\/span>/gi,
     (_, inner: string) => `*${htmlToPlainText(inner)}*`,
   );
+  s = s.replace(
+    /<span[^>]*class="[^"]*accent-font[^"]*"[^>]*>([\s\S]*?)<\/span>/gi,
+    (_, inner: string) => `*${htmlToPlainText(inner)}*`,
+  );
+  s = s.replace(
+    /<span[^>]*class="[^"]*markers-text[^"]*"[^>]*>([\s\S]*?)<\/span>/gi,
+    (_, inner: string) => htmlToPlainText(inner),
+  );
   return htmlToPlainText(s);
+}
+
+/** Kayıtlı marquee düzenlemesi → düz metin (admin kutusu) */
+export function marqueeEditToPlainText(
+  edit: { text?: string; html?: string } | undefined,
+  fallbackHtml = "",
+): string {
+  if (edit?.text != null) return edit.text;
+  if (edit?.html?.trim()) return markedHtmlToPlainText(edit.html);
+  if (fallbackHtml.trim()) return markedHtmlToPlainText(fallbackHtml);
+  return "";
+}
+
+/** Düz metin → vitrin HTML (kayan şerit) */
+export function marqueePlainToHtml(text: string): string {
+  return plainTextToMarqueeHtml(text);
 }

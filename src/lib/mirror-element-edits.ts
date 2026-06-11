@@ -1,6 +1,13 @@
 /** Ana sayfa — tıkla-düzenle: her metin / görsel / link */
 
 import { isAnchorNode, isImageNode } from "@/lib/mirror-dom-node";
+import { plainTextToMarqueeHtml, plainTextToSimpleHtml } from "@/lib/html-plain-text";
+import {
+  applyElementTypography,
+  type MirrorElementTypography,
+} from "@/lib/mirror-element-typography";
+
+export type { MirrorElementTypography } from "@/lib/mirror-element-typography";
 
 export type MirrorElementKind = "html" | "text" | "image" | "link";
 
@@ -8,9 +15,12 @@ export type MirrorElementEdit = {
   id: string;
   kind: MirrorElementKind;
   html?: string;
+  /** İngilizce vitrin için ayrı metin (boşsa EN'de TR override uygulanmaz) */
+  htmlEn?: string;
   text?: string;
   imageUrl?: string;
   href?: string;
+  style?: MirrorElementTypography;
 };
 
 export type MirrorElementPick = {
@@ -27,6 +37,83 @@ export function pageBannerElementId(sectionKey: string, part: "title" | "desc" |
 
 export function revealingTextElementId(sectionKey: string) {
   return `${sectionKey}--revealing-text`;
+}
+
+export function richtextContentElementId(sectionKey: string) {
+  return `${sectionKey}--richtext-content--0`;
+}
+
+export function marqueeTextElementId(sectionKey: string) {
+  return `${sectionKey}--marquee-text--0`;
+}
+
+/** Vitrin kaydı varsa site geneli marquee enjeksiyonunu atla */
+export function hasMarqueeElementOverride(
+  elements: Record<string, MirrorElementEdit> | undefined,
+  sectionKey?: string,
+): boolean {
+  if (!elements) return false;
+  if (sectionKey) {
+    const id = marqueeTextElementId(sectionKey);
+    const edit = elements[id] ?? Object.values(elements).find((e) => e.id === id);
+    return Boolean(edit?.html?.trim() || edit?.text?.trim());
+  }
+  return Object.values(elements).some(
+    (edit) =>
+      /--marquee-text--/.test(edit.id) && Boolean(edit.html?.trim() || edit.text?.trim()),
+  );
+}
+
+export function sectionHeadingElementId(sectionKey: string, index = 0) {
+  return `${sectionKey}--section--heading--${index}`;
+}
+
+/** Katalog / damga id — tek biçim */
+export function canonicalElementEditId(id: string): string {
+  return id
+    .replace(/--section-heading--/, "--section--heading--")
+    .replace(/--section-description--/, "--section--description--");
+}
+
+function stampEditIdForSelector(sectionKey: string, sel: string, idx: number): string {
+  if (sel === ".section--heading" || sel === ".section-heading") {
+    return sectionHeadingElementId(sectionKey, idx);
+  }
+  if (sel === ".section--description" || sel === ".section-description") {
+    return `${sectionKey}--section--description--${idx}`;
+  }
+  const selKey = sel.replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "") || "el";
+  return `${sectionKey}--${selKey}--${idx}`;
+}
+
+/** mirror-editable-catalog idBase → DOM seçici */
+const IMAGE_EDIT_SUFFIX_SELECTORS: Record<string, string> = {
+  "button-img-img": ".button--img img",
+  "bs-products-image-img": ".bs-products--image img",
+  "image-with-text-image-img": ".image-with-text--image img",
+  "discover-look-wrapper-media-img": ".discover-look-wrapper > .media img, .discover-look-wrapper .media img",
+  "img-media-image": "img.media_image",
+  "img-product-card-image": "img.product--card-image",
+  "categories-item-image-img": ".categories--item-image img",
+};
+
+function sectionKeyFromSection(section: Element): string {
+  return (
+    section.id.match(/__([a-zA-Z0-9_]+)$/)?.[1] ??
+    section.id.replace(/[^a-zA-Z0-9_]/g, "_").slice(-24) ??
+    "section"
+  );
+}
+
+function inferKind(el: Element): MirrorElementKind {
+  if (isImageNode(el)) return "image";
+  if (isAnchorNode(el)) return "link";
+  const tag = el.tagName;
+  if (tag === "IMG") return "image";
+  if (tag === "A") return "link";
+  const html = el.innerHTML?.trim() ?? "";
+  if (html.includes("<") && html.length > 0) return "html";
+  return "text";
 }
 
 function stampPageBannerSection(section: Element, sectionKey: string): number {
@@ -53,11 +140,52 @@ function stampPageBannerSection(section: Element, sectionKey: string): number {
 }
 
 function stampRevealingTextSection(section: Element, sectionKey: string): number {
+  const staticEl = section.querySelector(".kn-revealing-static-text");
+  if (staticEl && !staticEl.hasAttribute("data-kn-edit")) {
+    staticEl.setAttribute("data-kn-edit", revealingTextElementId(sectionKey));
+    staticEl.setAttribute("data-kn-kind", "text");
+    return 1;
+  }
   const el = section.querySelector(".revealing-text--content, [data-text-reveal]");
   if (!el || el.hasAttribute("data-kn-edit")) return 0;
   el.setAttribute("data-kn-edit", revealingTextElementId(sectionKey));
   el.setAttribute("data-kn-kind", "text");
   return 1;
+}
+
+function stampRichtextSection(section: Element, sectionKey: string): number {
+  let n = 0;
+  const content = section.querySelector(".richtext--content");
+  if (content && !content.hasAttribute("data-kn-edit")) {
+    content.setAttribute("data-kn-edit", richtextContentElementId(sectionKey));
+    content.setAttribute("data-kn-kind", inferKind(content));
+    n += 1;
+  }
+  section.querySelectorAll(".richtext--heading").forEach((el, idx) => {
+    if (el.hasAttribute("data-kn-edit")) return;
+    el.setAttribute("data-kn-edit", `${sectionKey}--richtext-heading--${idx}`);
+    el.setAttribute("data-kn-kind", inferKind(el));
+    n += 1;
+  });
+  section.querySelectorAll(".richtext--description").forEach((el, idx) => {
+    if (el.hasAttribute("data-kn-edit")) return;
+    el.setAttribute("data-kn-edit", `${sectionKey}--richtext-description--${idx}`);
+    el.setAttribute("data-kn-kind", inferKind(el));
+    n += 1;
+  });
+  return n;
+}
+
+function stampMarqueeSection(section: Element, sectionKey: string): number {
+  const id = marqueeTextElementId(sectionKey);
+  let n = 0;
+  section.querySelectorAll(".marquee-text").forEach((el) => {
+    if (el.hasAttribute("data-kn-edit")) return;
+    el.setAttribute("data-kn-edit", id);
+    el.setAttribute("data-kn-kind", "html");
+    n += 1;
+  });
+  return n;
 }
 
 function escapeButtonChar(text: string) {
@@ -106,11 +234,15 @@ export function stampMirrorEditableElements(doc: Document): number {
   });
 
   main.querySelectorAll("section.section-revealing-text, section[class*='revealing-text']").forEach((section) => {
-    const sectionKey =
-      section.id.match(/__([a-zA-Z0-9_]+)$/)?.[1] ??
-      section.id.replace(/[^a-zA-Z0-9_]/g, "_").slice(-24) ??
-      "revealing-text";
-    n += stampRevealingTextSection(section, sectionKey);
+    n += stampRevealingTextSection(section, sectionKeyFromSection(section));
+  });
+
+  main.querySelectorAll("section.section-richtext, section[class*='section-richtext']").forEach((section) => {
+    n += stampRichtextSection(section, sectionKeyFromSection(section));
+  });
+
+  main.querySelectorAll("section.section-marquee, section[class*='section-marquee']").forEach((section) => {
+    n += stampMarqueeSection(section, sectionKeyFromSection(section));
   });
 
   const selectors = [
@@ -128,6 +260,9 @@ export function stampMirrorEditableElements(doc: Document): number {
     "p",
     ".marquee--text",
     ".marquee__text",
+    ".marquee-text",
+    ".richtext--heading",
+    ".richtext--description",
     ".richtext--content",
     ".image-with-text--heading",
     ".image-with-text--text",
@@ -171,7 +306,6 @@ export function stampMirrorEditableElements(doc: Document): number {
   const forceTextSelectors = new Set([".product--title", ".product--actual-price"]);
 
   for (const sel of selectors) {
-    const selKey = sel.replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "") || "el";
     const perSection = new Map<string, number>();
     main.querySelectorAll(sel).forEach((el) => {
       if (el.closest("header, footer, nav, script, noscript")) return;
@@ -186,7 +320,7 @@ export function stampMirrorEditableElements(doc: Document): number {
         "main";
       const idx = perSection.get(sectionKey) ?? 0;
       perSection.set(sectionKey, idx + 1);
-      const id = `${sectionKey}--${selKey}--${idx}`;
+      const id = stampEditIdForSelector(sectionKey, sel, idx);
       const kind = forceTextSelectors.has(sel) ? "text" : inferKind(el);
       el.setAttribute("data-kn-edit", id);
       el.setAttribute("data-kn-kind", kind);
@@ -196,18 +330,6 @@ export function stampMirrorEditableElements(doc: Document): number {
   return n;
 }
 
-function inferKind(el: Element): MirrorElementKind {
-  if (isImageNode(el)) return "image";
-  if (isAnchorNode(el)) return "link";
-  const tag = el.tagName;
-  if (tag === "IMG") return "image";
-  if (tag === "A") return "link";
-  const html = el.innerHTML?.trim() ?? "";
-  if (html.includes("<") && html.length > 0) return "html";
-  return "text";
-}
-
-/** Admin katalog (section--heading) ↔ vitrin damgası (h2/p) uyumu */
 export function mirrorElementEditAliases(id: string): string[] {
   const out: string[] = [];
   const classHeading = id.match(/^(.+)--(section-heading|section--heading)--(\d+)$/);
@@ -245,17 +367,121 @@ export function mirrorElementEditAliases(id: string): string[] {
   return out;
 }
 
+/** Katalog / damga id uyumu — kayıtlı düzenlemeyi bul */
+export function resolveMirrorElementEdit(
+  id: string,
+  edits: Record<string, MirrorElementEdit> | undefined,
+): MirrorElementEdit | undefined {
+  if (!edits) return undefined;
+  const canonical = canonicalElementEditId(id);
+  if (edits[canonical]) return edits[canonical];
+  if (edits[id]) return edits[id];
+  for (const alias of mirrorElementEditAliases(canonical)) {
+    if (edits[alias]) return edits[alias];
+  }
+  for (const edit of Object.values(edits)) {
+    const editCanonical = canonicalElementEditId(edit.id);
+    if (editCanonical === canonical || edit.id === id || mirrorElementEditAliases(edit.id).includes(id)) {
+      return edit;
+    }
+  }
+  return undefined;
+}
+
+/** Bölüm başlığı vitrin elements içinde kayıtlı mı */
+export function hasSectionHeadingElementOverride(
+  sectionKey: string,
+  elements: Record<string, MirrorElementEdit> | undefined,
+  index = 0,
+): boolean {
+  if (!elements) return false;
+  const canonical = sectionHeadingElementId(sectionKey, index);
+  const edit = resolveMirrorElementEdit(canonical, elements);
+  return Boolean(edit?.html?.trim() || edit?.text?.trim() || edit?.style);
+}
+
 function escapeEditId(id: string) {
   return id.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
-function findElementForEdit(doc: Document, editId: string): Element | null {
-  const tryIds = [editId, ...mirrorElementEditAliases(editId)];
-  for (const id of tryIds) {
-    const el = doc.querySelector(`[data-kn-edit="${escapeEditId(id)}"]`);
-    if (el) return el;
+function parseImageEditId(editId: string): { sectionKey: string; suffix: string; index: number } | null {
+  const m = editId.match(/^(.+)--([a-z0-9-]+)--(\d+)$/i);
+  if (!m) return null;
+  const suffix = m[2]!;
+  if (!IMAGE_EDIT_SUFFIX_SELECTORS[suffix]) return null;
+  return { sectionKey: m[1]!, suffix, index: Number(m[3]) };
+}
+
+function findElementsForEditFallback(doc: Document, editId: string): Element[] {
+  const canonical = canonicalElementEditId(editId);
+  const heading =
+    canonical.match(/^(.+)--section--heading--(\d+)$/) ??
+    editId.match(/^(.+)--section-heading--(\d+)$/);
+  if (heading) {
+    const [, sectionKey, idxStr] = heading;
+    const section = doc.querySelector(`section[id$="__${sectionKey}"]`);
+    if (!section) return [];
+    const headings = section.querySelectorAll(".section--heading, .section-heading");
+    const el = headings[Number(idxStr)];
+    return el ? [el] : [];
   }
-  return null;
+
+  const tagHeading =
+    canonical.match(/^(.+)--(h[1-6])--(\d+)$/) ?? editId.match(/^(.+)--(h[1-6])--(\d+)$/);
+  if (tagHeading) {
+    const [, sectionKey, , idxStr] = tagHeading;
+    const section = doc.querySelector(`section[id$="__${sectionKey}"]`);
+    if (!section) return [];
+    const headings = section.querySelectorAll(
+      ".section--heading, .section-heading, h1, h2, h3, h4, h5, h6",
+    );
+    const el = headings[Number(idxStr)];
+    return el ? [el] : [];
+  }
+
+  const tagP = canonical.match(/^(.+)--p--(\d+)$/) ?? editId.match(/^(.+)--p--(\d+)$/);
+  if (tagP) {
+    const [, sectionKey, idxStr] = tagP;
+    const section = doc.querySelector(`section[id$="__${sectionKey}"]`);
+    if (!section) return [];
+    const desc = section.querySelectorAll(".section--description, .section-description, p");
+    const el = desc[Number(idxStr)];
+    return el ? [el] : [];
+  }
+
+  const marquee =
+    canonical.match(/^(.+)--marquee-text--(\d+)$/) ??
+    editId.match(/^(.+)--marquee-text--(\d+)$/);
+  if (marquee) {
+    const [, sectionKey] = marquee;
+    const section = doc.querySelector(`section[id$="__${sectionKey}"]`);
+    if (!section) return [];
+    return [...section.querySelectorAll(".marquee-text")];
+  }
+
+  const img = parseImageEditId(canonical) ?? parseImageEditId(editId);
+  if (img) {
+    const section = doc.querySelector(`section[id$="__${img.sectionKey}"]`);
+    if (!section) return [];
+    const sel = IMAGE_EDIT_SUFFIX_SELECTORS[img.suffix]!;
+    const nodes = section.querySelectorAll(sel);
+    const el = nodes[img.index];
+    return el ? [el] : [];
+  }
+
+  return [];
+}
+
+function findElementsForEdit(doc: Document, editId: string): Element[] {
+  const tryIds = [editId, canonicalElementEditId(editId), ...mirrorElementEditAliases(editId)];
+  const out: Element[] = [];
+  for (const id of tryIds) {
+    doc.querySelectorAll(`[data-kn-edit="${escapeEditId(id)}"]`).forEach((el) => {
+      if (!out.includes(el)) out.push(el);
+    });
+  }
+  if (out.length) return out;
+  return findElementsForEditFallback(doc, editId);
 }
 
 export function readElementValue(el: Element, kind: MirrorElementKind): string {
@@ -267,16 +493,33 @@ export function readElementValue(el: Element, kind: MirrorElementKind): string {
   return (el.textContent ?? "").trim();
 }
 
+function applyUserImage(el: HTMLImageElement, url: string) {
+  const base = url.split("?")[0] ?? url;
+  const bust = base.includes("?") ? `${base}&kn=1` : `${base}?kn=1`;
+  el.classList.remove("lazyload", "lazyloading");
+  el.classList.add("lazyloaded");
+  el.removeAttribute("loading");
+  el.removeAttribute("data-widths");
+  el.removeAttribute("data-sizes");
+  el.removeAttribute("data-aspectratio");
+  el.src = bust;
+  el.setAttribute("data-src", base);
+  el.setAttribute("data-original", base);
+  el.setAttribute("srcset", `${bust} 1x, ${bust} 2x`);
+  el.removeAttribute("data-srcset");
+  el.setAttribute("data-kn-user-applied", "1");
+  const noscript = el.parentElement?.querySelector("noscript img");
+  if (noscript && isImageNode(noscript)) {
+    noscript.src = base;
+    noscript.setAttribute("data-kn-user-applied", "1");
+  }
+}
+
 export function applyElementValue(el: Element, kind: MirrorElementKind, value: string) {
   const v = value.trim();
   if (!v) return;
   if (kind === "image" && isImageNode(el)) {
-    const bust = v.includes("?") ? `${v}&kn=1` : `${v}?kn=1`;
-    el.src = bust;
-    el.setAttribute("data-src", v);
-    el.setAttribute("data-original", v);
-    el.setAttribute("srcset", `${bust} 1x, ${bust} 2x`);
-    el.removeAttribute("data-srcset");
+    applyUserImage(el, v);
     return;
   }
   if (kind === "link" && isAnchorNode(el)) {
@@ -285,6 +528,14 @@ export function applyElementValue(el: Element, kind: MirrorElementKind, value: s
   }
   if (kind === "html") {
     el.innerHTML = v;
+    el.setAttribute("data-kn-user-applied", "1");
+    return;
+  }
+  if (
+    el.classList.contains("kn-revealing-static-text") ||
+    el.closest(".kn-revealing-static")
+  ) {
+    el.innerHTML = plainTextToSimpleHtml(v);
     return;
   }
   if (
@@ -313,20 +564,84 @@ export function applyElementValue(el: Element, kind: MirrorElementKind, value: s
   el.textContent = v;
 }
 
+export function resolveMarqueeElementEdit(
+  sectionKey: string,
+  elements: Record<string, MirrorElementEdit> | undefined,
+): MirrorElementEdit | undefined {
+  return resolveMirrorElementEdit(marqueeTextElementId(sectionKey), elements);
+}
+
+export function resolveMarqueeHtmlFromEdit(edit: MirrorElementEdit | undefined): string {
+  if (!edit) return "";
+  if (edit.html?.trim()) return edit.html.trim();
+  if (edit.text?.trim()) return plainTextToMarqueeHtml(edit.text);
+  return "";
+}
+
+/** Kayan şerit — bölümdeki tüm kopyalara aynı HTML + okunabilir kaydırma */
+export function applyMarqueeTextToSection(section: Element, html: string) {
+  const v = html.trim();
+  if (!v) return;
+  section.querySelectorAll(".marquee-text").forEach((el) => {
+    applyElementValue(el, "html", v);
+  });
+  enhanceMarqueeSection(section);
+}
+
+/** Tema varsayılanı: kaydırma kapalı + dev punto — vitrin için düzelt */
+export function enhanceMarqueeSection(section: Element) {
+  section.classList.add("kn-marquee-readable");
+  section.querySelectorAll(".marquee--block-node").forEach((node) => {
+    node.classList.add("autoplay--infinite");
+  });
+  section.querySelectorAll(".marquee-text .outline--filled").forEach((el) => {
+    el.classList.add("outline-animate");
+  });
+}
+
 export function applyMirrorElementEdits(
   doc: Document,
   edits: Record<string, MirrorElementEdit> | undefined,
+  locale: import("@/lib/i18n/locale").ShopLocale = "tr",
 ) {
   if (!edits) return;
   stampMirrorEditableElements(doc);
   for (const edit of Object.values(edits)) {
-    const el = findElementForEdit(doc, edit.id);
-    if (!el) continue;
-    if (edit.imageUrl) applyElementValue(el, "image", edit.imageUrl);
-    else if (edit.href) applyElementValue(el, "link", edit.href);
-    else if (edit.html) applyElementValue(el, "html", edit.html);
-    else if (edit.text) applyElementValue(el, "text", edit.text);
-    else continue;
+    const editId = canonicalElementEditId(edit.id);
+    const marqueeMatch = editId.match(/^(.+)--marquee-text--\d+$/);
+    if (marqueeMatch) {
+      const html = resolveMarqueeHtmlFromEdit(edit);
+      if (!html) continue;
+      const section = doc.querySelector(`section[id$="__${marqueeMatch[1]}"]`);
+      if (section) {
+        applyMarqueeTextToSection(section, html);
+        continue;
+      }
+    }
+    const targets = findElementsForEdit(doc, editId);
+    if (!targets.length) continue;
+
+    // EN locale: htmlEn varsa onu kullan; yoksa TR override'ı atla (orijinal EN HTML korunur)
+    const effectiveHtml =
+      locale === "en" && edit.htmlEn !== undefined
+        ? (edit.htmlEn?.trim() || null) // boş string = orijinal HTML'i koru
+        : locale === "en"
+          ? null // htmlEn tanımlı değil → TR override'ı EN'e uygulamaz
+          : (edit.html ?? null);
+
+    for (const el of targets) {
+      if (edit.imageUrl) applyElementValue(el, "image", edit.imageUrl);
+      else if (edit.href) applyElementValue(el, "link", edit.href);
+      else if (effectiveHtml) applyElementValue(el, "html", effectiveHtml);
+      else if (locale !== "en" && edit.text) applyElementValue(el, "text", edit.text);
+      if (edit.style) applyElementTypography(el, edit.style);
+      if (
+        !el.hasAttribute("data-kn-user-applied") &&
+        (edit.imageUrl || edit.href || effectiveHtml || (locale !== "en" && edit.text))
+      ) {
+        el.setAttribute("data-kn-user-applied", "1");
+      }
+    }
   }
 }
 

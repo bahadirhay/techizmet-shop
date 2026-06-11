@@ -10,6 +10,8 @@ export async function GET() {
   const stale: Partial<Record<CronJobId, boolean>> = {
     cartAbandonmentRemind: cronJobStale(health.jobs.cartAbandonmentRemind, 26),
     marketplaceOrders: cronJobStale(health.jobs.marketplaceOrders, 48),
+    blogAutomation: cronJobStale(health.jobs.blogAutomation, 96),
+    gscSync: cronJobStale(health.jobs.gscSync, 30),
   };
 
   return NextResponse.json({ ...health, stale });

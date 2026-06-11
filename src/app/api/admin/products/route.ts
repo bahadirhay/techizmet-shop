@@ -12,6 +12,7 @@ import { parseProductMediaInput } from "@/lib/product-media";
 import { vatRateFromRequestBody } from "@/lib/admin/product-vat";
 import { serializeMarketplacePricesFromForm } from "@/lib/marketplace/product-prices";
 import { resolveProductCategorySelection, syncProductCategoryLinks } from "@/lib/store-product-categories";
+import { resolveProductSeoFields } from "@/lib/admin/product-seo/ensure-seo";
 import { SITE_DEFAULT_EXPLORE_SENTINEL } from "@/lib/product-explore-looks";
 import { productAdminErrorResponse } from "@/lib/admin/product-api-errors";
 
@@ -55,6 +56,15 @@ export async function POST(req: Request) {
       auth.siteId,
       body,
     );
+    const seoFields = await resolveProductSeoFields(auth.siteId, {
+      title,
+      brandId: String(body.brandId ?? "").trim() || null,
+      categoryId: primaryCategoryId,
+      categoryIds,
+      description: String(body.description ?? "").trim() || null,
+      seoTitle: String(body.seoTitle ?? "").trim() || null,
+      seoDescription: String(body.seoDescription ?? "").trim() || null,
+    });
     const barcode = await resolveProductBarcode(prisma, auth.siteId, {
       barcode: String(body.barcode ?? "").trim() || null,
       autoGenerate,
@@ -89,9 +99,10 @@ export async function POST(req: Request) {
         stockQty: parseInt(String(body.stockQty ?? "0"), 10) || 0,
         lowStockThreshold: parseInt(String(body.lowStockThreshold ?? "5"), 10) || 5,
         weightGrams: body.weightGrams ? parseInt(String(body.weightGrams), 10) : null,
+        pieceCount: body.pieceCount ? parseInt(String(body.pieceCount), 10) : null,
         desi: body.desi ? parseFloat(String(body.desi)) : null,
-        seoTitle: String(body.seoTitle ?? "").trim() || null,
-        seoDescription: String(body.seoDescription ?? "").trim() || null,
+        seoTitle: seoFields.seoTitle,
+        seoDescription: seoFields.seoDescription,
         imageUrl: primaryImageUrl,
         variantOptionName,
         badgesJson: serializeProductBadges(

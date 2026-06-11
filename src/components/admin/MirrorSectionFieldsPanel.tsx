@@ -17,7 +17,7 @@ import {
   MirrorVideoSectionFields,
   mergeVideoSectionEdit,
 } from "@/components/admin/MirrorVideoSectionFields";
-import { mergeCollectionsTabEdits } from "@/lib/mirror-collections-tab";
+import { mergeCollectionsTabEdits, enrichCollectionsTabsFromProductOptions } from "@/lib/mirror-collections-tab";
 import { mergeShopTheLookEdits } from "@/lib/mirror-shop-the-look";
 import { mergeFeaturedBlogEdits } from "@/lib/mirror-featured-blog";
 import { BlogPostsDbPanel } from "@/components/admin/BlogPostsDbPanel";
@@ -30,22 +30,50 @@ import {
 } from "@/components/admin/MirrorHomeExtraSectionFields";
 import { mergeScrollingCollectionEdits } from "@/lib/mirror-scrolling-collections-section";
 import { mergeTrendingProductEdits } from "@/lib/mirror-trending-products-section";
-import { mergeTestimonialEdits } from "@/lib/mirror-testimonial-section";
+import { mergeTestimonialEdits, resolveTestimonialVisibleCount } from "@/lib/mirror-testimonial-section";
 import { MirrorImageField } from "@/components/admin/MirrorImageField";
+import { MirrorTypographyFields } from "@/components/admin/MirrorTypographyFields";
 import { PlainHtmlTextarea } from "@/components/admin/PlainHtmlTextarea";
 import type { AdminProductOption } from "@/lib/admin-product-options";
 import type { EditableFieldDef } from "@/lib/mirror-editable-catalog";
+import { findSectionHeadingField } from "@/lib/mirror-editable-field-utils";
+import { marqueePlainToHtml, marqueeEditToPlainText } from "@/lib/html-plain-text";
 import type { MirrorElementEdit } from "@/lib/mirror-element-edits";
+import {
+  marqueeTextElementId,
+  resolveMirrorElementEdit,
+  richtextContentElementId,
+} from "@/lib/mirror-element-edits";
+import { isMirrorHeadingFieldId, isMirrorMarqueeFieldId } from "@/lib/mirror-element-typography";
+import { SectionHeadingFieldBlock } from "@/components/admin/SectionHeadingFieldBlock";
 import type { CollectionGridColumns } from "@/lib/mirror-collection-list-grid";
 import type { ProductGridColumns } from "@/lib/mirror-product-grid";
 import type { MirrorPageSection, MirrorPageSectionEdit } from "@/lib/mirror-home-overlay";
 
-function fieldValue(field: EditableFieldDef, elements: Record<string, MirrorElementEdit> | undefined): string {
-  const edit = elements?.[field.id];
+function fieldValue(
+  field: EditableFieldDef,
+  elements: Record<string, MirrorElementEdit> | undefined,
+): string {
+  const edit = resolveMirrorElementEdit(field.id, elements);
   if (field.kind === "image") return edit?.imageUrl ?? field.defaultValue;
   if (field.kind === "link") return edit?.href ?? field.defaultValue;
   if (field.kind === "html") return edit?.html ?? field.defaultValue;
   return edit?.text ?? field.defaultValue;
+}
+
+function mergeElementPatch(
+  field: EditableFieldDef,
+  elements: Record<string, MirrorElementEdit> | undefined,
+  patch: Partial<MirrorElementEdit>,
+): MirrorElementEdit {
+  const prev = resolveMirrorElementEdit(field.id, elements);
+  return {
+    id: field.id,
+    kind: field.kind,
+    ...prev,
+    ...patch,
+    style: patch.style !== undefined ? patch.style : prev?.style,
+  };
 }
 
 type ProductSlotGroup = {
@@ -197,9 +225,9 @@ export function MirrorSectionFieldsPanel({
     section.productGridDefaults,
     sectionEdit?.productGridColumns,
   );
-  const collectionsTabs = mergeCollectionsTabEdits(
-    section.collectionsTabDefaults,
-    sectionEdit?.collectionsTabs,
+  const collectionsTabs = enrichCollectionsTabsFromProductOptions(
+    mergeCollectionsTabEdits(section.collectionsTabDefaults, sectionEdit?.collectionsTabs),
+    productOptions,
   );
   const shopTheLook = mergeShopTheLookEdits(
     section.shopTheLookDefaults,
@@ -221,8 +249,27 @@ export function MirrorSectionFieldsPanel({
     section.testimonialDefaults,
     sectionEdit?.testimonials,
   );
+  const testimonialVisibleCount = resolveTestimonialVisibleCount(
+    sectionEdit?.testimonialVisibleCount,
+    testimonials.length,
+  );
   const productGroups = getProductSlotGroups(section, fields);
-  const filteredFields =
+  const headingField = findSectionHeadingField(fields);
+  const primaryTextField =
+    section.type === "richtext"
+      ? fields.find((field) => field.id === richtextContentElementId(section.key))
+      : section.type === "marquee"
+        ? fields.find((field) => field.id === marqueeTextElementId(section.key))
+        : undefined;
+  const primaryTextValue =
+    primaryTextField &&
+    (section.type === "marquee"
+      ? marqueeEditToPlainText(
+          resolveMirrorElementEdit(primaryTextField.id, elements),
+          sectionEdit?.marqueeHtml ?? primaryTextField.defaultValue,
+        )
+      : fieldValue(primaryTextField, elements));
+  let filteredFields =
     productGroups.length > 0
       ? fields.filter(
           (field) =>
@@ -233,12 +280,43 @@ export function MirrorSectionFieldsPanel({
             !field.id.includes("--a-product-title--"),
         )
       : fields;
+  if (section.type === "media-grid") {
+    filteredFields = filteredFields.filter((field) => !field.id.includes("--img-media-image--"));
+  }
+  if (section.type === "testimonial") {
+    filteredFields = filteredFields.filter(
+      (field) =>
+        !field.id.includes("--author-title--") &&
+        !field.id.includes("--testimonial--desc--") &&
+        !field.id.includes("--testimonial-desc--"),
+    );
+  }
+  if (section.type === "collections-tab") {
+    filteredFields = filteredFields.filter(
+      (field) =>
+        !field.id.includes("--product-actual-price--") &&
+        !field.id.includes("--h6--") &&
+        !field.id.includes("--collections-tab--menu-content-title--"),
+    );
+  }
+  if (headingField) {
+    filteredFields = filteredFields.filter((field) => field.id !== headingField.id);
+  }
+  if (primaryTextField) {
+    filteredFields = filteredFields.filter((field) => field.id !== primaryTextField.id);
+  }
 
   return (
     <div className="space-y-4">
       <p className="text-xs font-medium uppercase tracking-wide text-sky-400">
         Bölüm: {section.label}
       </p>
+      {section.type === "marquee" ? (
+        <p className="rounded-md border border-amber-500/30 bg-amber-950/30 px-2 py-1.5 text-[11px] text-amber-100">
+          Ana sayfadaki kayan indirim yazısı — <strong>İndirim şeridi</strong> bölümü. Müşteri yorumları
+          başlığı için soldan <strong>Müşteri yorumları</strong> seçin.
+        </p>
+      ) : null}
       <p className="text-xs text-zinc-500">
         Alanları buradan düzenleyin veya ortadaki önizlemede metne tıklayın. Değişiklikler için <strong>Kaydet</strong>.
       </p>
@@ -266,6 +344,77 @@ export function MirrorSectionFieldsPanel({
             }
           />
         </label>
+      ) : null}
+
+      {headingField ? (
+        <SectionHeadingFieldBlock
+          field={headingField}
+          sectionLabel={section.label}
+          sectionEdit={sectionEdit}
+          elements={elements}
+          onPatchElement={onPatchElement}
+        />
+      ) : null}
+
+      {primaryTextField ? (
+        <div className="space-y-2 rounded-lg border border-sky-800/50 bg-sky-950/20 p-3">
+          <p className="text-xs font-medium text-sky-300">{primaryTextField.label}</p>
+          {section.type === "marquee" ? (
+            <p className="text-[11px] leading-snug text-zinc-400">
+              Kayan indirim yazısı — yalnızca indirim kodunu <code className="text-[10px]">*yıldız*</code>{" "}
+              içine alın. Örn:{" "}
+              <span className="text-zinc-300">
+                %20 indirim için *P-A-W-20* kodunu kullanabilirsiniz
+              </span>
+            </p>
+          ) : null}
+          {primaryTextField.hint ? (
+            <p className="text-[11px] leading-snug text-zinc-500">{primaryTextField.hint}</p>
+          ) : null}
+          {primaryTextField.kind === "html" && section.type === "marquee" ? (
+            <textarea
+              className="mt-1 w-full rounded-lg border border-zinc-600 bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
+              rows={5}
+              value={primaryTextValue ?? ""}
+              onChange={(e) => {
+                const plain = e.target.value;
+                onPatchElement(
+                  mergeElementPatch(primaryTextField, elements, {
+                    text: plain,
+                    html: marqueePlainToHtml(plain),
+                  }),
+                );
+              }}
+            />
+          ) : primaryTextField.kind === "html" ? (
+            <PlainHtmlTextarea
+              label=""
+              rows={5}
+              accentMarked={isMirrorHeadingFieldId(primaryTextField.id)}
+              outlineMarked={isMirrorMarqueeFieldId(primaryTextField.id)}
+              valueHtml={primaryTextValue ?? fieldValue(primaryTextField, elements)}
+              onChangeHtml={(html) =>
+                onPatchElement(mergeElementPatch(primaryTextField, elements, { html }))
+              }
+            />
+          ) : (
+            <textarea
+              className="w-full rounded-lg border border-zinc-600 bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
+              rows={5}
+              value={primaryTextValue ?? fieldValue(primaryTextField, elements)}
+              onChange={(e) =>
+                onPatchElement(mergeElementPatch(primaryTextField, elements, { text: e.target.value }))
+              }
+            />
+          )}
+          <MirrorTypographyFields
+            compact
+            value={resolveMirrorElementEdit(primaryTextField.id, elements)?.style}
+            onChange={(style) =>
+              onPatchElement(mergeElementPatch(primaryTextField, elements, { style }))
+            }
+          />
+        </div>
       ) : null}
 
       {section.type === "media-grid" ? (
@@ -358,10 +507,36 @@ export function MirrorSectionFieldsPanel({
       ) : null}
 
       {section.type === "testimonial" && testimonials.length > 0 ? (
-        <TestimonialSectionFields
-          items={testimonials}
-          onChange={(testimonials) => onPatchSection({ testimonials })}
-        />
+        <>
+          <label className="block text-xs text-zinc-400">
+            Vitrinde gösterilecek yorum sayısı
+            <span className="mt-0.5 block font-normal text-zinc-500">
+              Temada {testimonials.length} yorum kartı var. İlk N kart sitede görünür; geri kalanı gizlenir.
+            </span>
+            <input
+              type="number"
+              min={1}
+              max={testimonials.length}
+              className="mt-1 w-full rounded-lg border border-zinc-600 bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
+              value={sectionEdit?.testimonialVisibleCount ?? testimonials.length}
+              onChange={(e) => {
+                const n = parseInt(e.target.value, 10);
+                onPatchSection({
+                  testimonialVisibleCount:
+                    Number.isFinite(n) && n >= 1 && n <= testimonials.length ? n : undefined,
+                });
+              }}
+            />
+          </label>
+          <TestimonialSectionFields
+            items={testimonials}
+            visibleCount={testimonialVisibleCount}
+            sectionKey={section.key}
+            elements={elements}
+            onPatchElement={onPatchElement}
+            onChange={(testimonials) => onPatchSection({ testimonials })}
+          />
+        </>
       ) : null}
 
       {productGroups.length > 0 ? (
@@ -379,63 +554,97 @@ export function MirrorSectionFieldsPanel({
           <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">
             Metin & görseller ({filteredFields.length})
           </p>
-          {filteredFields.map((field) =>
-            field.kind === "html" ? (
-              <PlainHtmlTextarea
-                key={field.id}
-                label={field.label}
-                hint={field.hint}
-                rows={field.id.includes("revealing") ? 6 : 4}
-                valueHtml={fieldValue(field, elements)}
-                onChangeHtml={(html) =>
-                  onPatchElement({
-                    id: field.id,
-                    kind: field.kind,
-                    html,
-                  })
-                }
-              />
-            ) : (
-            field.kind === "image" ? (
-              <div key={field.id} className="space-y-1">
+          {filteredFields.map((field) => {
+            const fieldStyle = resolveMirrorElementEdit(field.id, elements)?.style;
+            const isTextField = field.kind === "html" || field.kind === "text";
+
+            if (field.kind === "html") {
+              return (
+                <div key={field.id} className="space-y-1 rounded-lg border border-zinc-800/80 p-3">
+                  <PlainHtmlTextarea
+                    label={field.label}
+                    hint={field.hint}
+                    rows={field.id.includes("revealing") ? 6 : 4}
+                    accentMarked={isMirrorHeadingFieldId(field.id)}
+                    valueHtml={fieldValue(field, elements)}
+                    onChangeHtml={(html) =>
+                      onPatchElement(mergeElementPatch(field, elements, { html }))
+                    }
+                  />
+                  <MirrorTypographyFields
+                    compact
+                    value={fieldStyle}
+                    onChange={(style) =>
+                      onPatchElement(mergeElementPatch(field, elements, { style }))
+                    }
+                  />
+                </div>
+              );
+            }
+
+            if (field.kind === "image") {
+              return (
+                <div key={field.id} className="space-y-1">
+                  {field.hint ? (
+                    <p className="text-xs text-zinc-600">{field.hint}</p>
+                  ) : null}
+                  <MirrorImageField
+                    editorChrome
+                    label={field.label}
+                    value={fieldValue(field, elements)}
+                    onChange={(url) =>
+                      onPatchElement(mergeElementPatch(field, elements, { imageUrl: url }))
+                    }
+                  />
+                </div>
+              );
+            }
+
+            if (isTextField) {
+              return (
+                <div key={field.id} className="space-y-1 rounded-lg border border-zinc-800/80 p-3">
+                  <label className="block text-xs text-zinc-400">
+                    {field.label}
+                    {field.hint ? (
+                      <span className="mt-0.5 block font-normal text-zinc-600">{field.hint}</span>
+                    ) : null}
+                    <textarea
+                      className="mt-1 w-full rounded-lg border border-zinc-600 bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
+                      rows={field.id.includes("revealing") ? 8 : 2}
+                      value={fieldValue(field, elements)}
+                      onChange={(e) =>
+                        onPatchElement(mergeElementPatch(field, elements, { text: e.target.value }))
+                      }
+                    />
+                  </label>
+                  <MirrorTypographyFields
+                    compact
+                    value={fieldStyle}
+                    onChange={(style) =>
+                      onPatchElement(mergeElementPatch(field, elements, { style }))
+                    }
+                  />
+                </div>
+              );
+            }
+
+            return (
+              <label key={field.id} className="block text-xs text-zinc-400">
+                {field.label}
                 {field.hint ? (
-                  <p className="text-xs text-zinc-600">{field.hint}</p>
+                  <span className="mt-0.5 block font-normal text-zinc-600">{field.hint}</span>
                 ) : null}
-                <MirrorImageField
-                  editorChrome
-                  label={field.label}
-                  value={fieldValue(field, elements)}
-                  onChange={(url) =>
-                    onPatchElement({
-                      id: field.id,
-                      kind: field.kind,
-                      imageUrl: url,
-                    })
-                  }
-                />
-              </div>
-            ) : (
-            <label key={field.id} className="block text-xs text-zinc-400">
-              {field.label}
-              {field.hint ? (
-                <span className="mt-0.5 block font-normal text-zinc-600">{field.hint}</span>
-              ) : null}
-                <textarea
+                <input
+                  type="text"
                   className="mt-1 w-full rounded-lg border border-zinc-600 bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
-                  rows={field.id.includes("revealing") ? 8 : 2}
                   value={fieldValue(field, elements)}
                   onChange={(e) =>
-                    onPatchElement({
-                      id: field.id,
-                      kind: field.kind,
-                      text: e.target.value,
-                    })
+                    onPatchElement(mergeElementPatch(field, elements, { href: e.target.value }))
                   }
                 />
-            </label>
-            )
-            ),
-          )}
+              </label>
+            );
+          })}
         </div>
       ) : section.type !== "media-grid" &&
         section.type !== "video" &&
@@ -447,7 +656,9 @@ export function MirrorSectionFieldsPanel({
         section.type !== "main-blog" &&
         section.type !== "scrolling-collections" &&
         section.type !== "trending-products" &&
-        section.type !== "testimonial" ? (
+        section.type !== "testimonial" &&
+        section.type !== "richtext" &&
+        section.type !== "marquee" ? (
         <p className="text-xs text-zinc-600">Bu bölümde otomatik alan bulunamadı; önizlemede tıklayarak seçin.</p>
       ) : null}
     </div>

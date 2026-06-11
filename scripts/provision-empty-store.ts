@@ -16,10 +16,13 @@ import { buildEmptyStoreHomePreset } from "../src/lib/blocks/presets/empty-store
 import { serializeBlocks } from "../src/lib/blocks/schema";
 import { resolveNavMenuHref } from "../src/lib/nav-menu-link";
 import { allStaffPermissions } from "../src/lib/staff-permissions";
+import type { HomepageMode } from "../src/lib/site-settings";
 import {
+  buildAnatolianPawStoreSettings,
   buildEmptyStoreSettings,
   EMPTY_STORE_HEADER_MENU,
 } from "../src/lib/store-provision-template";
+import { ensureLegalCmsPages } from "../src/lib/ensure-legal-cms-pages";
 
 function argValue(flag: string): string | undefined {
   const hit = process.argv.find((a) => a === flag || a.startsWith(`${flag}=`));
@@ -51,6 +54,11 @@ async function main() {
   const adminUser = argValue("--admin-user") ?? "admin";
   const locale = argValue("--locale") === "en" ? "en" : "tr";
   const force = process.argv.includes("--force");
+  const mirror = process.argv.includes("--mirror");
+  const preset = argValue("--preset")?.toLowerCase();
+  const metaDescription = argValue("--meta-description");
+
+  let homepageMode: HomepageMode = mirror ? "mirror" : "blocks";
 
   if (!process.env.DATABASE_URL?.trim()) {
     throw new Error("DATABASE_URL tanımlı değil (--env-file ile doğru .env dosyasını verin).");
@@ -79,11 +87,20 @@ async function main() {
       await prisma.storeSite.delete({ where: { id: existing.id } });
     }
 
-    const settings = buildEmptyStoreSettings({
-      siteName: name,
-      publicUrl: publicUrl || undefined,
-      locale,
-    });
+    const settings =
+      preset === "anatolianpaw"
+        ? buildAnatolianPawStoreSettings(publicUrl || undefined)
+        : buildEmptyStoreSettings({
+            siteName: name,
+            publicUrl: publicUrl || undefined,
+            locale,
+            homepageMode,
+            metaDescription: metaDescription || undefined,
+          });
+
+    if (preset === "anatolianpaw") {
+      homepageMode = "mirror";
+    }
 
     const site = await prisma.storeSite.create({
       data: {
@@ -195,12 +212,15 @@ async function main() {
       });
     }
 
+    await ensureLegalCmsPages(site.id);
+
     console.log("");
     console.log("=== Mağaza hazır (boş vitrin) ===");
     console.log(`  Site slug     : ${slug}`);
     console.log(`  Site adı      : ${name}`);
     console.log(`  Site id       : ${site.id}`);
-    console.log(`  Vitrin modu   : blocks (Techizmet Shop mirror yok)`);
+    console.log(`  Vitrin modu   : ${homepageMode}`);
+    console.log(`  Tema paketi   : techizmet-shop (içerik panelden değişir)`);
     console.log(`  Ürün sayısı   : 0`);
     console.log(`  Admin kullanıcı: ${adminUser}`);
     console.log(`  Admin şifre   : (ADMIN_PASSWORD — .env dosyanızda)`);
@@ -209,7 +229,10 @@ async function main() {
     console.log(`  1. .env içinde STORE_SITE_SLUG=${slug}`);
     console.log(`  2. NEXT_PUBLIC_STORE_URL=${publicUrl || "http://localhost:5555"}`);
     console.log("  3. npm run dev  →  /admin");
-    console.log("  4. Ürünler, koleksiyonlar, tema görselleri panelden ekleyin");
+    console.log("  4. Admin → Logo & SEO, Ana Sayfa, Ürünler / kategoriler");
+    if (homepageMode === "mirror") {
+      console.log("  5. Mirror vitrin: logo/menü Ayarlar'dan; metinler Ana Sayfa editöründen");
+    }
     console.log("");
     console.log("Canlı (anatolianpaw.com): ayrı Vercel projesi + bu DATABASE_URL + alan adı DNS.");
     console.log("");

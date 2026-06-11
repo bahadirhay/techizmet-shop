@@ -29,6 +29,8 @@ function setImgSrc(img: HTMLImageElement, url: string, fallback: string) {
   if (curSrc === path && curSet.includes(path)) return;
 
   img.removeAttribute("data-src");
+  img.removeAttribute("width");
+  img.removeAttribute("height");
   img.onerror = () => {
     const fb = bust(fallback);
     if (fallback && pathOf(img.src) !== pathOf(fb)) {
@@ -44,7 +46,7 @@ function setImgSrc(img: HTMLImageElement, url: string, fallback: string) {
   img.dataset.knBrand = path;
 }
 
-function setFavicon(doc: Document, url: string) {
+export function setMirrorFavicon(doc: Document, url: string) {
   const href = bust(url);
   for (const rel of ["icon", "shortcut icon", "apple-touch-icon"]) {
     let link = doc.querySelector(`link[rel="${rel}"]`) as HTMLLinkElement | null;
@@ -80,7 +82,7 @@ export function applyMirrorBranding(doc: Document, branding: MirrorBranding) {
     });
   }
 
-  if (favicon) setFavicon(doc, favicon);
+  if (favicon) setMirrorFavicon(doc, favicon);
 }
 
 const GUARD_SCRIPT_ID = "kn-branding-guard-script";
@@ -112,6 +114,8 @@ export function installMirrorBrandingGuard(doc: Document, branding: MirrorBrandi
     if(pathOf(img.getAttribute("src")||"")===p&&set.indexOf(p)>=0)return;
     var fb=fallback?bust(fallback):"";
     img.removeAttribute("data-src");
+    img.removeAttribute("width");
+    img.removeAttribute("height");
     img.onerror=function(){
       if(fb&&pathOf(img.src)!==pathOf(fb)){img.onerror=null;setImg(img,fallback,"");return;}
       img.style.visibility="hidden";
@@ -121,20 +125,22 @@ export function installMirrorBrandingGuard(doc: Document, branding: MirrorBrandi
     img.dataset.knBrand=p;
   }
   function apply(){
-    if(P.logo) document.querySelectorAll("img.header--logo-img:not(.transparent-logo-img)").forEach(function(el){setImg(el,P.logo,P.fallbackDark);});
-    if(P.light) document.querySelectorAll("img.header--logo-img.transparent-logo-img,img.transparent-logo-img,img.footer--logo-img").forEach(function(el){setImg(el,P.light,P.fallbackLight);});
+    var unified=!!document.querySelector("[id^=kn-logo-unify-script]")||document.documentElement.dataset.knLogoUnifyWatch==="1";
+    if(!unified&&P.logo) document.querySelectorAll("img.header--logo-img:not(.transparent-logo-img)").forEach(function(el){setImg(el,P.logo,P.fallbackDark);});
+    if(P.light) document.querySelectorAll(unified?"img.footer--logo-img":"img.header--logo-img.transparent-logo-img,img.transparent-logo-img,img.footer--logo-img").forEach(function(el){setImg(el,P.light,P.fallbackLight);});
     if(P.favicon) ["icon","shortcut icon","apple-touch-icon"].forEach(function(rel){
       var link=document.querySelector('link[rel="'+rel+'"]');
       if(!link){link=document.createElement("link");link.rel=rel;document.head.appendChild(link);}
       link.href=bust(P.favicon);
     });
-    document.querySelectorAll('link[rel="preload"][as="image"]').forEach(function(l){
+    if(!unified) document.querySelectorAll('link[rel="preload"][as="image"]').forEach(function(l){
       if(/logo/i.test(l.href)) l.href=bust(P.light||P.logo);
     });
   }
   apply();
   var t=0;
   new MutationObserver(function(){
+    if(document.querySelector("[id^=kn-logo-unify-script]")||document.documentElement.dataset.knLogoUnifyWatch==="1") return;
     if(Date.now()-t<80)return;
     t=Date.now();
     apply();

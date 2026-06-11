@@ -12,7 +12,7 @@ export default async function StoreSettingsPage() {
     <div>
       <h1 className="text-2xl font-semibold">Mağaza ayarları</h1>
       <p className="mt-1 text-sm text-zinc-500">
-        Sipariş numarası, kargo etiketi gönderici adresi, ücretsiz kargo eşiği ve vitrin metinleri.
+        Sipariş numarası, kargo etiketi gönderici adresi, ücretsiz kargo eşiği, üst duyuru şeridi ve vitrin metinleri.
       </p>
       <div className="mt-6">
         <StoreSettingsForm initial={settings} />

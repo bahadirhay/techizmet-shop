@@ -98,36 +98,6 @@ export function CartPageClient() {
         </div>
         <aside className="kn-cart-summary">
           <h2>Sipariş özeti</h2>
-          {!cart.freeShipping &&
-          cart.freeShippingThresholdMinor > 0 &&
-          cart.freeShippingRemainingMinor > 0 ? (
-            <div className="kn-free-shipping-bar">
-              <p>
-                Ücretsiz kargo için{" "}
-                <strong>{formatTry(cart.freeShippingRemainingMinor)}</strong> daha ekleyin (
-                {formatTry(cart.freeShippingThresholdMinor)} ve üzeri)
-              </p>
-              <div className="kn-free-shipping-bar__track">
-                <div
-                  className="kn-free-shipping-bar__fill"
-                  style={{
-                    width: `${Math.min(
-                      100,
-                      Math.round(
-                        ((cart.freeShippingThresholdMinor - cart.freeShippingRemainingMinor) /
-                          cart.freeShippingThresholdMinor) *
-                          100,
-                      ),
-                    )}%`,
-                  }}
-                />
-              </div>
-            </div>
-          ) : cart.freeShipping ? (
-            <p className="kn-text-success kn-free-shipping-bar kn-free-shipping-bar--ok">
-              Bu siparişte kargo ücretsiz
-            </p>
-          ) : null}
           <div className="kn-cart-summary__coupon">
             <label>
               Kupon kodu
@@ -147,12 +117,6 @@ export function CartPageClient() {
                 Kuponu kaldır ({cart.couponCode})
               </button>
             ) : null}
-            {cart.couponLabel ? (
-              <p className="kn-cart-summary__coupon-ok">
-                {cart.couponLabel}
-                {cart.couponCode ? ` (${cart.couponCode})` : ""}
-              </p>
-            ) : null}
           </div>
           <dl className="kn-cart-summary__rows">
             <div>
@@ -161,22 +125,39 @@ export function CartPageClient() {
             </div>
             {cart.discountMinor > 0 ? (
               <div>
-                <dt>İndirim</dt>
+                <dt>
+                  İndirim
+                  {cart.couponLabel &&
+                  cart.couponLabel !== "Ücretsiz kargo" &&
+                  cart.couponLabel !== "Free shipping"
+                    ? ` (${cart.couponLabel})`
+                    : cart.couponCode
+                      ? ` (${cart.couponCode})`
+                      : ""}
+                </dt>
                 <dd>−{formatTry(cart.discountMinor)}</dd>
               </div>
             ) : null}
-            {cart.freeShipping ? (
-              <div>
-                <dt>Kargo</dt>
-                <dd className="kn-text-success">Ücretsiz</dd>
-              </div>
-            ) : null}
             <div className="kn-cart-summary__total">
-              <dt>Toplam (kargo hariç)</dt>
+              <dt>Toplam{cart.freeShipping ? "" : " (kargo hariç)"}</dt>
               <dd>{formatTry(cart.totalMinor)}</dd>
             </div>
           </dl>
-          <p className="kn-cart-summary__note">Kargo ücreti ödeme adımında hesaplanır.</p>
+          {cart.freeShipping ? (
+            <p className="kn-cart-free-shipping-under-total kn-cart-free-shipping-under-total--active">
+              Ücretsiz kargo
+            </p>
+          ) : cart.freeShippingThresholdMinor > 0 && cart.freeShippingRemainingMinor > 0 ? (
+            <p className="kn-cart-free-shipping-under-total">
+              Ücretsiz kargo için <strong>{formatTry(cart.freeShippingRemainingMinor)}</strong> daha
+              ekleyin.
+            </p>
+          ) : null}
+          <p className="kn-cart-summary__note">
+            {cart.freeShipping
+              ? "Vergi ve indirimler ödeme adımında hesaplanır."
+              : "Kargo ücreti ödeme adımında hesaplanır."}
+          </p>
           <Link href="/checkout" className="kn-btn kn-btn--primary kn-btn--block">
             Ödemeye geç
           </Link>

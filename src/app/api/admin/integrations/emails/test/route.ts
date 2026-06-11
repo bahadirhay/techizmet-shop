@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { buildOrderEmailVars } from "@/lib/email/build-order-vars";
 import { renderEmailTemplate, resolveEmailTemplate } from "@/lib/email/template-render";
 import { sendTemplateEmail } from "@/lib/email/send-template-email";
+import { resolveMailFrom } from "@/lib/notification-settings";
 import { requireStaffApi } from "@/lib/staff-auth";
 import { getSiteSettings, type EmailTemplateKey } from "@/lib/site-settings";
 import { prisma } from "@/lib/prisma";
@@ -42,24 +43,30 @@ export async function POST(req: Request) {
   });
 
   const { subject, html } = renderEmailTemplate(template, vars);
+  const siteName = site?.name ?? "Mağaza";
   const result = await sendTemplateEmail({
     to,
     subject: `[TEST] ${subject}`,
     html,
+    from: resolveMailFrom(settings, siteName),
+    replyTo: settings.notifications?.email?.replyTo,
     settings,
+    siteName,
   });
 
   if (!result.sent) {
-    const reasonMsg =
+    const base =
       result.reason === "not_configured"
         ? "SMTP veya Resend yapılandırılmamış — Bildirimler → E-posta sunucusu bölümünden ayarlayın."
         : result.reason === "smtp_error"
-          ? "SMTP sunucusu reddetti — host, port ve şifreyi kontrol edin."
+          ? "SMTP sunucusu reddetti."
           : "E-posta gönderilemedi";
+    const reasonMsg = result.detail ? `${base} ${result.detail}` : base;
     return NextResponse.json({
       ok: false,
       reason: result.reason ?? "not_configured",
       message: reasonMsg,
+      detail: result.detail,
     });
   }
 

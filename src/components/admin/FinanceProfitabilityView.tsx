@@ -47,7 +47,7 @@ export function FinanceProfitabilityView({ report }: { report: ProfitabilityRepo
               ? formatTry(report.totals.estimatedNetProfitMinor)
               : "—"}
           </p>
-          <p className="text-xs text-zinc-500 mt-1">Maliyet girilmiş siparişler</p>
+          <p className="text-xs text-zinc-500 mt-1">Kargo, komisyon ve maliyet dahil</p>
         </div>
         <div className="admin-kpi" style={{ ["--kpi-accent" as string]: "#059669" }}>
           <p className="admin-kpi-label">Gerçek net kâr</p>
@@ -70,7 +70,7 @@ export function FinanceProfitabilityView({ report }: { report: ProfitabilityRepo
 
       <section className="admin-card admin-card-pad mt-8 overflow-x-auto">
         <h2 className="font-semibold">Kanal kârlılığı</h2>
-        <p className="mt-1 text-xs text-zinc-500">Web vs pazaryeri — brüt, kesinti, maliyet, net marj</p>
+        <p className="mt-1 text-xs text-zinc-500">Web vs pazaryeri — brüt, kesinti, kargo/komisyon, maliyet, net marj</p>
         {report.channels.length === 0 ? (
           <p className="mt-4 text-sm text-zinc-500">Bu dönemde sipariş yok.</p>
         ) : (

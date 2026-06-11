@@ -1,20 +1,17 @@
 import { notFound } from "next/navigation";
 import { MirrorProductFrameClient } from "@/components/store/MirrorProductFrameClient";
 import type { ShopLocale } from "@/lib/i18n/locale";
-import { parseSiteSettings } from "@/lib/site-settings";
-import { prisma } from "@/lib/prisma";
 import {
   buildProductMirrorSrc,
-  productMirrorFileRel,
   resolveMirrorProductTemplateSlug,
 } from "@/lib/mirror-html-path";
-import { hasPrebuiltMirrorHtml } from "@/lib/mirror-prebuilt";
-import { loadMirrorProductCommerce } from "@/lib/mirror-product-commerce-server";
+import { loadMirrorFooterData } from "@/lib/mirror-footer-server";
+import { loadMirrorNavItems } from "@/lib/mirror-nav-server";
 import { loadMirrorProductFramePayload } from "@/lib/mirror-product-frame-server";
-import { getProductPageBottomSettings } from "@/lib/product-page-bottom";
+import { getSiteBranding, getSiteSettings } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
 
-/** HTTrack mirror — ürün detay; prod: iframe anında, DB yaması prebuild’de */
+/** HTTrack mirror — ürün detay; DB fiyat/içerik istemci + API ile yansır */
 export async function MirrorProductFrame({
   slug,
   locale,
@@ -29,39 +26,20 @@ export async function MirrorProductFrame({
   breadcrumbs?: { name: string; href: string; current?: boolean }[];
 }) {
   const site = await getDefaultSite();
+  const settings = await getSiteSettings(site.id);
   const resolvedTemplateSlug = templateSlug ?? resolveMirrorProductTemplateSlug(slug);
   if (!resolvedTemplateSlug) notFound();
 
+  const [payload, nav, footer] = await Promise.all([
+    loadMirrorProductFramePayload(site.id, slug, locale),
+    loadMirrorNavItems(site.id, locale),
+    loadMirrorFooterData(site.id, locale),
+  ]);
+  if (!payload) notFound();
+
+  const branding = getSiteBranding(settings);
   const src = buildProductMirrorSrc(slug, locale, resolvedTemplateSlug);
   const frameTitle = title ?? `Product — ${slug}`;
-  const siteRow = await prisma.storeSite.findUnique({ where: { id: site.id } });
-  const settings = parseSiteSettings(siteRow?.settingsJson ?? null);
-  const productPageBottom = getProductPageBottomSettings(settings, locale);
-
-  const productPrebuilt = hasPrebuiltMirrorHtml(productMirrorFileRel(slug, locale));
-  const commerceForShare = await loadMirrorProductCommerce(
-    site.id,
-    slug,
-    locale,
-    settings.store?.texts,
-  );
-
-  if (process.env.NODE_ENV === "production" || productPrebuilt) {
-    return (
-      <MirrorProductFrameClient
-        src={src}
-        title={frameTitle}
-        productSlug={slug}
-        locale={locale}
-        productPageBottom={productPageBottom}
-        share={commerceForShare?.share}
-        breadcrumbs={breadcrumbs}
-      />
-    );
-  }
-
-  const payload = await loadMirrorProductFramePayload(site.id, slug, locale);
-  if (!payload) notFound();
 
   return (
     <MirrorProductFrameClient
@@ -70,10 +48,15 @@ export async function MirrorProductFrame({
       overlay={payload.overlay}
       productFromAdmin={payload.productFromAdmin}
       commerce={payload.commerce ?? undefined}
+      branding={branding}
+      nav={nav}
+      footer={footer}
       locale={locale}
-      exploreLooks={[]}
-      exploreProductsBySlug={{}}
+      exploreLooks={payload.exploreLooks}
+      exploreProductsBySlug={payload.exploreProductsBySlug}
+      explorePrefetched
       productSlug={slug}
+      templateMirrorSlug={resolvedTemplateSlug !== slug ? resolvedTemplateSlug : undefined}
       productPageBottom={payload.productPageBottom}
       breadcrumbs={breadcrumbs}
     />

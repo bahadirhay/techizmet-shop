@@ -3,6 +3,7 @@ import type { ShopBlock } from "@/lib/blocks/schema";
 import type { StoreMessages } from "@/lib/i18n/messages";
 import { HeroSliderBlock } from "@/components/store/HeroSliderBlock";
 import { ProductGridBlock } from "@/components/store/ProductGridBlock";
+import { FeatureCardsBlock } from "@/components/store/FeatureCardsBlock";
 
 export async function StorePublicBlocks({
   blocks,
@@ -168,6 +169,38 @@ export async function StorePublicBlocks({
               </form>
             </div>
           ) : null}
+
+          {block.type === "featureCards" ? <FeatureCardsBlock {...block.props} /> : null}
+
+          {block.type === "map" ? (() => {
+            const url =
+              block.props.embedUrl?.trim() ||
+              (block.props.address?.trim()
+                ? `https://maps.google.com/maps?q=${encodeURIComponent(block.props.address.trim())}&output=embed`
+                : null);
+            if (!url) return null;
+            const fw = block.props.fullWidth;
+            return (
+              <div style={fw ? {
+                width: "100%",
+                overflow: "hidden",
+              } : {
+                width: "100%",
+                overflow: "hidden",
+                borderRadius: "12px",
+                border: "1px solid #e4e4e7",
+              }}>
+                <iframe
+                  title="Harita"
+                  src={url}
+                  style={{ width: "100%", height: block.props.height ?? 400, border: "none", display: "block" }}
+                  loading="lazy"
+                  allowFullScreen
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
+              </div>
+            );
+          })() : null}
         </section>
       ))}
     </>

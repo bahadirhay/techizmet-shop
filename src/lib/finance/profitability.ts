@@ -1,6 +1,7 @@
 import "server-only";
 
 import { parseOrderFinanceSnapshot } from "@/lib/finance/order-economics";
+import { totalOperatingCostsFromSnapshot } from "@/lib/finance/economics-math";
 import { MARKETPLACE_PLATFORMS } from "@/lib/admin/marketplace-platforms";
 import { prisma } from "@/lib/prisma";
 
@@ -143,10 +144,11 @@ export async function loadProfitabilityReport(
     const channel = order.marketplacePlatform ?? "web";
     const snap = parseOrderFinanceSnapshot(order.financeSnapshotJson);
     const gross = snap?.grossMinor ?? order.totalMinor;
-    const estDed =
-      snap && order.marketplacePlatform
+    const estDed = snap
+      ? order.marketplacePlatform
         ? snap.totalCommissionMinor + snap.shippingDeductionMinor
-        : 0;
+        : totalOperatingCostsFromSnapshot(snap)
+      : 0;
     const cost = snap?.totalCostMinor ?? 0;
 
     const row = channelMap.get(channel) ?? {
@@ -275,10 +277,11 @@ export async function loadProfitabilityReport(
     const confirmedOrderDed = orderDeductions
       .filter((d) => d.reconciliationStatus !== "estimated")
       .reduce((s, d) => s + d.amountMinor, 0);
-    const estimatedOrderDed =
-      snap && order.marketplacePlatform
+    const estimatedOrderDed = snap
+      ? order.marketplacePlatform
         ? snap.totalCommissionMinor + snap.shippingDeductionMinor
-        : 0;
+        : totalOperatingCostsFromSnapshot(snap)
+      : 0;
     const effectiveDed = confirmedOrderDed > 0 ? confirmedOrderDed : estimatedOrderDed;
     const gross = snap.grossMinor;
     const cost = snap.totalCostMinor ?? 0;

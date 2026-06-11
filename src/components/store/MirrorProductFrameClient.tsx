@@ -19,6 +19,7 @@ import type { MirrorNavItem } from "@/lib/mirror-nav-overlay";
 import {
   applyProductDetailFromAdmin,
   patchStickyBuyButton,
+  productGalleryReady,
   type VitrinProductDetail,
 } from "@/lib/mirror-product-detail-sync";
 import {
@@ -54,8 +55,10 @@ export function MirrorProductFrameClient({
   locale,
   exploreLooks: exploreLooksInitial,
   exploreProductsBySlug: exploreProductsInitial,
+  explorePrefetched = false,
   productPageBottom,
   productSlug,
+  templateMirrorSlug,
   share,
   breadcrumbs = [],
 }: {
@@ -71,8 +74,11 @@ export function MirrorProductFrameClient({
   locale?: ShopLocale;
   exploreLooks?: ProductExploreLook[];
   exploreProductsBySlug?: Record<string, ExploreOverlayProduct>;
+  /** SSR'den Keşfet verisi geldiyse istemci fetch beklemeden gizleme uygulanır */
+  explorePrefetched?: boolean;
   productPageBottom?: ProductPageBottomSettings;
   productSlug?: string;
+  templateMirrorSlug?: string;
   breadcrumbs?: { name: string; href: string; current?: boolean }[];
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -82,15 +88,15 @@ export function MirrorProductFrameClient({
   const [exploreProductsBySlug, setExploreProductsBySlug] = useState<
     Record<string, ExploreOverlayProduct>
   >(exploreProductsInitial ?? {});
-  const [exploreResolved, setExploreResolved] = useState(
-    (exploreLooksInitial?.length ?? 0) > 0,
-  );
+  const [exploreResolved, setExploreResolved] = useState(explorePrefetched);
   const [pageBottomLive, setPageBottomLive] = useState<ProductPageBottomSettings | undefined>(
     productPageBottom,
   );
 
   useMirrorLocaleMessage();
-  useMirrorFrameRouteSync(iframeRef, src);
+  // PDP iframe icindeki tema galerisi eski Shopify ürün URL'lerine gidebiliyor.
+  // Ürün sayfasında parent route'u iframe location'ından senkronlamak güvenli değil.
+  useMirrorFrameRouteSync(iframeRef, src, false);
 
   useEffect(() => {
     const link = document.createElement("link");
@@ -127,7 +133,7 @@ export function MirrorProductFrameClient({
   }, [productSlug]);
 
   useEffect(() => {
-    if (!productSlug || exploreResolved) return;
+    if (!productSlug || explorePrefetched) return;
     let cancelled = false;
     fetch(`/api/vitrin/product-frame?slug=${encodeURIComponent(productSlug)}`, {
       cache: "no-store",
@@ -152,7 +158,7 @@ export function MirrorProductFrameClient({
     return () => {
       cancelled = true;
     };
-  }, [productSlug, exploreResolved]);
+  }, [productSlug, explorePrefetched]);
 
   useEffect(() => {
     setPageBottomLive(productPageBottom);
@@ -186,21 +192,22 @@ export function MirrorProductFrameClient({
 
     const prebuiltSynced = isProductDocSynced(doc);
 
-    if (!prebuiltSynced) {
-      if (productFromAdmin) {
-        applyProductDetailFromAdmin(doc, productFromAdmin);
-        const stickyProduct = productFromAdmin;
-        const reapplySticky = () => {
-          const d = iframeRef.current?.contentDocument;
-          if (d?.getElementById("MainContent")) patchStickyBuyButton(d, stickyProduct);
-        };
-        for (const ms of PATCH_RETRY_MS) {
-          window.setTimeout(reapplySticky, ms);
-        }
+    if (productFromAdmin) {
+      applyProductDetailFromAdmin(doc, productFromAdmin, {
+        templateSlug: templateMirrorSlug,
+      });
+      const stickyProduct = productFromAdmin;
+      const reapplySticky = () => {
+        const d = iframeRef.current?.contentDocument;
+        if (d?.getElementById("MainContent")) patchStickyBuyButton(d, stickyProduct);
+      };
+      for (const ms of PATCH_RETRY_MS) {
+        window.setTimeout(reapplySticky, ms);
       }
-      applyProductContentOverlay(doc, overlay ?? {});
-      if (commerce) applyMirrorProductCommerce(doc, commerce);
     }
+
+    applyProductContentOverlay(doc, overlay ?? {});
+    if (commerce) applyMirrorProductCommerce(doc, commerce);
 
     const sharePayload = share ?? commerce?.share;
     if (sharePayload && !doc.getElementById("kn-share-btn")) {
@@ -238,7 +245,15 @@ export function MirrorProductFrameClient({
       applyExploreLooksOverlay(doc, exploreLooks, exploreProductsBySlug);
     }
 
-    if (isProductDocSynced(doc) || prebuiltSynced || pageBottomLive) {
+    const galleryReady = productGalleryReady(doc, productFromAdmin);
+    const bottomReady = !productSlug || Boolean(pageBottomLive);
+    const exploreReady = !productSlug || exploreResolved;
+    if (
+      (isProductDocSynced(doc) || prebuiltSynced || pageBottomLive) &&
+      galleryReady &&
+      bottomReady &&
+      exploreReady
+    ) {
       setContentVisible(true);
     }
   }, [
@@ -246,12 +261,15 @@ export function MirrorProductFrameClient({
     commerce,
     exploreLooks,
     exploreProductsBySlug,
+    explorePrefetched,
     exploreResolved,
     footer,
     locale,
     nav,
     overlay,
     productFromAdmin,
+    productSlug,
+    templateMirrorSlug,
     pageBottomLive,
     share,
     breadcrumbs,

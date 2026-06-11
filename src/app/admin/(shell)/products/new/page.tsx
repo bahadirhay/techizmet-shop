@@ -4,7 +4,12 @@ import { emptyProductForm } from "@/lib/admin/product-form";
 import { loadActiveMarketplacePlatforms } from "@/lib/marketplace/active-integrations";
 import { requireStaffPage } from "@/lib/staff-auth";
 import { getProductBarcodeSettings } from "@/lib/admin/product-barcode";
-import { getHomepageMode, getSiteSettings } from "@/lib/site-settings";
+import { getHomepageMode, getSiteSettings, getSiteSeo } from "@/lib/site-settings";
+import {
+  resolvePackagingCostMinor,
+  resolveWebShippingCostMinor,
+} from "@/lib/finance/economics-settings";
+import { resolveCardFeePercent } from "@/lib/finance/payment-fee";
 
 export default async function NewProductPage() {
   const auth = await requireStaffPage();
@@ -14,6 +19,7 @@ export default async function NewProductPage() {
     getSiteSettings(auth.siteId),
   ]);
   const { autoGenerate: defaultAutoGenerateBarcode } = getProductBarcodeSettings(settings);
+  const siteName = getSiteSeo(settings).siteTitle;
 
   return (
     <ProductForm
@@ -25,6 +31,11 @@ export default async function NewProductPage() {
       defaultAutoGenerateBarcode={defaultAutoGenerateBarcode}
       homepageMode={getHomepageMode(settings)}
       siteUrl={process.env.NEXT_PUBLIC_SITE_URL ?? ""}
+      siteName={siteName}
+      webShippingCostMinor={resolveWebShippingCostMinor(settings)}
+      packagingCostMinor={resolvePackagingCostMinor(settings)}
+      cardFeePercent={resolveCardFeePercent(settings)}
+      freeShippingOverMinor={settings.store?.freeShippingOverMinor ?? 0}
     />
   );
 }

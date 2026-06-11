@@ -119,9 +119,34 @@ const SEARCH_BRIDGE_SCRIPT = `<script id="kn-search-bridge">(function(){
         }
       });
   }
+  function analyticsAllowed(){
+    try{
+      var top=window.top||window;
+      var choice=top.localStorage.getItem("cookie-consent-choice-v1");
+      if(!choice||choice==="rejected")return false;
+      if(choice==="accepted")return true;
+      var raw=top.localStorage.getItem("cookie-consent-prefs-v1");
+      if(!raw)return true;
+      var prefs=JSON.parse(raw);
+      return prefs.analytics!==false;
+    }catch(_e){return false;}
+  }
+  function trackSearch(term,source){
+    if(!analyticsAllowed())return;
+    try{
+      fetch("/api/events",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        credentials:"same-origin",
+        keepalive:true,
+        body:JSON.stringify({events:[{type:"search_query",payload:{query:term,source:source||"drawer"}}]})
+      }).catch(function(){});
+    }catch(_e){}
+  }
   function goSearch(q){
     var term=String(q||"").trim();
     if(term.length<2)return;
+    trackSearch(term,"drawer");
     try{(window.top||window).location.href="/search?q="+encodeURIComponent(term);}
     catch(_e){window.location.href="/search?q="+encodeURIComponent(term);}
   }

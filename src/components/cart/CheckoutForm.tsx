@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { TurkeyAddressFields } from "@/components/address/TurkeyAddressFields";
 import { useCart } from "@/components/cart/CartContext";
-import { formatTry } from "@/lib/format";
-import type { ShippingOption } from "@/lib/cart/types";
+import { formatPrice } from "@/lib/currency/format-price";
+import type { ShopLocale } from "@/lib/i18n/locale";
+import type { ShippingOption, CartView } from "@/lib/cart/types";
 import type { CheckoutPrefill } from "@/lib/checkout/prefill";
 import {
   hasAnyCheckoutPaymentMethod,
@@ -16,6 +17,8 @@ import {
 } from "@/lib/checkout/payment-options";
 import { formatCheckoutLine1, splitSavedLine1 } from "@/lib/tr-address/format";
 import { accountLoginPath } from "@/lib/account-return-path";
+import { DistanceSalesAgreementCheckoutPreview } from "@/components/legal/DistanceSalesAgreementCheckoutPreview";
+import type { LegalSellerProfile } from "@/lib/legal/seller-profile";
 
 function addressToForm(a: CheckoutPrefill["addresses"][0]) {
   const { neighborhood, streetLine } = splitSavedLine1(a.line1);
@@ -51,15 +54,25 @@ export function CheckoutForm({
   payment,
   prefill,
   embed = false,
+  initialShipping = [],
+  initialFreeShipping = false,
+  locale,
+  usdRate,
+  sellerProfile,
 }: {
   payment: CheckoutPaymentFlags;
   prefill?: CheckoutPrefill | null;
   embed?: boolean;
+  initialShipping?: ShippingOption[];
+  initialFreeShipping?: boolean;
+  locale?: ShopLocale;
+  usdRate?: number | null;
+  sellerProfile?: LegalSellerProfile;
 }) {
   const router = useRouter();
-  const { cart, refresh, loading: cartLoading } = useCart();
-  const [shipping, setShipping] = useState<ShippingOption[]>([]);
-  const [freeShipping, setFreeShipping] = useState(false);
+  const { cart, refresh, loading: cartLoading, removeCoupon } = useCart();
+  const [shipping, setShipping] = useState<ShippingOption[]>(initialShipping);
+  const [freeShipping, setFreeShipping] = useState(initialFreeShipping);
   const [carrierId, setCarrierId] = useState("");
   const [rateId, setRateId] = useState("");
   const [busy, setBusy] = useState(false);
@@ -67,6 +80,11 @@ export function CheckoutForm({
   const [createAccount, setCreateAccount] = useState(false);
   const [accountPassword, setAccountPassword] = useState("");
   const [accountPassword2, setAccountPassword2] = useState("");
+  // Kupon
+  const [couponOpen, setCouponOpen] = useState(false);
+  const [couponInput, setCouponInput] = useState("");
+  const [couponBusy, setCouponBusy] = useState(false);
+  const [couponErr, setCouponErr] = useState<string | null>(null);
 
   const defaultAddr = prefill?.addresses.find((a) => a.isDefault) ?? prefill?.addresses[0];
   const addrFields = defaultAddr ? addressToForm(defaultAddr) : null;
@@ -91,6 +109,52 @@ export function CheckoutForm({
   });
 
   const paymentAvailable = hasAnyCheckoutPaymentMethod(payment);
+  const fmt = (minor: number) => formatPrice(minor, locale ?? "tr", usdRate);
+  const selectedShipping = shipping.find(
+    (o) => o.carrierId === carrierId && o.rateId === rateId,
+  );
+  const shippingLabel = freeShipping
+    ? "Ücretsiz kargo"
+    : selectedShipping
+      ? `${selectedShipping.carrierName} — ${selectedShipping.rateName}${
+          selectedShipping.priceMinor === 0 ? "" : ` (${fmt(selectedShipping.priceMinor)})`
+        }`
+      : undefined;
+
+  async function handleApplyCoupon() {
+    const code = couponInput.trim().toUpperCase();
+    if (!code) return;
+    setCouponBusy(true);
+    setCouponErr(null);
+    // Direkt fetch → cart.errors[0] ile geçersiz kupon mesajını yakalayabiliriz
+    const res = await fetch("/api/cart/coupon", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({ code }),
+    });
+    if (res.ok) {
+      const j = (await res.json()) as { cart: CartView };
+      const errMsg = j.cart.errors?.[0];
+      if (errMsg) {
+        setCouponErr(errMsg);
+      } else {
+        await refresh(); // CartContext'i senkronize et
+        setCouponInput("");
+        setCouponOpen(false);
+      }
+    } else {
+      setCouponErr("Kupon uygulanamadı");
+    }
+    setCouponBusy(false);
+  }
+
+  async function handleRemoveCoupon() {
+    setCouponBusy(true);
+    await removeCoupon();
+    setCouponBusy(false);
+    setCouponErr(null);
+  }
 
   const isNewAddress = !selectedAddressId;
   const showSaveAddressOption = Boolean(prefill?.loggedIn && isNewAddress);
@@ -101,6 +165,16 @@ export function CheckoutForm({
 
   useEffect(() => {
     refresh();
+    // Sunucudan gelen initialShipping varsa ilk yüklemede fetch atlamak için flag
+    const hasInitial = initialShipping.length > 0 || initialFreeShipping;
+    if (hasInitial) {
+      // initialShipping'den ilk seçeneği varsayılan yap
+      if (initialShipping[0] && !carrierId) {
+        setCarrierId(initialShipping[0].carrierId);
+        setRateId(initialShipping[0].rateId);
+      }
+      return;
+    }
     fetch("/api/checkout/shipping", { credentials: "same-origin" })
       .then((r) => r.json())
       .then((j: { options: ShippingOption[]; freeShipping: boolean }) => {
@@ -111,7 +185,8 @@ export function CheckoutForm({
           setRateId(j.options[0].rateId);
         }
       });
-  }, [refresh]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!embed || typeof window === "undefined") return;
@@ -455,7 +530,7 @@ export function CheckoutForm({
                     <span>
                       {o.carrierName} — {o.rateName}
                     </span>
-                    <strong>{o.priceMinor === 0 ? "Ücretsiz" : formatTry(o.priceMinor)}</strong>
+                    <strong>{o.priceMinor === 0 ? "Ücretsiz" : fmt(o.priceMinor)}</strong>
                   </label>
                 ))}
               </div>
@@ -531,6 +606,16 @@ export function CheckoutForm({
               </div>
             ) : null}
           </section>
+          {sellerProfile ? (
+            <DistanceSalesAgreementCheckoutPreview
+              seller={sellerProfile}
+              form={form}
+              cart={cart}
+              shippingLabel={shippingLabel}
+              locale={locale}
+              usdRate={usdRate}
+            />
+          ) : null}
           <label className="kn-checkout__terms">
             <input
               type="checkbox"
@@ -553,27 +638,84 @@ export function CheckoutForm({
                 <span>
                   {l.title} × {l.qty}
                 </span>
-                <span>{formatTry(l.discountMinor > 0 ? l.lineTotalMinor : l.lineMinor)}</span>
+                <span>{fmt(l.discountMinor > 0 ? l.lineTotalMinor : l.lineMinor)}</span>
               </li>
             ))}
           </ul>
           <div className="cart-summary-price-item">
             <span>Ara toplam</span>
-            <span>{formatTry(cart.subtotalMinor)}</span>
+            <span>{fmt(cart.subtotalMinor)}</span>
           </div>
           {cart.discountMinor > 0 ? (
-            <div className="cart-summary-price-item">
-              <span>İndirim</span>
-              <span>−{formatTry(cart.discountMinor)}</span>
+            <div className="cart-summary-price-item kn-checkout__discount-row">
+              <span>
+                İndirim
+                {cart.couponCode ? (
+                  <em className="kn-checkout__coupon-badge"> · {cart.couponCode}</em>
+                ) : null}
+              </span>
+              <span>−{fmt(cart.discountMinor)}</span>
             </div>
           ) : null}
+
+          {/* Kupon alanı */}
+          {cart.couponCode ? (
+            <div className="kn-checkout__coupon-applied">
+              <span>🎫 <strong>{cart.couponCode}</strong> uygulandı</span>
+              <button
+                type="button"
+                className="kn-checkout__coupon-remove"
+                onClick={handleRemoveCoupon}
+                disabled={couponBusy}
+              >
+                Kaldır
+              </button>
+            </div>
+          ) : couponOpen ? (
+            <div className="kn-checkout__coupon-form">
+              <input
+                className="form-control kn-checkout__coupon-input"
+                placeholder="Kupon kodu"
+                value={couponInput}
+                onChange={(e) => { setCouponInput(e.target.value); setCouponErr(null); }}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void handleApplyCoupon(); } }}
+                autoFocus
+                autoCapitalize="characters"
+              />
+              <button
+                type="button"
+                className="button small-button kn-checkout__coupon-btn"
+                disabled={couponBusy || !couponInput.trim()}
+                onClick={() => void handleApplyCoupon()}
+              >
+                {couponBusy ? "…" : "Uygula"}
+              </button>
+              <button
+                type="button"
+                className="kn-checkout__coupon-cancel"
+                onClick={() => { setCouponOpen(false); setCouponInput(""); setCouponErr(null); }}
+              >
+                İptal
+              </button>
+              {couponErr ? <p className="kn-checkout__coupon-err">{couponErr}</p> : null}
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="kn-checkout__coupon-toggle"
+              onClick={() => setCouponOpen(true)}
+            >
+              + Kupon kodum var
+            </button>
+          )}
+
           <div className="cart-summary-price-item">
             <span>Kargo</span>
-            <span>{freeShipping || shipMinor === 0 ? "Ücretsiz" : formatTry(shipMinor)}</span>
+            <span>{freeShipping || shipMinor === 0 ? "Ücretsiz" : fmt(shipMinor)}</span>
           </div>
           <div className="cart-summary-price-item">
             <strong>Toplam</strong>
-            <strong>{formatTry(grandTotal)}</strong>
+            <strong>{fmt(grandTotal)}</strong>
           </div>
           {err ? <p className="kn-checkout__err">{err}</p> : null}
           <button
