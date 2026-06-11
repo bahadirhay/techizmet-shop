@@ -16,7 +16,6 @@ import { resolveProductCategorySelection, syncProductCategoryLinks } from "@/lib
 import { resolveProductSeoFields } from "@/lib/admin/product-seo/ensure-seo";
 import { SITE_DEFAULT_EXPLORE_SENTINEL } from "@/lib/product-explore-looks";
 import { productAdminErrorResponse } from "@/lib/admin/product-api-errors";
-import { resolveStoredProductTitle } from "@/lib/product-display-title";
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const auth = await requireStaffApi("store.products");
@@ -44,20 +43,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   if (!existing) return NextResponse.json({ error: "Bulunamadı" }, { status: 404 });
 
   const body = (await req.json()) as Record<string, unknown>;
-  const rawTitle = body.title != null ? String(body.title).trim() : existing.title;
-  const nextWeightGrams =
-    body.weightGrams !== undefined
-      ? body.weightGrams
-        ? parseInt(String(body.weightGrams), 10)
-        : null
-      : existing.weightGrams;
-  const nextPieceCount =
-    body.pieceCount !== undefined
-      ? body.pieceCount
-        ? parseInt(String(body.pieceCount), 10)
-        : null
-      : existing.pieceCount;
-  const title = resolveStoredProductTitle(rawTitle, nextWeightGrams, nextPieceCount);
+  const title = body.title != null ? String(body.title).trim() : existing.title;
   const slug = body.slug != null ? slugify(String(body.slug)) : existing.slug;
 
   const mediaItems = parseProductMediaInput(body);

@@ -6,8 +6,6 @@ import {
   serializeProductBadges,
   type ProductBadgeId,
 } from "@/lib/product-badges";
-import { resolveStoredProductTitle } from "@/lib/product-display-title";
-
 /** Excel sütun başlıkları (ShopPHP tarzı Türkçe) */
 export const PRODUCT_EXCEL_HEADERS = [
   "ID",
@@ -340,7 +338,7 @@ export function parsedRowToProductData(
   const weightGrams = row.weightGrams?.trim() ? parseInt(row.weightGrams, 10) : null;
 
   return {
-    title: resolveStoredProductTitle(title, weightGrams, null),
+    title,
     slug,
     sku: row.sku?.trim() || null,
     barcode: row.barcode?.trim() || null,

@@ -15,7 +15,6 @@ import { resolveProductCategorySelection, syncProductCategoryLinks } from "@/lib
 import { resolveProductSeoFields } from "@/lib/admin/product-seo/ensure-seo";
 import { SITE_DEFAULT_EXPLORE_SENTINEL } from "@/lib/product-explore-looks";
 import { productAdminErrorResponse } from "@/lib/admin/product-api-errors";
-import { resolveStoredProductTitle } from "@/lib/product-display-title";
 
 export async function GET(req: Request) {
   const auth = await requireStaffApi("store.products");
@@ -33,11 +32,10 @@ export async function POST(req: Request) {
   if (auth instanceof NextResponse) return auth;
   const body = (await req.json()) as Record<string, unknown>;
 
-  const rawTitle = String(body.title ?? "").trim();
-  if (!rawTitle) return NextResponse.json({ error: "Başlık gerekli" }, { status: 400 });
+  const title = String(body.title ?? "").trim();
+  if (!title) return NextResponse.json({ error: "Başlık gerekli" }, { status: 400 });
   const weightGrams = body.weightGrams ? parseInt(String(body.weightGrams), 10) : null;
   const pieceCount = body.pieceCount ? parseInt(String(body.pieceCount), 10) : null;
-  const title = resolveStoredProductTitle(rawTitle, weightGrams, pieceCount);
 
   const slug = slugify(String(body.slug ?? title));
   const mediaItems = parseProductMediaInput(body) ?? [];

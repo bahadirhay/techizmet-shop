@@ -1,5 +1,6 @@
 /**
- * Mevcut ürün başlıklarına gramaj/adet ekler (weightGrams / pieceCount dolu olanlar).
+ * Başlıkta gramaj/adet yoksa weightGrams/pieceCount ile title alanını günceller.
+ * Başlıkta zaten "100 gr" / "5 Adet" varsa atlanır.
  * Kullanım: npx tsx scripts/sync-product-display-titles.ts [--site=anatolianpaw]
  */
 import { PrismaClient } from "@prisma/client";

@@ -311,7 +311,10 @@ export function ProductForm({
           <AdminField label="SKU">
             <input className={inputClass} value={form.sku} onChange={(e) => set("sku", e.target.value)} />
           </AdminField>
-          <AdminField label="Ağırlık (g)" hint="Kargo ve pazaryeri başlıkları için (ör. 80, 100, 250)">
+          <AdminField
+            label="Ağırlık (g)"
+            hint="Başlıkta gramaj yazmadıysanız vitrinde otomatik eklenir (ör. 100 gr). Yazdıysanız tekrarlanmaz."
+          >
             <input
               className={inputClass}
               type="number"
@@ -322,7 +325,10 @@ export function ProductForm({
               placeholder="ör. 100"
             />
           </AdminField>
-          <AdminField label="Adet / Paket" hint="Pakette kaç ürün var? (ör. 5'li paket için 5)">
+          <AdminField
+            label="Adet / Paket"
+            hint="Başlıkta adet yoksa vitrinde eklenir (ör. 5 Adet). Başlığa yazdıysanız bu alan yedek/kargo içindir."
+          >
             <input
               className={inputClass}
               type="number"
