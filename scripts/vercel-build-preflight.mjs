@@ -32,6 +32,10 @@ if (!siteUrl) {
   console.warn(
     "[vercel:preflight] UYARI: NEXT_PUBLIC_SITE_URL bos — https://anatolianpaw.vercel.app gibi canli URL ekleyin.",
   );
+} else if (!/^https?:\/\//i.test(siteUrl)) {
+  console.warn(
+    `[vercel:preflight] UYARI: NEXT_PUBLIC_SITE_URL protokol icermiyor ("${siteUrl}") — https:// ekleyin (kod otomatik tamamlar ama env duzeltin).`,
+  );
 }
 
 if (session.length < 32) {

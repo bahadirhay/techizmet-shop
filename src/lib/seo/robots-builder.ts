@@ -1,7 +1,7 @@
 import "server-only";
 
 import type { MetadataRoute } from "next";
-import { getPublicSiteUrl } from "@/lib/seo/site-url";
+import { getPublicSiteHost, getPublicSiteUrl } from "@/lib/seo/site-url";
 import type { SiteSettings } from "@/lib/site-settings";
 import { getSiteSeo } from "@/lib/site-settings";
 
@@ -28,6 +28,6 @@ export function buildStoreRobots(settings: SiteSettings, siteName: string): Meta
       { userAgent: "DuckDuckBot", allow: "/", disallow: DISALLOW },
     ],
     sitemap,
-    host: getPublicSiteUrl(),
+    host: getPublicSiteHost(),
   };
 }
