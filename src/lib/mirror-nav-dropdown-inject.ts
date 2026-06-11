@@ -1,6 +1,6 @@
 const NAV_DROPDOWN_CSS = "/theme/techizmet-shop/kn-nav-dropdown.css?v=29";
 const MIRROR_HERO_CSS = "/theme/techizmet-shop/kn-mirror-hero.css?v=1";
-const MOBILE_MENU_CSS = "/theme/techizmet-shop/kn-mobile-menu.css?v=4";
+const MOBILE_MENU_CSS = "/theme/techizmet-shop/kn-mobile-menu.css?v=5";
 const BLOG_CARDS_CSS = "/theme/techizmet-shop/kn-blog-cards.css?v=2";
 
 /** İstemci — vitrin iframe’e layout CSS (hero + nav) */
@@ -21,7 +21,10 @@ export function ensureMirrorLayoutStyles(doc: Document) {
     hero.href = MIRROR_HERO_CSS;
     head.appendChild(hero);
   }
-  if (!doc.getElementById("kn-mobile-menu-css")) {
+  const mobileExisting = doc.getElementById("kn-mobile-menu-css") as HTMLLinkElement | null;
+  if (mobileExisting) {
+    mobileExisting.href = MOBILE_MENU_CSS;
+  } else {
     const mobile = doc.createElement("link");
     mobile.id = "kn-mobile-menu-css";
     mobile.rel = "stylesheet";
@@ -43,7 +46,7 @@ export function injectMirrorNavDropdownStyles(html: string): string {
     out = out.replace(/kn-nav-dropdown\.css\?v=\d+/g, "kn-nav-dropdown.css?v=29");
   }
   if (out.includes("kn-mobile-menu.css")) {
-    out = out.replace(/kn-mobile-menu\.css\?v=\d+/g, "kn-mobile-menu.css?v=4");
+    out = out.replace(/kn-mobile-menu\.css\?v=\d+/g, "kn-mobile-menu.css?v=5");
   }
   if (!out.includes("kn-nav-dropdown.css")) {
     const link = `<link rel="stylesheet" href="${NAV_DROPDOWN_CSS}" id="kn-nav-dropdown-css" />`;
