@@ -42,6 +42,10 @@ import {
   applyCatalogPricesToDocument,
   readCatalogPriceMapFromDocument,
 } from "@/lib/mirror-listing-prices";
+import {
+  applyLiveStoreCatalogToDocument,
+  fetchLiveStoreCatalog,
+} from "@/lib/mirror-live-catalog-client";
 
 function vitrinOverridesMarquee(config: MirrorPageConfig | undefined): boolean {
   if (!config) return false;
@@ -140,9 +144,12 @@ export function MirrorVitrinFrameClient({
     usdRate,
   });
 
+  const liveCatalogGenRef = useRef(0);
+
   useEffect(() => {
     baseSrcRef.current = src;
     setContentVisible(false);
+    liveCatalogGenRef.current += 1;
   }, [src]);
 
   useEffect(() => {
@@ -232,6 +239,24 @@ export function MirrorVitrinFrameClient({
       overlayKeyRef.current = overlaySig;
     }
 
+    async function finishCatalogAndVisibility(doc: Document) {
+      const catalogGen = liveCatalogGenRef.current;
+      if (!visualEditMode && !isCartOrCheckoutShell) {
+        const payload = await fetchLiveStoreCatalog();
+        if (disposed || catalogGen !== liveCatalogGenRef.current) return;
+        if (payload) {
+          applyLiveStoreCatalogToDocument(doc, payload, locale ?? "tr", config, mirrorTexts);
+        } else {
+          applyEmbeddedCatalogPrices(doc);
+        }
+      } else {
+        applyEmbeddedCatalogPrices(doc);
+      }
+      if (disposed || catalogGen !== liveCatalogGenRef.current) return;
+      if (usdRate && usdRate > 0) applyMirrorUsdPrices(doc, usdRate);
+      setContentVisible(true);
+    }
+
     function runPatches() {
       if (disposed) return;
       const frame = iframeRef.current;
@@ -284,9 +309,7 @@ export function MirrorVitrinFrameClient({
       if (accountDrawerForm) openAccountDrawer(doc, accountDrawerForm);
 
       if (skipClientWork) {
-        applyEmbeddedCatalogPrices(doc);
-        if (usdRate && usdRate > 0) applyMirrorUsdPrices(doc, usdRate);
-        setContentVisible(true);
+        void finishCatalogAndVisibility(doc);
         return;
       }
 
@@ -344,14 +367,12 @@ export function MirrorVitrinFrameClient({
         }
       }
 
-      applyEmbeddedCatalogPrices(doc);
-      if (usdRate && usdRate > 0) applyMirrorUsdPrices(doc, usdRate);
-      setContentVisible(true);
+      void finishCatalogAndVisibility(doc);
     }
 
     function schedulePatches() {
       cancelIdle = defer(() => {
-        if (!disposed) runPatches();
+        if (!disposed) void runPatches();
       }) as number;
     }
 
@@ -372,7 +393,7 @@ export function MirrorVitrinFrameClient({
     function onPageShow(ev: PageTransitionEvent) {
       const doc = iframeRef.current?.contentDocument;
       if (ev.persisted && doc?.getElementById("MainContent")) {
-        runPatches();
+        void runPatches();
         return;
       }
       onLoad();
@@ -381,7 +402,7 @@ export function MirrorVitrinFrameClient({
     function onPopState() {
       const doc = iframeRef.current?.contentDocument;
       if (doc?.getElementById("MainContent")) {
-        runPatches();
+        void runPatches();
         return;
       }
       onLoad();
