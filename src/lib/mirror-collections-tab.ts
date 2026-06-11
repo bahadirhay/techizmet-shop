@@ -184,7 +184,9 @@ export function enrichCollectionsTabsFromProductOptions<
   return tabs.map((tab) => ({
     ...tab,
     products: tab.products.map((p) => {
-      const slug = productSlugFromHref(p.href);
+      const slug =
+        productSlugFromHref(p.href) ||
+        (p.key?.trim() && !p.key.startsWith("item-") ? p.key.replace(/\.html$/i, "") : null);
       const product = slug ? bySlug.get(slug) : undefined;
       if (!product) return p;
       return {
@@ -276,11 +278,13 @@ export function applyCollectionsTabToSection(
         const imgWrap = box.querySelector(".collections-tab--menu-content-image");
         if (imgWrap) setImg(imgWrap, p.imageUrl);
       }
-      if (p.priceText?.trim()) {
-        const priceEl = box.querySelector(".product--actual-price");
-        if (priceEl) priceEl.textContent = p.priceText.trim();
+      const priceEl = box.querySelector(".product--actual-price");
+      if (showPricing && priceEl && p.priceText?.trim()) {
+        priceEl.textContent = p.priceText.trim();
+        setElementDisplay(box.querySelector(".collections-tab--info"), null);
+      } else if (!showPricing) {
+        setElementDisplay(box.querySelector(".collections-tab--info"), "none");
       }
-      setElementDisplay(box.querySelector(".collections-tab--info"), showPricing ? null : "none");
     });
   }
 }

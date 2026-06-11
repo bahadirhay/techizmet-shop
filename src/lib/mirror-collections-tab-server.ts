@@ -31,6 +31,8 @@ export async function enrichMirrorPageConfigCollectionsTabs(
       for (const p of tab.products ?? []) {
         const m = p.href?.match(/\/products\/([^/?#]+)/i);
         if (m) slugs.add(m[1].replace(/\.html$/i, ""));
+        const keySlug = p.key?.replace(/\.html$/i, "").trim();
+        if (keySlug && !keySlug.startsWith("item-")) slugs.add(keySlug);
       }
     }
   }
