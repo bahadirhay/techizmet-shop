@@ -54,6 +54,7 @@ async function main() {
   const adminUser = argValue("--admin-user") ?? "admin";
   const locale = argValue("--locale") === "en" ? "en" : "tr";
   const force = process.argv.includes("--force");
+  const skipIfExists = process.argv.includes("--skip-if-exists");
   const mirror = process.argv.includes("--mirror");
   const preset = argValue("--preset")?.toLowerCase();
   const metaDescription = argValue("--meta-description");
@@ -76,6 +77,10 @@ async function main() {
 
   try {
     const existing = await prisma.storeSite.findUnique({ where: { slug } });
+    if (existing && skipIfExists && !force) {
+      console.log(`[provision] slug="${slug}" zaten var - atlaniyor (--skip-if-exists).`);
+      return;
+    }
     if (existing && !force) {
       throw new Error(
         `slug="${slug}" zaten var. Üzerine yazmak için --force ekleyin (tüm site verisi silinir).`,

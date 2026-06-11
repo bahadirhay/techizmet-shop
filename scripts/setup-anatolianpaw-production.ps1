@@ -143,10 +143,11 @@ if ($Interactive) {
       user     = Read-Host "SMTP user"
       password = Read-Secret "SMTP sifre (bos birakilabilir)"
     }
-    cronSecret      = ""
-    skipSeed        = $SkipSeed.IsPresent
-    skipBuildCheck  = $SkipBuildCheck.IsPresent
-    setVercelEnv    = $SetVercelEnv.IsPresent
+    cronSecret       = ""
+    skipSeed         = $SkipSeed.IsPresent
+    skipBuildCheck   = $SkipBuildCheck.IsPresent
+    setVercelEnv     = $SetVercelEnv.IsPresent
+    forceProvision   = $false
   }
   if ([string]::IsNullOrWhiteSpace($cfg.storeSiteSlug)) { $cfg.storeSiteSlug = "anatolianpaw" }
   if ([string]::IsNullOrWhiteSpace($cfg.smtp.host)) { $cfg.smtp.host = "smtp.yandex.com" }
@@ -176,9 +177,10 @@ if ($Interactive) {
       password = if ($raw.smtp.password) { [string]$raw.smtp.password } else { "" }
     }
     cronSecret      = if ($raw.cronSecret) { [string]$raw.cronSecret } else { "" }
-    skipSeed        = [bool]($raw.skipSeed -or $SkipSeed)
-    skipBuildCheck  = [bool]($raw.skipBuildCheck -or $SkipBuildCheck)
-    setVercelEnv    = [bool]($raw.setVercelEnv -or $SetVercelEnv)
+    skipSeed         = [bool]($raw.skipSeed -or $SkipSeed)
+    skipBuildCheck   = [bool]($raw.skipBuildCheck -or $SkipBuildCheck)
+    setVercelEnv     = [bool]($raw.setVercelEnv -or $SetVercelEnv)
+    forceProvision   = [bool]$raw.forceProvision
   }
 }
 
@@ -219,11 +221,38 @@ Set-Content -Path $EnvFile -Value $sb.ToString().TrimEnd() -Encoding UTF8
 Copy-Item $EnvFile (Join-Path $Root ".env") -Force
 Write-Host ".env.anatolianpaw ve .env yazildi." -ForegroundColor Green
 
-Invoke-Step "npm install (gerekirse)" { npm install }
+Invoke-Step "Bagimliliklar / Prisma client" {
+  $nodeModules = Join-Path $Root "node_modules"
+  if (Test-Path $nodeModules) {
+    Write-Host "node_modules zaten var - npm install atlaniyor (EPERM onlemi)."
+    node scripts/prisma-generate-safe.mjs
+    if ($LASTEXITCODE -ne 0) {
+      Write-Host ""
+      Write-Host "EPERM: Prisma DLL kilitli. Cozum:" -ForegroundColor Yellow
+      Write-Host "  1) Calisan dev sunucusunu kapat (Ctrl+C), port 5555 veya 5556"
+      Write-Host "  2) Veya: Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force"
+      Write-Host "  3) Sonra tekrar: npm run setup:paw:prod"
+      throw "prisma generate basarisiz (dosya kilidi)"
+    }
+  } else {
+    npm install
+    if ($LASTEXITCODE -ne 0) { throw "npm install basarisiz" }
+  }
+}
 Invoke-Step "Prisma sema (db:push)" { npm run db:push }
 Invoke-Step "Magaza provision (anatolianpaw)" {
-  npm run store:provision -- --env-file=.env.anatolianpaw --preset=anatolianpaw --slug=$($cfg.storeSiteSlug) --name="Anatolian Paw" --url=$($cfg.publicUrl)
+  $provisionArgs = @(
+    "--env-file=.env.anatolianpaw",
+    "--preset=anatolianpaw",
+    "--slug=$($cfg.storeSiteSlug)",
+    "--name=Anatolian Paw",
+    "--url=$($cfg.publicUrl)",
+    "--skip-if-exists"
+  )
+  if ($cfg.forceProvision) { $provisionArgs += "--force" }
+  npm run store:provision -- @provisionArgs
 }
+Invoke-Step "Admin sifresi (.env ile esitle)" { npm run reset:admin }
 
 if (-not $cfg.skipSeed) {
   Invoke-Step "Gorsel paketi (logo, hero)" { npm run store:seed:anatolianpaw }
