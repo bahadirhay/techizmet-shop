@@ -1,5 +1,4 @@
-import "server-only";
-
+/** DB fiyat haritası — prebuild (tsx) ve runtime; server-only değil */
 import { prisma } from "@/lib/prisma";
 import {
   applyCatalogPricesToHtml,
