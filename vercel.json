@@ -1,3 +1,8 @@
 {
-  "regions": ["fra1"]
+  "regions": ["fra1"],
+  "build": {
+    "env": {
+      "STORE_SITE_SLUG": "anatolianpaw"
+    }
+  }
 }
