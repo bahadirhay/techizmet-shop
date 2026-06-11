@@ -1,6 +1,6 @@
 /** Mobil header — logo alanı küçülür, görsel kalan alana sığar; TR/EN görünür kalır */
 
-export const HEADER_MOBILE_FIT_VERSION = 3;
+export const HEADER_MOBILE_FIT_VERSION = 4;
 const STYLE_ID = "kn-header-mobile-fit-style";
 const SCRIPT_ID = "kn-header-mobile-fit-script";
 const MOBILE_BP = 1024;
@@ -95,6 +95,12 @@ export const HEADER_MOBILE_FIT_CSS = `
     height:32px!important;
     min-width:32px!important;
     min-height:32px!important;
+  }
+  html.kn-mobile-header .header--icons-list>.header--icon-item.account,
+  html.kn-mobile-header .header--icons-list .header--icon-item.account{
+    display:flex!important;
+    visibility:visible!important;
+    flex:0 0 auto!important;
   }
 }
 `;

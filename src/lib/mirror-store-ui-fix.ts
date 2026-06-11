@@ -2,7 +2,7 @@
 
 import { patchMirrorLogoDimensions } from "@/lib/mirror-logo-unify";
 
-const FIXES_CSS_VERSION = 22;
+const FIXES_CSS_VERSION = 23;
 const FIXES_CSS_HREF = `/theme/techizmet-shop/store-ui-fixes.css?v=${FIXES_CSS_VERSION}`;
 
 export function patchMirrorLogoSize(html: string): string {

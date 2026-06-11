@@ -525,6 +525,16 @@ sticky-on-scroll.header {
     min-height: 32px !important;
   }
 
+  /* Tema mobilde hesap ikonunu gizliyor — tüm sayfalarda görünür */
+  @media (max-width: 1024px) {
+    .header--icons-list > .header--icon-item.account,
+    .header--icons-list .header--icon-item.account {
+      display: flex !important;
+      visibility: visible !important;
+      flex: 0 0 auto !important;
+    }
+  }
+
   .section-announcement-bar,
   .announcement-bar--main,
   .announcement-bar--wrapper,

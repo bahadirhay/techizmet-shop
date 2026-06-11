@@ -43,6 +43,8 @@ const HEADER_ICONS_CSS = `
 }
 .header--icons-list .kn-locale-icon-item .kn-iframe-locale button.is-active{background:#111}
 .header--icons-list .kn-locale-icon-item .kn-iframe-locale button.is-active::before{color:#fff}
+.header--icons-list>.header--icon-item.account,
+.header--icons-list .header--icon-item.account{display:flex!important;visibility:visible!important;flex:0 0 auto!important}
 .header--icons-list .header--icon-item{padding:0 1px!important}
 .header--icons-list .header--icon-link-text{width:32px!important;height:32px!important;min-width:32px!important}
 }
