@@ -59,7 +59,12 @@ function createClient(): PrismaClient {
   return client.$extends({
     query: {
       $allOperations(ctx) {
-        return runWithReconnect(ctx);
+        return runWithReconnect({
+          model: ctx.model ?? "",
+          operation: ctx.operation,
+          args: ctx.args,
+          query: ctx.query,
+        });
       },
     },
   }) as unknown as PrismaClient;

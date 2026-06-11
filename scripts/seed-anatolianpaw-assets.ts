@@ -15,6 +15,7 @@ import { mergeSiteSettings } from "../src/lib/merge-site-settings";
 import { anatolianPawFeatureCardsBlock } from "../src/lib/blocks/presets/anatolianpaw-feature-cards";
 import { serializeBlocks } from "../src/lib/blocks/schema";
 import type { ShopBlock } from "../src/lib/blocks/schema";
+import type { MirrorCustomBlockEntry } from "../src/lib/mirror-custom-block-types";
 import type { SiteSettings } from "../src/lib/site-settings";
 import { ensureLegalCmsPages } from "../src/lib/ensure-legal-cms-pages";
 
@@ -43,7 +44,7 @@ const BRAND_DIR = join(root, "public", "brands", "anatolianpaw");
 
 const MIRROR_MEDIA_GRID_KEY = "media_grid_bGXVTf";
 
-function buildFeatureCardsWidget() {
+function buildFeatureCardsWidget(): MirrorCustomBlockEntry {
   return {
     id: "ap-feature-cards",
     hidden: false,
@@ -53,12 +54,12 @@ function buildFeatureCardsWidget() {
 }
 
 function ensureFeatureCardsWidget(
-  existing: { id?: string; block?: { type?: string } }[] | undefined,
+  existing: MirrorCustomBlockEntry[] | undefined,
   replace: boolean,
-) {
+): MirrorCustomBlockEntry[] {
   const list = Array.isArray(existing) ? existing : [];
-  const without = list.filter((e) => e?.block?.type !== "featureCards");
-  if (!replace && list.some((e) => e?.block?.type === "featureCards")) return list;
+  const without = list.filter((e) => e.block.type !== "featureCards");
+  if (!replace && list.some((e) => e.block.type === "featureCards")) return list;
   return [...without, buildFeatureCardsWidget()];
 }
 
@@ -332,7 +333,7 @@ export async function seedAnatolianPawAssets(opts?: { slug?: string; force?: boo
       homepageMode: "mirror",
       mirrorPages: {
         home: {
-          order: existingHome?.order,
+          order: existingHome?.order ?? [],
           sections: {
             ...existingHome?.sections,
             [MIRROR_MEDIA_GRID_KEY]: {

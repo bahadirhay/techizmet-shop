@@ -64,7 +64,7 @@ function tlToMinor(raw: unknown): number | null {
   return Math.round(n * 100);
 }
 
-function pickScoredRows<T extends { title: string; matchScore: number }>(
+function pickScoredRows<T extends { title: string; matchScore: number; priceMinor: number }>(
   query: string,
   rows: T[],
   limit = 12,

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { EditorShopBlock } from "@/lib/blocks/editor-ids";
 import { featureCardIconHtml, type FeatureCardIconKey } from "@/lib/feature-cards-icons";
 
 export function ShopEditorPreview({ blocks }: { blocks: EditorShopBlock[] }) {

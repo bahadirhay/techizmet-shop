@@ -12,6 +12,7 @@ import {
   resolveWebShippingCostMinor,
 } from "@/lib/finance/economics-settings";
 import { resolveCardFeePercent } from "@/lib/finance/payment-fee";
+import { getDefaultSite } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
@@ -70,7 +71,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
   });
   if (!product) notFound();
 
-  const [catalog, allProducts, settings, activeMarketplaces] = await Promise.all([
+  const [catalog, allProducts, settings, activeMarketplaces, site] = await Promise.all([
     loadCatalogOptions(auth.siteId),
     prisma.storeProduct.findMany({
       where: { siteId: auth.siteId, published: true },
@@ -79,13 +80,14 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
     }),
     getSiteSettings(auth.siteId),
     loadActiveMarketplacePlatforms(auth.siteId),
+    getDefaultSite(),
   ]);
   const { collections, categories, brands } = catalog;
 
   const formInitial = productToForm(product, activeMarketplaces);
   const siteDefaultExplore = getDefaultProductExploreLooks(settings);
   const { autoGenerate: defaultAutoGenerateBarcode } = getProductBarcodeSettings(settings);
-  const siteName = getSiteSeo(settings).siteTitle;
+  const siteName = getSiteSeo(settings, site.name).siteTitle;
 
   return (
     <ProductForm

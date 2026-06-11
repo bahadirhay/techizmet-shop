@@ -23,7 +23,7 @@ export async function GET(req: Request) {
       ? prisma.storeCategory.findFirst({ where: { id: categoryId, siteId: auth.siteId }, select: { title: true } })
       : null,
     brandId
-      ? prisma.storeBrand.findFirst({ where: { id: brandId, siteId: auth.siteId }, select: { title: true } })
+      ? prisma.storeBrand.findFirst({ where: { id: brandId, siteId: auth.siteId }, select: { name: true } })
       : null,
   ]);
 
@@ -31,7 +31,7 @@ export async function GET(req: Request) {
     siteId: auth.siteId,
     title,
     categoryTitle: category?.title,
-    brandTitle: brand?.title,
+    brandTitle: brand?.name,
     barcode,
     sku,
   });

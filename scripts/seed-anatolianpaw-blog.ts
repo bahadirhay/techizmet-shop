@@ -433,7 +433,7 @@ export async function seedAnatolianPawBlog(opts?: { slug?: string; force?: boole
     theme: {
       mirrorPages: {
         home: {
-          order: existingHome?.order,
+          order: existingHome?.order ?? [],
           sections: {
             ...existingHome?.sections,
             [FEATURED_BLOG_SECTION_KEY]: {
@@ -463,7 +463,8 @@ export async function seedAnatolianPawBlog(opts?: { slug?: string; force?: boole
           },
         },
         "blog-news": {
-          order: existingBlogNews?.order,
+          order: existingBlogNews?.order ?? [],
+          sections: existingBlogNews?.sections ?? {},
           elements: {
             ...existingBlogNews?.elements,
             "page_banner_LbAPda--banner-title": {

@@ -39,7 +39,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   if (!body?.length) {
     return NextResponse.json({ error: "Dosya bulunamadı" }, { status: 404 });
   }
-  return new NextResponse(body, {
+  return new NextResponse(new Uint8Array(body), {
     headers: {
       "Content-Type": row.mimeType || "application/octet-stream",
       "Content-Length": String(row.sizeBytes ?? body.length),
