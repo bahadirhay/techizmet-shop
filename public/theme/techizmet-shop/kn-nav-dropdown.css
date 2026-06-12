@@ -33,6 +33,11 @@ header.header {
   position: static;
 }
 
+/* Basit alt menü (Koleksiyonlar vb.) — li altında açılır; mega menü static kalır */
+.header--navigation-list > .kn-nav-has-dropdown.kn-nav-simple-dropdown {
+  position: relative;
+}
+
 .kn-nav-has-dropdown > .header--menu-link {
   position: relative;
   z-index: 2;

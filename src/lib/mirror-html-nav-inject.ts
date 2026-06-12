@@ -39,14 +39,16 @@ function navItemHtml(it: ResolvedNavItem, locale: "tr" | "en"): string {
     return `<li class="header--menu-item"><a href="${href}" class="header--menu-link heading-font text-small">${label}</a></li>`;
   }
 
-  const dropdown = it.columns?.length
-    ? buildMegaDropdownHtml(it.columns, locale, it.mega, it.products, {
+  const isMega = Boolean(it.columns?.length);
+  const dropdown = isMega
+    ? buildMegaDropdownHtml(it.columns!, locale, it.mega, it.products, {
         href: it.href,
         label: locale === "tr" ? `Tüm ${it.label}` : `All ${it.label}`,
       })
     : simpleDropdownHtml(it.children!);
+  const simpleClass = isMega ? "" : " kn-nav-simple-dropdown";
 
-  return `<li class="header--menu-item kn-nav-has-dropdown" data-kn-nav-parent><a href="${href}" class="header--menu-link heading-font text-small">${label}</a>${dropdown}</li>`;
+  return `<li class="header--menu-item kn-nav-has-dropdown${simpleClass}" data-kn-nav-parent><a href="${href}" class="header--menu-link heading-font text-small">${label}</a>${dropdown}</li>`;
 }
 
 function noJsNavItemHtml(it: ResolvedNavItem): string {

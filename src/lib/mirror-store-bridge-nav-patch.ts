@@ -76,7 +76,7 @@ function knNavItemHtml(it){
   }
   if(it.children&&it.children.length){
     var simple="<div class=\\"kn-nav-dropdown kn-nav-dropdown--simple\\" data-kn-nav-dropdown><div class=\\"kn-nav-dropdown__panel\\"><ul class=\\"kn-nav-dropdown__links\\">"+knNavDropdownLinks(it.children)+"</ul></div></div>";
-    return"<li class=\\"header--menu-item kn-nav-has-dropdown\\" data-kn-nav-parent><a href=\\""+href+"\\" class=\\"header--menu-link heading-font text-small\\">"+label+"</a>"+simple+"</li>";
+    return"<li class=\\"header--menu-item kn-nav-has-dropdown kn-nav-simple-dropdown\\" data-kn-nav-parent><a href=\\""+href+"\\" class=\\"header--menu-link heading-font text-small\\">"+label+"</a>"+simple+"</li>";
   }
   return"<li class=\\"header--menu-item\\"><a href=\\""+href+"\\" class=\\"header--menu-link heading-font text-small\\">"+label+"</a></li>";
 }
