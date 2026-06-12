@@ -1,4 +1,4 @@
-type SwiperCfg = Record<string, unknown> & {
+export type SwiperCfg = Record<string, unknown> & {
   loop?: boolean;
   slidesPerView?: number | string;
   slidesPerGroup?: number;
@@ -31,7 +31,7 @@ function minSlidesForLoop(cfg: SwiperCfg): number {
   return max;
 }
 
-function disableLoopWhenInsufficient(cfg: SwiperCfg, slideCount: number): SwiperCfg {
+export function disableLoopWhenInsufficient(cfg: SwiperCfg, slideCount: number): SwiperCfg {
   const need = minSlidesForLoop(cfg);
   if (need === 0 || slideCount >= need) return cfg;
 

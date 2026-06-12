@@ -19,6 +19,7 @@ import {
   injectTemplateSlugNavigationGuard,
   stripMirrorPostMessageScripts,
 } from "@/lib/mirror-product-template-slug";
+import { disableLoopWhenInsufficient, type SwiperCfg } from "@/lib/mirror-html-swiper-patch";
 
 export type VitrinProductMedia = {
   url: string;
@@ -275,6 +276,8 @@ function patchProductMediaZoomTemplate(
   doc.querySelectorAll("[data-product-media-content] .swiper-wrapper").forEach((liveWrapper) => {
     liveWrapper.innerHTML = newSlides;
   });
+
+  patchZoomGallerySwiperConfig(doc, media.length);
 }
 
 type ProductGallerySwiperCfg = {
@@ -292,13 +295,19 @@ type ProductGallerySwiperCfg = {
   >;
 };
 
-/** Tema varsayılanı desktop'ta slidesPerView:3 — King Noor gibi tek görsel + ok + sürükleme */
+function capSlidesPerView(
+  spv: number | string | undefined,
+  slideCount: number,
+): number | string | undefined {
+  if (spv === undefined) return undefined;
+  if (typeof spv === "string") return spv;
+  return Math.min(spv, slideCount);
+}
+
+/** Tema desktop'ta slidesPerView:3 — görünür slot sayısını slayt sayısıyla sınırla, loop'u güvenli kapat */
 function normalizeProductGallerySwiperConfig(cfg: ProductGallerySwiperCfg, slideCount: number) {
-  cfg.slidesPerView = 1;
+  cfg.slidesPerView = capSlidesPerView(cfg.slidesPerView, slideCount) ?? cfg.slidesPerView;
   cfg.spaceBetween = cfg.spaceBetween ?? 2;
-  cfg.loop = slideCount > 2;
-  (cfg as Record<string, unknown>).grabCursor = true;
-  (cfg as Record<string, unknown>).allowTouchMove = true;
 
   if (slideCount >= 2) {
     cfg.navigation = { ...(cfg.navigation ?? {}), enabled: true };
@@ -310,8 +319,7 @@ function normalizeProductGallerySwiperConfig(cfg: ProductGallerySwiperCfg, slide
     for (const key of Object.keys(cfg.breakpoints)) {
       const bp = cfg.breakpoints[key];
       if (!bp) continue;
-      bp.slidesPerView = 1;
-      bp.loop = slideCount > 2;
+      bp.slidesPerView = capSlidesPerView(bp.slidesPerView, slideCount) ?? bp.slidesPerView;
       if (slideCount >= 2) {
         bp.navigation = {
           ...(bp.navigation ?? cfg.navigation ?? {}),
@@ -322,6 +330,36 @@ function normalizeProductGallerySwiperConfig(cfg: ProductGallerySwiperCfg, slide
       }
     }
   }
+
+  const canSwipe = slideCount > 1;
+  (cfg as Record<string, unknown>).grabCursor = canSwipe;
+  (cfg as Record<string, unknown>).allowTouchMove = canSwipe;
+  (cfg as Record<string, unknown>).watchOverflow = true;
+
+  const patched = disableLoopWhenInsufficient(cfg as SwiperCfg, slideCount);
+  cfg.loop = patched.loop;
+  if (patched.breakpoints) {
+    cfg.breakpoints = patched.breakpoints as ProductGallerySwiperCfg["breakpoints"];
+  }
+}
+
+function patchZoomGallerySwiperConfig(doc: Document, slideCount: number) {
+  doc
+    .querySelectorAll(
+      "[data-product-media-content] [data-swiper], [data-product-media-popup] [data-swiper]",
+    )
+    .forEach((el) => {
+      const raw = el.getAttribute("data-swiper");
+      if (!raw) return;
+      try {
+        const cfg = JSON.parse(raw.trim()) as SwiperCfg;
+        cfg.slidesPerView = capSlidesPerView(cfg.slidesPerView, slideCount) ?? 1;
+        const patched = disableLoopWhenInsufficient(cfg, slideCount);
+        el.setAttribute("data-swiper", JSON.stringify(patched));
+      } catch {
+        /* şablon JSON bozuksa yoksay */
+      }
+    });
 }
 
 function ensureGalleryFallbackStyles(doc: Document) {
@@ -421,6 +459,7 @@ function patchMainImage(doc: Document, product: VitrinProductDetail) {
     galleryDomMatchesAdminMedia(doc, media)
   ) {
     patchSwiperConfigForSlideCount(outer, media.length);
+    patchZoomGallerySwiperConfig(doc, media.length);
     injectThemeProductGalleryReinit(doc);
     return;
   }
