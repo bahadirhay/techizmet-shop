@@ -11,6 +11,7 @@ import { getHomepageMode, getSiteSeo } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
 import { resolveStoreBlockMessages } from "@/lib/store-static-texts";
 
+export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export async function generateMetadata(): Promise<Metadata> {
