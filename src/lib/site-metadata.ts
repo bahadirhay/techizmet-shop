@@ -3,6 +3,7 @@ import { getCachedParsedSiteSettings } from "@/lib/cache/store-cache";
 import { getPublicSiteUrl } from "@/lib/seo/site-url";
 import { getDefaultSite } from "@/lib/site";
 import { getSiteBranding, getSiteSeo } from "@/lib/site-settings";
+import { ensureStoreTenant } from "@/lib/store-tenant";
 
 function faviconMime(url: string): string {
   const path = url.split("?")[0]?.toLowerCase() ?? "";
@@ -14,8 +15,10 @@ function faviconMime(url: string): string {
 }
 
 export async function buildSiteMetadata(): Promise<Metadata> {
+  const tenant = await ensureStoreTenant();
   const site = await getDefaultSite();
   const settings = await getCachedParsedSiteSettings(site.id);
+  const siteOrigin = tenant.publicOrigin || getPublicSiteUrl();
   const seo = getSiteSeo(settings, site.name);
   const branding = getSiteBranding(settings);
   const homeMeta = seo.staticPages?.["/"];
@@ -26,7 +29,7 @@ export async function buildSiteMetadata(): Promise<Metadata> {
   const iconType = faviconMime(favicon);
 
   return {
-    metadataBase: new URL(getPublicSiteUrl()),
+    metadataBase: new URL(siteOrigin),
     title: { default: pageTitle, template: `%s · ${seo.siteTitle}` },
     description: pageDescription,
     keywords: seo.metaKeywords || undefined,
