@@ -34,6 +34,7 @@ export function ImageCropModal({
   const dragStart = useRef({ x: 0, y: 0, ox: 0, oy: 0 });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const isPortrait = outputHeight > outputWidth;
 
   useEffect(() => {
     let cancelled = false;
@@ -46,9 +47,14 @@ export function ImageCropModal({
           return;
         }
         setImg(loaded);
-        const viewW = 360;
-        const frameH = viewW / aspectRatio;
-        const fit = Math.max(viewW / loaded.naturalWidth, frameH / loaded.naturalHeight) * 1.05;
+        const viewW = isPortrait ? 280 : 360;
+        const frameH = isPortrait ? 360 : viewW / aspectRatio;
+        const frameW = isPortrait ? frameH * aspectRatio : viewW * 0.88;
+        const fit =
+          Math.max(
+            frameW / loaded.naturalWidth,
+            frameH / loaded.naturalHeight,
+          ) * 1.05;
         setScale(fit);
         setOffset({ x: 0, y: 0 });
       })
@@ -62,7 +68,7 @@ export function ImageCropModal({
         return null;
       });
     };
-  }, [file, aspectRatio]);
+  }, [file, aspectRatio, isPortrait]);
 
   const onPointerDown = useCallback(
     (e: React.PointerEvent) => {
@@ -120,11 +126,18 @@ export function ImageCropModal({
     }
   }
 
-  const frameStyle = {
-    aspectRatio: `${aspectRatio}`,
-    width: "88%",
-    maxWidth: "100%",
-  } as const;
+  const frameStyle = isPortrait
+    ? ({
+        aspectRatio: `${outputWidth} / ${outputHeight}`,
+        height: "90%",
+        width: "auto",
+        maxWidth: "72%",
+      } as const)
+    : ({
+        aspectRatio: `${outputWidth} / ${outputHeight}`,
+        width: "88%",
+        maxWidth: "100%",
+      } as const);
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal>
@@ -136,7 +149,9 @@ export function ImageCropModal({
 
         <div
           ref={viewRef}
-          className="relative mt-4 h-64 w-full overflow-hidden rounded-lg touch-none select-none"
+          className={`relative mt-4 w-full overflow-hidden rounded-lg touch-none select-none ${
+            isPortrait ? "h-[26rem]" : "h-64"
+          }`}
           style={{
             backgroundColor: "#18181b",
             backgroundImage:

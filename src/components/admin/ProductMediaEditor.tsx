@@ -4,6 +4,7 @@ import { ImageUploadField } from "@/components/admin/ImageUploadField";
 import { VideoUploadField } from "@/components/admin/VideoUploadField";
 import { btnSecondary, inputClass } from "@/components/admin/AdminForm";
 import type { ProductMediaItem } from "@/lib/product-media";
+import { PRODUCT_IMAGE_ADMIN_CROP } from "@/lib/product-image-spec";
 
 function mediaSrc(url: string) {
   return url.startsWith("/") || url.startsWith("http") ? url : `/${url}`;
@@ -150,10 +151,10 @@ export function ProductMediaEditor({
 
       <ImageUploadField
         label="Görsel ekle"
-        hint="Sürükle-bırak veya seçin; 2:3 dikey kırpma (1200×1800) vitrin düzenini korur."
-        aspectRatio={2 / 3}
-        outputWidth={1200}
-        outputHeight={1800}
+        hint={`Sürükle-bırak veya seçin; 2:3 dikey kırpma (${PRODUCT_IMAGE_ADMIN_CROP.label} px) vitrin düzenini korur.`}
+        aspectRatio={PRODUCT_IMAGE_ADMIN_CROP.aspectRatio}
+        outputWidth={PRODUCT_IMAGE_ADMIN_CROP.outputWidth}
+        outputHeight={PRODUCT_IMAGE_ADMIN_CROP.outputHeight}
         value=""
         onChange={(url) => {
           if (url) addItem({ url, mediaType: "image" });

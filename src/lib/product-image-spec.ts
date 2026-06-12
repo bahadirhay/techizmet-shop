@@ -30,3 +30,11 @@ export function productImageMediaRatioStyle(): string {
 export function productImagePlaceholderStyle(): string {
   return `aspect-ratio:${PRODUCT_IMAGE_ASPECT_RATIO};background:var(--body_alternate_background)`;
 }
+
+/** Admin ürün görseli kırpma penceresi */
+export const PRODUCT_IMAGE_ADMIN_CROP = {
+  aspectRatio: PRODUCT_IMAGE_CROP_ASPECT,
+  outputWidth: PRODUCT_IMAGE_WIDTH,
+  outputHeight: PRODUCT_IMAGE_HEIGHT,
+  label: `${PRODUCT_IMAGE_WIDTH}×${PRODUCT_IMAGE_HEIGHT}`,
+} as const;
