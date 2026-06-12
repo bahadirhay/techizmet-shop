@@ -87,6 +87,39 @@ function galleryFingerprint(product: VitrinProductDetail, media: VitrinProductMe
   return `${product.slug}::${media.map((m) => `${m.mediaType}:${m.url}`).join("|")}`;
 }
 
+function normalizeGalleryUrl(url: string): string {
+  const raw = url.trim();
+  if (!raw) return raw;
+  try {
+    const parsed = new URL(raw, "https://local.invalid");
+    return parsed.pathname;
+  } catch {
+    return raw.split("?")[0] ?? raw;
+  }
+}
+
+function galleryDomMatchesAdminMedia(doc: Document, media: VitrinProductMedia[]): boolean {
+  const slides = doc.querySelectorAll(
+    "#MainContent .main--product-image-slider-outer .main--product-item",
+  );
+  if (slides.length !== media.length) return false;
+
+  return media.every((item, index) => {
+    const slide = slides[index];
+    if (!slide) return false;
+    if (item.mediaType === "video") {
+      const src = slide.querySelector("video")?.getAttribute("src")?.trim() ?? "";
+      return normalizeGalleryUrl(src) === normalizeGalleryUrl(item.url);
+    }
+    const img = slide.querySelector("img");
+    const src =
+      img?.getAttribute("data-original")?.trim() ||
+      img?.getAttribute("src")?.trim() ||
+      "";
+    return normalizeGalleryUrl(src) === normalizeGalleryUrl(item.url);
+  });
+}
+
 function primaryProductImageUrl(product: VitrinProductDetail): string | null {
   const media = normalizedMedia(product);
   const image = media.find((item) => item.mediaType === "image") ?? media[0];
@@ -261,7 +294,7 @@ type ProductGallerySwiperCfg = {
 
 /** Tema varsayılanı desktop'ta slidesPerView:3 — King Noor gibi tek görsel + ok + sürükleme */
 function normalizeProductGallerySwiperConfig(cfg: ProductGallerySwiperCfg, slideCount: number) {
-  cfg.slidesPerView = slideCount > 1 ? 1.05 : 1;
+  cfg.slidesPerView = 1;
   cfg.spaceBetween = cfg.spaceBetween ?? 2;
   cfg.loop = slideCount > 2;
   (cfg as Record<string, unknown>).grabCursor = true;
@@ -383,7 +416,10 @@ function patchMainImage(doc: Document, product: VitrinProductDetail) {
   if (!outer) return;
 
   const fp = galleryFingerprint(product, media);
-  if (outer.getAttribute("data-kn-gallery-fp") === fp) {
+  if (
+    outer.getAttribute("data-kn-gallery-fp") === fp &&
+    galleryDomMatchesAdminMedia(doc, media)
+  ) {
     patchSwiperConfigForSlideCount(outer, media.length);
     injectThemeProductGalleryReinit(doc);
     return;
@@ -655,7 +691,8 @@ export function productGalleryReady(doc: Document, product?: VitrinProductDetail
   if (!media.length) return true;
   const outer = doc.querySelector("#MainContent .main--product-image-slider-outer");
   const fp = galleryFingerprint(product, media);
-  return outer?.getAttribute("data-kn-gallery-fp") === fp;
+  if (outer?.getAttribute("data-kn-gallery-fp") !== fp) return false;
+  return galleryDomMatchesAdminMedia(doc, media);
 }
 
 function patchBundleContents(doc: Document, product: VitrinProductDetail) {

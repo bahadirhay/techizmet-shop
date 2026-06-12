@@ -5,6 +5,7 @@
 
 .product--card .product--image .media,
 .horizontal--product-card .horizontal--product-image .media,
+#MainContent .main--product-image-slider-outer .media,
 #MainContent .main--product-img .media,
 #MainContent .main--product-thumbnail .media,
 .quickview--product-img .media,
@@ -14,6 +15,7 @@
 
 img.product--card-image,
 .horizontal--product-card img.product-image,
+#MainContent .main--product-image-slider-outer img,
 #MainContent .main--product-img img,
 .cart-product-media,
 .quickview--product-img img {

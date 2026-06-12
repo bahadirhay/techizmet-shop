@@ -193,22 +193,24 @@ export function MirrorProductFrameClient({
     const prebuiltSynced = isProductDocSynced(doc);
 
     if (productFromAdmin) {
-      applyProductDetailFromAdmin(doc, productFromAdmin, {
-        templateSlug: templateMirrorSlug,
-      });
-      const reinitThemeGallery = () => {
-        const outer = doc.querySelector("#MainContent .main--product-image-slider-outer");
+      const applyProductPatch = (target = doc) => {
+        applyProductDetailFromAdmin(target, productFromAdmin, {
+          templateSlug: templateMirrorSlug,
+        });
+      };
+      const reinitThemeGallery = (target = doc) => {
+        const outer = target.querySelector("#MainContent .main--product-image-slider-outer");
         const host = outer?.closest("swiper-content") as (HTMLElement & { _initial_run?: () => void }) | null;
         host?._initial_run?.();
+        applyProductPatch(target);
       };
+      applyProductPatch();
       reinitThemeGallery();
       for (const ms of PATCH_RETRY_MS) {
         window.setTimeout(() => {
           const d = iframeRef.current?.contentDocument;
           if (!d?.getElementById("MainContent")) return;
-          const outer = d.querySelector("#MainContent .main--product-image-slider-outer");
-          const host = outer?.closest("swiper-content") as (HTMLElement & { _initial_run?: () => void }) | null;
-          host?._initial_run?.();
+          reinitThemeGallery(d);
         }, ms);
       }
       const stickyProduct = productFromAdmin;
