@@ -42,10 +42,31 @@ export function orderMediaForDisplay(items: ProductMediaItem[]): ProductMediaIte
   return [...api, ...rest, ...uploads];
 }
 
+function sameOriginMediaPath(pathname: string, search = ""): string | null {
+  if (pathname.startsWith("/api/media/") || pathname.startsWith("/uploads/")) {
+    return pathname + search;
+  }
+  return null;
+}
+
+/** Vitrin img/video src — göreli yol kullanır (www vs apex uyumu) */
 export function resolvePublicMediaUrl(url: string, origin?: string): string {
   const raw = url.trim();
   if (!raw) return raw;
-  if (/^https?:\/\//i.test(raw)) return raw;
+
+  if (/^https?:\/\//i.test(raw)) {
+    try {
+      const parsed = new URL(raw);
+      const relative = sameOriginMediaPath(parsed.pathname, parsed.search);
+      if (relative) return relative;
+    } catch {
+      /* keep absolute */
+    }
+    return raw;
+  }
+
+  if (raw.startsWith("/")) return raw;
+
   const base =
     origin?.replace(/\/$/, "") ||
     (typeof window !== "undefined"
@@ -54,7 +75,7 @@ export function resolvePublicMediaUrl(url: string, origin?: string): string {
           /\/$/,
           "",
         ));
-  return `${base}${raw.startsWith("/") ? raw : `/${raw}`}`;
+  return `${base}/${raw}`;
 }
 
 export function parseProductMediaInput(body: Record<string, unknown>): ProductMediaItem[] | null {

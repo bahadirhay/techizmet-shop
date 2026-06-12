@@ -13,7 +13,6 @@ import type { ShopLocale } from "@/lib/i18n/locale";
 import type { SiteSettings } from "@/lib/site-settings";
 import { formatProductDisplayTitle } from "@/lib/product-display-title";
 import { orderMediaForDisplay, primaryProductImageUrl } from "@/lib/product-media";
-import { getPublicSiteUrl, toAbsoluteMediaUrl } from "@/lib/seo/site-url";
 import {
   PRODUCT_KIND_BUNDLE,
   loadResolvedBundleComponents,
@@ -49,16 +48,13 @@ export function vitrinProductDetailFromDb(
   product: DbProduct,
   bundleComponents?: VitrinProductDetail["bundleComponents"],
 ): VitrinProductDetail {
-  const origin = getPublicSiteUrl();
   const mediaItems = orderMediaForDisplay(
     product.images.map((image) => ({
-      url: toAbsoluteMediaUrl(image.url, origin) ?? image.url,
+      url: image.url,
       mediaType: image.mediaType === "video" ? ("video" as const) : ("image" as const),
     })),
   );
-  const imageUrl =
-    toAbsoluteMediaUrl(primaryProductImageUrl(mediaItems) ?? product.imageUrl, origin) ??
-    product.imageUrl;
+  const imageUrl = primaryProductImageUrl(mediaItems) ?? product.imageUrl;
 
   return {
     productId: product.id,
