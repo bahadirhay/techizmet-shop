@@ -9,6 +9,8 @@ import { getMirrorPageConfig } from "@/lib/mirror-page-settings";
 import { getStoreLocaleFromHeaders } from "@/lib/i18n/server";
 import { getSiteSettings } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
+import { loadMirrorFooterData } from "@/lib/mirror-footer-server";
+import { loadMirrorNavItems } from "@/lib/mirror-nav-server";
 import { prisma } from "@/lib/prisma";
 import { getEffectiveUsdTryRate } from "@/lib/currency/exchange-rate";
 import { notFound } from "next/navigation";
@@ -48,7 +50,11 @@ export async function MirrorVitrinFrame({
     hasCustomBranding,
     hasAnnouncementBarSettings: hasCustomAnnouncementBarSettings(settings),
   });
-  const hydration = await getMirrorVitrinHydration(site.id, pageKey, locale);
+  const [hydration, nav, footer] = await Promise.all([
+    getMirrorVitrinHydration(site.id, pageKey, locale),
+    loadMirrorNavItems(site.id, locale),
+    loadMirrorFooterData(site.id, locale),
+  ]);
 
   let collectionsFromAdmin: VitrinCollectionCard[] | undefined;
   let categoriesFromAdmin: VitrinCollectionCategoryOption[] | undefined;
@@ -68,6 +74,8 @@ export async function MirrorVitrinFrame({
       locale={locale}
       usdRate={usdRate ?? undefined}
       hydration={hydration}
+      nav={nav}
+      footer={footer}
       collectionsFromAdmin={collectionsFromAdmin}
       categoriesFromAdmin={categoriesFromAdmin}
     />

@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 import { getCustomerSession } from "@/lib/customer-session";
 import { getStoreLocale } from "@/lib/i18n/server";
 import { getDefaultSite } from "@/lib/site";
+import { ensureStoreTenant } from "@/lib/store-tenant";
 import { loadMirrorNavItems } from "@/lib/mirror-nav-server";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
+  await ensureStoreTenant();
   const locale = await getStoreLocale();
   const site = await getDefaultSite();
   const nav = await loadMirrorNavItems(site.id, locale);

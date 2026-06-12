@@ -23,6 +23,7 @@
     "db:migrate-product-images": "tsx scripts/migrate-product-upload-images.ts",
     "db:backfill-media": "tsx scripts/backfill-store-media-uploads.ts",
     "db:seed": "node --require ./scripts/shim-server-only.cjs ./node_modules/tsx/dist/cli.mjs prisma/seed.ts",
+    "db:seed-demo-nav": "node --require ./scripts/shim-server-only.cjs ./node_modules/tsx/dist/cli.mjs scripts/seed-demo-nav.ts",
     "theme:import": "node scripts/import-theme-mirror.mjs && node scripts/build-mirror-home.mjs && node scripts/build-mirror-products.mjs && node scripts/build-mirror-collections.mjs && node scripts/build-mirror-pages.mjs && node scripts/build-mirror-blogs.mjs",
     "blog:import-mirror": "npx tsx scripts/import-blog-posts-from-mirror.ts",
     "db:sync-blog-images": "tsx scripts/sync-blog-images.ts",

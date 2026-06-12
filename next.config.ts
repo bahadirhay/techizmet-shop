@@ -47,9 +47,13 @@ const nextConfig: NextConfig = {
         value: "public, max-age=31536000, immutable",
       },
     ] as const;
+    const prebuiltHtmlNoStore = [
+      { key: "Cache-Control", value: "private, no-store, max-age=0, must-revalidate" },
+    ] as const;
     return [
       { source: "/admin/:path*", headers: [...noStore] },
       { source: "/api/admin/:path*", headers: [...noStore] },
+      { source: "/_mirror-prebuilt/:path*.html", headers: [...prebuiltHtmlNoStore] },
       { source: "/_mirror-prebuilt/:path*", headers: [...prebuiltCache] },
       {
         // JS/CSS/images — uzun süreli cache uygun

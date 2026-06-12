@@ -92,10 +92,15 @@ function resolveTenantFromEnv(): StoreTenant {
 
 export function resolveTenantFromHost(host: string): StoreTenant {
   const mapped = resolveStoreHostTenant(host);
-  if (mapped && mapped.slug !== "demo") {
-    return tenantFromHostMapping(mapped);
+  if (!mapped) return resolveTenantFromEnv();
+  if (mapped.slug === "demo") {
+    return {
+      slug: "demo",
+      publicOrigin: mapped.publicOrigin,
+      databaseUrl: databaseUrlFromEnv(mapped.databaseUrlEnv),
+    };
   }
-  return resolveTenantFromEnv();
+  return tenantFromHostMapping(mapped);
 }
 
 async function tenantFromProxyHeaders(): Promise<StoreTenant | null> {

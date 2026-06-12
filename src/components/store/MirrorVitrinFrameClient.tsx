@@ -23,8 +23,12 @@ import { applyMirrorStoreUiFixToDocument } from "@/lib/mirror-store-ui-fix";
 import { ensureMirrorLayoutStyles } from "@/lib/mirror-nav-dropdown-inject";
 import type { MirrorBranding } from "@/lib/mirror-branding-overlay";
 import type { ShopLocale } from "@/lib/i18n/locale";
-import type { MirrorFooterData } from "@/lib/mirror-footer-overlay";
-import type { MirrorNavItem } from "@/lib/mirror-nav-overlay";
+import { applyMirrorFooter, type MirrorFooterData } from "@/lib/mirror-footer-overlay";
+import {
+  applyMirrorNavigation,
+  rebindMirrorNavDropdown,
+  type MirrorNavItem,
+} from "@/lib/mirror-nav-overlay";
 import {
   applyMirrorPageOverlay,
   applyMirrorSectionOrderToDocument,
@@ -315,6 +319,13 @@ export function MirrorVitrinFrameClient({
         applyMirrorAccountDashboardClient(doc);
       }
       if (accountDrawerForm) openAccountDrawer(doc, accountDrawerForm);
+
+      // Önbellekli / prebuild HTML yanlış menü içerse demo tenant menüsünü zorla
+      if (nav?.length) {
+        applyMirrorNavigation(doc, nav, locale ?? "tr");
+        rebindMirrorNavDropdown(doc);
+      }
+      if (footer) applyMirrorFooter(doc, footer);
 
       if (skipClientWork) {
         void finishCatalogAndVisibility(doc);

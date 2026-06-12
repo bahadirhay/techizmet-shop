@@ -16,7 +16,7 @@ import { ensureDefaultStaffRoles } from "../src/lib/staff-role-presets";
 import { SHIPPING_CARRIER_PRESETS } from "../src/lib/admin/marketplace-platforms";
 import { serializeProductBadges } from "../src/lib/product-badges";
 import { DEFAULT_STORE_NAV } from "../src/lib/store-navigation";
-import { seedVitrinHeaderMenu } from "../src/lib/nav-menu-seed";
+import { seedVitrinHeaderMenu, VITRIN_HEADER_MENU_TEMPLATE } from "../src/lib/nav-menu-seed";
 
 const DEFAULT_SETTINGS = {
   theme: { homepageMode: "mirror", navItems: DEFAULT_STORE_NAV },
@@ -392,8 +392,15 @@ async function main() {
   });
   console.log("[seed] Üye grubu:", bayiGroup.name, `%${bayiGroup.discountPercent} (admin → Müşteri kartından ata)`);
 
-  const navSeed = await seedVitrinHeaderMenu(site.id, false);
-  console.log("[seed] Vitrin menüsü:", navSeed.created ? "oluşturuldu" : navSeed.reason ?? "atlandı");
+  const rootNavCount = await prisma.navMenuItem.count({
+    where: { siteId: site.id, menuSlug: "header", parentId: null },
+  });
+  const replaceNav = rootNavCount < VITRIN_HEADER_MENU_TEMPLATE.length;
+  const navSeed = await seedVitrinHeaderMenu(site.id, replaceNav);
+  console.log(
+    "[seed] Vitrin menüsü:",
+    navSeed.created ? (replaceNav ? "yenilendi" : "oluşturuldu") : navSeed.reason ?? "atlandı",
+  );
 
   console.log("[seed] Tamam:", site.slug);
   console.log("[seed] Admin: admin /", plain);

@@ -8,12 +8,16 @@ import {
 import type { MirrorVitrinHydration } from "@/lib/mirror-vitrin-data";
 import type { VitrinCollectionCard, VitrinCollectionCategoryOption } from "@/lib/mirror-collections-sync";
 import type { ShopLocale } from "@/lib/i18n/locale";
+import type { MirrorFooterData } from "@/lib/mirror-footer-overlay";
+import type { MirrorNavItem } from "@/lib/mirror-nav-overlay";
 
 function MirrorVitrinFrameInner({
   src,
   title,
   locale,
   usdRate,
+  nav,
+  footer,
   collectionsFromAdmin,
   categoriesFromAdmin,
 }: {
@@ -21,6 +25,8 @@ function MirrorVitrinFrameInner({
   title: string;
   locale: ShopLocale;
   usdRate?: number;
+  nav?: MirrorNavItem[];
+  footer?: MirrorFooterData;
   collectionsFromAdmin?: VitrinCollectionCard[];
   categoriesFromAdmin?: VitrinCollectionCategoryOption[];
 }) {
@@ -33,6 +39,8 @@ function MirrorVitrinFrameInner({
       usdRate={usdRate}
       pageConfig={hydration?.pageConfig}
       branding={hydration?.branding}
+      nav={nav}
+      footer={footer}
       mirrorTexts={hydration?.mirrorTexts}
       siteMarquee={hydration?.siteMarquee}
       collectionsFromAdmin={collectionsFromAdmin}
@@ -47,6 +55,8 @@ export function MirrorVitrinFrameHost({
   locale,
   usdRate,
   hydration,
+  nav,
+  footer,
   collectionsFromAdmin,
   categoriesFromAdmin,
 }: {
@@ -55,6 +65,8 @@ export function MirrorVitrinFrameHost({
   locale: ShopLocale;
   usdRate?: number;
   hydration: MirrorVitrinHydration;
+  nav?: MirrorNavItem[];
+  footer?: MirrorFooterData;
   collectionsFromAdmin?: VitrinCollectionCard[];
   categoriesFromAdmin?: VitrinCollectionCategoryOption[];
 }) {
@@ -65,6 +77,8 @@ export function MirrorVitrinFrameHost({
         title={title}
         locale={locale}
         usdRate={usdRate}
+        nav={nav}
+        footer={footer}
         collectionsFromAdmin={collectionsFromAdmin}
         categoriesFromAdmin={categoriesFromAdmin}
       />

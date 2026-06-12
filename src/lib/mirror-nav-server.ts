@@ -19,7 +19,7 @@ export async function loadMirrorNavItems(
 ): Promise<ResolvedNavItem[]> {
   return unstable_cache(
     () => loadMirrorNavItemsUncached(siteId, locale),
-    ["mirror-nav", siteId, locale],
+    ["mirror-nav", "v2-full-menu", siteId, locale],
     {
       revalidate: STORE_PUBLIC_REVALIDATE_SEC,
       tags: [storeNavTag(siteId), storeMirrorTag(siteId)],
