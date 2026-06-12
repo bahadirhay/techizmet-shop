@@ -1,10 +1,12 @@
 import { parseHTML } from "linkedom";
 import {
+  PRODUCT_GALLERY_SWIPER,
   PRODUCT_IMAGE_HEIGHT,
   PRODUCT_IMAGE_WIDTH,
   PRODUCT_IMAGE_THUMB,
   productImageMediaRatioStyle,
 } from "@/lib/product-image-spec";
+import { ensureMirrorProductImageStyles } from "@/lib/mirror-product-image-inject";
 import { resolvePublicMediaUrl } from "@/lib/product-media";
 import type { BundleComponentSnapshot } from "@/lib/product-bundle";
 import { isAnchorNode, isElementNode, isImageNode, isInputNode } from "@/lib/mirror-dom-node";
@@ -282,6 +284,7 @@ function patchProductMediaZoomTemplate(
 
 type ProductGallerySwiperCfg = {
   loop?: boolean;
+  speed?: number;
   slidesPerView?: number | string;
   spaceBetween?: number;
   navigation?: { enabled?: boolean; nextEl?: string; prevEl?: string };
@@ -304,36 +307,41 @@ function capSlidesPerView(
   return Math.min(spv, slideCount);
 }
 
-/** Tema desktop'ta slidesPerView:3 — görünür slot sayısını slayt sayısıyla sınırla, loop'u güvenli kapat */
+/** Tüm PDP'lerde aynı galeri swiper düzeni — prebuild/eski tema değerlerini ezmez */
 function normalizeProductGallerySwiperConfig(cfg: ProductGallerySwiperCfg, slideCount: number) {
-  cfg.slidesPerView = capSlidesPerView(cfg.slidesPerView, slideCount) ?? cfg.slidesPerView;
-  cfg.spaceBetween = cfg.spaceBetween ?? 2;
+  const {
+    speed,
+    spaceBetween,
+    mobileSlidesPerView,
+    desktopBreakpoint,
+    desktopSlidesPerView,
+  } = PRODUCT_GALLERY_SWIPER;
+
+  cfg.speed = speed;
+  cfg.spaceBetween = spaceBetween;
+  cfg.slidesPerView = capSlidesPerView(mobileSlidesPerView, slideCount) ?? 1;
+
+  if (!cfg.breakpoints) cfg.breakpoints = {};
+  const desktopBp = { ...(cfg.breakpoints[desktopBreakpoint] ?? {}) };
+  desktopBp.slidesPerView =
+    capSlidesPerView(desktopSlidesPerView, slideCount) ?? desktopSlidesPerView;
 
   if (slideCount >= 2) {
     cfg.navigation = { ...(cfg.navigation ?? {}), enabled: true };
-  } else if (cfg.navigation) {
-    cfg.navigation.enabled = false;
+    desktopBp.navigation = {
+      ...(desktopBp.navigation ?? cfg.navigation ?? {}),
+      enabled: true,
+    };
+  } else {
+    if (cfg.navigation) cfg.navigation.enabled = false;
+    if (desktopBp.navigation) desktopBp.navigation.enabled = false;
   }
-
-  if (cfg.breakpoints) {
-    for (const key of Object.keys(cfg.breakpoints)) {
-      const bp = cfg.breakpoints[key];
-      if (!bp) continue;
-      bp.slidesPerView = capSlidesPerView(bp.slidesPerView, slideCount) ?? bp.slidesPerView;
-      if (slideCount >= 2) {
-        bp.navigation = {
-          ...(bp.navigation ?? cfg.navigation ?? {}),
-          enabled: true,
-        };
-      } else if (bp.navigation) {
-        bp.navigation.enabled = false;
-      }
-    }
-  }
+  cfg.breakpoints[desktopBreakpoint] = desktopBp;
 
   const canSwipe = slideCount > 1;
   (cfg as Record<string, unknown>).grabCursor = canSwipe;
   (cfg as Record<string, unknown>).allowTouchMove = canSwipe;
+  (cfg as Record<string, unknown>).resizeObserver = true;
   (cfg as Record<string, unknown>).watchOverflow = true;
 
   const patched = disableLoopWhenInsufficient(cfg as SwiperCfg, slideCount);
@@ -454,16 +462,6 @@ function patchMainImage(doc: Document, product: VitrinProductDetail) {
   if (!outer) return;
 
   const fp = galleryFingerprint(product, media);
-  if (
-    outer.getAttribute("data-kn-gallery-fp") === fp &&
-    galleryDomMatchesAdminMedia(doc, media)
-  ) {
-    patchSwiperConfigForSlideCount(outer, media.length);
-    patchZoomGallerySwiperConfig(doc, media.length);
-    injectThemeProductGalleryReinit(doc);
-    return;
-  }
-
   const sectionId = detectProductMediaSectionId(doc);
   patchProductMediaZoomTemplate(doc, product, media);
   patchSwiperConfigForSlideCount(outer, media.length);
@@ -492,6 +490,8 @@ function patchMainImage(doc: Document, product: VitrinProductDetail) {
   outer.classList.remove("kn-gallery-static", "kn-gallery-active");
   outer.setAttribute("data-kn-gallery-slug", product.slug);
   outer.setAttribute("data-kn-gallery-fp", fp);
+  outer.setAttribute("data-kn-gallery-v", PRODUCT_GALLERY_SWIPER.markupVersion);
+  doc.documentElement.setAttribute("data-kn-gallery-v", PRODUCT_GALLERY_SWIPER.markupVersion);
   outer.style.opacity = "1";
 
   patchThumbnailSlider(doc, product, media);
@@ -731,6 +731,9 @@ export function productGalleryReady(doc: Document, product?: VitrinProductDetail
   const outer = doc.querySelector("#MainContent .main--product-image-slider-outer");
   const fp = galleryFingerprint(product, media);
   if (outer?.getAttribute("data-kn-gallery-fp") !== fp) return false;
+  if (outer?.getAttribute("data-kn-gallery-v") !== PRODUCT_GALLERY_SWIPER.markupVersion) {
+    return false;
+  }
   return galleryDomMatchesAdminMedia(doc, media);
 }
 
@@ -766,6 +769,7 @@ export function applyProductDetailFromAdmin(
   product: VitrinProductDetail,
   options?: { templateSlug?: string },
 ) {
+  ensureMirrorProductImageStyles(doc);
   patchTitle(doc, product);
   patchDescription(doc, product);
   patchMainImage(doc, product);

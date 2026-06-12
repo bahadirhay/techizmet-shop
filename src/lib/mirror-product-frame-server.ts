@@ -61,7 +61,7 @@ export function loadMirrorProductFramePayload(
 ): Promise<MirrorProductFramePayload | null> {
   return unstable_cache(
     () => loadMirrorProductFramePayloadUncached(siteId, slug, locale),
-    ["mirror-product-frame-v7", siteId, slug, locale],
+    ["mirror-product-frame-v8", siteId, slug, locale],
     {
       revalidate: STORE_PUBLIC_REVALIDATE_SEC,
       tags: [storeMirrorTag(siteId), `product:${slug}`],

@@ -31,6 +31,16 @@ export function productImagePlaceholderStyle(): string {
   return `aspect-ratio:${PRODUCT_IMAGE_ASPECT_RATIO};background:var(--body_alternate_background)`;
 }
 
+/** PDP ana galeri — tüm ürün sayfalarında aynı swiper düzeni */
+export const PRODUCT_GALLERY_SWIPER = {
+  markupVersion: "2",
+  speed: 800,
+  spaceBetween: 2,
+  mobileSlidesPerView: 1.2,
+  desktopBreakpoint: "768",
+  desktopSlidesPerView: 3,
+} as const;
+
 /** Admin ürün görseli kırpma penceresi */
 export const PRODUCT_IMAGE_ADMIN_CROP = {
   aspectRatio: PRODUCT_IMAGE_CROP_ASPECT,
