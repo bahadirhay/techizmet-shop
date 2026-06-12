@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getStoreLocaleFromHeaders } from "@/lib/i18n/server";
-import { loadHomeListingProducts } from "@/lib/mirror-home-products-inject";
+import { loadHomeListingProducts } from "@/lib/mirror-home-products-inject-server";
 import { getSiteSettingsUncached } from "@/lib/site-settings-load";
 import { getDefaultSite } from "@/lib/site";
 import { resolveMirrorCollectionTexts } from "@/lib/store-static-texts";

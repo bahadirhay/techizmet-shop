@@ -83,7 +83,7 @@ import {
   pruneCollectionSortOptionsHtml,
 } from "@/lib/mirror-collection-sort-locale";
 import { applyCollectionsCardsToMirrorHtml } from "@/lib/mirror-collections-sync-html";
-import { injectHomeListingProductsIntoHtml } from "@/lib/mirror-home-products-inject";
+import { injectHomeListingProductsIntoHtml } from "@/lib/mirror-home-products-inject-server";
 import { syncMirrorListingPricesInHtml } from "@/lib/mirror-listing-prices-server";
 import {
   getAnnouncementBarSettings,
