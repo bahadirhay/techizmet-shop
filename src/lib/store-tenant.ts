@@ -45,25 +45,33 @@ async function tryResolveDemoTenant(publicOrigin: string): Promise<StoreTenant |
   ].filter((url, i, arr): url is string => Boolean(url) && arr.indexOf(url) === i);
 
   for (const databaseUrl of candidates) {
-    const site = await getPrismaForDatabaseUrl(databaseUrl).storeSite.findUnique({
-      where: { slug: "demo" },
-      select: { slug: true },
-    });
-    if (site) {
-      return { slug: "demo", publicOrigin, databaseUrl };
+    try {
+      const site = await getPrismaForDatabaseUrl(databaseUrl).storeSite.findUnique({
+        where: { slug: "demo" },
+        select: { slug: true },
+      });
+      if (site) {
+        return { slug: "demo", publicOrigin, databaseUrl };
+      }
+    } catch {
+      /* bağlantı / şema — sonraki adaya geç */
     }
   }
   return null;
 }
 
 async function tryResolveAnatolianPawTenant(publicOrigin: string): Promise<StoreTenant | null> {
-  const databaseUrl = databaseUrlFromEnv("DATABASE_URL_ANATOLIANPAW");
-  const site = await getPrismaForDatabaseUrl(databaseUrl).storeSite.findUnique({
-    where: { slug: "anatolianpaw" },
-    select: { slug: true },
-  });
-  if (!site) return null;
-  return { slug: "anatolianpaw", publicOrigin, databaseUrl };
+  try {
+    const databaseUrl = databaseUrlFromEnv("DATABASE_URL_ANATOLIANPAW");
+    const site = await getPrismaForDatabaseUrl(databaseUrl).storeSite.findUnique({
+      where: { slug: "anatolianpaw" },
+      select: { slug: true },
+    });
+    if (!site) return null;
+    return { slug: "anatolianpaw", publicOrigin, databaseUrl };
+  } catch {
+    return null;
+  }
 }
 
 function resolveTenantFromEnv(): StoreTenant {
