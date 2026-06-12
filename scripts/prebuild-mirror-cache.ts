@@ -310,6 +310,7 @@ async function main() {
     JSON.stringify(
       {
         builtAt: new Date().toISOString(),
+        tenantSlug: slug,
         siteSlug: slug,
         count: written.length,
         sample: prebuiltMirrorPublicUrl(written[0]!),

@@ -22,6 +22,7 @@ import {
   productGalleryReady,
   type VitrinProductDetail,
 } from "@/lib/mirror-product-detail-sync";
+import { mountKnProductGallery } from "@/lib/mirror-product-gallery-mount";
 import {
   applyMirrorProductCommerce,
   type MirrorProductCommercePayload,
@@ -196,6 +197,19 @@ export function MirrorProductFrameClient({
       applyProductDetailFromAdmin(doc, productFromAdmin, {
         templateSlug: templateMirrorSlug,
       });
+      const mediaCount = Math.max(
+        productFromAdmin.images?.filter((m) => m?.url?.trim()).length ?? 0,
+        productFromAdmin.imageUrl?.trim() ? 1 : 0,
+      );
+      if (mediaCount > 0) {
+        mountKnProductGallery(doc, mediaCount);
+        for (const ms of PATCH_RETRY_MS) {
+          window.setTimeout(() => {
+            const d = iframeRef.current?.contentDocument;
+            if (d?.getElementById("MainContent")) mountKnProductGallery(d, mediaCount);
+          }, ms);
+        }
+      }
       const stickyProduct = productFromAdmin;
       const reapplySticky = () => {
         const d = iframeRef.current?.contentDocument;

@@ -21,7 +21,7 @@ export async function MirrorBlogArticleFrame({
   const post = await getPublishedBlogPostBySlug(site.id, slug);
   if (!post) notFound();
 
-  const src = buildBlogArticleMirrorSrc(slug, locale);
+  const src = await buildBlogArticleMirrorSrc(slug, locale);
   if (!src) notFound();
 
   const settings = await getSiteSettings(site.id);

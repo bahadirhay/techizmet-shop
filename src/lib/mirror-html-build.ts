@@ -15,6 +15,11 @@ import type { ShopLocale } from "@/lib/i18n/locale";
 import { productSlugFromMirrorPath } from "@/lib/mirror-html-processor";
 
 import { LOGO_UNIFY_VERSION } from "@/lib/mirror-logo-unify";
+import {
+  getMirrorPrebuildTenantSlug,
+  mirrorPrebuildMatchesTenant,
+} from "@/lib/mirror-prebuilt-tenant";
+import { getActiveTenantSlug } from "@/lib/tenant-context";
 
 const DEV_MIRROR_CACHE_TTL_MS = 120_000;
 const DEV_MIRROR_CACHE_VERSION = `logo-unify-v${LOGO_UNIFY_VERSION}`;
@@ -130,8 +135,16 @@ export async function buildMirrorHtml(params: MirrorHtmlBuildParams): Promise<st
   const usePrebuiltShell =
     !params.pageKey?.trim() && preferPrebuiltMirrorHtml(params.normalized);
   if (usePrebuiltShell) {
-    const prebuilt = await readPrebuiltMirrorHtml(params.normalized);
-    if (prebuilt) return injectMirrorListingCartBridge(prebuilt);
+    const requestSlug = getActiveTenantSlug();
+    const prebuildSlug = await getMirrorPrebuildTenantSlug();
+    const prebuiltOk =
+      !requestSlug ||
+      !prebuildSlug ||
+      mirrorPrebuildMatchesTenant(requestSlug, prebuildSlug);
+    if (prebuiltOk) {
+      const prebuilt = await readPrebuiltMirrorHtml(params.normalized);
+      if (prebuilt) return injectMirrorListingCartBridge(prebuilt);
+    }
   }
 
   if (process.env.NODE_ENV === "production") {

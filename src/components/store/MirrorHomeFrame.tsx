@@ -1,6 +1,6 @@
 import type { ShopLocale } from "@/lib/i18n/locale";
 import { getMirrorHomeConfig } from "@/lib/mirror-home-sections";
-import { toBrandedMirrorSrc } from "@/lib/mirror-html-branding";
+import { resolveStoreMirrorIframeSrcForRequest } from "@/lib/mirror-prebuilt-resolve";
 import { getSiteBranding, getSiteSettings } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
 import { loadMirrorFooterData } from "@/lib/mirror-footer-server";
@@ -15,7 +15,7 @@ export async function MirrorHomeFrame({ locale }: { locale: ShopLocale }) {
   const branding = getSiteBranding(settings);
   const nav = await loadMirrorNavItems(site.id, locale);
   const footer = await loadMirrorFooterData(site.id, locale);
-  const src = toBrandedMirrorSrc(
+  const src = await resolveStoreMirrorIframeSrcForRequest(
     locale === "tr" ? "theme/techizmet-shop/mirror/index-tr.html" : "theme/techizmet-shop/mirror/index.html",
   );
 

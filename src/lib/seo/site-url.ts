@@ -1,3 +1,5 @@
+import { getActivePublicOrigin } from "@/lib/tenant-context";
+
 /** Canlı site kök URL — sitemap, canonical, JSON-LD */
 
 /** `anatolian-paw.vercel.app` gibi protokolsüz değerleri https ile tamamlar */
@@ -9,6 +11,9 @@ export function normalizeSiteUrl(raw: string): string {
 }
 
 export function getPublicSiteUrl(): string {
+  const fromHost = getActivePublicOrigin();
+  if (fromHost) return fromHost;
+
   const raw =
     process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
     process.env.NEXT_PUBLIC_STORE_URL?.trim() ||

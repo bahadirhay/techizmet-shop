@@ -6,6 +6,11 @@ import {
   rawMirrorPublicUrl,
 } from "@/lib/mirror-iframe-src";
 import { hasPrebuiltMirrorHtml, isMirrorDevLiveRebuild } from "@/lib/mirror-prebuilt-io";
+import {
+  getMirrorPrebuildTenantSlug,
+  mirrorPrebuildMatchesTenant,
+} from "@/lib/mirror-prebuilt-tenant";
+import { ensureStoreTenant } from "@/lib/store-tenant";
 
 export type MirrorIframeSrcOpts = {
   hasCustomBlocks?: boolean;
@@ -15,6 +20,10 @@ export type MirrorIframeSrcOpts = {
   hasAnnouncementBarSettings?: boolean;
   /** Logo/görsel /uploads veya /api/media — prebuild enjekte etmez */
   hasCustomBranding?: boolean;
+  /** Prebuild başka mağazaya aitse canlı API */
+  siteSlug?: string;
+  prebuildTenantSlug?: string | null;
+  forceLiveApi?: boolean;
 };
 
 /** Prebuild yokken canlı API — deploy öncesi prebuild tüm overlay/fiyat/markayı içerir */
@@ -51,6 +60,15 @@ export function resolveStoreMirrorIframeSrc(
   opts?: MirrorIframeSrcOpts,
 ): string {
   const path = normalized.startsWith("/") ? normalized.slice(1) : normalized;
+
+  if (
+    opts?.forceLiveApi ||
+    (opts?.siteSlug &&
+      opts.prebuildTenantSlug !== undefined &&
+      !mirrorPrebuildMatchesTenant(opts.siteSlug, opts.prebuildTenantSlug ?? null))
+  ) {
+    return mirrorVitrinApiSrc(path, pageKey, extra);
+  }
 
   if (extra?.cmsSlug?.trim()) {
     return mirrorVitrinApiSrc(path, pageKey, extra);
@@ -94,4 +112,20 @@ export function resolveMirrorIframeSrc(
   extra?: Record<string, string | undefined>,
 ): string {
   return resolveStoreMirrorIframeSrc(normalized, pageKey, extra);
+}
+
+/** Sunucu bileşenleri — host tenant ile prebuild uyumunu kontrol eder */
+export async function resolveStoreMirrorIframeSrcForRequest(
+  normalized: string,
+  pageKey?: string,
+  extra?: Record<string, string | undefined>,
+  opts?: MirrorIframeSrcOpts,
+): Promise<string> {
+  const tenant = await ensureStoreTenant();
+  const prebuildTenantSlug = await getMirrorPrebuildTenantSlug();
+  return resolveStoreMirrorIframeSrc(normalized, pageKey, extra, {
+    ...opts,
+    siteSlug: tenant.slug,
+    prebuildTenantSlug,
+  });
 }

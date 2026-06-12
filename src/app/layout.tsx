@@ -9,6 +9,7 @@ import { JsonLdScript } from "@/components/store/JsonLdScript";
 import { buildSiteMetadata } from "@/lib/site-metadata";
 import { buildOrganizationJsonLd, buildWebSiteJsonLd } from "@/lib/seo/site-json-ld";
 import { getCachedParsedSiteSettings } from "@/lib/cache/store-cache";
+import { resolveStoreMirrorIframeSrcForRequest } from "@/lib/mirror-prebuilt-resolve";
 import { getDefaultSite } from "@/lib/site";
 import { getSiteSeo } from "@/lib/site-settings";
 import "./globals.css";
@@ -30,15 +31,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const settings = await getCachedParsedSiteSettings(site.id);
   const seo = getSiteSeo(settings, site.name);
   const siteJsonLd = [buildOrganizationJsonLd(settings, site.name), buildWebSiteJsonLd(settings, site.name)];
+  const mirrorHomePreload = await resolveStoreMirrorIframeSrcForRequest(
+    "theme/techizmet-shop/mirror/index-tr.html",
+  );
 
   return (
     <html lang="tr">
       <head>
-        <link
-          rel="preload"
-          href="/_mirror-prebuilt/theme/techizmet-shop/mirror/index-tr.html"
-          as="document"
-        />
+        <link rel="preload" href={mirrorHomePreload} as="document" />
       </head>
       <body className={`${poppins.variable} antialiased`}>
         <JsonLdScript data={siteJsonLd} />

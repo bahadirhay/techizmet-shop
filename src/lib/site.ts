@@ -1,16 +1,12 @@
 import { cache } from "react";
 import { getCachedStoreSiteBySlug } from "@/lib/cache/store-cache";
 import { prisma } from "@/lib/prisma";
+import { ensureStoreTenant } from "@/lib/store-tenant";
 
-/** Hangi mağaza satırı — her deploy / .env dosyası kendi slug’ını kullanır */
-function resolveSiteSlug() {
-  return process.env.STORE_SITE_SLUG?.trim() || "demo";
-}
-
-/** Aktif mağaza (DATABASE_URL + STORE_SITE_SLUG) — istek içi + önbellek */
+/** Aktif mağaza — host (shop.techizmet.com → demo) + tenant DB */
 export const getDefaultSite = cache(async () => {
-  const slug = resolveSiteSlug();
-  return getCachedStoreSiteBySlug(slug);
+  const tenant = await ensureStoreTenant();
+  return getCachedStoreSiteBySlug(tenant.slug, tenant.databaseUrl);
 });
 
 export async function getPageBySlug(slug: string) {

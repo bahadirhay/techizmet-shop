@@ -27,10 +27,13 @@ export function storeMirrorTag(siteId: string) {
   return `store-mirror:${siteId}`;
 }
 
-export function getCachedStoreSiteBySlug(slug: string) {
+export function getCachedStoreSiteBySlug(slug: string, databaseUrl?: string) {
+  const dbKey = databaseUrl?.trim() || "default";
   return unstable_cache(
     async () => {
-      const site = await prisma.storeSite.findUnique({ where: { slug } });
+      const { getPrismaForDatabaseUrl } = await import("@/lib/prisma");
+      const client = getPrismaForDatabaseUrl(databaseUrl);
+      const site = await client.storeSite.findUnique({ where: { slug } });
       if (!site) {
         throw new Error(
           `Mağaza bulunamadı (slug="${slug}"). Önce: npm run db:push && npm run store:provision -- --slug=${slug}`,
@@ -38,7 +41,7 @@ export function getCachedStoreSiteBySlug(slug: string) {
       }
       return site;
     },
-    ["store-site-by-slug", slug],
+    ["store-site-by-slug", slug, dbKey],
     { revalidate: STORE_PUBLIC_REVALIDATE_SEC, tags: [`store-slug:${slug}`] },
   )();
 }

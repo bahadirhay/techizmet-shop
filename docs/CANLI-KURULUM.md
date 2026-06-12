@@ -10,7 +10,9 @@ Her değişken için **Production** ve **Preview** kutularını işaretleyin.
 | Değişken | Örnek | Not |
 |----------|--------|-----|
 | `DATABASE_URL` | `postgresql://...@ep-xxx-pooler.neon.tech/neondb?sslmode=require` | **pooler** URL kullanın |
-| `STORE_SITE_SLUG` | `demo` | Neon’daki mağaza satırının `slug` değeri |
+| `STORE_SITE_SLUG` | `demo` | Varsayılan mağaza (bilinmeyen host) |
+| `DATABASE_URL_DEMO` | demo Neon pooler URL | **shop.techizmet.com** için (Anatolian Paw ile aynı Vercel projesinde şart) |
+| `DATABASE_URL_ANATOLIANPAW` | paw Neon pooler URL | **anatolianpaw.com** için (ayrı DB kullanıyorsanız) |
 | `SESSION_SECRET` | min 32 karakter rastgele | Admin oturumu |
 | `NEXT_PUBLIC_STORE_URL` | `https://shop.techizmet.com` | |
 | `NEXT_PUBLIC_SITE_URL` | `https://shop.techizmet.com` | |

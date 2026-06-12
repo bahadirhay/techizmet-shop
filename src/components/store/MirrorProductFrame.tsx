@@ -38,7 +38,7 @@ export async function MirrorProductFrame({
   if (!payload) notFound();
 
   const branding = getSiteBranding(settings);
-  const src = buildProductMirrorSrc(slug, locale, resolvedTemplateSlug);
+  const src = await buildProductMirrorSrc(slug, locale, resolvedTemplateSlug);
   const frameTitle = title ?? `Product — ${slug}`;
 
   return (

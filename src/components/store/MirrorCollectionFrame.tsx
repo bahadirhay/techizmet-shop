@@ -26,7 +26,7 @@ export async function MirrorCollectionFrame({
   const templateSlug = categorySlug
     ? "all"
     : (resolveMirrorCollectionTemplateSlug(slug) ?? slug);
-  const src = buildCollectionMirrorSrc(slug, locale, templateSlug, categorySlug, page, title);
+  const src = await buildCollectionMirrorSrc(slug, locale, templateSlug, categorySlug, page, title);
   const frameTitle = title ?? `Collection — ${slug}`;
 
   if (categorySlug?.trim()) {

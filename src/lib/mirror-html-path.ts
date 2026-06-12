@@ -5,7 +5,7 @@ import {
   hasPrebuiltMirrorHtml,
   preferPrebuiltMirrorHtml,
 } from "@/lib/mirror-prebuilt-io";
-import { resolveStoreMirrorIframeSrc } from "@/lib/mirror-prebuilt-resolve";
+import { resolveStoreMirrorIframeSrcForRequest } from "@/lib/mirror-prebuilt-resolve";
 import { toBrandedMirrorSrc } from "@/lib/mirror-iframe-src";
 import type { ShopLocale } from "@/lib/i18n/locale";
 
@@ -154,44 +154,51 @@ export function buildCategoryCollectionMirrorSrc(
 }
 
 /** Koleksiyon / kategori listesi iframe — prod: slug başına prebuilt */
-export function buildCollectionMirrorSrc(
+export async function buildCollectionMirrorSrc(
   slug: string,
   locale: ShopLocale,
   templateSlug: string,
   categorySlug?: string,
   page = 1,
   title?: string,
-): string {
+): Promise<string> {
   if (categorySlug?.trim()) {
     return buildCategoryCollectionMirrorSrc(slug, locale, categorySlug, page, title);
   }
   const diskSlug = mirrorCollectionHtmlExists(slug) ? slug : templateSlug;
-  return resolveStoreMirrorIframeSrc(collectionMirrorFileRel(diskSlug, locale));
+  return resolveStoreMirrorIframeSrcForRequest(collectionMirrorFileRel(diskSlug, locale));
 }
 
-export function buildProductMirrorSrc(slug: string, locale: ShopLocale, templateSlug: string): string {
+export async function buildProductMirrorSrc(
+  slug: string,
+  locale: ShopLocale,
+  templateSlug: string,
+): Promise<string> {
   const outRel = productMirrorFileRel(slug, locale);
   if (preferPrebuiltMirrorHtml(outRel) && hasPrebuiltMirrorHtml(outRel)) {
-    return resolveStoreMirrorIframeSrc(outRel);
+    return resolveStoreMirrorIframeSrcForRequest(outRel);
   }
 
   const diskSlug = mirrorProductHtmlExists(slug) ? slug : templateSlug;
   const sourceRel = productMirrorFileRel(diskSlug, locale);
 
   if (diskSlug === slug) {
-    return resolveStoreMirrorIframeSrc(sourceRel);
+    return resolveStoreMirrorIframeSrcForRequest(sourceRel);
   }
 
   return mirrorVitrinApiSrc(sourceRel, undefined, { productSlug: slug });
 }
 
-export function buildBlogArticleMirrorSrc(slug: string, locale: ShopLocale): string | null {
+export async function buildBlogArticleMirrorSrc(
+  slug: string,
+  locale: ShopLocale,
+): Promise<string | null> {
   const templateSlug = resolveMirrorBlogArticleTemplateSlug(slug);
   if (!templateSlug) return null;
 
   const outRel = blogArticleMirrorFileRel(slug, locale);
   if (preferPrebuiltMirrorHtml(outRel) && hasPrebuiltMirrorHtml(outRel)) {
-    return resolveStoreMirrorIframeSrc(outRel);
+    return resolveStoreMirrorIframeSrcForRequest(outRel);
   }
 
   return mirrorVitrinApiSrc(blogArticleMirrorFileRel(templateSlug, locale), undefined, {
