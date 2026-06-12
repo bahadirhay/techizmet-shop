@@ -20,7 +20,7 @@ import {
   type AccountDrawerForm,
 } from "@/lib/mirror-account-drawer-client";
 import { KN_LEGACY_STUB_IDS } from "@/lib/mirror-html-shopify-strip";
-import { applyMirrorNavigation, rebindMirrorNavDropdown, type MirrorNavItem } from "@/lib/mirror-nav-overlay";
+import { syncMirrorNavigation, type MirrorNavItem } from "@/lib/mirror-nav-overlay";
 import { applyMirrorContact, type MirrorContactData } from "@/lib/mirror-contact-overlay";
 
 export type MirrorFramePatchOpts = {
@@ -66,11 +66,9 @@ export function applyMirrorFramePatches(doc: Document, opts: MirrorFramePatchOpt
     }
   }
 
-  /** Admin menüsü — locale ile güncelle (sunucu HTML olsa bile) */
   const locale = opts.locale ?? "tr";
   if (opts.nav?.length) {
-    applyMirrorNavigation(doc, opts.nav, locale);
-    rebindMirrorNavDropdown(doc);
+    syncMirrorNavigation(doc, opts.nav, locale);
   }
   if (opts.footer) applyMirrorFooter(doc, opts.footer);
   if (opts.contact) applyMirrorContact(doc, opts.contact);

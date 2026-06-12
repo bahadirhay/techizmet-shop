@@ -323,8 +323,90 @@ export function rebindMirrorNavDropdown(doc: Document) {
   bindKnNavDropdown(doc);
 }
 
+function mirrorNavLabels(doc: Document): string[] {
+  return [...doc.querySelectorAll("ul.header--navigation-list .header--menu-link")].map(
+    (a) => a.textContent?.trim() ?? "",
+  );
+}
+
+/** Sunucu HTML menüsü tenant ile uyumlu mu? */
+export function mirrorNavNeedsClientApply(doc: Document, nav: MirrorNavItem[]): boolean {
+  if (!nav.length) return false;
+  if (doc.documentElement.dataset.knNavServer !== "1") return true;
+  const injected = doc.querySelector("ul.header--navigation-list[data-kn-nav-injected]");
+  if (!injected) return true;
+  const labels = mirrorNavLabels(doc);
+  const expected = nav.map((n) => n.label);
+  if (labels.length !== expected.length) return true;
+  return expected.some((l, i) => labels[i] !== l);
+}
+
+/** Eski mega panelleri temizle — çift enjeksiyon üst üste binmesin */
+export function resetMegaNavPortal(doc: Document) {
+  doc.querySelectorAll("#kn-mega-host").forEach((host, i) => {
+    if (i > 0) host.remove();
+  });
+  const host = doc.getElementById("kn-mega-host");
+  if (host) {
+    host.innerHTML = "";
+    delete host.dataset.knHostBound;
+  }
+  doc.querySelectorAll(".kn-nav-dropdown--fruitser").forEach((el) => {
+    if (!el.closest(".kn-nav-has-dropdown")) el.remove();
+  });
+  doc.body.classList.remove("kn-nav-dropdown-open");
+  clearActiveMega(doc);
+  doc.querySelectorAll(".kn-nav-has-dropdown").forEach((li) => {
+    const el = li as HTMLElement;
+    delete el.dataset.knNavBound;
+    delete el.dataset.knNavMegaId;
+  });
+}
+
+/** Yinelenen mega panelleri kaldır — geçerli host içeriğini korur */
+export function dedupeMegaNavPortal(doc: Document) {
+  doc.querySelectorAll("#kn-mega-host").forEach((host, i) => {
+    if (i > 0) host.remove();
+  });
+  const seen = new Set<string>();
+  doc.querySelectorAll(".kn-nav-dropdown--fruitser").forEach((mega) => {
+    const el = mega as HTMLElement;
+    const id = el.dataset.knNavMegaId?.trim();
+    if (!id) {
+      el.remove();
+      return;
+    }
+    if (seen.has(id)) {
+      el.remove();
+      return;
+    }
+    seen.add(id);
+  });
+  doc.querySelectorAll(".kn-nav-dropdown--fruitser").forEach((el) => {
+    if (!el.closest(".kn-nav-has-dropdown") && !el.closest("#kn-mega-host")) el.remove();
+  });
+  clearActiveMega(doc);
+  doc.body.classList.remove("kn-nav-dropdown-open");
+}
+
+export function syncMirrorNavigation(
+  doc: Document,
+  nav: MirrorNavItem[],
+  locale: "tr" | "en" = "tr",
+) {
+  if (!nav.length) return;
+  if (mirrorNavNeedsClientApply(doc, nav)) {
+    applyMirrorNavigation(doc, nav, locale);
+    return;
+  }
+  dedupeMegaNavPortal(doc);
+  rebindMirrorNavDropdown(doc);
+}
+
 export function applyMirrorNavigation(doc: Document, nav: MirrorNavItem[], locale: "tr" | "en" = "tr") {
   if (!nav.length) return;
+
+  resetMegaNavPortal(doc);
 
   doc.querySelectorAll("ul.header--navigation-list").forEach((ul) => {
     ul.innerHTML = nav.map((it) => navItemHtml(it, locale)).join("");
