@@ -76,6 +76,8 @@ import { getSiteSettingsUncached } from "@/lib/site-settings-load";
 import { rewriteLegacyThemePaths } from "@/lib/store-theme";
 import {
   loadPublishedProductSlugSet,
+  loadPublishedBlogSlugSet,
+  pruneMirrorHtmlToPublishedBlogs,
   pruneMirrorHtmlToPublishedCatalog,
 } from "@/lib/mirror-catalog-prune";
 import {
@@ -96,6 +98,8 @@ export type MirrorHtmlBuildParams = {
   locale: ShopLocale;
   siteId: string;
   siteName: string;
+  /** Host tenant — unstable_cache içinde AsyncLocalStorage yok */
+  tenantSlug?: string;
   pageKey?: string;
   blogSlug?: string;
   /** Admin önizleme — anlık bölüm sırası (DB kaydından önce) */
@@ -225,6 +229,8 @@ export async function buildMirrorHtmlCore(params: MirrorHtmlBuildParams): Promis
     featuredForHome = await listFeaturedBlogPostsForHome(siteId, locale);
     if (featuredForHome.length) {
       localized = applyFeaturedBlogPostsToHtml(localized, featuredForHome, locale);
+    } else {
+      localized = applyFeaturedBlogPostsToHtml(localized, [], locale);
     }
     const collections = await prisma.storeCollection.findMany({
       where: { siteId, published: true },
@@ -254,6 +260,9 @@ export async function buildMirrorHtmlCore(params: MirrorHtmlBuildParams): Promis
 
   const publishedSlugs = await loadPublishedProductSlugSet(siteId);
   localized = pruneMirrorHtmlToPublishedCatalog(localized, publishedSlugs);
+
+  const publishedBlogSlugs = await loadPublishedBlogSlugSet(siteId);
+  localized = pruneMirrorHtmlToPublishedBlogs(localized, publishedBlogSlugs);
 
   if (pageKey && isVitrinPageKey(pageKey)) {
     let pageConfig = mergeLayoutOrderOverride(

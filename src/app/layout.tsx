@@ -33,6 +33,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const siteJsonLd = [buildOrganizationJsonLd(settings, site.name), buildWebSiteJsonLd(settings, site.name)];
   const mirrorHomePreload = await resolveStoreMirrorIframeSrcForRequest(
     "theme/techizmet-shop/mirror/index-tr.html",
+    "home",
   );
 
   return (

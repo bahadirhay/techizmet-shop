@@ -17,6 +17,7 @@ export async function MirrorHomeFrame({ locale }: { locale: ShopLocale }) {
   const footer = await loadMirrorFooterData(site.id, locale);
   const src = await resolveStoreMirrorIframeSrcForRequest(
     locale === "tr" ? "theme/techizmet-shop/mirror/index-tr.html" : "theme/techizmet-shop/mirror/index.html",
+    "home",
   );
 
   return (

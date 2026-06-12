@@ -65,3 +65,49 @@ export async function loadPublishedProductSlugSet(siteId: string): Promise<Set<s
   });
   return new Set(rows.map((r) => r.slug.toLowerCase()));
 }
+
+const BLOG_HREF = /\/blogs\/news\/([^/?#]+)/i;
+
+function slugFromBlogItem(el: Element): string | null {
+  for (const link of el.querySelectorAll("a[href]")) {
+    const m = (link.getAttribute("href") ?? "").match(BLOG_HREF);
+    if (m) return m[1].replace(/\.html$/i, "").toLowerCase();
+  }
+  return null;
+}
+
+/** Başka mağazanın blog kartlarını kaldırır */
+export function pruneMirrorDocToPublishedBlogs(
+  doc: Document,
+  publishedSlugs: ReadonlySet<string>,
+): void {
+  doc.querySelectorAll(".blog--item").forEach((el) => {
+    const slug = slugFromBlogItem(el);
+    if (slug && !publishedSlugs.has(slug)) el.remove();
+  });
+  doc.documentElement.setAttribute("data-kn-blog-pruned", "1");
+}
+
+export function pruneMirrorHtmlToPublishedBlogs(
+  html: string,
+  publishedSlugs: ReadonlySet<string>,
+): string {
+  if (!publishedSlugs.size) {
+    const { document } = parseHTML(html);
+    document.querySelectorAll(".blog--item").forEach((el) => el.remove());
+    const doctype = html.match(/^<!DOCTYPE[^>]*>/i)?.[0] ?? "<!DOCTYPE html>";
+    return `${doctype}\n${document.documentElement.outerHTML}`;
+  }
+  const { document } = parseHTML(html);
+  pruneMirrorDocToPublishedBlogs(document, publishedSlugs);
+  const doctype = html.match(/^<!DOCTYPE[^>]*>/i)?.[0] ?? "<!DOCTYPE html>";
+  return `${doctype}\n${document.documentElement.outerHTML}`;
+}
+
+export async function loadPublishedBlogSlugSet(siteId: string): Promise<Set<string>> {
+  const rows = await prisma.storeBlogPost.findMany({
+    where: { siteId, published: true },
+    select: { slug: true },
+  });
+  return new Set(rows.map((r) => r.slug.toLowerCase()));
+}

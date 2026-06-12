@@ -88,7 +88,8 @@ export function isMirrorPathUncacheable(
 
 function cacheKeyForMirror(params: MirrorHtmlBuildParams, layoutOrderKey: string) {
   return [
-    "mirror-html-v8",
+    "mirror-html-v9",
+    params.tenantSlug ?? "",
     params.siteId,
     params.normalized,
     params.locale,
@@ -133,13 +134,13 @@ export async function buildMirrorHtml(params: MirrorHtmlBuildParams): Promise<st
   const usePrebuiltShell =
     !params.pageKey?.trim() && preferPrebuiltMirrorHtml(params.normalized);
   if (usePrebuiltShell) {
-    const requestSlug = getActiveTenantSlug();
+    const requestSlug = params.tenantSlug ?? getActiveTenantSlug();
     const prebuildSlug = await getMirrorPrebuildTenantSlug();
-    const prebuiltOk =
-      !requestSlug ||
-      !prebuildSlug ||
-      mirrorPrebuildMatchesTenant(requestSlug, prebuildSlug);
-    if (prebuiltOk) {
+    if (
+      requestSlug &&
+      prebuildSlug &&
+      mirrorPrebuildMatchesTenant(requestSlug, prebuildSlug)
+    ) {
       const prebuilt = await readPrebuiltMirrorHtml(params.normalized);
       if (prebuilt) return injectMirrorListingCartBridge(prebuilt);
     }

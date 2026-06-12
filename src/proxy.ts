@@ -81,6 +81,9 @@ export async function proxy(request: NextRequest) {
   }
 
   if (pathname.startsWith("/_mirror-prebuilt")) {
+    if (pathname.endsWith("/manifest.json")) {
+      return nextWithShopHost(request);
+    }
     if (isDemoShopHost(host)) {
       const rel = pathname.replace(/^\/_mirror-prebuilt\//, "");
       const rewriteUrl = request.nextUrl.clone();

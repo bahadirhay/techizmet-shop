@@ -23,6 +23,7 @@ import {
 import { getCustomerSession } from "@/lib/customer-session";
 import { getSiteSettings } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
+import { ensureStoreTenant } from "@/lib/store-tenant";
 import { normalize } from "node:path";
 
 const ALLOWED_PREFIX = "theme/techizmet-shop/mirror/";
@@ -39,6 +40,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Yalnızca mirror HTML" }, { status: 400 });
   }
 
+  const tenant = await ensureStoreTenant();
   const site = await getDefaultSite();
   const locale = await getStoreLocaleFromHeaders();
   const pageKeyParam = url.searchParams.get("pageKey")?.trim() ?? "";
@@ -58,6 +60,7 @@ export async function GET(req: Request) {
     locale,
     siteId: site.id,
     siteName: site.name,
+    tenantSlug: tenant.slug,
     pageKey: pageKeyParam || undefined,
     blogSlug: blogSlug || undefined,
     productSlug: productSlug || undefined,

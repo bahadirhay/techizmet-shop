@@ -3,10 +3,12 @@ import { getStoreLocaleFromHeaders } from "@/lib/i18n/server";
 import { loadHomeListingProducts } from "@/lib/mirror-home-products-inject-server";
 import { getSiteSettingsUncached } from "@/lib/site-settings-load";
 import { getDefaultSite } from "@/lib/site";
+import { ensureStoreTenant } from "@/lib/store-tenant";
 import { resolveMirrorCollectionTexts } from "@/lib/store-static-texts";
 
 /** Vitrin iframe — güncel ürün fiyat, başlık, görsel (prebuild stale olsa bile DB) */
 export async function GET() {
+  await ensureStoreTenant();
   const site = await getDefaultSite();
   const locale = await getStoreLocaleFromHeaders();
   const products = await loadHomeListingProducts(site.id);
