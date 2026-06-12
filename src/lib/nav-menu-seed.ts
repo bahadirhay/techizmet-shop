@@ -1,5 +1,3 @@
-import "server-only";
-
 import { prisma } from "@/lib/prisma";
 import { resolveNavMenuHref } from "@/lib/nav-menu-link";
 import { syncHeaderNavFromCategories } from "@/lib/nav-menu-sync-categories";
