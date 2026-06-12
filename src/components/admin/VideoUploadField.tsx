@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { btnSecondary, inputClass } from "@/components/admin/AdminForm";
+import { detectEmbedProvider, toVideoIframeSrc } from "@/lib/video-embed";
 
 async function uploadVideo(file: File): Promise<string> {
   const fd = new FormData();
@@ -48,7 +49,10 @@ export function VideoUploadField({
   return (
     <div className="rounded-lg border border-dashed border-zinc-300 bg-white p-4 space-y-3">
       <p className="text-sm font-medium text-zinc-800">Video ekle</p>
-      <p className="text-xs text-zinc-500">MP4 / WebM / MOV — en fazla 80 MB. Veya doğrudan video URL yapıştırın.</p>
+      <p className="text-xs text-zinc-500">
+        MP4 / WebM / MOV yükleyin veya Instagram Reels, gönderi, YouTube, Vimeo linki yapıştırın.
+        Videolar ürün galerisinde görsellerle aynı sırada oynatılır.
+      </p>
       <input
         ref={inputRef}
         type="file"
@@ -73,7 +77,7 @@ export function VideoUploadField({
       <div className="flex flex-wrap gap-2">
         <input
           className={`${inputClass} min-w-0 flex-1`}
-          placeholder="https://…/video.mp4 veya /uploads/…"
+          placeholder="https://www.instagram.com/reel/… veya /uploads/…/video.mp4"
           value={urlInput}
           onChange={(e) => setUrlInput(e.target.value)}
         />
@@ -83,6 +87,12 @@ export function VideoUploadField({
           onClick={() => {
             const u = urlInput.trim();
             if (!u) return;
+            const provider = detectEmbedProvider(u);
+            if (provider && !toVideoIframeSrc(u)) {
+              setErr("Geçersiz video linki. Instagram Reels veya gönderi URL’sini kontrol edin.");
+              return;
+            }
+            setErr(null);
             onUrlAdd(u);
             setUrlInput("");
           }}

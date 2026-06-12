@@ -1,3 +1,5 @@
+import { detectEmbedProvider } from "@/lib/video-embed";
+
 export type ProductMediaType = "image" | "video";
 
 export type ProductMediaItem = {
@@ -8,7 +10,9 @@ export type ProductMediaItem = {
 const VIDEO_EXT = /\.(mp4|webm|mov)(\?|$)/i;
 
 export function inferMediaType(url: string): ProductMediaType {
-  return VIDEO_EXT.test(url.trim()) ? "video" : "image";
+  const trimmed = url.trim();
+  if (detectEmbedProvider(trimmed)) return "video";
+  return VIDEO_EXT.test(trimmed) ? "video" : "image";
 }
 
 export function normalizeMediaItem(raw: { url?: string; mediaType?: string }): ProductMediaItem | null {

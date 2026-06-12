@@ -53,3 +53,69 @@ img.product--card-image,
   height: 96px;
   object-fit: cover;
 }
+
+/* Ürün galerisi — yerel video + Instagram Reels / YouTube / Vimeo embed */
+#MainContent .main--product-image-slider-outer video,
+#MainContent .main--product-img video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  background: #111;
+}
+
+#MainContent .kn-product-gallery-embed-host .kn-product-gallery-embed,
+#MainContent [data-product-media-content] .kn-product-gallery-embed-host .kn-product-gallery-embed,
+.kn-pdp__gallery-embed {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: #111;
+}
+
+#MainContent .kn-product-gallery-embed iframe,
+.kn-pdp__gallery-embed iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+#MainContent .main--product-thumbnail .kn-product-thumb-embed {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  background: linear-gradient(145deg, #1a1a1a, #333);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+#MainContent .kn-product-thumb-embed__icon {
+  font-size: 1.25rem;
+  line-height: 1;
+  opacity: 0.9;
+}
+
+.kn-pdp__gallery-video {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  display: block;
+  background: #111;
+}
+
+.kn-pdp__gallery-embed-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  background: #111;
+}

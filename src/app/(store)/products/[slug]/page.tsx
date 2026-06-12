@@ -18,7 +18,7 @@ import { getHomepageMode, getSiteSettings } from "@/lib/site-settings";
 import { getLoggedInCustomerPricing } from "@/lib/store/customer-pricing";
 import { formatProductDisplayTitle } from "@/lib/product-display-title";
 import { loadResolvedBundleComponents, buildComponentsSnapshot } from "@/lib/product-bundle";
-import { resolvePublicMediaUrl } from "@/lib/product-media";
+import { ProductGalleryMedia } from "@/components/store/ProductGalleryMedia";
 import { getDefaultSite } from "@/lib/site";
 
 /** Admin’de kaydedilen ürün altı metinleri gecikmesiz yansısın */
@@ -146,28 +146,15 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             {gallery.length === 0 ? (
               <div className="kn-pdp__img kn-product-card__img--placeholder" />
             ) : (
-              gallery.map((item, i) =>
-                item.mediaType === "video" ? (
-                  <video
-                    key={`${item.url}-${i}`}
-                    src={item.url}
-                    controls
-                    playsInline
-                    muted
-                    loop
-                    className="kn-pdp__img w-full"
-                    preload="metadata"
-                  />
-                ) : (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    key={`${item.url}-${i}`}
-                    src={resolvePublicMediaUrl(item.url)}
-                    alt={i === 0 ? displayTitle : `${displayTitle} — ${i + 1}`}
-                    className="kn-pdp__img"
-                  />
-                ),
-              )
+              gallery.map((item, i) => (
+                <ProductGalleryMedia
+                  key={`${item.url}-${i}`}
+                  url={item.url}
+                  mediaType={item.mediaType}
+                  alt={i === 0 ? displayTitle : `${displayTitle} — ${i + 1}`}
+                  priority={i === 0}
+                />
+              ))
             )}
           </div>
           <div>

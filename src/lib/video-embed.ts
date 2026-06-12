@@ -42,8 +42,11 @@ export function toVideoIframeSrc(url: string): string | null {
       if (m?.[1]) return `https://player.vimeo.com/video/${m[1]}`;
     }
     if (h === "instagram.com") {
-      const m = u.pathname.match(/\/(reel|p|tv)\/([^/?]+)/);
-      if (m?.[1] && m[2]) return `https://www.instagram.com/${m[1]}/${m[2]}/embed`;
+      const m = u.pathname.match(/\/(reels?|p|tv)\/([^/?]+)/i);
+      if (m?.[1] && m[2]) {
+        const kind = m[1].toLowerCase() === "reels" ? "reel" : m[1].toLowerCase();
+        return `https://www.instagram.com/${kind}/${m[2]}/embed`;
+      }
       if (u.pathname.includes("/embed")) return normalized;
     }
     if (raw.includes("youtube.com/embed") || raw.includes("player.vimeo.com/video")) {

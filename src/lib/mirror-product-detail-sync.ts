@@ -22,6 +22,13 @@ import {
   stripMirrorPostMessageScripts,
 } from "@/lib/mirror-product-template-slug";
 import { disableLoopWhenInsufficient, type SwiperCfg } from "@/lib/mirror-html-swiper-patch";
+import {
+  embedVideoThumbLabel,
+  isEmbeddableProductVideoUrl,
+  productGalleryMainVideoInnerHtml,
+  productGalleryThumbEmbedPlaceholderHtml,
+  productGalleryZoomVideoInnerHtml,
+} from "@/lib/product-gallery-media";
 
 export type VitrinProductMedia = {
   url: string;
@@ -111,6 +118,13 @@ function galleryDomMatchesAdminMedia(doc: Document, media: VitrinProductMedia[])
     const slide = slides[index];
     if (!slide) return false;
     if (item.mediaType === "video") {
+      const embedUrl = slide
+        .querySelector("[data-embed-url]")
+        ?.getAttribute("data-embed-url")
+        ?.trim();
+      if (embedUrl) {
+        return normalizeGalleryUrl(embedUrl) === normalizeGalleryUrl(item.url);
+      }
       const src = slide.querySelector("video")?.getAttribute("src")?.trim() ?? "";
       return normalizeGalleryUrl(src) === normalizeGalleryUrl(item.url);
     }
@@ -193,10 +207,13 @@ function mediaSlideHtml(
   const alt = escAttr(item.alt || product.title);
   const url = escAttr(item.url);
   if (item.mediaType === "video") {
+    const embed = isEmbeddableProductVideoUrl(item.url);
+    const mediaClass = embed ? "media kn-product-gallery-embed-host" : "media";
+    const inner = productGalleryMainVideoInnerHtml(item.url, item.alt || product.title);
     return `<div class="main--product-item swiper-slide" data-media-id="admin-video-${index}">
       <div class="main--product-img media-wrapper width-100 height-100">
-        <div class="media" style="${productImageMediaRatioStyle()};">
-          <video src="${url}" controls playsinline muted loop preload="metadata" style="width:100%;height:100%;object-fit:cover;"></video>
+        <div class="${mediaClass}" style="${productImageMediaRatioStyle()};">
+          ${inner}
         </div>
       </div>
     </div>`;
@@ -219,10 +236,14 @@ function zoomModalSlideHtml(item: VitrinProductMedia, product: VitrinProductDeta
   const alt = escAttr(item.alt || product.title);
   const url = escAttr(item.url);
   if (item.mediaType === "video") {
+    const inner = productGalleryZoomVideoInnerHtml(item.url, item.alt || product.title);
+    const zoomClass = isEmbeddableProductVideoUrl(item.url)
+      ? "swiper-zoom-container kn-product-gallery-embed-host"
+      : "swiper-zoom-container";
     return `<div class="swiper-slide" data-media-id="admin-zoom-video-${index}">
       <div class="main--product-media-item">
-        <div class="swiper-zoom-container">
-          <video src="${url}" controls playsinline style="width:100%;height:100%;object-fit:contain;"></video>
+        <div class="${zoomClass}">
+          ${inner}
         </div>
       </div>
     </div>`;
@@ -440,11 +461,17 @@ function patchThumbnailSlider(
       const url = escAttr(item.url);
       const alt = escAttr(item.alt || product.title);
       const mediaId = item.mediaType === "video" ? `admin-video-${index}` : `admin-image-${index}`;
+      const thumbInner =
+        item.mediaType === "video" && isEmbeddableProductVideoUrl(item.url)
+          ? productGalleryThumbEmbedPlaceholderHtml(embedVideoThumbLabel(item.url))
+          : item.mediaType === "video"
+            ? `<video src="${url}" muted playsinline preload="metadata" style="width:100%;height:100%;object-fit:cover;"></video>`
+            : `<img src="${url}" data-original="${url}" alt="${alt}"
+              width="${PRODUCT_IMAGE_THUMB.galleryThumb.width}" height="${PRODUCT_IMAGE_THUMB.galleryThumb.height}" loading="${index === 0 ? "eager" : "lazy"}">`;
       return `<div class="swiper-slide main--thumbnail-item" data-media-id="${mediaId}">
         <div class="main--product-thumbnail media-wrapper">
-          <div class="media">
-            <img src="${url}" data-original="${url}" alt="${alt}"
-              width="${PRODUCT_IMAGE_THUMB.galleryThumb.width}" height="${PRODUCT_IMAGE_THUMB.galleryThumb.height}" loading="${index === 0 ? "eager" : "lazy"}">
+          <div class="media" style="${productImageMediaRatioStyle()};">
+            ${thumbInner}
           </div>
         </div>
       </div>`;

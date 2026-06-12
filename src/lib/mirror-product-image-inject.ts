@@ -1,4 +1,4 @@
-export const PRODUCT_IMAGE_CSS = "/theme/techizmet-shop/kn-product-images.css?v=2";
+export const PRODUCT_IMAGE_CSS = "/theme/techizmet-shop/kn-product-images.css?v=3";
 
 /** İstemci — prebuild iframe’lere ürün görsel oranı (1200×1800) */
 export function ensureMirrorProductImageStyles(doc: Document) {
@@ -19,7 +19,7 @@ export function ensureMirrorProductImageStyles(doc: Document) {
 /** Mirror iframe — ürün görsel oranı (1200×1800) */
 export function injectMirrorProductImageStyles(html: string): string {
   if (html.includes("kn-product-images.css")) {
-    return html.replace(/kn-product-images\.css\?v=\d+/g, "kn-product-images.css?v=2");
+    return html.replace(/kn-product-images\.css\?v=\d+/g, "kn-product-images.css?v=3");
   }
   if (html.includes('id="kn-product-images-css"')) return html;
   const link = `<link rel="stylesheet" href="${PRODUCT_IMAGE_CSS}" id="kn-product-images-css" />`;

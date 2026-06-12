@@ -33,7 +33,7 @@ export function productImagePlaceholderStyle(): string {
 
 /** PDP ana galeri — tüm ürün sayfalarında aynı swiper düzeni */
 export const PRODUCT_GALLERY_SWIPER = {
-  markupVersion: "2",
+  markupVersion: "3",
   speed: 800,
   spaceBetween: 2,
   mobileSlidesPerView: 1.2,

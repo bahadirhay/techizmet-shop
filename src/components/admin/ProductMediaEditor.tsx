@@ -1,10 +1,13 @@
 "use client";
 
 import { ImageUploadField } from "@/components/admin/ImageUploadField";
+import { ProductMediaEmbedPreview } from "@/components/admin/ProductMediaEmbedPreview";
 import { VideoUploadField } from "@/components/admin/VideoUploadField";
 import { btnSecondary, inputClass } from "@/components/admin/AdminForm";
 import type { ProductMediaItem } from "@/lib/product-media";
 import { PRODUCT_IMAGE_ADMIN_CROP } from "@/lib/product-image-spec";
+import { embedVideoThumbLabel, isEmbeddableProductVideoUrl } from "@/lib/product-gallery-media";
+import { detectEmbedProvider } from "@/lib/video-embed";
 
 function mediaSrc(url: string) {
   return url.startsWith("/") || url.startsWith("http") ? url : `/${url}`;
@@ -40,7 +43,8 @@ export function ProductMediaEditor({
           <span className="font-normal text-zinc-500">({items.length} medya)</span>
         </p>
         <p className="mt-0.5 text-xs text-zinc-500">
-          İlk görsel vitrin/liste ana görselidir. Videolar ürün detay galerisinde oynatılır.{" "}
+          İlk görsel vitrin/liste ana görselidir. Instagram Reels / videolar galeride görsellerle
+          aynı sırada yer alır ve ürün sayfasında izlenebilir.{" "}
           <a
             href="/admin/settings/image-guide"
             className="text-[var(--kn-brand)] hover:underline"
@@ -62,7 +66,9 @@ export function ProductMediaEditor({
               className="flex flex-wrap items-start gap-3 rounded-lg border border-zinc-200 bg-white p-3"
             >
               <div className="h-20 w-20 shrink-0 overflow-hidden rounded-md border border-zinc-200 bg-zinc-100">
-                {item.mediaType === "video" ? (
+                {item.mediaType === "video" && isEmbeddableProductVideoUrl(item.url) ? (
+                  <ProductMediaEmbedPreview url={item.url} />
+                ) : item.mediaType === "video" ? (
                   <video
                     src={mediaSrc(item.url)}
                     className="h-full w-full object-cover"
@@ -92,7 +98,13 @@ export function ProductMediaEditor({
                         : "bg-zinc-100 text-zinc-700"
                     }`}
                   >
-                    {item.mediaType === "video" ? "Video" : "Görsel"}
+                    {item.mediaType === "video"
+                      ? detectEmbedProvider(item.url) === "instagram"
+                        ? "Instagram"
+                        : detectEmbedProvider(item.url)
+                          ? embedVideoThumbLabel(item.url)
+                          : "Video"
+                      : "Görsel"}
                   </span>
                   {item.mediaType === "image" && i === firstImageIdx ? (
                     <span className="rounded bg-[var(--kn-brand)]/10 px-2 py-0.5 text-xs text-[var(--kn-brand)]">
@@ -105,9 +117,8 @@ export function ProductMediaEditor({
                       onClick={() => {
                         const next = [...items];
                         const [img] = next.splice(i, 1);
-                        const videoPart = next.filter((m) => m.mediaType === "video");
-                        const restImages = next.filter((m) => m.mediaType === "image");
-                        onChange([img, ...restImages, ...videoPart]);
+                        next.unshift(img);
+                        onChange(next);
                       }}
                     >
                       Ana yap
@@ -118,8 +129,16 @@ export function ProductMediaEditor({
                   className={inputClass}
                   value={item.url}
                   onChange={(e) => {
+                    const url = e.target.value;
                     const next = [...items];
-                    next[i] = { ...item, url: e.target.value };
+                    next[i] = {
+                      ...item,
+                      url,
+                      mediaType:
+                        item.mediaType === "video" || detectEmbedProvider(url)
+                          ? "video"
+                          : "image",
+                    };
                     onChange(next);
                   }}
                 />
