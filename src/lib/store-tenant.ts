@@ -66,10 +66,7 @@ async function tryResolveAnatolianPawTenant(publicOrigin: string): Promise<Store
   return { slug: "anatolianpaw", publicOrigin, databaseUrl };
 }
 
-export function resolveTenantFromHost(host: string): StoreTenant {
-  const mapped = resolveStoreHostTenant(host);
-  if (mapped) return tenantFromHostMapping(mapped);
-
+function resolveTenantFromEnv(): StoreTenant {
   const slug = process.env.STORE_SITE_SLUG?.trim() || "demo";
   const publicOrigin = normalizeSiteUrl(
     process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
@@ -83,6 +80,14 @@ export function resolveTenantFromHost(host: string): StoreTenant {
       slug === "anatolianpaw" ? "DATABASE_URL_ANATOLIANPAW" : "DATABASE_URL_DEMO",
     ),
   };
+}
+
+export function resolveTenantFromHost(host: string): StoreTenant {
+  const mapped = resolveStoreHostTenant(host);
+  if (mapped && mapped.slug !== "demo") {
+    return tenantFromHostMapping(mapped);
+  }
+  return resolveTenantFromEnv();
 }
 
 async function tenantFromProxyHeaders(): Promise<StoreTenant | null> {
@@ -148,7 +153,7 @@ export const ensureStoreTenant = cache(async (): Promise<StoreTenant> => {
     return fromHost;
   }
 
-  const tenant = resolveTenantFromHost(host);
+  const tenant = resolveTenantFromEnv();
   tenantStorage.enterWith(tenant);
   return tenant;
 });
