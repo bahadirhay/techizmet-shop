@@ -4474,8 +4474,16 @@ our team is here to help you every step of the way.</p>
 
 <script>
 (function() {
+  function isAllowedMapUrl(url) {
+    if (!url || !url.startsWith('http')) return false;
+    try {
+      var h = new URL(url).hostname.replace(/^www\./, '').toLowerCase();
+      return h === 'google.com' || h.endsWith('.google.com') || h === 'maps.google.com' ||
+        h === 'openstreetmap.org' || h.endsWith('.openstreetmap.org');
+    } catch (e) { return false; }
+  }
   function applyKnMap(url) {
-    if (!url || !url.startsWith('http')) return;
+    if (!isAllowedMapUrl(url)) return;
     var box = document.querySelector('.contact-form--map-box');
     if (!box) return;
     box.innerHTML = '';
@@ -4501,6 +4509,7 @@ our team is here to help you every step of the way.</p>
 
   // 2. Yedek: postMessage ile parent'tan al
   window.addEventListener('message', function(e) {
+    if (e.origin !== window.location.origin) return;
     if (e.data && e.data.type === 'kn-map-url') applyKnMap(e.data.url);
   });
 })();

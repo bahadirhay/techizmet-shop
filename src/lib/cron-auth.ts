@@ -6,10 +6,14 @@ export function verifyCronRequest(req: Request): { ok: true } | { ok: false; sta
     return { ok: false, status: 503, error: "CRON_SECRET tanımlı değil" };
   }
 
+  const isProd = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
   const url = new URL(req.url);
-  const provided =
-    url.searchParams.get("secret")?.trim() ||
-    req.headers.get("authorization")?.replace(/^Bearer\s+/i, "").trim();
+  const querySecret = url.searchParams.get("secret")?.trim();
+  const headerSecret = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "").trim();
+  if (isProd && querySecret) {
+    return { ok: false, status: 401, error: "Query secret disabled in production; use Authorization: Bearer" };
+  }
+  const provided = headerSecret || (!isProd ? querySecret : undefined);
 
   if (provided !== secret) {
     return { ok: false, status: 401, error: "Unauthorized" };

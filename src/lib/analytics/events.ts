@@ -5,21 +5,20 @@ import type { IncomingStoreEvent, StoreEventType, UtmAttribution } from "@/lib/a
 import { upsertCartAbandonment, type CartSnapshotItem } from "@/lib/analytics/cart-abandonment";
 import { ensureVisitorProfile, linkVisitorToCustomer } from "@/lib/analytics/visitor";
 
-const ALLOWED: StoreEventType[] = [
+const CLIENT_ALLOWED: StoreEventType[] = [
   "page_view",
   "product_view",
   "search_query",
   "add_to_cart",
   "remove_from_cart",
   "begin_checkout",
-  "purchase",
 ];
 
-function isAllowedType(t: string): t is StoreEventType {
-  return (ALLOWED as string[]).includes(t);
+function isClientAllowedType(t: string): t is StoreEventType {
+  return (CLIENT_ALLOWED as string[]).includes(t);
 }
 
-export async function recordStoreEvents(params: {
+async function persistStoreEvents(params: {
   siteId: string;
   events: IncomingStoreEvent[];
   visitorKey?: string | null;
@@ -27,8 +26,7 @@ export async function recordStoreEvents(params: {
   userAgent?: string | null;
   utm?: UtmAttribution;
 }): Promise<{ visitorKey: string; recorded: number }> {
-  const filtered = params.events.filter((e) => isAllowedType(e.type));
-  if (!filtered.length) {
+  if (!params.events.length) {
     const key = params.visitorKey ?? (await ensureVisitorProfile(params.siteId)).visitorKey;
     return { visitorKey: key, recorded: 0 };
   }
@@ -45,7 +43,7 @@ export async function recordStoreEvents(params: {
   }
 
   await prisma.storeEvent.createMany({
-    data: filtered.map((e) => ({
+    data: params.events.map((e) => ({
       siteId: params.siteId,
       visitorKey,
       customerId: params.customerId ?? null,
@@ -55,7 +53,7 @@ export async function recordStoreEvents(params: {
     })),
   });
 
-  for (const e of filtered) {
+  for (const e of params.events) {
     if (e.type === "add_to_cart") {
       await handleAddToCartSideEffects(params.siteId, visitorKey, params.customerId, e.payload);
     }
@@ -64,7 +62,20 @@ export async function recordStoreEvents(params: {
     }
   }
 
-  return { visitorKey, recorded: filtered.length };
+  return { visitorKey, recorded: params.events.length };
+}
+
+/** İstemci analytics — purchase kabul edilmez */
+export async function recordStoreEvents(params: {
+  siteId: string;
+  events: IncomingStoreEvent[];
+  visitorKey?: string | null;
+  customerId?: string | null;
+  userAgent?: string | null;
+  utm?: UtmAttribution;
+}): Promise<{ visitorKey: string; recorded: number }> {
+  const filtered = params.events.filter((e) => isClientAllowedType(e.type));
+  return persistStoreEvents({ ...params, events: filtered });
 }
 
 async function handleAddToCartSideEffects(
@@ -157,7 +168,7 @@ export async function recordServerStoreEvent(params: {
   customerId?: string | null;
   userAgent?: string | null;
 }): Promise<void> {
-  await recordStoreEvents({
+  await persistStoreEvents({
     siteId: params.siteId,
     visitorKey: params.visitorKey,
     customerId: params.customerId,
@@ -197,7 +208,7 @@ export async function recordPurchaseEvent(params: {
 
   if (!visitorKey) return;
 
-  await recordStoreEvents({
+  await persistStoreEvents({
     siteId: params.siteId,
     visitorKey,
     customerId: params.customerId,

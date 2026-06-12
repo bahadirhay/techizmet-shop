@@ -2,6 +2,7 @@ import {
   hashCustomerPassword,
   setCustomerSession,
 } from "@/lib/customer-auth";
+import { canSetPasswordOnCustomer } from "@/lib/customer-oauth";
 import { prisma } from "@/lib/prisma";
 
 export async function createAccountAfterOrder(params: {
@@ -33,8 +34,13 @@ export async function createAccountAfterOrder(params: {
       where: { id: customerId, siteId: params.siteId },
     });
     if (!row) customerId = null;
-    else if (row.passwordHash) {
-      return { ok: false, error: "Bu e-posta zaten kayıtlı. Giriş yapın." };
+    else if (!canSetPasswordOnCustomer(row)) {
+      return {
+        ok: false,
+        error: row.passwordHash
+          ? "Bu e-posta zaten kayıtlı. Giriş yapın."
+          : "Bu e-posta Google veya Apple ile kayıtlı. Sosyal giriş kullanın.",
+      };
     }
   }
 
@@ -42,8 +48,13 @@ export async function createAccountAfterOrder(params: {
     const existing = await prisma.storeCustomer.findFirst({
       where: { siteId: params.siteId, email },
     });
-    if (existing?.passwordHash) {
-      return { ok: false, error: "Bu e-posta zaten kayıtlı. Giriş yapın." };
+    if (existing && !canSetPasswordOnCustomer(existing)) {
+      return {
+        ok: false,
+        error: existing.passwordHash
+          ? "Bu e-posta zaten kayıtlı. Giriş yapın."
+          : "Bu e-posta Google veya Apple ile kayıtlı. Sosyal giriş kullanın.",
+      };
     }
     if (existing) {
       customerId = existing.id;

@@ -117,6 +117,7 @@ export function MirrorHomeAdminEditor({
     : {};
 
   const onPick = useCallback((event: MessageEvent) => {
+    if (event.origin !== window.location.origin) return;
     const data = event.data;
     if (!data || data.type !== "kn-element-pick") return;
     setPicked({

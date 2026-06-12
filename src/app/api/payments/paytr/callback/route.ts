@@ -56,6 +56,23 @@ export async function POST(req: Request) {
   }
 
   if (body.status === "success") {
+    const paidMinor = Number(body.total_amount);
+    if (!Number.isFinite(paidMinor) || paidMinor !== order.totalMinor) {
+      await prisma.storeOrder.update({
+        where: { id: order.id },
+        data: {
+          paymentStatus: "failed",
+          adminNotes: [
+            order.adminNotes,
+            `PayTR tutar uyuşmazlığı: beklenen ${order.totalMinor}, gelen ${body.total_amount}`,
+          ]
+            .filter(Boolean)
+            .join(" · "),
+        },
+      });
+      return new NextResponse("OK");
+    }
+
     await prisma.storeOrder.update({
       where: { id: order.id },
       data: {

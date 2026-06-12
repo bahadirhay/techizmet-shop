@@ -223,6 +223,7 @@ export function MirrorVitrinAdminEditor({
   );
 
   const onMessage = useCallback((event: MessageEvent) => {
+    if (event.origin !== window.location.origin) return;
     const data = event.data;
     if (!data) return;
     if (data.type === "kn-element-pick") {

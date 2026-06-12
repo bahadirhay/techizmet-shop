@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { checkRateLimit, clientIp, rateLimitResponse } from "@/lib/rate-limit";
+import { verifyPaytrInitToken } from "@/lib/payments/paytr-access";
 import { prisma } from "@/lib/prisma";
 import { getDefaultSite } from "@/lib/site";
 import { getSiteSettings } from "@/lib/site-settings";
@@ -10,17 +12,15 @@ import {
   requestPaytrIframeToken,
 } from "@/lib/payments/paytr";
 
-function clientIp(req: Request): string {
-  const fwd = req.headers.get("x-forwarded-for");
-  if (fwd) return fwd.split(",")[0]?.trim() ?? "127.0.0.1";
-  return req.headers.get("x-real-ip") ?? "127.0.0.1";
-}
-
 export async function POST(req: Request) {
-  const body = (await req.json()) as { orderNumber?: string };
+  const rl = checkRateLimit(`paytr-init:${clientIp(req)}`, 20, 15 * 60 * 1000);
+  if (!rl.ok) return rateLimitResponse(rl.retryAfterSec);
+
+  const body = (await req.json()) as { orderNumber?: string; paymentToken?: string };
   const orderNumber = String(body.orderNumber ?? "").trim();
-  if (!orderNumber) {
-    return NextResponse.json({ error: "Sipariş numarası gerekli" }, { status: 400 });
+  const paymentToken = String(body.paymentToken ?? "").trim();
+  if (!orderNumber || !paymentToken) {
+    return NextResponse.json({ error: "Geçersiz ödeme isteği" }, { status: 400 });
   }
 
   const site = await getDefaultSite();
@@ -35,6 +35,9 @@ export async function POST(req: Request) {
     include: { lines: true },
   });
   if (!order) return NextResponse.json({ error: "Sipariş bulunamadı" }, { status: 404 });
+  if (!verifyPaytrInitToken(paymentToken, order.id, order.orderNumber)) {
+    return NextResponse.json({ error: "Ödeme oturumu geçersiz veya süresi dolmuş" }, { status: 403 });
+  }
   if (order.paymentStatus === "paid") {
     return NextResponse.json({ error: "Sipariş zaten ödendi" }, { status: 400 });
   }
@@ -74,7 +77,7 @@ export async function POST(req: Request) {
     user_address: "Türkiye",
     user_phone: order.customerPhone ?? "05000000000",
     merchant_ok_url: `${baseUrl}/checkout/success?order=${encodeURIComponent(order.orderNumber)}`,
-    merchant_fail_url: `${baseUrl}/checkout/pay?order=${encodeURIComponent(order.orderNumber)}&failed=1`,
+    merchant_fail_url: `${baseUrl}/checkout/pay?order=${encodeURIComponent(order.orderNumber)}&token=${encodeURIComponent(paymentToken)}&failed=1`,
     timeout_limit: "30",
     currency: "TL",
     lang: "tr",

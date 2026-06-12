@@ -10,12 +10,7 @@ export type AdminSession = {
   permissionsJson?: string;
 };
 
-const DEV_SECRET = "dev-insecure-secret-min-32-chars!!";
-
-function resolveSessionSecret(): string {
-  const trimmed = (process.env.SESSION_SECRET ?? "").trim();
-  return trimmed.length >= 32 ? trimmed : DEV_SECRET;
-}
+import { resolveSessionSecret } from "@/lib/session-secret";
 
 export function getAdminSessionOptions(): SessionOptions {
   return {

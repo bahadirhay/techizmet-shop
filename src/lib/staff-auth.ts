@@ -24,7 +24,6 @@ function isAdminRole(roleSlug: string): boolean {
 /** Veritabanından gelen izinleri birleştirir; admin rolü her zaman tam yetki */
 export function resolveStaffPermissions(roleSlug: string, fromDb: string[]): string[] {
   if (isAdminRole(roleSlug)) return allStaffPermissions();
-  if (fromDb.length === 0) return allStaffPermissions();
   return fromDb;
 }
 

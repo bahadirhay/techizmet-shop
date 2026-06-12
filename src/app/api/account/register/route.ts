@@ -3,10 +3,14 @@ import {
   hashCustomerPassword,
   setCustomerSession,
 } from "@/lib/customer-auth";
+import { canSetPasswordOnCustomer } from "@/lib/customer-oauth";
+import { checkRateLimit, clientIp, rateLimitResponse } from "@/lib/rate-limit";
 import { prisma } from "@/lib/prisma";
 import { getDefaultSite } from "@/lib/site";
 
 export async function POST(req: Request) {
+  const rl = checkRateLimit(`register:${clientIp(req)}`, 8, 15 * 60 * 1000);
+  if (!rl.ok) return rateLimitResponse(rl.retryAfterSec);
   const body = (await req.json()) as Record<string, string>;
   const email = String(body.email ?? "").trim().toLowerCase();
   const password = String(body.password ?? "");
@@ -25,8 +29,15 @@ export async function POST(req: Request) {
 
   const hash = await hashCustomerPassword(password);
 
-  if (existing?.passwordHash) {
-    return NextResponse.json({ error: "Bu e-posta zaten kayıtlı. Giriş yapın." }, { status: 400 });
+  if (existing && !canSetPasswordOnCustomer(existing)) {
+    return NextResponse.json(
+      {
+        error: existing.passwordHash
+          ? "Bu e-posta zaten kayıtlı. Giriş yapın."
+          : "Bu e-posta Google veya Apple ile kayıtlı. Sosyal giriş kullanın.",
+      },
+      { status: 400 },
+    );
   }
 
   const customer = existing

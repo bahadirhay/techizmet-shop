@@ -19,6 +19,7 @@ import { getLoggedInCustomerPricing } from "@/lib/store/customer-pricing";
 import { formatProductDisplayTitle } from "@/lib/product-display-title";
 import { loadResolvedBundleComponents, buildComponentsSnapshot } from "@/lib/product-bundle";
 import { ProductGalleryMedia } from "@/components/store/ProductGalleryMedia";
+import { sanitizePublicHtml } from "@/lib/html-sanitize";
 import { getDefaultSite } from "@/lib/site";
 
 /** Admin’de kaydedilen ürün altı metinleri gecikmesiz yansısın */
@@ -186,7 +187,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             {product.descriptionHtml ? (
               <div
                 className="kn-pdp__desc prose prose-sm max-w-none"
-                dangerouslySetInnerHTML={{ __html: product.descriptionHtml }}
+                dangerouslySetInnerHTML={{ __html: sanitizePublicHtml(product.descriptionHtml) }}
               />
             ) : null}
             <p className="mt-4">

@@ -40,7 +40,7 @@ if (!siteUrl) {
 }
 
 if (session.length < 32) {
-  console.warn("[vercel:preflight] UYARI: SESSION_SECRET eksik veya kisa (runtime icin gerekli).");
+  errors.push("SESSION_SECRET eksik veya 32 karakterden kisa — guclu bir secret tanimlayin.");
 }
 
 if (errors.length) {

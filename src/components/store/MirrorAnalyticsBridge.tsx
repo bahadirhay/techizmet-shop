@@ -15,6 +15,7 @@ export function MirrorAnalyticsBridge() {
   useEffect(() => {
     function onMessage(event: MessageEvent) {
       if (!analyticsConsentAllowed()) return;
+      if (event.origin !== window.location.origin) return;
       const data = event.data;
       if (!data || typeof data !== "object") return;
       if (data.type !== "kn-mirror-analytics" || typeof data.path !== "string") return;

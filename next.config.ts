@@ -50,8 +50,18 @@ const nextConfig: NextConfig = {
     const prebuiltHtmlNoStore = [
       { key: "Cache-Control", value: "private, no-store, max-age=0, must-revalidate" },
     ] as const;
+    const securityHeaders = [
+      { key: "X-Content-Type-Options", value: "nosniff" },
+      { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+      { key: "X-Frame-Options", value: "SAMEORIGIN" },
+      {
+        key: "Permissions-Policy",
+        value: "camera=(), microphone=(), geolocation=(), payment=(self)",
+      },
+    ] as const;
     return [
-      { source: "/admin/:path*", headers: [...noStore] },
+      { source: "/:path*", headers: [...securityHeaders] },
+      { source: "/admin/:path*", headers: [...noStore, ...securityHeaders] },
       { source: "/api/admin/:path*", headers: [...noStore] },
       { source: "/_mirror-prebuilt/:path*.html", headers: [...prebuiltHtmlNoStore] },
       { source: "/_mirror-prebuilt/:path*", headers: [...prebuiltCache] },

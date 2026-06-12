@@ -1,8 +1,9 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
+import { sniffImageMime, sniffVideoMime } from "@/lib/admin/file-sniff";
 
-const IMAGE_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml"]);
+const IMAGE_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 const VIDEO_MIME = new Set(["video/mp4", "video/webm", "video/quicktime"]);
 
 export type SavedUpload = {
@@ -19,41 +20,41 @@ function isServerlessReadonlyFs(): boolean {
 }
 
 export async function saveUploadedImage(siteId: string, file: File): Promise<SavedUpload> {
-  const mime = file.type || "application/octet-stream";
-  if (!IMAGE_MIME.has(mime)) {
-    throw new Error("Yalnızca JPEG, PNG, WebP, GIF veya SVG yüklenebilir.");
-  }
   if (file.size > 8 * 1024 * 1024) {
     throw new Error("Dosya en fazla 8 MB olabilir.");
   }
 
-  const ext =
-    mime === "image/png"
-      ? "png"
-      : mime === "image/webp"
-        ? "webp"
-        : mime === "image/gif"
-          ? "gif"
-          : mime === "image/svg+xml"
-            ? "svg"
-            : "jpg";
-
   const buf = Buffer.from(await file.arrayBuffer());
-  return writeUpload(siteId, buf, ext, mime, file.size);
+  const sniffed = sniffImageMime(buf);
+  if (!sniffed || !IMAGE_MIME.has(sniffed)) {
+    throw new Error("Yalnızca JPEG, PNG, WebP veya GIF yüklenebilir.");
+  }
+
+  const ext =
+    sniffed === "image/png"
+      ? "png"
+      : sniffed === "image/webp"
+        ? "webp"
+        : sniffed === "image/gif"
+          ? "gif"
+          : "jpg";
+
+  return writeUpload(siteId, buf, ext, sniffed, file.size);
 }
 
 export async function saveUploadedVideo(siteId: string, file: File): Promise<SavedUpload> {
-  const mime = file.type || "application/octet-stream";
-  if (!VIDEO_MIME.has(mime)) {
-    throw new Error("Yalnızca MP4, WebM veya MOV (video) yüklenebilir.");
-  }
   if (file.size > 80 * 1024 * 1024) {
     throw new Error("Video en fazla 80 MB olabilir.");
   }
 
-  const ext = mime === "video/webm" ? "webm" : mime === "video/quicktime" ? "mov" : "mp4";
   const buf = Buffer.from(await file.arrayBuffer());
-  return writeUpload(siteId, buf, ext, mime, file.size);
+  const sniffed = sniffVideoMime(buf);
+  if (!sniffed || !VIDEO_MIME.has(sniffed)) {
+    throw new Error("Yalnızca MP4, WebM veya MOV (video) yüklenebilir.");
+  }
+
+  const ext = sniffed === "video/webm" ? "webm" : sniffed === "video/quicktime" ? "mov" : "mp4";
+  return writeUpload(siteId, buf, ext, sniffed, file.size);
 }
 
 async function writeUpload(

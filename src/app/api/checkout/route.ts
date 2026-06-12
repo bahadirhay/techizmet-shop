@@ -10,6 +10,7 @@ import { sendOrderConfirmationBundle } from "@/lib/email/send-order-notification
 import { getSiteSettings, isCardPaymentEnabled } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
 import { formatCheckoutLine1 } from "@/lib/tr-address/format";
+import { issuePaytrInitToken } from "@/lib/payments/paytr-access";
 
 export async function POST(req: Request) {
   const body = (await req.json()) as Record<string, unknown>;
@@ -124,12 +125,14 @@ export async function POST(req: Request) {
     }
 
     if (paymentMethod === "card") {
+      const paymentToken = issuePaytrInitToken(result.orderId, result.orderNumber);
       return NextResponse.json({
         ok: true,
         ...result,
         paymentRequired: true,
+        paymentToken,
         accountCreated,
-        redirectUrl: `/checkout/pay?order=${encodeURIComponent(result.orderNumber)}`,
+        redirectUrl: `/checkout/pay?order=${encodeURIComponent(result.orderNumber)}&token=${encodeURIComponent(paymentToken)}`,
       });
     }
 

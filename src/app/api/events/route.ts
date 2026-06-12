@@ -12,7 +12,6 @@ const eventSchema = z.object({
     "add_to_cart",
     "remove_from_cart",
     "begin_checkout",
-    "purchase",
   ]),
   payload: z.record(z.string(), z.unknown()).default({}),
   at: z.string().optional(),

@@ -427,14 +427,16 @@ export async function createOrderFromCart(params: {
     });
     if (existing) {
       orderCustomerId = existing.id;
-      await prisma.storeCustomer.update({
-        where: { id: existing.id },
-        data: {
-          phone: params.customer.phone,
-          firstName: params.customer.firstName,
-          lastName: params.customer.lastName,
-        },
-      });
+      if (params.customerId === existing.id) {
+        await prisma.storeCustomer.update({
+          where: { id: existing.id },
+          data: {
+            phone: params.customer.phone,
+            firstName: params.customer.firstName,
+            lastName: params.customer.lastName,
+          },
+        });
+      }
     } else {
       const created = await prisma.storeCustomer.create({
         data: {

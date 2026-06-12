@@ -6,13 +6,17 @@ import { getStoreHomepageMode } from "@/lib/site-settings";
 export default async function CheckoutPayPage({
   searchParams,
 }: {
-  searchParams: Promise<{ order?: string; failed?: string }>;
+  searchParams: Promise<{ order?: string; failed?: string; token?: string }>;
 }) {
-  const { order, failed } = await searchParams;
-  if (!order?.trim()) redirect("/checkout");
+  const { order, failed, token } = await searchParams;
+  if (!order?.trim() || !token?.trim()) redirect("/checkout");
   const homepageMode = await getStoreHomepageMode();
   const pay = (
-    <PaytrCheckout orderNumber={order.trim()} failed={failed === "1"} />
+    <PaytrCheckout
+      orderNumber={order.trim()}
+      paymentToken={token.trim()}
+      failed={failed === "1"}
+    />
   );
 
   if (homepageMode === "mirror") {

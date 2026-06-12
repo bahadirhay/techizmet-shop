@@ -5,9 +5,11 @@ import { useEffect, useState } from "react";
 
 export function PaytrCheckout({
   orderNumber,
+  paymentToken,
   failed,
 }: {
   orderNumber: string;
+  paymentToken: string;
   failed?: boolean;
 }) {
   const [iframeUrl, setIframeUrl] = useState<string | null>(null);
@@ -19,7 +21,7 @@ export function PaytrCheckout({
     fetch("/api/payments/paytr/init", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orderNumber }),
+      body: JSON.stringify({ orderNumber, paymentToken }),
     })
       .then((r) => r.json())
       .then((j: { iframeUrl?: string; error?: string; testMode?: boolean }) => {
@@ -32,7 +34,7 @@ export function PaytrCheckout({
         setLoading(false);
         setErr("Bağlantı hatası");
       });
-  }, [orderNumber]);
+  }, [orderNumber, paymentToken]);
 
   return (
     <div className="kn-section kn-paytr">

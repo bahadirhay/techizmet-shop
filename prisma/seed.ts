@@ -57,8 +57,15 @@ async function main() {
     where: { siteId_slug: { siteId: site.id, slug: "admin" } },
   });
 
-  const plain = process.env.ADMIN_PASSWORD?.trim() || "admin123";
-  const hash = await bcrypt.hash(plain, 12);
+  const plain = process.env.ADMIN_PASSWORD?.trim();
+  if (!plain || plain.length < 12) {
+    if (process.env.NODE_ENV === "production" || process.env.VERCEL === "1") {
+      throw new Error("ADMIN_PASSWORD (min 12 karakter) seed icin zorunlu.");
+    }
+    console.warn("[seed] ADMIN_PASSWORD yok — yalnızca yerel geliştirme için admin123 kullanılıyor.");
+  }
+  const password = plain && plain.length >= 12 ? plain : "admin123";
+  const hash = await bcrypt.hash(password, 12);
   await prisma.shopStaffUser.upsert({
     where: { siteId_username: { siteId: site.id, username: "admin" } },
     create: {
