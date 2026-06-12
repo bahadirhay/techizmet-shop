@@ -59,7 +59,6 @@ export function resolveStoreMirrorIframeSrc(
 
   if (
     opts?.forceLiveApi ||
-    opts?.siteSlug === "demo" ||
     (opts?.siteSlug &&
       opts.prebuildTenantSlug !== undefined &&
       !mirrorPrebuildMatchesTenant(opts.siteSlug, opts.prebuildTenantSlug ?? null))

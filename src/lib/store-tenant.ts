@@ -4,7 +4,11 @@ import { cache } from "react";
 import { headers } from "next/headers";
 import { normalizeSiteUrl } from "@/lib/seo/site-url";
 import { getRequestHost } from "@/lib/request-host";
+import { getPrismaForDatabaseUrl } from "@/lib/prisma";
 import {
+  isDemoShopHost,
+  isShopDemoDatabaseConfigured,
+  normalizeRequestHost,
   resolveStoreHostTenant,
   STORE_HOST_TENANT,
   type StoreHostTenant,
@@ -33,6 +37,35 @@ function tenantFromHostMapping(mapped: StoreHostTenant): StoreTenant {
   };
 }
 
+/** Kozmetik DB — DATABASE_URL_DEMO önce, sonra DATABASE_URL içinde demo satırı */
+async function tryResolveDemoTenant(publicOrigin: string): Promise<StoreTenant | null> {
+  const candidates = [
+    process.env.DATABASE_URL_DEMO?.trim(),
+    process.env.DATABASE_URL?.trim(),
+  ].filter((url, i, arr): url is string => Boolean(url) && arr.indexOf(url) === i);
+
+  for (const databaseUrl of candidates) {
+    const site = await getPrismaForDatabaseUrl(databaseUrl).storeSite.findUnique({
+      where: { slug: "demo" },
+      select: { slug: true },
+    });
+    if (site) {
+      return { slug: "demo", publicOrigin, databaseUrl };
+    }
+  }
+  return null;
+}
+
+async function tryResolveAnatolianPawTenant(publicOrigin: string): Promise<StoreTenant | null> {
+  const databaseUrl = databaseUrlFromEnv("DATABASE_URL_ANATOLIANPAW");
+  const site = await getPrismaForDatabaseUrl(databaseUrl).storeSite.findUnique({
+    where: { slug: "anatolianpaw" },
+    select: { slug: true },
+  });
+  if (!site) return null;
+  return { slug: "anatolianpaw", publicOrigin, databaseUrl };
+}
+
 export function resolveTenantFromHost(host: string): StoreTenant {
   const mapped = resolveStoreHostTenant(host);
   if (mapped) return tenantFromHostMapping(mapped);
@@ -59,11 +92,38 @@ async function tenantFromProxyHeaders(): Promise<StoreTenant | null> {
   const databaseUrlEnv = h.get("x-store-database-url-env")?.trim();
   if (!slug || !publicOrigin) return null;
 
+  if (slug === "demo") {
+    const resolved = await tryResolveDemoTenant(publicOrigin);
+    if (resolved) return resolved;
+    return null;
+  }
+
+  if (slug === "anatolianpaw") {
+    const resolved = await tryResolveAnatolianPawTenant(publicOrigin);
+    if (resolved) return resolved;
+    return null;
+  }
+
   return {
     slug,
     publicOrigin,
     databaseUrl: databaseUrlFromEnv(databaseUrlEnv || undefined),
   };
+}
+
+async function tenantFromRequestHost(host: string): Promise<StoreTenant | null> {
+  const mapped = resolveStoreHostTenant(host);
+  if (!mapped) return null;
+
+  if (mapped.slug === "demo") {
+    return tryResolveDemoTenant(mapped.publicOrigin);
+  }
+
+  if (mapped.slug === "anatolianpaw") {
+    return tryResolveAnatolianPawTenant(mapped.publicOrigin);
+  }
+
+  return tenantFromHostMapping(mapped);
 }
 
 export function getActiveTenant(): StoreTenant | undefined {
@@ -82,11 +142,10 @@ export const ensureStoreTenant = cache(async (): Promise<StoreTenant> => {
   }
 
   const host = await getRequestHost();
-  const mapped = resolveStoreHostTenant(host);
-  if (mapped) {
-    const tenant = tenantFromHostMapping(mapped);
-    tenantStorage.enterWith(tenant);
-    return tenant;
+  const fromHost = await tenantFromRequestHost(host);
+  if (fromHost) {
+    tenantStorage.enterWith(fromHost);
+    return fromHost;
   }
 
   const tenant = resolveTenantFromHost(host);
@@ -95,4 +154,4 @@ export const ensureStoreTenant = cache(async (): Promise<StoreTenant> => {
 });
 
 export { getActivePublicOrigin, getActiveDatabaseUrl, getActiveTenantSlug } from "@/lib/tenant-context";
-export { STORE_HOST_TENANT };
+export { STORE_HOST_TENANT, isDemoShopHost, isShopDemoDatabaseConfigured, normalizeRequestHost };

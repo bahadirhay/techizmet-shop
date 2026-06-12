@@ -6,7 +6,12 @@ import {
   isMaintenanceBypassPath,
 } from "@/lib/maintenance-mode";
 import { mirrorStaticRewrite } from "@/lib/mirror-static-rewrite";
-import { isDemoShopHost, normalizeRequestHost, resolveStoreHostTenant } from "@/lib/store-tenant-hosts";
+import {
+  isDemoShopHost,
+  isShopDemoDatabaseConfigured,
+  normalizeRequestHost,
+  resolveStoreHostTenant,
+} from "@/lib/store-tenant-hosts";
 
 function shopHostRequestHeaders(request: NextRequest): Headers {
   const host = normalizeRequestHost(request.headers.get("host") ?? "");
@@ -14,7 +19,7 @@ function shopHostRequestHeaders(request: NextRequest): Headers {
   requestHeaders.set("x-shop-host", host);
 
   const tenant = resolveStoreHostTenant(host);
-  if (tenant) {
+  if (tenant && (tenant.slug !== "demo" || isShopDemoDatabaseConfigured())) {
     requestHeaders.set("x-store-tenant-slug", tenant.slug);
     requestHeaders.set("x-store-public-origin", tenant.publicOrigin);
     if (tenant.databaseUrlEnv) {
@@ -81,7 +86,7 @@ export async function proxy(request: NextRequest) {
   }
 
   if (pathname.startsWith("/_mirror-prebuilt")) {
-    if (isDemoShopHost(host)) {
+    if (isDemoShopHost(host) && isShopDemoDatabaseConfigured()) {
       const rel = pathname.replace(/^\/_mirror-prebuilt\//, "");
       const rewriteUrl = request.nextUrl.clone();
       rewriteUrl.pathname = "/api/vitrin/mirror";

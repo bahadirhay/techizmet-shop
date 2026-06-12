@@ -41,3 +41,8 @@ export function isDemoShopHost(host: string): boolean {
   const slug = resolveStoreHostTenant(host)?.slug;
   return slug === "demo";
 }
+
+/** shop.techizmet.com kozmetik DB — Vercel'de DATABASE_URL_DEMO */
+export function isShopDemoDatabaseConfigured(): boolean {
+  return Boolean(process.env.DATABASE_URL_DEMO?.trim());
+}
