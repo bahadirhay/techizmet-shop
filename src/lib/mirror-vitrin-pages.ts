@@ -83,6 +83,16 @@ export function vitrinMirrorFileRel(pageKey: VitrinPageKey, locale: ShopLocale):
   return locale === "tr" ? f.tr : f.en;
 }
 
+/** Prebuilt mirror dosya yolu → vitrin pageKey (demo host rewrite için) */
+export function vitrinPageKeyFromMirrorFileRel(rel: string): VitrinPageKey | undefined {
+  const normalized = rel.replace(/\\/g, "/");
+  for (const key of Object.keys(MIRROR_FILE) as VitrinPageKey[]) {
+    const files = MIRROR_FILE[key];
+    if (files.tr === normalized || files.en === normalized) return key;
+  }
+  return undefined;
+}
+
 export const VITRIN_PAGES: VitrinPageDef[] = [
   {
     key: "home",

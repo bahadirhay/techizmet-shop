@@ -2,7 +2,7 @@ import { MirrorPageFrameClient } from "@/components/store/MirrorPageFrameClient"
 import type { ShopLocale } from "@/lib/i18n/locale";
 import { loadMirrorFooterData } from "@/lib/mirror-footer-server";
 import { loadMirrorNavItems } from "@/lib/mirror-nav-server";
-import { resolveStoreMirrorIframeSrc } from "@/lib/mirror-prebuilt-resolve";
+import { resolveStoreMirrorIframeSrcForRequest } from "@/lib/mirror-prebuilt-resolve-server";
 import { getSiteBranding, getSiteSettings } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
 
@@ -27,7 +27,7 @@ export async function MirrorCmsPageFrame({
       ? "theme/techizmet-shop/mirror/pages/about-tr.html"
       : "theme/techizmet-shop/mirror/pages/about.html";
 
-  const src = resolveStoreMirrorIframeSrc(shell, undefined, { cmsSlug: slug });
+  const src = await resolveStoreMirrorIframeSrcForRequest(shell, undefined, { cmsSlug: slug });
 
   return (
     <MirrorPageFrameClient

@@ -6,6 +6,7 @@ import {
   isMaintenanceBypassPath,
 } from "@/lib/maintenance-mode";
 import { mirrorStaticRewrite } from "@/lib/mirror-static-rewrite";
+import { vitrinPageKeyFromMirrorFileRel } from "@/lib/mirror-vitrin-pages";
 import { isDemoShopHost, normalizeRequestHost, resolveStoreHostTenant } from "@/lib/store-tenant-hosts";
 
 function shopHostRequestHeaders(request: NextRequest): Headers {
@@ -88,7 +89,10 @@ export async function proxy(request: NextRequest) {
       const rel = pathname.replace(/^\/_mirror-prebuilt\//, "");
       const rewriteUrl = request.nextUrl.clone();
       rewriteUrl.pathname = "/api/vitrin/mirror";
-      rewriteUrl.search = `path=${encodeURIComponent(rel)}`;
+      const q = new URLSearchParams({ path: rel });
+      const pageKey = vitrinPageKeyFromMirrorFileRel(rel);
+      if (pageKey) q.set("pageKey", pageKey);
+      rewriteUrl.search = q.toString();
       return NextResponse.rewrite(rewriteUrl, {
         request: { headers: shopHostRequestHeaders(request) },
       });

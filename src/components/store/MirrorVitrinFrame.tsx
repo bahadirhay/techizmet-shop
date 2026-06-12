@@ -2,7 +2,7 @@ import { MirrorVitrinFrameHost } from "@/components/store/MirrorVitrinFrameHost"
 import type { VitrinCollectionCard, VitrinCollectionCategoryOption } from "@/lib/mirror-collections-sync";
 import { getMirrorVitrinHydration } from "@/lib/mirror-vitrin-data";
 import { getVitrinPage, vitrinMirrorFileRel, type VitrinPageKey } from "@/lib/mirror-vitrin-pages";
-import { resolveStoreMirrorIframeSrc } from "@/lib/mirror-prebuilt-resolve";
+import { resolveStoreMirrorIframeSrcForRequest } from "@/lib/mirror-prebuilt-resolve-server";
 import { hasCustomAnnouncementBarSettings } from "@/lib/mirror-announcement-bar";
 import { shouldApplyMirrorPageOverlay } from "@/lib/mirror-has-page-edits";
 import { getMirrorPageConfig } from "@/lib/mirror-page-settings";
@@ -42,7 +42,7 @@ export async function MirrorVitrinFrame({
       branding.logoUrlLight?.includes("/api/media/"),
   );
   const fileRel = vitrinMirrorFileRel(pageKey, locale);
-  const src = resolveStoreMirrorIframeSrc(fileRel, pageKey, undefined, {
+  const src = await resolveStoreMirrorIframeSrcForRequest(fileRel, pageKey, undefined, {
     hasCustomBlocks: (pageConfig.customBlocks?.length ?? 0) > 0,
     hasMirrorEdits: shouldApplyMirrorPageOverlay(pageConfig),
     hasCustomBranding,

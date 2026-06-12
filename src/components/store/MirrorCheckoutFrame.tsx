@@ -1,5 +1,5 @@
 import { MirrorVitrinFrameClient } from "@/components/store/MirrorVitrinFrameClient";
-import { resolveStoreMirrorIframeSrc } from "@/lib/mirror-prebuilt-resolve";
+import { resolveStoreMirrorIframeSrcForRequest } from "@/lib/mirror-prebuilt-resolve-server";
 import { getStoreLocale } from "@/lib/i18n/server";
 import { loadMirrorFooterData } from "@/lib/mirror-footer-server";
 import { loadMirrorNavItems } from "@/lib/mirror-nav-server";
@@ -19,7 +19,7 @@ export async function MirrorCheckoutFrame() {
   const branding = getSiteBranding(settings);
   const nav = await loadMirrorNavItems(site.id, locale);
   const footer = await loadMirrorFooterData(site.id, locale);
-  const src = resolveStoreMirrorIframeSrc(checkoutMirrorRel(locale));
+  const src = await resolveStoreMirrorIframeSrcForRequest(checkoutMirrorRel(locale));
 
   return (
     <MirrorVitrinFrameClient
