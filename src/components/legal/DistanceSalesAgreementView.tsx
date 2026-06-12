@@ -3,6 +3,7 @@ import {
   buildDistanceSalesAgreementHtml,
   type DistanceSalesBuyerContext,
 } from "@/lib/legal/distance-sales-agreement";
+import { sanitizePublicHtml } from "@/lib/html-sanitize";
 
 export function DistanceSalesAgreementView({
   seller,
@@ -17,7 +18,7 @@ export function DistanceSalesAgreementView({
   return (
     <div
       className="kn-distance-sales-page"
-      dangerouslySetInnerHTML={{ __html: html }}
+      dangerouslySetInnerHTML={{ __html: sanitizePublicHtml(html) }}
     />
   );
 }

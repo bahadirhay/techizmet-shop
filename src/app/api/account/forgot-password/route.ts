@@ -4,7 +4,7 @@ import {
   sendCustomerPasswordResetEmail,
 } from "@/lib/email/send-password-reset-email";
 import { issueCustomerPasswordResetToken } from "@/lib/password-reset";
-import { checkRateLimit, clientIp, rateLimitResponse } from "@/lib/rate-limit";
+import { clientIp, enforceRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { getSiteSettings } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
 import { prisma } from "@/lib/prisma";
@@ -15,7 +15,7 @@ const GENERIC_OK = {
 };
 
 export async function POST(req: Request) {
-  const rl = checkRateLimit(`forgot-pw:${clientIp(req)}`, 6, 15 * 60 * 1000);
+  const rl = await enforceRateLimit(`forgot-pw:${clientIp(req)}`, 6, 15 * 60 * 1000);
   if (!rl.ok) return rateLimitResponse(rl.retryAfterSec);
   const body = (await req.json()) as { email?: string };
   const email = body.email?.trim().toLowerCase();

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { formatTry } from "@/lib/admin/money";
+import { sanitizePublicHtml } from "@/lib/html-sanitize";
 import { inputClass, btnPrimary, AdminField } from "@/components/admin/AdminForm";
 
 type Option = { id: string; name: string; kind?: string };
@@ -287,7 +288,7 @@ export function FinanceInvoicesManager({
             <h3 className="font-semibold">Kesilecek fatura önizleme</h3>
             <button className="rounded border px-2 py-1 text-sm" onClick={() => setPreviewHtml(null)}>Kapat</button>
           </div>
-          <div className="rounded border p-3" dangerouslySetInnerHTML={{ __html: previewHtml }} />
+          <div className="rounded border p-3" dangerouslySetInnerHTML={{ __html: sanitizePublicHtml(previewHtml) }} />
         </section>
       ) : null}
     </div>

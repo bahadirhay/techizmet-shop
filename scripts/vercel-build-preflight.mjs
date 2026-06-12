@@ -11,6 +11,11 @@ console.log(`[vercel:preflight] STORE_SITE_SLUG=${slug}`);
 console.log(`[vercel:preflight] DATABASE_URL=${db ? "ok" : "EKSIK"}`);
 console.log(`[vercel:preflight] NEXT_PUBLIC_SITE_URL=${siteUrl || "(bos)"}`);
 console.log(`[vercel:preflight] SESSION_SECRET=${session.length >= 32 ? "ok" : "EKSIK"}`);
+const upstashUrl = process.env.UPSTASH_REDIS_REST_URL?.trim() || "";
+const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN?.trim() || "";
+console.log(
+  `[vercel:preflight] UPSTASH_REDIS=${upstashUrl && upstashToken ? "ok" : "opsiyonel (bellek içi rate limit)"}`,
+);
 
 const errors = [];
 

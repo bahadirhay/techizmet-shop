@@ -4,12 +4,12 @@ import {
   setCustomerSession,
 } from "@/lib/customer-auth";
 import { canSetPasswordOnCustomer } from "@/lib/customer-oauth";
-import { checkRateLimit, clientIp, rateLimitResponse } from "@/lib/rate-limit";
+import { clientIp, enforceRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { prisma } from "@/lib/prisma";
 import { getDefaultSite } from "@/lib/site";
 
 export async function POST(req: Request) {
-  const rl = checkRateLimit(`register:${clientIp(req)}`, 8, 15 * 60 * 1000);
+  const rl = await enforceRateLimit(`register:${clientIp(req)}`, 8, 15 * 60 * 1000);
   if (!rl.ok) return rateLimitResponse(rl.retryAfterSec);
   const body = (await req.json()) as Record<string, string>;
   const email = String(body.email ?? "").trim().toLowerCase();

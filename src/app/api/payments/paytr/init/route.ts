@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { checkRateLimit, clientIp, rateLimitResponse } from "@/lib/rate-limit";
+import { clientIp, enforceRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { verifyPaytrInitToken } from "@/lib/payments/paytr-access";
 import { prisma } from "@/lib/prisma";
 import { getDefaultSite } from "@/lib/site";
@@ -13,7 +13,7 @@ import {
 } from "@/lib/payments/paytr";
 
 export async function POST(req: Request) {
-  const rl = checkRateLimit(`paytr-init:${clientIp(req)}`, 20, 15 * 60 * 1000);
+  const rl = await enforceRateLimit(`paytr-init:${clientIp(req)}`, 20, 15 * 60 * 1000);
   if (!rl.ok) return rateLimitResponse(rl.retryAfterSec);
 
   const body = (await req.json()) as { orderNumber?: string; paymentToken?: string };

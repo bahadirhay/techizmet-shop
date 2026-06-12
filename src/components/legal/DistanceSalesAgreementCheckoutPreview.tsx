@@ -10,6 +10,7 @@ import {
   buildDistanceSalesCartSummary,
 } from "@/lib/legal/distance-sales-agreement";
 import type { LegalSellerProfile } from "@/lib/legal/seller-profile";
+import { sanitizePublicHtml } from "@/lib/html-sanitize";
 
 export function DistanceSalesAgreementCheckoutPreview({
   seller,
@@ -53,7 +54,7 @@ export function DistanceSalesAgreementCheckoutPreview({
       <summary>Mesafeli satış sözleşmesi ve ön bilgilendirme formu</summary>
       <div
         className="kn-distance-sales-checkout__body"
-        dangerouslySetInnerHTML={{ __html: html }}
+        dangerouslySetInnerHTML={{ __html: sanitizePublicHtml(html) }}
       />
     </details>
   );

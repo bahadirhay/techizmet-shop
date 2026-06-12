@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { checkRateLimit, clientIp, rateLimitResponse } from "@/lib/rate-limit";
+import { clientIp, enforceRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { prisma } from "@/lib/prisma";
 import { getAdminSession } from "@/lib/session";
 import { loadStaffSession } from "@/lib/staff-auth";
@@ -8,7 +8,7 @@ import { ensureStoreTenant } from "@/lib/store-tenant";
 import { getDefaultSite } from "@/lib/site";
 
 export async function POST(req: Request) {
-  const rl = checkRateLimit(`staff-login:${clientIp(req)}`, 10, 15 * 60 * 1000);
+  const rl = await enforceRateLimit(`staff-login:${clientIp(req)}`, 10, 15 * 60 * 1000);
   if (!rl.ok) return rateLimitResponse(rl.retryAfterSec);
   await ensureStoreTenant();
   const body = (await req.json()) as { login?: string; password?: string };

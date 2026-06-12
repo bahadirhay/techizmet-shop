@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { toPublicOrderView } from "@/lib/orders/public-order";
-import { checkRateLimit, clientIp, rateLimitResponse } from "@/lib/rate-limit";
+import { clientIp, enforceRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { prisma } from "@/lib/prisma";
 import { getDefaultSite } from "@/lib/site";
 
 export async function POST(req: Request) {
-  const rl = checkRateLimit(`order-track:${clientIp(req)}`, 15, 15 * 60 * 1000);
+  const rl = await enforceRateLimit(`order-track:${clientIp(req)}`, 15, 15 * 60 * 1000);
   if (!rl.ok) return rateLimitResponse(rl.retryAfterSec);
   const body = (await req.json()) as { orderNumber?: string; email?: string };
   const orderNumber = String(body.orderNumber ?? "").trim();

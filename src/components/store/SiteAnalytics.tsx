@@ -1,5 +1,6 @@
 import { getDefaultSite } from "@/lib/site";
 import { getSiteSeo, getSiteSettings } from "@/lib/site-settings";
+import { sanitizeStaffHeadHtml } from "@/lib/html-sanitize";
 
 /** GA4 + Facebook Pixel — tüm sayfalar */
 export async function SiteAnalytics() {
@@ -30,7 +31,9 @@ export async function SiteAnalytics() {
           }}
         />
       ) : null}
-      {seo.extraHeadHtml ? <div dangerouslySetInnerHTML={{ __html: seo.extraHeadHtml }} /> : null}
+      {seo.extraHeadHtml ? (
+        <div dangerouslySetInnerHTML={{ __html: sanitizeStaffHeadHtml(seo.extraHeadHtml) }} />
+      ) : null}
     </>
   );
 }

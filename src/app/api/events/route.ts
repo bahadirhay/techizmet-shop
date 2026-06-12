@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { recordStoreEvents } from "@/lib/analytics/events";
 import { getCustomerSession } from "@/lib/customer-session";
+import { clientIp, enforceRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { getDefaultSite } from "@/lib/site";
 
 const eventSchema = z.object({
@@ -29,6 +30,9 @@ const bodySchema = z.object({
 });
 
 export async function POST(req: Request) {
+  const rl = await enforceRateLimit(`events:${clientIp(req)}`, 60, 60 * 1000);
+  if (!rl.ok) return rateLimitResponse(rl.retryAfterSec);
+
   let raw: unknown;
   try {
     raw = await req.json();

@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import { LEGACY_PRODUCT_REDIRECTS } from "./src/lib/catalog/mirror-catalog";
+import { adminContentSecurityPolicy, storeContentSecurityPolicy } from "./src/lib/security/csp";
 
 const legacyProductRedirects = Object.entries(LEGACY_PRODUCT_REDIRECTS).map(([from, to]) => ({
   source: `/products/${from}`,
@@ -59,9 +60,20 @@ const nextConfig: NextConfig = {
         value: "camera=(), microphone=(), geolocation=(), payment=(self)",
       },
     ] as const;
+    const storeCsp = {
+      key: "Content-Security-Policy",
+      value: storeContentSecurityPolicy(),
+    } as const;
+    const adminCsp = {
+      key: "Content-Security-Policy",
+      value: adminContentSecurityPolicy(),
+    } as const;
     return [
-      { source: "/:path*", headers: [...securityHeaders] },
-      { source: "/admin/:path*", headers: [...noStore, ...securityHeaders] },
+      { source: "/admin/:path*", headers: [...noStore, adminCsp, ...securityHeaders] },
+      {
+        source: "/((?!admin|api).*)",
+        headers: [storeCsp, ...securityHeaders],
+      },
       { source: "/api/admin/:path*", headers: [...noStore] },
       { source: "/_mirror-prebuilt/:path*.html", headers: [...prebuiltHtmlNoStore] },
       { source: "/_mirror-prebuilt/:path*", headers: [...prebuiltCache] },

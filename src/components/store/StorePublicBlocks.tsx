@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ShopBlock } from "@/lib/blocks/schema";
 import type { StoreMessages } from "@/lib/i18n/messages";
+import { escapePublicHtmlText } from "@/lib/html-sanitize";
 import { HeroSliderBlock } from "@/components/store/HeroSliderBlock";
 import { ProductGridBlock } from "@/components/store/ProductGridBlock";
 import { FeatureCardsBlock } from "@/components/store/FeatureCardsBlock";
@@ -47,12 +48,12 @@ export async function StorePublicBlocks({
               dangerouslySetInnerHTML={{
                 __html:
                   block.props.as === "h1"
-                    ? `<h1>${block.props.content}</h1>`
+                    ? `<h1>${escapePublicHtmlText(block.props.content)}</h1>`
                     : block.props.as === "h2"
-                      ? `<h2>${block.props.content}</h2>`
+                      ? `<h2>${escapePublicHtmlText(block.props.content)}</h2>`
                       : block.props.as === "h3"
-                        ? `<h3>${block.props.content}</h3>`
-                        : `<p>${block.props.content}</p>`,
+                        ? `<h3>${escapePublicHtmlText(block.props.content)}</h3>`
+                        : `<p>${escapePublicHtmlText(block.props.content)}</p>`,
               }}
             />
           ) : null}
