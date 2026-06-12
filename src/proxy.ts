@@ -38,8 +38,21 @@ async function isStoreInMaintenance(request: NextRequest): Promise<boolean> {
   }
 }
 
+const APEX_TO_WWW: Record<string, string> = {
+  "anatolianpaw.com": "www.anatolianpaw.com",
+};
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  const host = request.headers.get("host")?.toLowerCase().split(":")[0] ?? "";
+  const wwwHost = APEX_TO_WWW[host];
+  if (wwwHost) {
+    const url = request.nextUrl.clone();
+    url.host = wwwHost;
+    url.protocol = "https:";
+    return NextResponse.redirect(url, 308);
+  }
 
   if (
     pathname.startsWith("/admin") ||

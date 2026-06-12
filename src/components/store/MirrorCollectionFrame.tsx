@@ -2,10 +2,10 @@ import { MirrorCollectionFrameHost } from "@/components/store/MirrorCollectionFr
 import type { ShopLocale } from "@/lib/i18n/locale";
 import { getCollectionFramePayload } from "@/lib/mirror-collection-frame-server";
 import {
-  buildCollectionMirrorSrc,
   collectionMirrorFileRel,
   resolveMirrorCollectionTemplateSlug,
 } from "@/lib/mirror-html-path";
+import { buildCollectionMirrorSrc } from "@/lib/mirror-html-path-server";
 import { hasPrebuiltMirrorHtml } from "@/lib/mirror-prebuilt";
 import { getDefaultSite } from "@/lib/site";
 

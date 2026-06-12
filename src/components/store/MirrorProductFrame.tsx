@@ -1,10 +1,8 @@
 import { notFound } from "next/navigation";
 import { MirrorProductFrameClient } from "@/components/store/MirrorProductFrameClient";
 import type { ShopLocale } from "@/lib/i18n/locale";
-import {
-  buildProductMirrorSrc,
-  resolveMirrorProductTemplateSlug,
-} from "@/lib/mirror-html-path";
+import { buildProductMirrorSrc } from "@/lib/mirror-html-path-server";
+import { resolveMirrorProductTemplateSlug } from "@/lib/mirror-html-path";
 import { loadMirrorFooterData } from "@/lib/mirror-footer-server";
 import { loadMirrorNavItems } from "@/lib/mirror-nav-server";
 import { loadMirrorProductFramePayload } from "@/lib/mirror-product-frame-server";
