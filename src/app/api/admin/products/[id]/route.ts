@@ -66,8 +66,8 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
         : null;
 
     let primaryImageUrl: string | null | undefined;
-    if (mediaItems && mediaItems.length > 0) {
-      primaryImageUrl = await syncProductMedia(prisma, id, mediaItems);
+    if (mediaItems !== null) {
+      primaryImageUrl = await syncProductMedia(prisma, id, mediaItems, auth.siteId);
     }
 
     let nextBarcode: string | null | undefined;

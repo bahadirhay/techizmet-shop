@@ -1,4 +1,6 @@
 import { parseHTML } from "linkedom";
+import { resolvePublicMediaUrl } from "@/lib/product-media";
+import type { BundleComponentSnapshot } from "@/lib/product-bundle";
 import { isAnchorNode, isElementNode, isImageNode, isInputNode } from "@/lib/mirror-dom-node";
 import type { MirrorProductCommercePayload } from "@/lib/mirror-product-commerce";
 import { injectMirrorProductCommerceHtml } from "@/lib/mirror-product-commerce";
@@ -38,6 +40,8 @@ export type VitrinProductDetail = {
   variantOptionName?: string | null;
   variants?: VitrinProductVariant[];
   highlights?: ProductHighlight[];
+  kind?: string | null;
+  bundleComponents?: BundleComponentSnapshot[];
 };
 
 function productHref(slug: string) {
@@ -56,15 +60,25 @@ function normalizedMedia(product: VitrinProductDetail): VitrinProductMedia[] {
   const items = (product.images ?? [])
     .filter((img) => img?.url?.trim())
     .map((img) => ({
-      url: img.url.trim(),
+      url: resolvePublicMediaUrl(img.url.trim()),
       alt: img.alt?.trim() || product.title,
       mediaType: img.mediaType === "video" ? ("video" as const) : ("image" as const),
     }));
   if (items.length) return items;
   if (product.imageUrl?.trim()) {
-    return [{ url: product.imageUrl.trim(), alt: product.title, mediaType: "image" }];
+    return [
+      {
+        url: resolvePublicMediaUrl(product.imageUrl.trim()),
+        alt: product.title,
+        mediaType: "image",
+      },
+    ];
   }
   return [];
+}
+
+function galleryFingerprint(product: VitrinProductDetail, media: VitrinProductMedia[]): string {
+  return `${product.slug}::${media.map((m) => `${m.mediaType}:${m.url}`).join("|")}`;
 }
 
 function primaryProductImageUrl(product: VitrinProductDetail): string | null {
@@ -232,7 +246,7 @@ function ensureGalleryFallbackStyles(doc: Document) {
 #MainContent .main--product-image-slider-outer.kn-gallery-static .swiper-slide{width:100%!important;max-width:100%!important;opacity:1!important;visibility:visible!important;}
 #MainContent .main--product-image-slider-outer.kn-gallery-static .main--product-item{width:100%!important;}
 #MainContent .main--product-image-slider-outer.kn-gallery-static img{display:block!important;width:100%;height:auto;object-fit:contain;opacity:1!important;visibility:visible!important;}
-#MainContent .main--product-image-slider-outer:not([data-kn-gallery-slug]){opacity:0;}`;
+html:not([data-kn-product-sync]) #MainContent .main--product-image-slider-outer{opacity:0;}`;
   doc.head.appendChild(style);
 }
 
@@ -381,7 +395,8 @@ function patchMainImage(doc: Document, product: VitrinProductDetail) {
   const outer = doc.querySelector("#MainContent .main--product-image-slider-outer") as HTMLElement | null;
   if (!outer) return;
 
-  if (outer.getAttribute("data-kn-gallery-slug") === product.slug) return;
+  const fp = galleryFingerprint(product, media);
+  if (outer.getAttribute("data-kn-gallery-fp") === fp) return;
 
   const sectionId = detectProductMediaSectionId(doc);
   patchProductMediaZoomTemplate(doc, product, media);
@@ -415,6 +430,7 @@ function patchMainImage(doc: Document, product: VitrinProductDetail) {
   }
 
   outer.setAttribute("data-kn-gallery-slug", product.slug);
+  outer.setAttribute("data-kn-gallery-fp", fp);
   outer.style.opacity = "1";
 
   patchThumbnailSlider(doc, product, media);
@@ -652,7 +668,35 @@ export function productGalleryReady(doc: Document, product?: VitrinProductDetail
   const media = normalizedMedia(product);
   if (!media.length) return true;
   const outer = doc.querySelector("#MainContent .main--product-image-slider-outer");
-  return outer?.getAttribute("data-kn-gallery-slug") === product.slug;
+  const fp = galleryFingerprint(product, media);
+  return outer?.getAttribute("data-kn-gallery-fp") === fp;
+}
+
+function patchBundleContents(doc: Document, product: VitrinProductDetail) {
+  const components = product.bundleComponents?.filter((c) => c.qty > 0) ?? [];
+  if (!components.length) return;
+
+  const listHtml = components
+    .map(
+      (c) =>
+        `<li class="kn-bundle-component">${escText(c.title)}${c.qty > 1 ? ` × ${c.qty}` : ""}</li>`,
+    )
+    .join("");
+
+  let box = doc.getElementById("kn-bundle-contents");
+  if (!box) {
+    const anchor =
+      doc.querySelector("#MainContent .product--description") ??
+      doc.querySelector("#MainContent .product-title-heading")?.parentElement;
+    if (!anchor) return;
+    box = doc.createElement("div");
+    box.id = "kn-bundle-contents";
+    box.className = "kn-bundle-contents";
+    box.innerHTML = `<p class="kn-bundle-contents__title">Paket içeriği</p><ul class="kn-bundle-contents__list"></ul>`;
+    anchor.insertAdjacentElement("afterend", box);
+  }
+  const ul = box.querySelector(".kn-bundle-contents__list");
+  if (ul) ul.innerHTML = listHtml;
 }
 
 export function applyProductDetailFromAdmin(
@@ -663,6 +707,7 @@ export function applyProductDetailFromAdmin(
   patchTitle(doc, product);
   patchDescription(doc, product);
   patchMainImage(doc, product);
+  if (product.kind === "bundle") patchBundleContents(doc, product);
   neutralizeProductMediaNavigation(doc);
   patchProductStorePathMeta(doc, product);
   patchVariants(doc, product);

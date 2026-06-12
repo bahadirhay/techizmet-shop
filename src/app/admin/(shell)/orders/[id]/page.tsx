@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { OrderDeliveryBlock } from "@/components/admin/OrderDeliveryBlock";
+import { OrderLinesPanel } from "@/components/admin/OrderLinesPanel";
 import { OrderFinancePanel } from "@/components/admin/OrderFinancePanel";
 import { OrderDetailForm } from "@/components/admin/OrderDetailForm";
 import { MarketplaceOrderPanel } from "@/components/admin/MarketplaceOrderPanel";
@@ -103,16 +104,7 @@ export default async function OrderDetailPage({
             trackingNumber={order.trackingNumber}
           />
           <h2 className="mt-6 font-semibold">Ürünler</h2>
-          <ul className="mt-2 divide-y text-sm">
-            {order.lines.map((l) => (
-              <li key={l.id} className="flex justify-between py-2">
-                <span>
-                  {l.title} × {l.qty}
-                </span>
-                <span>{formatTry(l.lineMinor)}</span>
-              </li>
-            ))}
-          </ul>
+          <OrderLinesPanel lines={order.lines} />
           <p className="mt-4 text-right font-semibold">Toplam: {formatTry(order.totalMinor)}</p>
         </div>
         <OrderDetailForm

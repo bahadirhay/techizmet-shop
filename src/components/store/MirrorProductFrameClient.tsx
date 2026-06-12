@@ -277,6 +277,11 @@ export function MirrorProductFrameClient({
 
   useMirrorIframeLifecycle(iframeRef, src, runPatch, [patchKey, runPatch, src]);
 
+  useEffect(() => {
+    const t = window.setTimeout(() => setContentVisible(true), 1800);
+    return () => window.clearTimeout(t);
+  }, [patchKey, src]);
+
   return (
     <div className="kn-home-mirror">
       <iframe

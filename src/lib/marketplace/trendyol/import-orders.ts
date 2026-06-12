@@ -1,32 +1,17 @@
 import { prisma } from "@/lib/prisma";
 import { resolveMarketplaceSalePriceMinor } from "@/lib/marketplace/product-prices";
 import { applyOrderFinanceSnapshot } from "@/lib/finance/order-economics";
+import {
+  deductMarketplaceLineStock,
+  findProductByBarcodeOrSku,
+  marketplaceOrderLineExtras,
+} from "@/lib/marketplace/import-helpers";
 import { marketplacePackageRef, type MarketplaceOrderMeta } from "@/lib/marketplace/types";
 import type { TrendyolShipmentPackage } from "@/lib/marketplace/trendyol/orders";
 
 function tryMinorFromTry(amount: number | undefined, fallback = 0): number {
   if (amount == null || !Number.isFinite(amount)) return fallback;
   return Math.round(amount * 100);
-}
-
-async function findProductByBarcodeOrSku(
-  siteId: string,
-  barcode?: string,
-  sku?: string,
-) {
-  if (barcode?.trim()) {
-    const byBarcode = await prisma.storeProduct.findFirst({
-      where: { siteId, barcode: barcode.trim() },
-    });
-    if (byBarcode) return byBarcode;
-  }
-  if (sku?.trim()) {
-    const bySku = await prisma.storeProduct.findFirst({
-      where: { siteId, OR: [{ sku: sku.trim() }, { slug: sku.trim() }] },
-    });
-    if (bySku) return bySku;
-  }
-  return null;
 }
 
 export async function importTrendyolPackages(
@@ -96,6 +81,10 @@ export async function importTrendyolPackages(
 
     const subtotalMinor = orderLines.reduce((s, l) => s + l.lineMinor, 0);
 
+    const lineExtras = await Promise.all(
+      orderLines.map((l) => marketplaceOrderLineExtras(prisma, l.productId, l.qty)),
+    );
+
     const createdOrder = await prisma.$transaction(async (tx) => {
       const created = await tx.storeOrder.create({
         data: {
@@ -123,7 +112,7 @@ export async function importTrendyolPackages(
           marketplaceMetaJson: JSON.stringify(meta),
           adminNotes: `Trendyol sipariş ${pkg.orderNumber} · paket ${pkg.shipmentPackageId}`,
           lines: {
-            create: orderLines.map((l) => ({
+            create: orderLines.map((l, i) => ({
               productId: l.productId,
               title: l.title,
               sku: l.sku,
@@ -131,6 +120,9 @@ export async function importTrendyolPackages(
               unitMinor: l.unitMinor,
               lineMinor: l.lineMinor,
               vatRate: l.vatRate,
+              lineKind: lineExtras[i]?.lineKind ?? "standard",
+              bundleProductId: lineExtras[i]?.bundleProductId ?? null,
+              componentsSnapshotJson: lineExtras[i]?.componentsSnapshotJson ?? null,
             })),
           },
         },
@@ -139,11 +131,9 @@ export async function importTrendyolPackages(
       for (const line of orderLines) {
         if (!line.productId) continue;
         touchedProductIds.add(line.productId);
-        const updated = await tx.storeProduct.updateMany({
-          where: { id: line.productId, stockQty: { gte: line.qty } },
-          data: { stockQty: { decrement: line.qty } },
-        });
-        if (updated.count === 0) {
+        const result = await deductMarketplaceLineStock(tx, line.productId, line.qty, line.title);
+        for (const pid of result.componentProductIds) touchedProductIds.add(pid);
+        if (!result.ok) {
           notes.push(`${line.title}: stok yetersiz, sipariş yine de alındı`);
         }
       }

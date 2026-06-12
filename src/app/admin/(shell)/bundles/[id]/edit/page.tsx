@@ -1,25 +1,26 @@
 import { notFound, redirect } from "next/navigation";
-import { PRODUCT_KIND_BUNDLE } from "@/lib/product-bundle";
-import { ProductForm } from "@/components/admin/ProductForm";
+import { BundleForm } from "@/components/admin/BundleForm";
+import { bundleToForm } from "@/lib/admin/bundle-form";
 import { loadCatalogOptions } from "@/lib/admin/catalog-options";
-import { productToForm } from "@/lib/admin/product-form";
 import { loadActiveMarketplacePlatforms } from "@/lib/marketplace/active-integrations";
 import { prisma } from "@/lib/prisma";
 import { requireStaffPage } from "@/lib/staff-auth";
 import { getProductBarcodeSettings } from "@/lib/admin/product-barcode";
-import { getDefaultProductExploreLooks, getHomepageMode, getSiteSettings, getSiteSeo } from "@/lib/site-settings";
+import { getHomepageMode, getSiteSettings, getSiteSeo } from "@/lib/site-settings";
 import {
   resolvePackagingCostMinor,
   resolveWebShippingCostMinor,
 } from "@/lib/finance/economics-settings";
 import { resolveCardFeePercent } from "@/lib/finance/payment-fee";
 import { getDefaultSite } from "@/lib/site";
+import { PRODUCT_KIND_BUNDLE, loadResolvedBundleComponents } from "@/lib/product-bundle";
 
 export const dynamic = "force-dynamic";
 
-export default async function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function EditBundlePage({ params }: { params: Promise<{ id: string }> }) {
   const auth = await requireStaffPage();
   const { id } = await params;
+
   const product = await prisma.storeProduct.findFirst({
     where: { id, siteId: auth.siteId },
     select: {
@@ -29,10 +30,6 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
       slug: true,
       description: true,
       descriptionHtml: true,
-      keyFeaturesHtml: true,
-      howToUseHtml: true,
-      highlightsJson: true,
-      exploreLooksJson: true,
       sku: true,
       barcode: true,
       collectionId: true,
@@ -53,56 +50,51 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
       seoDescription: true,
       imageUrl: true,
       badgesJson: true,
-      variantOptionName: true,
       published: true,
       images: { orderBy: { sortOrder: "asc" }, select: { url: true, sortOrder: true, mediaType: true } },
-      variants: {
+      bundleComponents: {
         orderBy: { sortOrder: "asc" },
-        select: {
-          id: true,
-          label: true,
-          sku: true,
-          priceMinor: true,
-          compareAtMinor: true,
-          stockQty: true,
-          isDefault: true,
-          sortOrder: true,
+        include: {
+          componentProduct: { select: { title: true } },
+          componentVariant: { select: { label: true } },
         },
       },
     },
   });
   if (!product) notFound();
-  if (product.kind === PRODUCT_KIND_BUNDLE) {
-    redirect(`/admin/bundles/${id}/edit`);
+  if (product.kind !== PRODUCT_KIND_BUNDLE) {
+    redirect(`/admin/products/${id}/edit`);
   }
 
-  const [catalog, allProducts, settings, activeMarketplaces, site] = await Promise.all([
+  const resolved = await loadResolvedBundleComponents(prisma, id);
+  const stockByKey = new Map(
+    resolved.map((c) => [`${c.productId}:${c.variantId ?? ""}`, c.stockQty]),
+  );
+
+  const [catalog, settings, activeMarketplaces, site] = await Promise.all([
     loadCatalogOptions(auth.siteId),
-    prisma.storeProduct.findMany({
-      where: { siteId: auth.siteId, published: true },
-      orderBy: { title: "asc" },
-      select: { slug: true, title: true },
-    }),
     getSiteSettings(auth.siteId),
     loadActiveMarketplacePlatforms(auth.siteId),
     getDefaultSite(),
   ]);
   const { collections, categories, brands } = catalog;
 
-  const formInitial = productToForm(product, activeMarketplaces);
-  const siteDefaultExplore = getDefaultProductExploreLooks(settings);
+  const formInitial = bundleToForm(product, activeMarketplaces);
+  formInitial.components = formInitial.components.map((c) => ({
+    ...c,
+    stockQty: stockByKey.get(`${c.productId}:${c.variantId ?? ""}`) ?? c.stockQty,
+  }));
+
   const { autoGenerate: defaultAutoGenerateBarcode } = getProductBarcodeSettings(settings);
   const siteName = getSiteSeo(settings, site.name).siteTitle;
 
   return (
-    <ProductForm
+    <BundleForm
       key={`${product.id}-${formInitial.mediaItems.length}`}
       initial={formInitial}
       collections={collections}
       categories={categories}
       brands={brands}
-      allProducts={allProducts}
-      siteDefaultExplore={siteDefaultExplore}
       activeMarketplaces={activeMarketplaces}
       defaultAutoGenerateBarcode={defaultAutoGenerateBarcode && !formInitial.barcode.trim()}
       homepageMode={getHomepageMode(settings)}

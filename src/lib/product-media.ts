@@ -23,6 +23,40 @@ export function primaryProductImageUrl(items: ProductMediaItem[]): string | null
   return image?.url ?? items[0]?.url ?? null;
 }
 
+/** Vitrin/mirror için göreli medya yollarını tam URL yapar */
+/** Canlıda /uploads dosyaları yok — /api/media önce gelsin */
+export function orderMediaForDisplay(items: ProductMediaItem[]): ProductMediaItem[] {
+  if (!items.length) return items;
+  const isServerless =
+    process.env.VERCEL === "1" || process.cwd().startsWith("/var/task");
+  if (!isServerless) return items;
+
+  const api: ProductMediaItem[] = [];
+  const uploads: ProductMediaItem[] = [];
+  const rest: ProductMediaItem[] = [];
+  for (const item of items) {
+    if (item.url.includes("/api/media/")) api.push(item);
+    else if (item.url.startsWith("/uploads/")) uploads.push(item);
+    else rest.push(item);
+  }
+  return [...api, ...rest, ...uploads];
+}
+
+export function resolvePublicMediaUrl(url: string, origin?: string): string {
+  const raw = url.trim();
+  if (!raw) return raw;
+  if (/^https?:\/\//i.test(raw)) return raw;
+  const base =
+    origin?.replace(/\/$/, "") ||
+    (typeof window !== "undefined"
+      ? window.location.origin
+      : (process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_STORE_URL || "http://localhost:5555").replace(
+          /\/$/,
+          "",
+        ));
+  return `${base}${raw.startsWith("/") ? raw : `/${raw}`}`;
+}
+
 export function parseProductMediaInput(body: Record<string, unknown>): ProductMediaItem[] | null {
   if (Array.isArray(body.mediaItems)) {
     const items = body.mediaItems

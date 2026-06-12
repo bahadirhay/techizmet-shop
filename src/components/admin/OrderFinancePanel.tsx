@@ -177,13 +177,30 @@ export function OrderFinancePanel({
                 {snap.lines.map((line, i) => (
                   <tr key={`${line.productId ?? line.title}-${i}`} className="border-b border-blue-50">
                     <td className="py-1 pr-2">
-                      {line.title}
-                      {line.qty > 1 ? ` ×${line.qty}` : ""}
+                      <div>
+                        {line.title}
+                        {line.qty > 1 ? ` ×${line.qty}` : ""}
+                        {line.lineKind === "bundle" ? (
+                          <span className="ml-1 text-[10px] text-violet-700">paket</span>
+                        ) : null}
+                      </div>
+                      {line.componentCosts?.map((c, j) => (
+                        <div key={j} className="pl-2 text-[10px] text-blue-800/70">
+                          ↳ {c.title} ×{c.qty}
+                          {c.costMinor != null && c.costMinor > 0
+                            ? ` · ${formatTry(c.costMinor * c.qty)}`
+                            : ""}
+                        </div>
+                      ))}
                     </td>
                     <td className="py-1 pr-2 text-right tabular-nums">{formatTry(line.lineMinor)}</td>
                     <td className="py-1 pr-2 text-right tabular-nums">
                       {line.costMinor != null && line.costMinor > 0
-                        ? formatTry(line.costMinor * line.qty)
+                        ? formatTry(
+                            line.lineKind === "bundle"
+                              ? line.costMinor
+                              : line.costMinor * line.qty,
+                          )
                         : "—"}
                     </td>
                     <td className="py-1 text-right tabular-nums">

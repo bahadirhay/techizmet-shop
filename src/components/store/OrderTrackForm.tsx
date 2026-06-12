@@ -92,10 +92,24 @@ export function OrderTrackForm() {
           <ul className="kn-order-track-lines">
             {order.lines.map((l, i) => (
               <li key={i}>
-                <span>
-                  {l.title} × {l.qty}
-                </span>
-                <span>{l.lineFormatted}</span>
+                <div className="flex justify-between gap-3">
+                  <span>
+                    {l.title} × {l.qty}
+                    {l.isBundle ? (
+                      <span className="ml-1 text-xs text-violet-700">(paket)</span>
+                    ) : null}
+                  </span>
+                  <span>{l.lineFormatted}</span>
+                </div>
+                {l.components?.length ? (
+                  <ul className="mt-1 text-xs text-zinc-600">
+                    {l.components.map((c, j) => (
+                      <li key={j}>
+                        ↳ {c.title} × {c.qty}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
               </li>
             ))}
           </ul>

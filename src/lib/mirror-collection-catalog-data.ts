@@ -72,6 +72,7 @@ export async function loadCollectionCatalogCore(
         stockQty: true,
         lowStockThreshold: true,
         badgesJson: true,
+        kind: true,
         weightGrams: true,
         pieceCount: true,
       },

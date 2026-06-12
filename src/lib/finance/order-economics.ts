@@ -10,7 +10,18 @@ import {
   resolvePackagingCostMinor,
   resolveWebShippingCostMinor,
 } from "@/lib/finance/economics-settings";
+import {
+  PRODUCT_KIND_BUNDLE,
+  bundleSnapshotTotalCostMinor,
+  parseComponentsSnapshotJson,
+} from "@/lib/product-bundle";
 import { prisma } from "@/lib/prisma";
+
+export type OrderFinanceComponentCost = {
+  title: string;
+  qty: number;
+  costMinor: number | null;
+};
 
 export type OrderFinanceLineSnapshot = {
   productId: string | null;
@@ -18,6 +29,8 @@ export type OrderFinanceLineSnapshot = {
   qty: number;
   lineMinor: number;
   costMinor: number | null;
+  lineKind?: string;
+  componentCosts?: OrderFinanceComponentCost[];
   commissionPercent: number;
   commissionMinor: number;
   categoryId: string | null;
@@ -71,6 +84,8 @@ type OrderInput = {
     qty: number;
     lineMinor: number;
     discountMinor: number;
+    lineKind?: string | null;
+    componentsSnapshotJson?: string | null;
   }[];
 };
 
@@ -117,11 +132,33 @@ export async function buildOrderFinanceSnapshot(order: OrderInput): Promise<Orde
       : 0;
     totalCommissionMinor += commissionMinor;
 
-    const costMinor = product?.costMinor ?? null;
-    if (costMinor != null && costMinor > 0) {
-      totalCostMinor += costMinor * line.qty;
-    } else if (line.productId) {
-      missingCostLines += 1;
+    const isBundle = line.lineKind === PRODUCT_KIND_BUNDLE;
+    const componentSnapshot = isBundle
+      ? parseComponentsSnapshotJson(line.componentsSnapshotJson)
+      : [];
+    const componentCosts: OrderFinanceComponentCost[] = componentSnapshot.map((c) => ({
+      title: c.title,
+      qty: c.qty,
+      costMinor: c.costMinor ?? null,
+    }));
+
+    let lineCostMinor: number | null = null;
+    if (isBundle && componentSnapshot.length) {
+      const bundleCost = bundleSnapshotTotalCostMinor(componentSnapshot);
+      if (bundleCost != null) {
+        lineCostMinor = bundleCost;
+        totalCostMinor += bundleCost;
+      } else if (line.productId) {
+        missingCostLines += 1;
+      }
+    } else {
+      const unitCost = product?.costMinor ?? null;
+      lineCostMinor = unitCost;
+      if (unitCost != null && unitCost > 0) {
+        totalCostMinor += unitCost * line.qty;
+      } else if (line.productId) {
+        missingCostLines += 1;
+      }
     }
 
     lines.push({
@@ -129,7 +166,9 @@ export async function buildOrderFinanceSnapshot(order: OrderInput): Promise<Orde
       title: line.title,
       qty: line.qty,
       lineMinor: netLineMinor,
-      costMinor,
+      costMinor: lineCostMinor,
+      lineKind: line.lineKind ?? undefined,
+      componentCosts: componentCosts.length ? componentCosts : undefined,
       commissionPercent,
       commissionMinor,
       categoryId,
@@ -207,6 +246,8 @@ export async function applyOrderFinanceSnapshot(siteId: string, orderId: string)
       qty: l.qty,
       lineMinor: l.lineMinor,
       discountMinor: l.discountMinor,
+      lineKind: l.lineKind,
+      componentsSnapshotJson: l.componentsSnapshotJson,
     })),
   });
 

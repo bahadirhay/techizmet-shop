@@ -9,6 +9,7 @@ import {
   type VitrinCollectionProductCard,
 } from "@/lib/mirror-collections-sync";
 import { withProductDisplayTitle } from "@/lib/product-display-title";
+import { orderMediaForDisplay, primaryProductImageUrl } from "@/lib/product-media";
 import { prisma } from "@/lib/prisma";
 import { getSiteSettingsUncached } from "@/lib/site-settings-load";
 import { resolveMirrorCollectionTexts } from "@/lib/store-static-texts";
@@ -26,16 +27,25 @@ export async function loadHomeListingProducts(siteId: string): Promise<VitrinCol
       stockQty: true,
       lowStockThreshold: true,
       badgesJson: true,
+      kind: true,
       weightGrams: true,
       pieceCount: true,
-      images: { take: 1, orderBy: { sortOrder: "asc" }, select: { url: true } },
+      images: { orderBy: { sortOrder: "asc" }, select: { url: true } },
     },
   });
-  return rows.map((p) =>
-    withProductDisplayTitle({
+  return rows.map((p) => {
+    const media = orderMediaForDisplay(
+      p.images.map((img) => ({ url: img.url, mediaType: "image" as const })),
+    );
+    const imageUrl =
+      primaryProductImageUrl(media) ||
+      (p.imageUrl?.includes("/api/media/") ? p.imageUrl : null) ||
+      p.imageUrl ||
+      null;
+    return withProductDisplayTitle({
       slug: p.slug,
       title: p.title,
-      imageUrl: p.imageUrl || p.images[0]?.url || null,
+      imageUrl,
       priceMinor: p.priceMinor,
       compareAtMinor: p.compareAtMinor,
       stockQty: p.stockQty,
@@ -43,8 +53,8 @@ export async function loadHomeListingProducts(siteId: string): Promise<VitrinCol
       badgesJson: p.badgesJson,
       weightGrams: p.weightGrams,
       pieceCount: p.pieceCount,
-    }),
-  );
+    });
+  });
 }
 
 function patchHorizontalProductCard(card: Element, product: VitrinCollectionProductCard, locale?: ShopLocale) {

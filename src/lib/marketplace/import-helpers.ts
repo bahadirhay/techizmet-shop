@@ -1,3 +1,5 @@
+import type { Prisma } from "@prisma/client";
+import { buildBundleOrderLineMeta, deductProductStock } from "@/lib/product-bundle";
 import { prisma } from "@/lib/prisma";
 
 export function tryMinorFromTry(amount: number | undefined, fallback = 0): number {
@@ -33,6 +35,30 @@ export async function findProductByBarcodeOrSku(
     if (bySku) return bySku;
   }
   return null;
+}
+
+export async function marketplaceOrderLineExtras(
+  db: Prisma.TransactionClient | typeof prisma,
+  productId: string | null,
+  qty: number,
+) {
+  if (!productId) {
+    return {
+      lineKind: "standard",
+      bundleProductId: null as string | null,
+      componentsSnapshotJson: null as string | null,
+    };
+  }
+  return buildBundleOrderLineMeta(db, productId, qty);
+}
+
+export async function deductMarketplaceLineStock(
+  db: Prisma.TransactionClient,
+  productId: string,
+  qty: number,
+  lineTitle: string,
+): Promise<{ ok: boolean; componentProductIds: string[] }> {
+  return deductProductStock(db, productId, qty, lineTitle);
 }
 
 export function mapMarketplaceStatus(platform: string, raw?: string | null): string {

@@ -11,6 +11,7 @@ import { parseProductBadges, badgePreset, type ProductBadgeId } from "@/lib/prod
 
 export type ProductRow = {
   id: string;
+  kind?: string;
   title: string;
   slug: string;
   sku: string | null;
@@ -224,6 +225,11 @@ export function ProductsBulkTable({
                     )}
                     <div>
                       <span className="font-medium">{p.title}</span>
+                      {p.kind === "bundle" ? (
+                        <span className="ml-1.5 rounded bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold text-violet-800">
+                          Paket
+                        </span>
+                      ) : null}
                       {!p.published ? (
                         <span className="ml-2 text-xs text-amber-600">taslak</span>
                       ) : null}
@@ -280,9 +286,17 @@ export function ProductsBulkTable({
                 </td>
                 <td className="whitespace-nowrap text-right">
                   <AdminListRowActions
-                    editHref={`/admin/products/${p.id}/edit`}
+                    editHref={
+                      p.kind === "bundle"
+                        ? `/admin/bundles/${p.id}/edit`
+                        : `/admin/products/${p.id}/edit`
+                    }
                     previewHref={`/products/${p.slug}`}
-                    apiUrl={`/api/admin/products/${p.id}`}
+                    apiUrl={
+                      p.kind === "bundle"
+                        ? `/api/admin/bundles/${p.id}`
+                        : `/api/admin/products/${p.id}`
+                    }
                     enabled={p.published}
                     flagField="published"
                     deleteConfirmText={`${p.title} ürününü silmek istediğinize emin misiniz?`}

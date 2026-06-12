@@ -3,6 +3,7 @@ import { formatTry } from "@/lib/format";
 import { formatProductDisplayTitle } from "@/lib/product-display-title";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import type { MirrorProductCommercePayload } from "@/lib/mirror-product-commerce";
+import { computeBundleAvailableQty, PRODUCT_KIND_BUNDLE } from "@/lib/product-bundle";
 import { prisma } from "@/lib/prisma";
 import {
   minVariantDisplay,
@@ -78,7 +79,10 @@ export async function loadMirrorProductCommerceUncached(
   let priceLabel = "";
   let compareLabel: string | null = null;
   let fromPrice = false;
-  let inStock = product.stockQty > 0;
+  let inStock =
+    product.kind === PRODUCT_KIND_BUNDLE
+      ? (await computeBundleAvailableQty(prisma, product.id)) > 0
+      : product.stockQty > 0;
 
   if (showPrice) {
     if (variants.length) {

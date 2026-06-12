@@ -1,5 +1,6 @@
 import { ORDER_STATUSES } from "@/lib/admin/marketplace-platforms";
 import { formatTry } from "@/lib/admin/money";
+import { parseComponentsSnapshotJson, PRODUCT_KIND_BUNDLE } from "@/lib/product-bundle";
 
 export function orderStatusLabel(status: string) {
   return ORDER_STATUSES.find((s) => s.id === status)?.label ?? status;
@@ -37,7 +38,14 @@ export type PublicOrderView = {
   discountMinor: number;
   totalMinor: number;
   totalFormatted: string;
-  lines: { title: string; qty: number; lineMinor: number; lineFormatted: string }[];
+  lines: {
+    title: string;
+    qty: number;
+    lineMinor: number;
+    lineFormatted: string;
+    isBundle?: boolean;
+    components?: { title: string; qty: number }[];
+  }[];
   shippingAddress: { city?: string; district?: string; line1?: string; postalCode?: string } | null;
 };
 
@@ -55,7 +63,13 @@ export function toPublicOrderView(order: {
   discountMinor: number;
   totalMinor: number;
   shippingAddressJson: string | null;
-  lines: { title: string; qty: number; lineMinor: number }[];
+  lines: {
+    title: string;
+    qty: number;
+    lineMinor: number;
+    lineKind?: string | null;
+    componentsSnapshotJson?: string | null;
+  }[];
 }): PublicOrderView {
   let shippingAddress: PublicOrderView["shippingAddress"] = null;
   if (order.shippingAddressJson) {
@@ -82,12 +96,23 @@ export function toPublicOrderView(order: {
     discountMinor: order.discountMinor,
     totalMinor: order.totalMinor,
     totalFormatted: formatTry(order.totalMinor),
-    lines: order.lines.map((l) => ({
-      title: l.title,
-      qty: l.qty,
-      lineMinor: l.lineMinor,
-      lineFormatted: formatTry(l.lineMinor),
-    })),
+    lines: order.lines.map((l) => {
+      const isBundle = l.lineKind === PRODUCT_KIND_BUNDLE;
+      const components = isBundle
+        ? parseComponentsSnapshotJson(l.componentsSnapshotJson).map((c) => ({
+            title: c.title,
+            qty: c.qty,
+          }))
+        : undefined;
+      return {
+        title: l.title,
+        qty: l.qty,
+        lineMinor: l.lineMinor,
+        lineFormatted: formatTry(l.lineMinor),
+        isBundle,
+        components,
+      };
+    }),
     shippingAddress,
   };
 }

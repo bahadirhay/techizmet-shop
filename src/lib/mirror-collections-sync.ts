@@ -1,5 +1,6 @@
 import { formatTry } from "@/lib/format";
 import { formatPercentOffBadge, percentOffFromPrices } from "@/lib/product-discount";
+import { badgePreset, parseProductBadges } from "@/lib/product-badges";
 import type { ResolvedMirrorCollectionTexts } from "@/lib/store-static-texts";
 
 /** Admin → Koleksiyonlar verisini mirror /collections kartlarına yazar */
@@ -27,6 +28,7 @@ export type VitrinCollectionProductCard = {
   stockQty: number;
   lowStockThreshold: number;
   badgesJson?: string | null;
+  kind?: string | null;
 };
 
 export type VitrinCollectionCategoryOption = {
@@ -188,6 +190,23 @@ function productBadgeHtml(
   texts: ResolvedMirrorCollectionTexts,
 ) {
   const badges: string[] = [];
+  if (product.kind === "bundle") {
+    const preset = badgePreset("bundle");
+    if (preset) {
+      badges.push(
+        `<span class="badge" style="color:${preset.color};background:${preset.bg}">${escText(preset.label)}</span>`,
+      );
+    }
+  }
+  for (const id of parseProductBadges(product.badgesJson)) {
+    if (id === "bundle" && product.kind === "bundle") continue;
+    const preset = badgePreset(id);
+    if (preset) {
+      badges.push(
+        `<span class="badge" style="color:${preset.color};background:${preset.bg}">${escText(preset.label)}</span>`,
+      );
+    }
+  }
   const percent = percentOffFromPrices(product.compareAtMinor, product.priceMinor);
   if (percent) badges.push(`<span class="badge">${escText(formatPercentOffBadge(percent))}</span>`);
   if (product.stockQty <= 0) badges.push(`<span class="badge">${escText(texts.soldOutBadge)}</span>`);

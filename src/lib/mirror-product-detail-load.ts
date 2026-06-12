@@ -12,6 +12,13 @@ import { getProductPageBottomSettings } from "@/lib/product-page-bottom";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import type { SiteSettings } from "@/lib/site-settings";
 import { formatProductDisplayTitle } from "@/lib/product-display-title";
+import { orderMediaForDisplay, primaryProductImageUrl } from "@/lib/product-media";
+import { getPublicSiteUrl, toAbsoluteMediaUrl } from "@/lib/seo/site-url";
+import {
+  PRODUCT_KIND_BUNDLE,
+  loadResolvedBundleComponents,
+  buildComponentsSnapshot,
+} from "@/lib/product-bundle";
 import { prisma } from "@/lib/prisma";
 
 type DbProduct = {
@@ -26,6 +33,7 @@ type DbProduct = {
   highlightsJson: string | null;
   weightGrams: number | null;
   pieceCount: number | null;
+  kind?: string | null;
   variantOptionName: string | null;
   images: { url: string; alt: string | null; mediaType: string; sortOrder: number }[];
   variants: {
@@ -37,7 +45,21 @@ type DbProduct = {
   }[];
 };
 
-export function vitrinProductDetailFromDb(product: DbProduct): VitrinProductDetail {
+export function vitrinProductDetailFromDb(
+  product: DbProduct,
+  bundleComponents?: VitrinProductDetail["bundleComponents"],
+): VitrinProductDetail {
+  const origin = getPublicSiteUrl();
+  const mediaItems = orderMediaForDisplay(
+    product.images.map((image) => ({
+      url: toAbsoluteMediaUrl(image.url, origin) ?? image.url,
+      mediaType: image.mediaType === "video" ? ("video" as const) : ("image" as const),
+    })),
+  );
+  const imageUrl =
+    toAbsoluteMediaUrl(primaryProductImageUrl(mediaItems) ?? product.imageUrl, origin) ??
+    product.imageUrl;
+
   return {
     productId: product.id,
     slug: product.slug,
@@ -47,12 +69,14 @@ export function vitrinProductDetailFromDb(product: DbProduct): VitrinProductDeta
       pieceCount: product.pieceCount,
     }),
     description: product.description,
-    imageUrl: product.imageUrl,
-    images: product.images.map((image) => ({
+    imageUrl,
+    images: mediaItems.map((image, i) => ({
       url: image.url,
-      alt: image.alt,
-      mediaType: image.mediaType === "video" ? "video" : "image",
+      alt: product.images[i]?.alt ?? null,
+      mediaType: image.mediaType,
     })),
+    kind: product.kind ?? "standard",
+    bundleComponents,
     variantOptionName: product.variantOptionName,
     variants: product.variants.map((variant) => ({
       id: variant.id,
@@ -92,6 +116,12 @@ export async function loadPublishedProductMirrorPatch(
   });
   if (!product?.published) return null;
 
+  let bundleComponents: VitrinProductDetail["bundleComponents"];
+  if (product.kind === PRODUCT_KIND_BUNDLE) {
+    const resolved = await loadResolvedBundleComponents(prisma, product.id);
+    bundleComponents = buildComponentsSnapshot(resolved, 1);
+  }
+
   const commerce = await loadMirrorProductCommerceUncached(
     siteId,
     slug,
@@ -101,7 +131,7 @@ export async function loadPublishedProductMirrorPatch(
   );
 
   return {
-    detail: vitrinProductDetailFromDb(product),
+    detail: vitrinProductDetailFromDb(product, bundleComponents),
     overlay: productContentOverlayFromDb(product),
     commerce,
   };

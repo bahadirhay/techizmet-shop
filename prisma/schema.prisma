@@ -362,6 +362,8 @@ model StoreProduct {
   badgesJson         String?
   /** Örn. Hacim — varyant satırlarında 30ml, 50ml */
   variantOptionName  String?
+  /** standard | bundle — paket satışı için bundle */
+  kind               String   @default("standard")
   published          Boolean  @default(true)
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
@@ -372,6 +374,8 @@ model StoreProduct {
   favorites          CustomerFavorite[]
   priceChangeItems   StorePriceChangeItem[]
   marketplaceListings MarketplaceProductListing[]
+  bundleComponents   StoreBundleComponent[] @relation("BundleItems")
+  bundleMemberships  StoreBundleComponent[] @relation("BundleComponentOf")
 
   @@unique([siteId, slug])
   @@index([siteId, sku])
@@ -407,9 +411,30 @@ model StoreProductVariant {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   priceChangeItems StorePriceChangeItem[]
+  bundleComponents StoreBundleComponent[]
 
   @@index([productId, sortOrder])
   @@map("product_variant")
+  @@schema("shop")
+}
+
+/// Paket içeriği — her satır bir bileşen ürün + adet
+model StoreBundleComponent {
+  id                 String   @id @default(cuid())
+  bundleProductId    String
+  bundleProduct      StoreProduct @relation("BundleItems", fields: [bundleProductId], references: [id], onDelete: Cascade)
+  componentProductId String
+  componentProduct   StoreProduct @relation("BundleComponentOf", fields: [componentProductId], references: [id], onDelete: Restrict)
+  componentVariantId String?
+  componentVariant   StoreProductVariant? @relation(fields: [componentVariantId], references: [id], onDelete: SetNull)
+  qtyPerBundle       Int
+  sortOrder          Int      @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([bundleProductId, sortOrder])
+  @@index([componentProductId])
+  @@map("product_bundle_component")
   @@schema("shop")
 }
 
@@ -838,6 +863,12 @@ model StoreOrderLine {
   discountMinor Int      @default(0)
   /** Sipariş anındaki KDV % — null ise fatura kesiminde mağaza varsayılanı */
   vatRate       Int?
+  /** standard | bundle */
+  lineKind      String   @default("standard")
+  /** Paket satırında bundle ürün id (productId ile aynı) */
+  bundleProductId String?
+  /** Sipariş anı bileşen özeti JSON */
+  componentsSnapshotJson String?
 
   @@index([orderId])
   @@map("order_line")

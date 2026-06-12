@@ -1,6 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { applyOrderFinanceSnapshot } from "@/lib/finance/order-economics";
-import { findProductByBarcodeOrSku, mapMarketplaceStatus } from "@/lib/marketplace/import-helpers";
+import {
+  deductMarketplaceLineStock,
+  findProductByBarcodeOrSku,
+  mapMarketplaceStatus,
+  marketplaceOrderLineExtras,
+} from "@/lib/marketplace/import-helpers";
 import { resolveMarketplaceSalePriceMinor } from "@/lib/marketplace/product-prices";
 import { amazonOrderRef, type AmazonOrder } from "@/lib/marketplace/amazon/orders";
 
@@ -72,6 +77,10 @@ export async function importAmazonOrders(
 
     const subtotalMinor = orderLines.reduce((s, l) => s + l.lineMinor, 0);
 
+    const lineExtras = await Promise.all(
+      orderLines.map((l) => marketplaceOrderLineExtras(prisma, l.productId, l.qty)),
+    );
+
     const createdOrder = await prisma.$transaction(async (tx) => {
       const created = await tx.storeOrder.create({
         data: {
@@ -98,7 +107,7 @@ export async function importAmazonOrders(
           marketplaceMetaJson: JSON.stringify(meta),
           adminNotes: `Amazon sipariş ${order.amazonOrderId}`,
           lines: {
-            create: orderLines.map((l) => ({
+            create: orderLines.map((l, i) => ({
               productId: l.productId,
               title: l.title,
               sku: l.sku,
@@ -106,6 +115,9 @@ export async function importAmazonOrders(
               unitMinor: l.unitMinor,
               lineMinor: l.lineMinor,
               vatRate: l.vatRate,
+              lineKind: lineExtras[i]?.lineKind ?? "standard",
+              bundleProductId: lineExtras[i]?.bundleProductId ?? null,
+              componentsSnapshotJson: lineExtras[i]?.componentsSnapshotJson ?? null,
             })),
           },
         },
@@ -114,11 +126,9 @@ export async function importAmazonOrders(
       for (const line of orderLines) {
         if (!line.productId) continue;
         touchedProductIds.add(line.productId);
-        const updated = await tx.storeProduct.updateMany({
-          where: { id: line.productId, stockQty: { gte: line.qty } },
-          data: { stockQty: { decrement: line.qty } },
-        });
-        if (updated.count === 0) notes.push(`${line.title}: stok yetersiz`);
+        const result = await deductMarketplaceLineStock(tx, line.productId, line.qty, line.title);
+        for (const pid of result.componentProductIds) touchedProductIds.add(pid);
+        if (!result.ok) notes.push(`${line.title}: stok yetersiz`);
       }
 
       return created;

@@ -44,6 +44,7 @@ export default async function ProductsPage() {
 
   const rows = products.map((p) => ({
     id: p.id,
+    kind: p.kind,
     title: p.title,
     slug: p.slug,
     sku: p.sku,
@@ -86,6 +87,12 @@ export default async function ProductsPage() {
               className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm hover:bg-zinc-50"
             >
               Toplu fiyat
+            </Link>
+            <Link
+              href="/admin/bundles/new"
+              className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm hover:bg-zinc-50"
+            >
+              + Yeni paket
             </Link>
             <Link href="/admin/products/new" className={btnPrimary}>
               + Yeni ürün

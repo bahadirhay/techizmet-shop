@@ -1,6 +1,7 @@
 /** Sepete ekle — slug / varyant etiketi çözümleme */
 
 import { prisma } from "@/lib/prisma";
+import { computeBundleAvailableQty, PRODUCT_KIND_BUNDLE } from "@/lib/product-bundle";
 import { pickDefaultVariant } from "@/lib/product-variants";
 
 export type AddToCartInput = {
@@ -64,6 +65,18 @@ export async function resolveAddToCartInput(
 
   if (!product) {
     return { ok: false, error: "Ürün bulunamadı", status: 404 };
+  }
+
+  if (product.kind === PRODUCT_KIND_BUNDLE) {
+    const available = await computeBundleAvailableQty(prisma, product.id);
+    if (available < 1) return { ok: false, error: "Ürün tükendi", status: 400 };
+    if (qty > available) {
+      return { ok: false, error: `En fazla ${available} adet eklenebilir`, status: 400 };
+    }
+    return {
+      ok: true,
+      data: { productId: product.id, variantId: null, qty },
+    };
   }
 
   let variantId: string | null = null;

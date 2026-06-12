@@ -6,6 +6,14 @@ import {
   type PromoLineMeta,
 } from "@/lib/campaign-engine";
 import { formatProductDisplayTitle } from "@/lib/product-display-title";
+import {
+  PRODUCT_KIND_BUNDLE,
+  buildComponentsSnapshotForOrder,
+  computeBundleAvailableQty,
+  expandBundleStockDeductions,
+  loadResolvedBundleComponents,
+  syncBundlesContainingProducts,
+} from "@/lib/product-bundle";
 import { variantCatalogPrices } from "@/lib/product-variants";
 import { prisma } from "@/lib/prisma";
 import { resolveOrderNumberPrefix, generateOrderNumber } from "@/lib/admin/order-number";
@@ -163,6 +171,13 @@ export async function buildCartView(
     },
   });
   const byId = new Map(products.map((p) => [p.id, p]));
+  const bundleIds = products.filter((p) => p.kind === PRODUCT_KIND_BUNDLE).map((p) => p.id);
+  const bundleStock = new Map<string, number>();
+  await Promise.all(
+    bundleIds.map(async (id) => {
+      bundleStock.set(id, await computeBundleAvailableQty(prisma, id));
+    }),
+  );
 
   for (const line of session.items) {
     const p = byId.get(line.productId);
@@ -170,13 +185,22 @@ export async function buildCartView(
       errors.push("Sepetteki bir ürün artık mevcut değil");
       continue;
     }
-    const hasVariants = p.variants.length > 0;
-    const variant = line.variantId ? p.variants.find((v) => v.id === line.variantId) : null;
+    const isBundle = p.kind === PRODUCT_KIND_BUNDLE;
+    const hasVariants = !isBundle && p.variants.length > 0;
+    const variant = !isBundle && line.variantId ? p.variants.find((v) => v.id === line.variantId) : null;
     if (hasVariants && !variant) {
       errors.push(`${p.title}: lütfen bir seçenek (ör. hacim) seçin`);
       continue;
     }
-    const stockQty = variant ? variant.stockQty : p.stockQty;
+    if (isBundle && line.variantId) {
+      errors.push(`${p.title}: paket için geçersiz seçenek`);
+      continue;
+    }
+    const stockQty = isBundle
+      ? (bundleStock.get(p.id) ?? 0)
+      : variant
+        ? variant.stockQty
+        : p.stockQty;
     const catalogPrice = variant ? variant.priceMinor : p.priceMinor;
     const catalogCompare = variant ? variant.compareAtMinor : p.compareAtMinor;
     const qty = Math.max(1, Math.min(line.qty, stockQty > 0 ? stockQty : 0));
@@ -482,9 +506,60 @@ export async function createOrderFromCart(params: {
   }
   const orderNumber = generateOrderNumber(resolveOrderNumberPrefix(settings, groupPrefix));
 
+  const cartProducts = await prisma.storeProduct.findMany({
+    where: { id: { in: cart.items.map((i) => i.productId) } },
+    select: { id: true, kind: true },
+  });
+  const kindById = new Map(cartProducts.map((p) => [p.id, p.kind]));
+
+  const orderLineExtras = new Map<
+    string,
+    { lineKind: string; bundleProductId: string | null; componentsSnapshotJson: string | null }
+  >();
+  const componentProductIdsForSync = new Set<string>();
+
   const order = await prisma.$transaction(async (tx) => {
     for (const line of cart.items) {
-      if (line.variantId) {
+      const lineKey = cartLineKey(line.productId, line.variantId);
+      if (kindById.get(line.productId) === PRODUCT_KIND_BUNDLE) {
+        const components = await loadResolvedBundleComponents(tx, line.productId);
+        const deductions = expandBundleStockDeductions(components, line.qty);
+        for (const d of deductions) {
+          if (d.variantId) {
+            const updated = await tx.storeProductVariant.updateMany({
+              where: {
+                id: d.variantId,
+                productId: d.productId,
+                stockQty: { gte: d.qty },
+              },
+              data: { stockQty: { decrement: d.qty } },
+            });
+            if (updated.count === 0) throw new Error(`${line.title} için yeterli stok yok`);
+            const sum = await tx.storeProductVariant.aggregate({
+              where: { productId: d.productId },
+              _sum: { stockQty: true },
+            });
+            await tx.storeProduct.update({
+              where: { id: d.productId },
+              data: { stockQty: sum._sum.stockQty ?? 0 },
+            });
+          } else {
+            const updated = await tx.storeProduct.updateMany({
+              where: { id: d.productId, stockQty: { gte: d.qty } },
+              data: { stockQty: { decrement: d.qty } },
+            });
+            if (updated.count === 0) throw new Error(`${line.title} için yeterli stok yok`);
+          }
+          componentProductIdsForSync.add(d.productId);
+        }
+        orderLineExtras.set(lineKey, {
+          lineKind: PRODUCT_KIND_BUNDLE,
+          bundleProductId: line.productId,
+          componentsSnapshotJson: JSON.stringify(
+            await buildComponentsSnapshotForOrder(tx, components, line.qty),
+          ),
+        });
+      } else if (line.variantId) {
         const updated = await tx.storeProductVariant.updateMany({
           where: { id: line.variantId, productId: line.productId, stockQty: { gte: line.qty } },
           data: { stockQty: { decrement: line.qty } },
@@ -498,13 +573,27 @@ export async function createOrderFromCart(params: {
           where: { id: line.productId },
           data: { stockQty: sum._sum.stockQty ?? 0 },
         });
+        orderLineExtras.set(lineKey, {
+          lineKind: "standard",
+          bundleProductId: null,
+          componentsSnapshotJson: null,
+        });
       } else {
         const updated = await tx.storeProduct.updateMany({
           where: { id: line.productId, stockQty: { gte: line.qty } },
           data: { stockQty: { decrement: line.qty } },
         });
         if (updated.count === 0) throw new Error(`${line.title} için yeterli stok yok`);
+        orderLineExtras.set(lineKey, {
+          lineKind: "standard",
+          bundleProductId: null,
+          componentsSnapshotJson: null,
+        });
       }
+    }
+
+    if (componentProductIdsForSync.size) {
+      await syncBundlesContainingProducts(tx, [...componentProductIdsForSync]);
     }
 
     if (cart.campaignId) {
@@ -534,24 +623,39 @@ export async function createOrderFromCart(params: {
         adminNotes: orderNotes.length ? orderNotes.join(" · ") : null,
         visitorKey: params.visitorKey?.trim() || null,
         lines: {
-          create: cart.items.map((line) => ({
-            productId: line.productId,
-            variantId: line.variantId,
-            variantLabel: line.variantLabel,
-            title: line.title,
-            sku: line.sku,
-            qty: line.qty,
-            unitMinor: line.unitMinor,
-            lineMinor: line.lineMinor,
-            discountMinor: line.discountMinor,
-            vatRate: line.vatRate,
-          })),
+          create: cart.items.map((line) => {
+            const extras = orderLineExtras.get(cartLineKey(line.productId, line.variantId)) ?? {
+              lineKind: "standard",
+              bundleProductId: null,
+              componentsSnapshotJson: null,
+            };
+            return {
+              productId: line.productId,
+              variantId: line.variantId,
+              variantLabel: line.variantLabel,
+              title: line.title,
+              sku: line.sku,
+              qty: line.qty,
+              unitMinor: line.unitMinor,
+              lineMinor: line.lineMinor,
+              discountMinor: line.discountMinor,
+              vatRate: line.vatRate,
+              lineKind: extras.lineKind,
+              bundleProductId: extras.bundleProductId,
+              componentsSnapshotJson: extras.componentsSnapshotJson,
+            };
+          }),
         },
       },
     });
   });
 
-  const productIds = cart.items.map((i) => i.productId);
+  const productIds = [
+    ...new Set([
+      ...cart.items.map((i) => i.productId),
+      ...componentProductIdsForSync,
+    ]),
+  ];
   try {
     const { syncStockToAllMarketplaces } = await import("@/lib/marketplace/stock-sync-all");
     await syncStockToAllMarketplaces(params.siteId, productIds);

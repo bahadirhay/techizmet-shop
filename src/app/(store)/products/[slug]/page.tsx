@@ -17,6 +17,8 @@ import { buildSiteMetadata } from "@/lib/site-metadata";
 import { getHomepageMode, getSiteSettings } from "@/lib/site-settings";
 import { getLoggedInCustomerPricing } from "@/lib/store/customer-pricing";
 import { formatProductDisplayTitle } from "@/lib/product-display-title";
+import { loadResolvedBundleComponents, buildComponentsSnapshot } from "@/lib/product-bundle";
+import { resolvePublicMediaUrl } from "@/lib/product-media";
 import { getDefaultSite } from "@/lib/site";
 
 /** Admin’de kaydedilen ürün altı metinleri gecikmesiz yansısın */
@@ -113,6 +115,11 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   });
   if (!product?.published) notFound();
 
+  const bundleComponents =
+    product.kind === "bundle"
+      ? buildComponentsSnapshot(await loadResolvedBundleComponents(prisma, product.id), 1)
+      : [];
+
   const gallery =
     product.images.length > 0
       ? product.images
@@ -155,7 +162,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     key={`${item.url}-${i}`}
-                    src={item.url}
+                    src={resolvePublicMediaUrl(item.url)}
                     alt={i === 0 ? displayTitle : `${displayTitle} — ${i + 1}`}
                     className="kn-pdp__img"
                   />
@@ -175,6 +182,19 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               compareAtMinor={product.compareAtMinor}
               memberPricing={pricing}
             />
+            {bundleComponents.length > 0 ? (
+              <div className="kn-pdp__bundle mb-4 rounded-lg border border-violet-200 bg-violet-50 p-3 text-sm">
+                <p className="font-medium text-violet-900">Paket içeriği</p>
+                <ul className="mt-2 list-inside list-disc text-violet-950">
+                  {bundleComponents.map((c) => (
+                    <li key={`${c.productId}-${c.variantId ?? ""}`}>
+                      {c.title}
+                      {c.qty > 1 ? ` × ${c.qty}` : ""}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
             {product.description ? <p className="kn-pdp__desc">{product.description}</p> : null}
             {product.descriptionHtml ? (
               <div
