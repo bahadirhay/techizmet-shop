@@ -96,6 +96,7 @@ export async function proxy(request: NextRequest) {
   if (
     pathname.startsWith("/admin") ||
     pathname.startsWith("/api/admin") ||
+    pathname.startsWith("/api/auth") ||
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api/theme/cdn")
   ) {

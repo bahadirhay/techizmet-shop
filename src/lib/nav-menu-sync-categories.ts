@@ -1,5 +1,3 @@
-import "server-only";
-
 import { categoryDisplayTitle } from "@/lib/category-display-title";
 import { categoryProductHref, resolveNavMenuHref } from "@/lib/nav-menu-link";
 import { prisma } from "@/lib/prisma";

@@ -3,9 +3,11 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { getAdminSession } from "@/lib/session";
 import { loadStaffSession } from "@/lib/staff-auth";
+import { ensureStoreTenant } from "@/lib/store-tenant";
 import { getDefaultSite } from "@/lib/site";
 
 export async function POST(req: Request) {
+  await ensureStoreTenant();
   const body = (await req.json()) as { login?: string; password?: string };
   const login = body.login?.trim().toLowerCase();
   const password = body.password ?? "";

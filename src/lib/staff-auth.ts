@@ -7,6 +7,7 @@ import {
   parsePermissionsJson,
 } from "@/lib/staff-permissions";
 import { prisma } from "@/lib/prisma";
+import { getDefaultSite } from "@/lib/site";
 
 export type StaffAccess = {
   staffUserId: string;
@@ -62,18 +63,32 @@ async function staffAccessFromSession(session: {
 const loadStaffAccessCached = cache(async (): Promise<StaffAccess | null> => {
   const s = await getAdminSession();
   if (!s.isLoggedIn || !s.staffUserId || !s.siteId) return null;
+
+  const site = await getDefaultSite();
+  if (s.siteId !== site.id) return null;
+
   return staffAccessFromSession(s);
 });
 
 export async function requireStaffPage(): Promise<StaffAccess> {
+  const s = await getAdminSession();
   const loaded = await loadStaffAccessCached();
-  if (!loaded) redirect("/admin/login");
+  if (!loaded) {
+    if (s.isLoggedIn) {
+      s.destroy();
+    }
+    redirect("/admin/login");
+  }
   return loaded;
 }
 
 export async function requireStaffApi(perm?: string): Promise<StaffAccess | NextResponse> {
+  const s = await getAdminSession();
   const loaded = await loadStaffAccessCached();
   if (!loaded) {
+    if (s.isLoggedIn) {
+      await s.destroy();
+    }
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   if (perm && !loaded.permissions.includes(perm)) {
