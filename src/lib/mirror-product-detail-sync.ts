@@ -153,8 +153,8 @@ function mediaSlideHtml(
   if (item.mediaType === "video") {
     return `<div class="main--product-item swiper-slide" data-media-id="admin-video-${index}">
       <div class="main--product-img media-wrapper width-100 height-100">
-        <div class="media" style="--image_ratio:130%;">
-          <video src="${url}" controls playsinline muted loop preload="metadata" style="width:100%;height:100%;object-fit:cover;"></video>
+        <div class="media" style="--image_ratio:100%;">
+          <video src="${url}" controls playsinline muted loop preload="metadata" style="width:100%;height:100%;object-fit:contain;"></video>
         </div>
       </div>
     </div>`;
@@ -165,9 +165,9 @@ function mediaSlideHtml(
     : "";
   return `<div class="main--product-item swiper-slide" data-media-id="admin-image-${index}">
     <div class="main--product-img media-wrapper width-100 height-100">
-      <div class="media" style="--image_ratio:130%;">
+      <div class="media" style="--image_ratio:100%;">
         ${zoomBtn}
-        <img src="${url}" data-original="${url}" alt="${alt}" width="1946" height="2503" sizes="auto"${index === 0 ? ' loading="eager" fetchpriority="high"' : ' loading="lazy"'}>
+        <img src="${url}" data-original="${url}" alt="${alt}" sizes="(min-width:768px) 50vw, 100vw" decoding="async"${index === 0 ? ' loading="eager" fetchpriority="high"' : ' loading="lazy"'}>
       </div>
     </div>
   </div>`;
@@ -238,11 +238,58 @@ function patchProductMediaZoomTemplate(
   });
 }
 
+type ProductGallerySwiperCfg = {
+  loop?: boolean;
+  slidesPerView?: number | string;
+  spaceBetween?: number;
+  navigation?: { enabled?: boolean; nextEl?: string; prevEl?: string };
+  breakpoints?: Record<
+    string,
+    {
+      loop?: boolean;
+      slidesPerView?: number | string;
+      navigation?: { enabled?: boolean; nextEl?: string; prevEl?: string };
+    }
+  >;
+};
+
+/** Tema şablonu çoklu slide gösterir (slidesPerView: 3) — admin galerisi tek slide + oklar */
+function normalizeProductGallerySwiperConfig(cfg: ProductGallerySwiperCfg, slideCount: number) {
+  cfg.slidesPerView = 1;
+  cfg.spaceBetween = 0;
+  cfg.loop = false;
+
+  if (slideCount >= 2) {
+    cfg.navigation = { ...(cfg.navigation ?? {}), enabled: true };
+  } else if (cfg.navigation) {
+    cfg.navigation.enabled = false;
+  }
+
+  if (cfg.breakpoints) {
+    for (const key of Object.keys(cfg.breakpoints)) {
+      const bp = cfg.breakpoints[key];
+      if (!bp) continue;
+      bp.slidesPerView = 1;
+      bp.loop = false;
+      if (slideCount >= 2) {
+        bp.navigation = {
+          ...(bp.navigation ?? cfg.navigation ?? {}),
+          enabled: true,
+        };
+      } else if (bp.navigation) {
+        bp.navigation.enabled = false;
+      }
+    }
+  }
+}
+
 function ensureGalleryFallbackStyles(doc: Document) {
   if (doc.getElementById("kn-product-gallery-fallback")) return;
   const style = doc.createElement("style");
   style.id = "kn-product-gallery-fallback";
-  style.textContent = `#MainContent .main--product-image-slider-outer.kn-gallery-static .main--product-image-slider{display:flex!important;transform:none!important;}
+  style.textContent = `#MainContent .main--product-image-slider-outer .main--product-item .media{--image_ratio:100%!important;}
+#MainContent .main--product-image-slider-outer .main--product-item img{object-fit:contain!important;width:100%;height:100%;max-height:min(72vh,720px);}
+#MainContent .main--product-image-slider-outer.kn-gallery-static .main--product-image-slider{display:block!important;transform:none!important;}
 #MainContent .main--product-image-slider-outer.kn-gallery-static .swiper-slide{width:100%!important;max-width:100%!important;opacity:1!important;visibility:visible!important;}
 #MainContent .main--product-image-slider-outer.kn-gallery-static .main--product-item{width:100%!important;}
 #MainContent .main--product-image-slider-outer.kn-gallery-static img{display:block!important;width:100%;height:auto;object-fit:contain;opacity:1!important;visibility:visible!important;}
@@ -254,25 +301,8 @@ function patchSwiperConfigForSlideCount(outer: Element, slideCount: number) {
   const raw = outer.getAttribute("data-swiper");
   if (!raw) return;
   try {
-    const cfg = JSON.parse(raw.trim()) as {
-      loop?: boolean;
-      slidesPerView?: number;
-      spaceBetween?: number;
-      breakpoints?: Record<string, { loop?: boolean; slidesPerView?: number }>;
-    };
-    if (slideCount < 2) {
-      cfg.loop = false;
-      cfg.slidesPerView = 1;
-      cfg.spaceBetween = 0;
-      if (cfg.breakpoints) {
-        for (const key of Object.keys(cfg.breakpoints)) {
-          const bp = cfg.breakpoints[key];
-          if (!bp) continue;
-          bp.loop = false;
-          bp.slidesPerView = 1;
-        }
-      }
-    }
+    const cfg = JSON.parse(raw.trim()) as ProductGallerySwiperCfg;
+    normalizeProductGallerySwiperConfig(cfg, slideCount);
     outer.setAttribute("data-swiper", JSON.stringify(cfg));
   } catch {
     /* şablon JSON bozuksa yoksay */
@@ -309,6 +339,32 @@ function injectProductGallerySwiperReinit(doc: Document, slideCount: number) {
   const script = doc.createElement("script");
   script.id = id;
   script.textContent = `(function(){
+  function normalizeCfg(cfg, n) {
+    cfg.slidesPerView = 1;
+    cfg.spaceBetween = 0;
+    cfg.loop = false;
+    if (n >= 2) {
+      cfg.navigation = cfg.navigation || {};
+      cfg.navigation.enabled = true;
+    } else if (cfg.navigation) {
+      cfg.navigation.enabled = false;
+    }
+    if (cfg.breakpoints) {
+      Object.keys(cfg.breakpoints).forEach(function(k) {
+        var b = cfg.breakpoints[k];
+        if (!b) return;
+        b.slidesPerView = 1;
+        b.loop = false;
+        if (n >= 2) {
+          b.navigation = b.navigation || cfg.navigation || {};
+          b.navigation.enabled = true;
+        } else if (b.navigation) {
+          b.navigation.enabled = false;
+        }
+      });
+    }
+    return cfg;
+  }
   function boot(){
     var outer = document.querySelector("#MainContent .main--product-image-slider-outer");
     if (!outer) return;
@@ -322,28 +378,8 @@ function injectProductGallerySwiperReinit(doc: Document, slideCount: number) {
     var raw = outer.getAttribute("data-swiper");
     if (!raw) return;
     try {
-      var cfg = JSON.parse(raw.trim());
-      var n = ${slideCount};
-      if (n < 2) {
-        cfg.loop = false;
-        cfg.slidesPerView = 1;
-        cfg.spaceBetween = 0;
-      }
-      if (cfg.breakpoints) {
-        Object.keys(cfg.breakpoints).forEach(function(k) {
-          var b = cfg.breakpoints[k];
-          if (!b) return;
-          if (n < 2) {
-            b.loop = false;
-            b.slidesPerView = 1;
-          } else if (typeof b.slidesPerView === "number" && b.slidesPerView > n) {
-            b.slidesPerView = n;
-          }
-        });
-      }
-      if (typeof cfg.slidesPerView === "number" && cfg.slidesPerView > n) {
-        cfg.slidesPerView = n;
-      }
+      var cfg = normalizeCfg(JSON.parse(raw.trim()), ${slideCount});
+      outer.setAttribute("data-swiper", JSON.stringify(cfg));
       var sw = new Swiper(outer, cfg);
       outer.swiper = sw;
     } catch (e) {}
@@ -351,6 +387,7 @@ function injectProductGallerySwiperReinit(doc: Document, slideCount: number) {
   setTimeout(boot, 60);
   setTimeout(boot, 350);
   setTimeout(boot, 900);
+  setTimeout(boot, 1800);
 })();`;
   (doc.body ?? doc.documentElement).appendChild(script);
 }
@@ -396,7 +433,11 @@ function patchMainImage(doc: Document, product: VitrinProductDetail) {
   if (!outer) return;
 
   const fp = galleryFingerprint(product, media);
-  if (outer.getAttribute("data-kn-gallery-fp") === fp) return;
+  if (outer.getAttribute("data-kn-gallery-fp") === fp) {
+    patchSwiperConfigForSlideCount(outer, media.length);
+    injectProductGallerySwiperReinit(doc, media.length);
+    return;
+  }
 
   const sectionId = detectProductMediaSectionId(doc);
   patchProductMediaZoomTemplate(doc, product, media);
