@@ -1,5 +1,10 @@
 /** Mirror iframe — tema cart-drawer → /api/cart (oturum sepeti) */
 
+import { PRODUCT_IMAGE_THUMB, productImagePlaceholderStyle } from "@/lib/product-image-spec";
+
+const CART_DRAWER_IMG = PRODUCT_IMAGE_THUMB.cartDrawer;
+const CART_IMG_PLACEHOLDER = productImagePlaceholderStyle();
+
 const CART_BRIDGE_SCRIPT = `<script id="kn-cart-bridge">(function(){
   var L={
     bag:function(n){return document.documentElement.lang&&document.documentElement.lang.indexOf("tr")===0?"Sepetim ("+n+")":"Your bag ("+n+")";},
@@ -41,7 +46,7 @@ const CART_BRIDGE_SCRIPT = `<script id="kn-cart-bridge">(function(){
     return '<div class="empty--card"><svg viewBox="0 0 47 47" fill="none"><path d="M41.172 38.9473C44.791 34.8113 47 29.422 47 23.5C47 10.5437 36.4563 0 23.5 0C10.5437 0 0 10.5437 0 23.5C0 36.4563 10.5437 47 23.5 47C29.422 47 34.8113 44.791 38.9473 41.172L44.321 46.5457C44.6343 46.8433 45.026 47 45.4333 47C45.8407 47 46.2323 46.8433 46.5457 46.5457C47.1567 45.9347 47.1567 44.9477 46.5457 44.3367L41.172 38.9473ZM3.13333 23.5C3.13333 12.267 12.267 3.13333 23.5 3.13333C34.733 3.13333 43.8667 12.267 43.8667 23.5C43.8667 34.733 34.733 43.8667 23.5 43.8667C12.267 43.8667 3.13333 34.733 3.13333 23.5ZM14.1 18.8C14.1 17.0767 15.51 15.6667 17.2333 15.6667C18.9567 15.6667 20.3667 17.0767 20.3667 18.8C20.3667 20.5233 18.9567 21.9333 17.2333 21.9333C15.51 21.9333 14.1 20.5233 14.1 18.8ZM32.9 18.8C32.9 20.5233 31.49 21.9333 29.7667 21.9333C28.0433 21.9333 26.6333 20.5233 26.6333 18.8C26.6333 17.0767 28.0433 15.6667 29.7667 15.6667C31.49 15.6667 32.9 17.0767 32.9 18.8ZM32.1167 29.1243C32.4613 29.9077 32.1167 30.8477 31.3177 31.1923C31.114 31.2863 30.8947 31.3333 30.691 31.3333C30.0957 31.3333 29.516 30.9887 29.2497 30.3933C28.247 28.106 25.9753 26.6333 23.5 26.6333C21.0247 26.6333 18.753 28.106 17.7347 30.409C17.39 31.1923 16.4657 31.5683 15.6667 31.208C14.8833 30.8633 14.523 29.939 14.8677 29.14C16.3873 25.709 19.787 23.5 23.5 23.5C27.213 23.5 30.6127 25.709 32.1167 29.1243Z" fill="currentColor"/></svg><div class="empty--card-content"><h5 class="h5 heading-font empty--card-heading">'+esc(L.emptyTitle)+'</h5><a class="empty--card-link text-underline" href="/collections/all">'+esc(L.emptyLink)+"</a></div></div>";
   }
   function lineHtml(line){
-    var img=line.imageUrl?'<img class="cart-product-media" src="'+esc(line.imageUrl)+'" alt="" loading="lazy" width="125" height="125">':'<div class="cart-product-media" style="background:var(--body_alternate_background);aspect-ratio:1"></div>';
+    var img=line.imageUrl?'<img class="cart-product-media" src="'+esc(line.imageUrl)+'" alt="" loading="lazy" width="${CART_DRAWER_IMG.width}" height="${CART_DRAWER_IMG.height}">':'<div class="cart-product-media" style="${CART_IMG_PLACEHOLDER}"></div>';
     var opts=line.variantLabel?'<ul class="cart-product-options text-small"><li>'+esc(line.variantLabel)+"</li></ul>":"";
     var href="/products/"+encodeURIComponent(line.slug);
     var qtySvgDown='<svg width="10" height="2" viewBox="0 0 10 2" fill="none"><path d="M0 2L0 0L10 0V2H0Z" fill="currentColor"></path></svg>';

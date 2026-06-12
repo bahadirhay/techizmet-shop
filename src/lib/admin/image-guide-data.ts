@@ -20,8 +20,8 @@ export const IMAGE_GUIDE_ROWS: ImageGuideRow[] = [
     name: "Ürün ana + galeri",
     adminPath: "/admin/products",
     adminLabel: "Ürünler → düzenle → Ürün görselleri",
-    size: "1200 × 1200 px",
-    ratio: "1:1 (kare)",
+    size: "1200 × 1800 px",
+    ratio: "2:3 (dikey)",
     where: "Liste kartı, arama, sepet, ürün detay galerisi",
     notes: "İlk görsel ana görseldir. Trendyol/HB’ye en fazla 8 görsel gider.",
   },
@@ -129,7 +129,7 @@ export const IMAGE_GUIDE_ROWS: ImageGuideRow[] = [
 ];
 
 export const IMAGE_GUIDE_CHECKLIST = [
-  "Ana ürün görseli: 1200×1200 kare, temiz arka plan",
+  "Ana ürün görseli: 1200×1800 dikey (2:3), temiz arka plan",
   "2–4 ek galeri görseli (aynı boyut, farklı açı)",
   "İsteğe bağlı: 3 EXPLORE lifestyle görseli",
   "Kategori ve koleksiyon ataması yapıldı mı?",
@@ -139,5 +139,5 @@ export const IMAGE_GUIDE_CHECKLIST = [
 export const IMAGE_GUIDE_MARKETPLACE = [
   { channel: "Trendyol", spec: "Kare 1200×1200, ilk görsel kapak, max 8 adet" },
   { channel: "Hepsiburada", spec: "Kare, aynı URL’ler fastlisting ile gider" },
-  { channel: "Web vitrin", spec: "1200×1200 — liste ve detay uyumlu" },
+  { channel: "Web vitrin", spec: "1200×1800 (2:3) — liste, detay, sepet ve arama uyumlu" },
 ];

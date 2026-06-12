@@ -1,5 +1,9 @@
 /** Mirror iframe — arama çekmecesi → local DB (/api/store/search-drawer, /search) */
 
+import { PRODUCT_IMAGE_MEDIA_RATIO_PERCENT, productImagePlaceholderStyle } from "@/lib/product-image-spec";
+
+const PRODUCT_IMG_PLACEHOLDER = productImagePlaceholderStyle();
+
 const SEARCH_BRIDGE_SCRIPT = `<script id="kn-search-bridge">(function(){
   var TR=document.documentElement.lang&&document.documentElement.lang.indexOf("tr")===0;
   var L={
@@ -25,9 +29,9 @@ const SEARCH_BRIDGE_SCRIPT = `<script id="kn-search-bridge">(function(){
     var href="/products/"+encodeURIComponent(p.slug);
     var img=p.imageUrl
       ?'<img class="lazyload no-js-hidden product-image" src="'+esc(bust(p.imageUrl))+'" data-original="'+esc(p.imageUrl)+'" alt="'+esc(p.title)+'" loading="lazy">'
-      :'<div class="product-image" style="aspect-ratio:1;background:var(--body_alternate_background)"></div>';
+      :'<div class="product-image" style="${PRODUCT_IMG_PLACEHOLDER}"></div>';
     return '<div class="horizontal--product-card">'+
-      '<a href="'+href+'" class="horizontal--product-image media-wrapper"><div class="media" style="--image_ratio:100%;">'+img+'</div></a>'+
+      '<a href="'+href+'" class="horizontal--product-image media-wrapper"><div class="media" style="--image_ratio:${PRODUCT_IMAGE_MEDIA_RATIO_PERCENT}%;">'+img+'</div></a>'+
       '<div class="horizontal--product-detail">'+
         '<a href="'+href+'" class="product--title">'+esc(p.title)+'</a>'+
         '<div class="product--pricing text"><span class="product--actual-price heading-font">'+esc(L.from)+' '+esc(p.priceLabel)+'</span>'+

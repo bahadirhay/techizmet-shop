@@ -1,4 +1,10 @@
 import { parseHTML } from "linkedom";
+import {
+  PRODUCT_IMAGE_HEIGHT,
+  PRODUCT_IMAGE_WIDTH,
+  PRODUCT_IMAGE_THUMB,
+  productImageMediaRatioStyle,
+} from "@/lib/product-image-spec";
 import { resolvePublicMediaUrl } from "@/lib/product-media";
 import type { BundleComponentSnapshot } from "@/lib/product-bundle";
 import { isAnchorNode, isElementNode, isImageNode, isInputNode } from "@/lib/mirror-dom-node";
@@ -153,7 +159,7 @@ function mediaSlideHtml(
   if (item.mediaType === "video") {
     return `<div class="main--product-item swiper-slide" data-media-id="admin-video-${index}">
       <div class="main--product-img media-wrapper width-100 height-100">
-        <div class="media" style="--image_ratio:130%;">
+        <div class="media" style="${productImageMediaRatioStyle()};">
           <video src="${url}" controls playsinline muted loop preload="metadata" style="width:100%;height:100%;object-fit:cover;"></video>
         </div>
       </div>
@@ -165,9 +171,9 @@ function mediaSlideHtml(
     : "";
   return `<div class="main--product-item swiper-slide" data-media-id="admin-image-${index}">
     <div class="main--product-img media-wrapper width-100 height-100">
-      <div class="media" style="--image_ratio:130%;">
+      <div class="media" style="${productImageMediaRatioStyle()};">
         ${zoomBtn}
-        <img src="${url}" data-original="${url}" alt="${alt}" width="1946" height="2503" sizes="auto"${index === 0 ? ' loading="eager" fetchpriority="high"' : ' loading="lazy"'}>
+        <img src="${url}" data-original="${url}" alt="${alt}" width="${PRODUCT_IMAGE_WIDTH}" height="${PRODUCT_IMAGE_HEIGHT}" sizes="auto"${index === 0 ? ' loading="eager" fetchpriority="high"' : ' loading="lazy"'}>
       </div>
     </div>
   </div>`;
@@ -188,7 +194,7 @@ function zoomModalSlideHtml(item: VitrinProductMedia, product: VitrinProductDeta
   return `<div class="swiper-slide" data-media-id="admin-zoom-image-${index}">
     <div class="main--product-media-item">
       <div class="swiper-zoom-container">
-        <img src="${url}" data-original="${url}" alt="${alt}" width="1166" height="1500" sizes="auto" loading="lazy">
+        <img src="${url}" data-original="${url}" alt="${alt}" width="${PRODUCT_IMAGE_WIDTH}" height="${PRODUCT_IMAGE_HEIGHT}" sizes="auto" loading="lazy">
       </div>
     </div>
   </div>`;
@@ -359,7 +365,7 @@ function patchThumbnailSlider(
         <div class="main--product-thumbnail media-wrapper">
           <div class="media">
             <img src="${url}" data-original="${url}" alt="${alt}"
-              width="80" height="103" loading="${index === 0 ? "eager" : "lazy"}">
+              width="${PRODUCT_IMAGE_THUMB.galleryThumb.width}" height="${PRODUCT_IMAGE_THUMB.galleryThumb.height}" loading="${index === 0 ? "eager" : "lazy"}">
           </div>
         </div>
       </div>`;

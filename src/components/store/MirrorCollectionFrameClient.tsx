@@ -100,7 +100,7 @@ export function MirrorCollectionFrameClient({
     if (categoriesFromAdmin?.length) {
       applyCollectionCategoryFiltersFromAdmin(doc, categoriesFromAdmin, locale, activeCategorySlug, mirrorTexts);
     }
-    if (productsFromAdmin) {
+    if (productsFromAdmin?.length) {
       applyCollectionProductsFromAdmin(doc, productsFromAdmin, locale, mirrorTexts, {
         currentPage,
         basePath: paginationBasePath,

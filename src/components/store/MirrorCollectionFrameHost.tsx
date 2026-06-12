@@ -29,7 +29,7 @@ function CollectionFrameInner({
       footer={payload?.footer}
       locale={locale}
       collectionFromAdmin={payload?.collectionFromAdmin}
-      productsFromAdmin={productsPrebuilt ? undefined : payload?.productsFromAdmin}
+      productsFromAdmin={payload?.productsFromAdmin}
       totalProductCount={payload?.totalProductCount}
       categoriesFromAdmin={productsPrebuilt ? undefined : payload?.categoriesFromAdmin}
       activeCategorySlug={payload?.activeCategorySlug}

@@ -87,7 +87,7 @@ export function ImageGuideView() {
             ))}
           </ul>
           <p className="mt-3 text-xs text-zinc-500">
-            Ürün görselleri kare ve yüksek çözünürlüklü olmalı; metin/watermark eklemeyin.
+            Ürün görselleri 2:3 dikey (1200×1800) ve yüksek çözünürlüklü olmalı; metin/watermark eklemeyin.
           </p>
         </section>
 
@@ -113,7 +113,7 @@ export function ImageGuideView() {
       <section className="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-xs text-zinc-600">
         <strong>İpucu:</strong> Ürün formunda görsel yüklerken kırpma penceresinde hedef piksel boyutu
         gösterilir. Vitrin CSS&apos;i <code>object-fit: cover</code> kullandığı için kenarlardan hafif
-        kırpma normaldir — ürünü kare alanın ortasına yerleştirin.
+        kırpma normaldir — ürünü dikey alanın ortasına yerleştirin.
       </section>
     </div>
   );

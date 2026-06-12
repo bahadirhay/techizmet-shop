@@ -2,6 +2,11 @@
 
 import type { CartView } from "@/lib/cart/types";
 import { injectMirrorPageRoot } from "@/lib/mirror-page-inject";
+import { PRODUCT_IMAGE_THUMB, productImagePlaceholderStyle } from "@/lib/product-image-spec";
+
+const CART_LINE_IMG = PRODUCT_IMAGE_THUMB.cartPageLine;
+const CART_FEATURED_IMG = PRODUCT_IMAGE_THUMB.cartFeatured;
+const CART_IMG_PLACEHOLDER = productImagePlaceholderStyle();
 
 export type MirrorCartPagePayload = {
   cart: CartView;
@@ -99,8 +104,8 @@ function buildFreeShippingUnderTotalHtml(cart: CartView, tr: boolean): string {
 function cartLineHtml(line: CartView["items"][number], tr: boolean): string {
   const href = `/products/${encodeURIComponent(line.slug)}`;
   const img = line.imageUrl
-    ? `<img class="cart-product-media" src="${esc(line.imageUrl)}" alt="" loading="lazy" width="185" height="185">`
-    : `<div class="cart-product-media" style="aspect-ratio:1;background:var(--body_alternate_background)"></div>`;
+    ? `<img class="cart-product-media" src="${esc(line.imageUrl)}" alt="" loading="lazy" width="${CART_LINE_IMG.width}" height="${CART_LINE_IMG.height}">`
+    : `<div class="cart-product-media" style="${CART_IMG_PLACEHOLDER}"></div>`;
   const opts = line.variantLabel
     ? `<ul class="cart-product-options text-small"><li>${esc(line.variantLabel)}</li></ul>`
     : "";
@@ -133,7 +138,7 @@ function cartLineHtml(line: CartView["items"][number], tr: boolean): string {
 function buildCartFeaturedMarkup(cart: CartView): string {
   const img = cart.items.find((i) => i.imageUrl)?.imageUrl;
   if (!img) return "";
-  return `<div class="cart-featured--item active"><img class="cart-featured--image" src="${esc(img)}" alt="" loading="lazy" width="600" height="800"></div>`;
+  return `<div class="cart-featured--item active"><img class="cart-featured--image" src="${esc(img)}" alt="" loading="lazy" width="${CART_FEATURED_IMG.width}" height="${CART_FEATURED_IMG.height}"></div>`;
 }
 
 function buildCartBottomMarkup(cart: CartView, tr: boolean): string {
@@ -311,7 +316,7 @@ export function buildCartPageBridgeScript(locale: "tr" | "en"): string {
   }
   function cartLineHtml(line){
     var href="/products/"+encodeURIComponent(line.slug);
-    var img=line.imageUrl?'<img class="cart-product-media" src="'+esc(line.imageUrl)+'" alt="" loading="lazy" width="185" height="185">':'<div class="cart-product-media" style="aspect-ratio:1;background:var(--body_alternate_background)"></div>';
+    var img=line.imageUrl?'<img class="cart-product-media" src="'+esc(line.imageUrl)+'" alt="" loading="lazy" width="${CART_LINE_IMG.width}" height="${CART_LINE_IMG.height}">':'<div class="cart-product-media" style="${CART_IMG_PLACEHOLDER}"></div>';
     var opts=line.variantLabel?'<ul class="cart-product-options text-small"><li>'+esc(line.variantLabel)+"</li></ul>":"";
     return '<div class="cart-product-item" data-kn-cart-line="'+esc(lineKey(line))+'">'+img+
       '<div class="cart-product-details"><a href="'+href+'" class="product--title text-medium">'+esc(line.title)+'</a><div class="product--pricing"><span class="product--actual-price">'+esc(formatTry(line.unitMinor))+"</span></div>"+opts+

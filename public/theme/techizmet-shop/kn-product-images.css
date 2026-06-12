@@ -1,0 +1,53 @@
+/**
+ * Ürün görselleri — 1200×1800 (2:3 dikey), object-fit: cover
+ * Logo, blog, koleksiyon kapağı, mega menü promosyon kartları hariç
+ */
+
+.product--card .product--image .media,
+.horizontal--product-card .horizontal--product-image .media,
+#MainContent .main--product-img .media,
+#MainContent .main--product-thumbnail .media,
+.quickview--product-img .media,
+.bs-products--image .media {
+  --image_ratio: 150% !important;
+}
+
+img.product--card-image,
+.horizontal--product-card img.product-image,
+#MainContent .main--product-img img,
+.cart-product-media,
+.quickview--product-img img {
+  object-fit: cover;
+}
+
+.horizontal--product-card .product-image[style*="aspect-ratio"],
+.cart-product-media[style*="aspect-ratio"] {
+  aspect-ratio: 2 / 3 !important;
+}
+
+.kn-fav-card__media {
+  aspect-ratio: 2 / 3 !important;
+}
+
+.kn-nav-mega__product-img {
+  aspect-ratio: 2 / 3 !important;
+}
+
+.kn-product-card__img,
+.kn-pdp__img,
+.kn-cart-line__img {
+  aspect-ratio: 2 / 3 !important;
+  object-fit: cover;
+}
+
+.kn-mini-cart__thumb {
+  width: 72px;
+  height: 108px;
+  object-fit: cover;
+}
+
+.kn-fav-list__img {
+  width: 64px;
+  height: 96px;
+  object-fit: cover;
+}

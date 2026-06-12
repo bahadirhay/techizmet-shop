@@ -13,6 +13,7 @@ import { applyMirrorLocaleOverlay } from "@/lib/mirror-locale-overlay";
 import { installMirrorSwiperQuiet } from "@/lib/mirror-swiper-overlay";
 import { installMirrorLayoutQuiet } from "@/lib/mirror-layout-quiet-overlay";
 import { ensureMirrorLayoutStyles } from "@/lib/mirror-nav-dropdown-inject";
+import { ensureMirrorProductImageStyles } from "@/lib/mirror-product-image-inject";
 import { applyMirrorAccountDashboardClient } from "@/lib/mirror-account-dashboard-client";
 import {
   applyMirrorAccountDrawerClient,
@@ -48,6 +49,7 @@ export function applyMirrorFramePatches(doc: Document, opts: MirrorFramePatchOpt
   const serverReady = isMirrorServerReady(doc);
   installMirrorLayoutQuiet(doc);
   ensureMirrorLayoutStyles(doc);
+  ensureMirrorProductImageStyles(doc);
   applyMirrorAccountDrawerClient(doc, opts.locale);
   applyMirrorAccountDashboardClient(doc);
   if (opts.accountDrawerForm) openAccountDrawer(doc, opts.accountDrawerForm);

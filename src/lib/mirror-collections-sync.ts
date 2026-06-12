@@ -1,4 +1,9 @@
 import { formatTry } from "@/lib/format";
+import {
+  PRODUCT_IMAGE_HEIGHT,
+  PRODUCT_IMAGE_WIDTH,
+  productImageMediaRatioStyle,
+} from "@/lib/product-image-spec";
 import { formatPercentOffBadge, percentOffFromPrices } from "@/lib/product-discount";
 import { badgePreset, parseProductBadges } from "@/lib/product-badges";
 import type { ResolvedMirrorCollectionTexts } from "@/lib/store-static-texts";
@@ -244,13 +249,15 @@ function productCardHtml(
         aria-label="${options?.locale?.toLowerCase().startsWith("en") ? "Add to favorites" : "Favorilere ekle"}"
       >♡</button>
       <a href="${escAttr(href)}" aria-label="${title}" class="product--image d-block width-100">
-        <div class="media" style="--image_ratio:128.64493996569468%" data-product-media>
+        <div class="media" style="${productImageMediaRatioStyle()}" data-product-media>
           <img
             class="product--card-image"
             data-src="${escAttr(image)}"
             src="${escAttr(image)}"
             data-original="${escAttr(image)}"
             alt="${title}"
+            width="${PRODUCT_IMAGE_WIDTH}"
+            height="${PRODUCT_IMAGE_HEIGHT}"
             loading="lazy"
           >
         </div>

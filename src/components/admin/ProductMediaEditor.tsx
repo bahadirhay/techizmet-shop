@@ -150,10 +150,10 @@ export function ProductMediaEditor({
 
       <ImageUploadField
         label="Görsel ekle"
-        hint="Sürükle-bırak veya seçin; kare kırpma ile vitrin düzenini korur."
-        aspectRatio={1}
+        hint="Sürükle-bırak veya seçin; 2:3 dikey kırpma (1200×1800) vitrin düzenini korur."
+        aspectRatio={2 / 3}
         outputWidth={1200}
-        outputHeight={1200}
+        outputHeight={1800}
         value=""
         onChange={(url) => {
           if (url) addItem({ url, mediaType: "image" });

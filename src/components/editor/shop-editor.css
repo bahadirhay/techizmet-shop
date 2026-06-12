@@ -400,7 +400,7 @@
 }
 .shop-page-editor .ed-preview-canvas .kn-product-card__img {
   width: 100%;
-  aspect-ratio: 1;
+  aspect-ratio: 2 / 3;
   object-fit: cover;
   display: block;
 }

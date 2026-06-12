@@ -41,6 +41,7 @@ import { injectMirrorAnalyticsBridge } from "@/lib/mirror-analytics-bridge";
 import { injectMirrorLinkBridge } from "@/lib/mirror-link-bridge";
 import { inferMirrorStorePath } from "@/lib/mirror-store-path";
 import { injectMirrorNavDropdownStyles } from "@/lib/mirror-nav-dropdown-inject";
+import { injectMirrorProductImageStyles } from "@/lib/mirror-product-image-inject";
 import { loadMirrorFooterDataUncached } from "@/lib/mirror-footer-load";
 import { loadMirrorNavItemsUncached } from "@/lib/mirror-nav-load";
 import {
@@ -151,6 +152,7 @@ export async function buildMirrorHtmlCore(params: MirrorHtmlBuildParams): Promis
   const nav = await loadMirrorNavItemsUncached(siteId, locale);
   localized = injectNavIntoMirrorHtml(localized, nav, locale);
   localized = injectMirrorNavDropdownStyles(localized);
+  localized = injectMirrorProductImageStyles(localized);
 
   const footer = await loadMirrorFooterDataUncached(siteId, locale);
   localized = injectFooterIntoMirrorHtml(localized, footer);

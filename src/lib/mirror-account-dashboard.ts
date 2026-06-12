@@ -1,6 +1,7 @@
 /** Techizmet Shop — hesap paneli HTML + iframe etkileşim köprüsü */
 
 import { mirrorTrAddressFieldsHtml } from "@/lib/mirror-tr-address-markup";
+import { PRODUCT_IMAGE_ASPECT_RATIO, PRODUCT_IMAGE_THUMB } from "@/lib/product-image-spec";
 
 export type MirrorAccountAddress = {
   id: string;
@@ -282,7 +283,7 @@ export const ACCOUNT_DASHBOARD_CSS = `<style id="kn-account-dashboard-css">
 }
 .kn-account-dashboard .kn-fav-card__media {
   display: block;
-  aspect-ratio: 1;
+  aspect-ratio: ${PRODUCT_IMAGE_ASPECT_RATIO};
   overflow: hidden;
   border-radius: 8px;
   background: #fff;
@@ -361,7 +362,7 @@ function favoritesGridHtml(favorites: MirrorAccountFavorite[], tr: boolean): str
     .map((item) => {
       const href = `/products/${encodeURIComponent(item.slug)}`;
       const img = item.imageUrl
-        ? `<img src="${esc(item.imageUrl)}" alt="" loading="lazy" width="400" height="400">`
+        ? `<img src="${esc(item.imageUrl)}" alt="" loading="lazy" width="${PRODUCT_IMAGE_THUMB.favCard.width}" height="${PRODUCT_IMAGE_THUMB.favCard.height}">`
         : "";
       return `<article class="kn-fav-card" data-kn-fav-card data-product-id="${esc(item.productId)}">
         <a href="${href}" class="kn-fav-card__media">${img}</a>
