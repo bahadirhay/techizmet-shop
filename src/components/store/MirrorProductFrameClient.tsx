@@ -22,7 +22,6 @@ import {
   productGalleryReady,
   type VitrinProductDetail,
 } from "@/lib/mirror-product-detail-sync";
-import { mountKnProductGallery } from "@/lib/mirror-product-gallery-mount";
 import {
   applyMirrorProductCommerce,
   type MirrorProductCommercePayload,
@@ -197,18 +196,20 @@ export function MirrorProductFrameClient({
       applyProductDetailFromAdmin(doc, productFromAdmin, {
         templateSlug: templateMirrorSlug,
       });
-      const mediaCount = Math.max(
-        productFromAdmin.images?.filter((m) => m?.url?.trim()).length ?? 0,
-        productFromAdmin.imageUrl?.trim() ? 1 : 0,
-      );
-      if (mediaCount > 0) {
-        mountKnProductGallery(doc, mediaCount);
-        for (const ms of PATCH_RETRY_MS) {
-          window.setTimeout(() => {
-            const d = iframeRef.current?.contentDocument;
-            if (d?.getElementById("MainContent")) mountKnProductGallery(d, mediaCount);
-          }, ms);
-        }
+      const reinitThemeGallery = () => {
+        const outer = doc.querySelector("#MainContent .main--product-image-slider-outer");
+        const host = outer?.closest("swiper-content") as (HTMLElement & { _initial_run?: () => void }) | null;
+        host?._initial_run?.();
+      };
+      reinitThemeGallery();
+      for (const ms of PATCH_RETRY_MS) {
+        window.setTimeout(() => {
+          const d = iframeRef.current?.contentDocument;
+          if (!d?.getElementById("MainContent")) return;
+          const outer = d.querySelector("#MainContent .main--product-image-slider-outer");
+          const host = outer?.closest("swiper-content") as (HTMLElement & { _initial_run?: () => void }) | null;
+          host?._initial_run?.();
+        }, ms);
       }
       const stickyProduct = productFromAdmin;
       const reapplySticky = () => {

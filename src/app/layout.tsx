@@ -9,7 +9,7 @@ import { JsonLdScript } from "@/components/store/JsonLdScript";
 import { buildSiteMetadata } from "@/lib/site-metadata";
 import { buildOrganizationJsonLd, buildWebSiteJsonLd } from "@/lib/seo/site-json-ld";
 import { getCachedParsedSiteSettings } from "@/lib/cache/store-cache";
-import { resolveStoreMirrorIframeSrcForRequest } from "@/lib/mirror-prebuilt-resolve";
+import { resolveStoreMirrorIframeSrcForRequest } from "@/lib/mirror-prebuilt-resolve-server";
 import { getDefaultSite } from "@/lib/site";
 import { getSiteSeo } from "@/lib/site-settings";
 import "./globals.css";

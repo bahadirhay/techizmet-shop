@@ -15,10 +15,8 @@ import type { ShopLocale } from "@/lib/i18n/locale";
 import { productSlugFromMirrorPath } from "@/lib/mirror-html-processor";
 
 import { LOGO_UNIFY_VERSION } from "@/lib/mirror-logo-unify";
-import {
-  getMirrorPrebuildTenantSlug,
-  mirrorPrebuildMatchesTenant,
-} from "@/lib/mirror-prebuilt-tenant";
+import { mirrorPrebuildMatchesTenant } from "@/lib/mirror-prebuilt-tenant-shared";
+import { getMirrorPrebuildTenantSlug } from "@/lib/mirror-prebuilt-tenant-server";
 import { getActiveTenantSlug } from "@/lib/tenant-context";
 
 const DEV_MIRROR_CACHE_TTL_MS = 120_000;

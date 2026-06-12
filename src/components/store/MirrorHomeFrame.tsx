@@ -1,6 +1,6 @@
 import type { ShopLocale } from "@/lib/i18n/locale";
 import { getMirrorHomeConfig } from "@/lib/mirror-home-sections";
-import { resolveStoreMirrorIframeSrcForRequest } from "@/lib/mirror-prebuilt-resolve";
+import { resolveStoreMirrorIframeSrcForRequest } from "@/lib/mirror-prebuilt-resolve-server";
 import { getSiteBranding, getSiteSettings } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
 import { loadMirrorFooterData } from "@/lib/mirror-footer-server";

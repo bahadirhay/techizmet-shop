@@ -10,14 +10,9 @@ const MANIFEST = join(process.cwd(), "public/_mirror-prebuilt/manifest.json");
 export const getMirrorPrebuildTenantSlug = cache(async (): Promise<string | null> => {
   try {
     const raw = await readFile(MANIFEST, "utf8");
-    const data = JSON.parse(raw) as { tenantSlug?: string };
-    return data.tenantSlug?.trim() || process.env.STORE_SITE_SLUG?.trim() || null;
+    const data = JSON.parse(raw) as { tenantSlug?: string; siteSlug?: string };
+    return data.tenantSlug?.trim() || data.siteSlug?.trim() || process.env.STORE_SITE_SLUG?.trim() || null;
   } catch {
     return null;
   }
 });
-
-export function mirrorPrebuildMatchesTenant(requestSlug: string, prebuildSlug: string | null): boolean {
-  if (!prebuildSlug) return false;
-  return prebuildSlug === requestSlug;
-}

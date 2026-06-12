@@ -6,11 +6,7 @@ import {
   rawMirrorPublicUrl,
 } from "@/lib/mirror-iframe-src";
 import { hasPrebuiltMirrorHtml, isMirrorDevLiveRebuild } from "@/lib/mirror-prebuilt-io";
-import {
-  getMirrorPrebuildTenantSlug,
-  mirrorPrebuildMatchesTenant,
-} from "@/lib/mirror-prebuilt-tenant";
-import { ensureStoreTenant } from "@/lib/store-tenant";
+import { mirrorPrebuildMatchesTenant } from "@/lib/mirror-prebuilt-tenant-shared";
 
 export type MirrorIframeSrcOpts = {
   hasCustomBlocks?: boolean;
@@ -114,18 +110,3 @@ export function resolveMirrorIframeSrc(
   return resolveStoreMirrorIframeSrc(normalized, pageKey, extra);
 }
 
-/** Sunucu bileşenleri — host tenant ile prebuild uyumunu kontrol eder */
-export async function resolveStoreMirrorIframeSrcForRequest(
-  normalized: string,
-  pageKey?: string,
-  extra?: Record<string, string | undefined>,
-  opts?: MirrorIframeSrcOpts,
-): Promise<string> {
-  const tenant = await ensureStoreTenant();
-  const prebuildTenantSlug = await getMirrorPrebuildTenantSlug();
-  return resolveStoreMirrorIframeSrc(normalized, pageKey, extra, {
-    ...opts,
-    siteSlug: tenant.slug,
-    prebuildTenantSlug,
-  });
-}

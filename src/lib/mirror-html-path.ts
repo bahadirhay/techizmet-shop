@@ -5,7 +5,7 @@ import {
   hasPrebuiltMirrorHtml,
   preferPrebuiltMirrorHtml,
 } from "@/lib/mirror-prebuilt-io";
-import { resolveStoreMirrorIframeSrcForRequest } from "@/lib/mirror-prebuilt-resolve";
+import { resolveStoreMirrorIframeSrcForRequest } from "@/lib/mirror-prebuilt-resolve-server";
 import { toBrandedMirrorSrc } from "@/lib/mirror-iframe-src";
 import type { ShopLocale } from "@/lib/i18n/locale";
 
