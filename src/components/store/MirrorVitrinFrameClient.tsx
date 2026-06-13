@@ -49,6 +49,8 @@ import {
   applyLiveStoreCatalogToDocument,
   fetchLiveStoreCatalog,
 } from "@/lib/mirror-live-catalog-client";
+import { applyInstagramFeedToDoc } from "@/lib/mirror-instagram-feed";
+import type { InstagramFeedPostDTO } from "@/lib/instagram-feed-card";
 
 function vitrinOverridesMarquee(config: MirrorPageConfig | undefined): boolean {
   if (!config) return false;
@@ -88,6 +90,8 @@ export function MirrorVitrinFrameClient({
   sectionCatalog,
   focusSectionKey,
   usdRate,
+  instagramPosts,
+  instagramFeedTitle,
 }: {
   src: string;
   title: string;
@@ -104,6 +108,8 @@ export function MirrorVitrinFrameClient({
   sectionCatalog?: MirrorPageSection[];
   focusSectionKey?: string | null;
   usdRate?: number;
+  instagramPosts?: InstagramFeedPostDTO[];
+  instagramFeedTitle?: string;
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const baseSrcRef = useRef(src);
@@ -145,6 +151,8 @@ export function MirrorVitrinFrameClient({
     src,
     isCartOrCheckoutShell,
     usdRate,
+    instagramPosts,
+    instagramFeedTitle,
   });
 
   const liveCatalogGenRef = useRef(0);
@@ -364,6 +372,14 @@ export function MirrorVitrinFrameClient({
         applyCollectionCategoryFiltersFromAdmin(doc, categoriesFromAdmin, locale, undefined, mirrorTexts);
       }
 
+      if (
+        instagramPosts?.length &&
+        pathname === "/" &&
+        !visualEditMode
+      ) {
+        applyInstagramFeedToDoc(doc, instagramPosts, instagramFeedTitle);
+      }
+
       if (visualEditMode) {
         runVisualEditOnly(doc);
         if (config) {
@@ -462,6 +478,8 @@ export function MirrorVitrinFrameClient({
     mirrorTexts,
     src,
     pathname,
+    instagramPosts,
+    instagramFeedTitle,
   ]);
 
   useEffect(() => {

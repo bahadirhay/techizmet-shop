@@ -10,6 +10,7 @@ import type { VitrinCollectionCard, VitrinCollectionCategoryOption } from "@/lib
 import type { ShopLocale } from "@/lib/i18n/locale";
 import type { MirrorFooterData } from "@/lib/mirror-footer-overlay";
 import type { MirrorNavItem } from "@/lib/mirror-nav-overlay";
+import type { InstagramFeedPostDTO } from "@/lib/instagram-feed-card";
 
 function MirrorVitrinFrameInner({
   src,
@@ -20,6 +21,8 @@ function MirrorVitrinFrameInner({
   footer,
   collectionsFromAdmin,
   categoriesFromAdmin,
+  instagramPosts,
+  instagramFeedTitle,
 }: {
   src: string;
   title: string;
@@ -29,6 +32,8 @@ function MirrorVitrinFrameInner({
   footer?: MirrorFooterData;
   collectionsFromAdmin?: VitrinCollectionCard[];
   categoriesFromAdmin?: VitrinCollectionCategoryOption[];
+  instagramPosts?: InstagramFeedPostDTO[];
+  instagramFeedTitle?: string;
 }) {
   const hydration = useMirrorVitrinHydration();
   return (
@@ -45,6 +50,8 @@ function MirrorVitrinFrameInner({
       siteMarquee={hydration?.siteMarquee}
       collectionsFromAdmin={collectionsFromAdmin}
       categoriesFromAdmin={categoriesFromAdmin}
+      instagramPosts={instagramPosts}
+      instagramFeedTitle={instagramFeedTitle}
     />
   );
 }
@@ -59,6 +66,8 @@ export function MirrorVitrinFrameHost({
   footer,
   collectionsFromAdmin,
   categoriesFromAdmin,
+  instagramPosts,
+  instagramFeedTitle,
 }: {
   src: string;
   title: string;
@@ -69,6 +78,8 @@ export function MirrorVitrinFrameHost({
   footer?: MirrorFooterData;
   collectionsFromAdmin?: VitrinCollectionCard[];
   categoriesFromAdmin?: VitrinCollectionCategoryOption[];
+  instagramPosts?: InstagramFeedPostDTO[];
+  instagramFeedTitle?: string;
 }) {
   return (
     <MirrorVitrinHydrationProvider value={hydration}>
@@ -81,6 +92,8 @@ export function MirrorVitrinFrameHost({
         footer={footer}
         collectionsFromAdmin={collectionsFromAdmin}
         categoriesFromAdmin={categoriesFromAdmin}
+        instagramPosts={instagramPosts}
+        instagramFeedTitle={instagramFeedTitle}
       />
     </MirrorVitrinHydrationProvider>
   );

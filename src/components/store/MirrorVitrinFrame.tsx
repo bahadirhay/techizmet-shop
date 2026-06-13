@@ -13,6 +13,7 @@ import { loadMirrorFooterData } from "@/lib/mirror-footer-server";
 import { loadMirrorNavItems } from "@/lib/mirror-nav-server";
 import { prisma } from "@/lib/prisma";
 import { getEffectiveUsdTryRate } from "@/lib/currency/exchange-rate";
+import { getStoreInstagramFeedPosts } from "@/lib/store-instagram-feed";
 import { notFound } from "next/navigation";
 
 /** Koleksiyon kartları prebuild’de gömülür; yalnızca kategori filtresi sayfasında canlı DB */
@@ -50,10 +51,11 @@ export async function MirrorVitrinFrame({
     hasCustomBranding,
     hasAnnouncementBarSettings: hasCustomAnnouncementBarSettings(settings),
   });
-  const [hydration, nav, footer] = await Promise.all([
+  const [hydration, nav, footer, instagramPosts] = await Promise.all([
     getMirrorVitrinHydration(site.id, pageKey, locale),
     loadMirrorNavItems(site.id, locale),
     loadMirrorFooterData(site.id, locale),
+    pageKey === "home" ? getStoreInstagramFeedPosts(site.id) : Promise.resolve([]),
   ]);
 
   let collectionsFromAdmin: VitrinCollectionCard[] | undefined;
@@ -78,6 +80,8 @@ export async function MirrorVitrinFrame({
       footer={footer}
       collectionsFromAdmin={collectionsFromAdmin}
       categoriesFromAdmin={categoriesFromAdmin}
+      instagramPosts={instagramPosts}
+      instagramFeedTitle="Instagram"
     />
   );
 }

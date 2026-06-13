@@ -21,6 +21,12 @@ export type ResolvedWhatsAppConfig = {
   floatingEnabled: boolean;
 };
 
+function normalizeTurkishMobile(digits: string): string {
+  if (digits.length === 10 && digits.startsWith("5")) return `90${digits}`;
+  if (digits.length === 11 && digits.startsWith("0")) return `9${digits}`;
+  return digits;
+}
+
 function fallbackPhone(settings: SiteSettings): string | null {
   return (
     settings.store?.legal?.phone?.trim() ||
@@ -31,11 +37,11 @@ function fallbackPhone(settings: SiteSettings): string | null {
 
 export function getWhatsAppConfig(settings: SiteSettings): ResolvedWhatsAppConfig {
   const w = settings.whatsapp ?? {};
-  const number = w.number?.trim() || fallbackPhone(settings) || null;
-  const digits = resolveWaDigits(number);
+  const rawNumber = w.number?.trim() || fallbackPhone(settings) || null;
+  const digits = rawNumber ? normalizeTurkishMobile(resolveWaDigits(rawNumber)) : "";
   return {
     digits,
-    number,
+    number: rawNumber,
     defaultMessage: w.defaultMessage?.trim() || null,
     botEnabled: !!w.botEnabled && !!digits,
     botTitle: w.botTitle?.trim() || null,

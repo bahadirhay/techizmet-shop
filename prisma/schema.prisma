@@ -45,6 +45,7 @@ model StoreSite {
   cartAbandonments  CartAbandonment[]
   whatsappLeads     WhatsAppLead[]
   whatsappBotNodes  WhatsAppBotNode[]
+  instagramPosts    StoreInstagramPost[]
   navMenuItems      NavMenuItem[]
   blogPosts         StoreBlogPost[]
   priceChangeBatches StorePriceChangeBatch[]
@@ -238,6 +239,31 @@ model WhatsAppBotNode {
 
   @@index([siteId, parentId, sortOrder])
   @@map("whatsapp_bot_node")
+  @@schema("shop")
+}
+
+model StoreInstagramPost {
+  id           String    @id @default(cuid())
+  siteId       String
+  site         StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  permalink    String
+  caption      String?
+  mediaUrl     String?
+  thumbnailUrl String?
+  mediaType    String?
+  title        String?
+  linkHref     String?
+  linkLabel    String?
+  coverImage   String?
+  published    Boolean   @default(true)
+  sortOrder    Int       @default(0)
+  source       String    @default("manual")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([siteId, permalink])
+  @@index([siteId, published, sortOrder])
+  @@map("store_instagram_post")
   @@schema("shop")
 }
 

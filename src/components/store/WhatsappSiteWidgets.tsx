@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { WhatsappBotWidget } from "@/components/store/WhatsappBotWidget";
 import { WhatsappFloatingButton } from "@/components/store/WhatsappFloatingButton";
 
@@ -14,13 +16,21 @@ export function WhatsappSiteWidgets({
   floatingEnabled: boolean;
   botEnabled: boolean;
 }) {
-  if (!phoneDigits) return null;
-  return (
-    <>
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  const digits = phoneDigits.replace(/\D/g, "");
+  if (!digits) return null;
+
+  const widgets = (
+    <div className="kn-whatsapp-widgets" style={{ position: "relative", zIndex: 99999 }}>
       {floatingEnabled && !botEnabled ? (
-        <WhatsappFloatingButton phoneDigits={phoneDigits} defaultMessage={defaultMessage} />
+        <WhatsappFloatingButton phoneDigits={digits} defaultMessage={defaultMessage} />
       ) : null}
       {botEnabled ? <WhatsappBotWidget /> : null}
-    </>
+    </div>
   );
+
+  if (!mounted) return null;
+  return createPortal(widgets, document.body);
 }

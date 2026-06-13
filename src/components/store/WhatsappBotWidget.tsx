@@ -135,7 +135,7 @@ export function WhatsappBotWidget() {
         <button
           type="button"
           onClick={openPanel}
-          className="fixed bottom-5 right-5 z-[91] flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg ring-4 ring-white/10 transition hover:scale-105 hover:bg-emerald-700 hover:shadow-xl"
+          className="fixed bottom-5 right-5 z-[99999] flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg ring-4 ring-white/10 transition hover:scale-105 hover:bg-emerald-700 hover:shadow-xl"
           aria-label="WhatsApp asistan"
         >
           <svg viewBox="0 0 24 24" className="h-7 w-7" fill="currentColor" aria-hidden>
@@ -143,7 +143,7 @@ export function WhatsappBotWidget() {
           </svg>
         </button>
       ) : (
-        <div className="fixed bottom-5 right-5 z-[91] flex w-[min(100vw-2rem,22rem)] flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl">
+        <div className="fixed bottom-5 right-5 z-[99999] flex w-[min(100vw-2rem,22rem)] flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl">
           <header className="flex items-start justify-between gap-2 bg-emerald-600 px-4 py-3 text-white">
             <div className="min-w-0">
               <p className="text-sm font-semibold">{config.title}</p>
