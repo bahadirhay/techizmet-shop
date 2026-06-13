@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { cartLinesToSnapshot } from "@/lib/analytics/cart-snapshot";
+import { touchCartAbandonmentCheckout } from "@/lib/analytics/cart-abandonment";
 import { recordPurchaseEvent, recordServerStoreEvent } from "@/lib/analytics/events";
 import { readVisitorKey } from "@/lib/analytics/visitor";
 import { createOrderFromCart, buildCartView } from "@/lib/cart/service";
@@ -70,13 +72,28 @@ export async function POST(req: Request) {
       customerId,
     }).catch((e) => console.error("[analytics]", e));
 
+    const email = String(body.email ?? "").trim();
+    const phone = String(body.phone ?? "").trim();
+
+    if (visitorKey) {
+      await touchCartAbandonmentCheckout({
+        siteId: site.id,
+        visitorKey,
+        customerId,
+        guestEmail: email || null,
+        guestPhone: phone || null,
+        items: cartLinesToSnapshot(cartPreview.items),
+        cartValueMinor: cartPreview.subtotalMinor,
+      }).catch((e) => console.error("[cart abandonment checkout]", e));
+    }
+
     const result = await createOrderFromCart({
       siteId: site.id,
       customerId,
       session: { items: session.items, couponCode: session.couponCode },
       customer: {
-        email: String(body.email ?? "").trim(),
-        phone: String(body.phone ?? "").trim(),
+        email,
+        phone,
         firstName: String(body.firstName ?? "").trim(),
         lastName: String(body.lastName ?? "").trim(),
         address: {

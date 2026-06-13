@@ -127,6 +127,13 @@ export function AnalyticsDashboard() {
 
       <div className="flex flex-wrap items-center gap-3 text-sm">
         <Link
+          href="/admin/abandoned-carts"
+          className="font-medium text-blue-700 underline hover:text-blue-900"
+        >
+          Terk edilen sepetler →
+        </Link>
+        <span className="text-zinc-400">|</span>
+        <Link
           href="/admin/analytics/visitors"
           className="font-medium text-blue-700 underline hover:text-blue-900"
         >

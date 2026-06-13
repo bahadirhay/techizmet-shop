@@ -182,8 +182,14 @@ model CartAbandonment {
   cartValueMinor   Int       @default(0)
   itemCount        Int       @default(0)
   status           String    @default("open")
+  /// cart | checkout — son bilinen adım
+  stage            String    @default("cart")
+  guestEmail       String?
+  guestPhone       String?
+  notes            String?
   lastActivityAt   DateTime  @default(now())
   remindedAt       DateTime?
+  whatsappRemindedAt DateTime?
   convertedOrderId String?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt

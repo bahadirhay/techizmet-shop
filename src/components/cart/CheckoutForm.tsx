@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { TurkeyAddressFields } from "@/components/address/TurkeyAddressFields";
 import { useCart } from "@/components/cart/CartContext";
 import { formatPrice } from "@/lib/currency/format-price";
@@ -107,6 +107,28 @@ export function CheckoutForm({
     paymentMethod: defaultPay ?? ("cod" as PaymentMethodId),
     acceptTerms: false,
   });
+
+  const touchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const queueAbandonmentTouch = useCallback((email: string, phone: string) => {
+    if (touchTimerRef.current) clearTimeout(touchTimerRef.current);
+    touchTimerRef.current = setTimeout(() => {
+      const e = email.trim();
+      const p = phone.trim();
+      if (!e && !p) return;
+      fetch("/api/checkout/abandonment-touch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ email: e || undefined, phone: p || undefined }),
+      }).catch(() => {});
+    }, 600);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (touchTimerRef.current) clearTimeout(touchTimerRef.current);
+    };
+  }, []);
 
   const paymentAvailable = hasAnyCheckoutPaymentMethod(payment);
   const fmt = (minor: number) => formatPrice(minor, locale ?? "tr", usdRate);
@@ -372,7 +394,12 @@ export function CheckoutForm({
                   required
                   type="email"
                   value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  onChange={(e) => {
+                    const email = e.target.value;
+                    setForm({ ...form, email });
+                    queueAbandonmentTouch(email, form.phone);
+                  }}
+                  onBlur={() => queueAbandonmentTouch(form.email, form.phone)}
                 />
               </div>
               <div className="form-group">
@@ -382,7 +409,12 @@ export function CheckoutForm({
                   className="form-control"
                   required
                   value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  onChange={(e) => {
+                    const phone = e.target.value;
+                    setForm({ ...form, phone });
+                    queueAbandonmentTouch(form.email, phone);
+                  }}
+                  onBlur={() => queueAbandonmentTouch(form.email, form.phone)}
                 />
               </div>
             </div>

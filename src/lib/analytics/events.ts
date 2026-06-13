@@ -57,6 +57,9 @@ async function persistStoreEvents(params: {
     if (e.type === "add_to_cart") {
       await handleAddToCartSideEffects(params.siteId, visitorKey, params.customerId, e.payload);
     }
+    if (e.type === "begin_checkout") {
+      await handleBeginCheckoutSideEffects(params.siteId, visitorKey, params.customerId);
+    }
     if (e.type === "purchase") {
       await handlePurchaseSideEffects(params.siteId, visitorKey, params.customerId, e.payload);
     }
@@ -139,6 +142,17 @@ async function handleAddToCartSideEffects(
     customerId,
     items,
     cartValueMinor,
+  });
+}
+
+async function handleBeginCheckoutSideEffects(
+  siteId: string,
+  visitorKey: string,
+  customerId: string | null | undefined,
+) {
+  await prisma.cartAbandonment.updateMany({
+    where: { siteId, visitorKey, status: "open" },
+    data: { stage: "checkout", lastActivityAt: new Date(), ...(customerId ? { customerId } : {}) },
   });
 }
 

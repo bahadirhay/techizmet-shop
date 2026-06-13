@@ -21,6 +21,7 @@ async function buildAbandonmentEmail(
   row: {
     itemsJson: string;
     cartValueMinor: number;
+    guestEmail?: string | null;
     visitor: { customer: { email: string | null; firstName: string | null } | null };
     customerId: string | null;
   },
@@ -31,7 +32,7 @@ async function buildAbandonmentEmail(
   const storeUrl = (process.env.NEXT_PUBLIC_STORE_URL ?? "").replace(/\/$/, "");
   const from = resolveMailFrom(settings, site?.name ?? "Mağaza");
 
-  let email = row.visitor.customer?.email?.trim();
+  let email = row.guestEmail?.trim() || row.visitor.customer?.email?.trim();
   let firstName = row.visitor.customer?.firstName?.trim();
   if ((!email || !firstName) && row.customerId) {
     const c = await prisma.storeCustomer.findUnique({
@@ -120,7 +121,7 @@ export async function sendCartAbandonmentReminders(siteId: string): Promise<Remi
       siteId,
       status: "open",
       remindedAt: null,
-      customerId: { not: null },
+      OR: [{ guestEmail: { not: null } }, { customerId: { not: null } }],
       lastActivityAt: { lte: minActivity, gte: maxActivity },
     },
     include: {
