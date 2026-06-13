@@ -10,6 +10,17 @@ const legacyProductRedirects = Object.entries(LEGACY_PRODUCT_REDIRECTS).map(([fr
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["@prisma/client", ".prisma/client", "linkedom"],
+  // public/ statik CDN'den sunulur; fs ile taranan uploads/brands/cdn pakete girmesin (Vercel 250MB limiti).
+  outputFileTracingExcludes: {
+    "/*": [
+      "public/uploads/**/*",
+      "public/brands/**/*",
+      "public/theme/techizmet-shop/cdn/**/*",
+      ".next/cache/**/*",
+      "tmp-*.html",
+      "scripts/diag-*.mjs",
+    ],
+  },
   webpack: (config) => {
     config.resolve.alias = {
       ...config.resolve.alias,

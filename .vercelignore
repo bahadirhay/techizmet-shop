@@ -1,0 +1,6 @@
+# Gecici teshis / dump dosyalari — deploy yuklemesini sismesin
+tmp-*.html
+tmp-*.mjs
+scripts/diag-*.mjs
+scripts/test-*.mjs
+scripts/tmp-*.mjs
