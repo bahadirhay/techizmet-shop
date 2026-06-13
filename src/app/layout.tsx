@@ -12,6 +12,8 @@ import { getCachedParsedSiteSettings } from "@/lib/cache/store-cache";
 import { resolveStoreMirrorIframeSrcForRequest } from "@/lib/mirror-prebuilt-resolve-server";
 import { getDefaultSite } from "@/lib/site";
 import { getSiteSeo } from "@/lib/site-settings";
+import { WhatsappSiteWidgets } from "@/components/store/WhatsappSiteWidgets";
+import { getWhatsAppConfig } from "@/lib/whatsapp-settings";
 import "./globals.css";
 
 export const revalidate = 300;
@@ -30,6 +32,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const site = await getDefaultSite();
   const settings = await getCachedParsedSiteSettings(site.id);
   const seo = getSiteSeo(settings, site.name);
+  const wa = getWhatsAppConfig(settings);
   const siteJsonLd = [buildOrganizationJsonLd(settings, site.name), buildWebSiteJsonLd(settings, site.name)];
   const mirrorHomePreload = await resolveStoreMirrorIframeSrcForRequest(
     "theme/techizmet-shop/mirror/index-tr.html",
@@ -48,6 +51,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           facebookPixelId={seo.facebookPixelId}
         />
         <CookieConsentBanner rawConfig={settings.cookieConsentJson} />
+        <WhatsappSiteWidgets
+          phoneDigits={wa.digits}
+          defaultMessage={wa.defaultMessage}
+          floatingEnabled={wa.floatingEnabled}
+          botEnabled={wa.botEnabled}
+        />
         <Suspense fallback={null}>
           <StoreEventTracker />
           <MirrorAnalyticsBridge />

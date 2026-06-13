@@ -243,6 +243,8 @@ export type SiteSettings = {
   blogAutomation?: import("@/lib/admin/blog-automation/settings").BlogAutomationSettings;
   /** Google Search Console — organik arama sorguları */
   gsc?: import("@/lib/admin/gsc/settings").GscSettings;
+  /** WhatsApp gelen kutusu, bot, takip */
+  whatsapp?: import("@/lib/whatsapp-settings").StoreWhatsAppSettings;
 };
 
 export type SeoAiProvider = "auto" | "gemini" | "openai" | "claude";

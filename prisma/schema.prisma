@@ -43,6 +43,8 @@ model StoreSite {
   visitorProfiles   VisitorProfile[]
   storeEvents       StoreEvent[]
   cartAbandonments  CartAbandonment[]
+  whatsappLeads     WhatsAppLead[]
+  whatsappBotNodes  WhatsAppBotNode[]
   navMenuItems      NavMenuItem[]
   blogPosts         StoreBlogPost[]
   priceChangeBatches StorePriceChangeBatch[]
@@ -197,6 +199,45 @@ model CartAbandonment {
   @@index([siteId, status, lastActivityAt])
   @@index([siteId, visitorKey, status])
   @@map("cart_abandonment")
+  @@schema("shop")
+}
+
+model WhatsAppLead {
+  id            String    @id @default(cuid())
+  siteId        String
+  site          StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  ref           String    @unique
+  status        String    @default("new")
+  source        String
+  pagePath      String?
+  botPath       String?
+  prefilledText String?
+  notes         String?
+  contactedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([siteId, status, createdAt])
+  @@index([siteId, createdAt])
+  @@map("whatsapp_lead")
+  @@schema("shop")
+}
+
+model WhatsAppBotNode {
+  id              String    @id @default(cuid())
+  siteId          String
+  site            StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  parentId        String?
+  label           String
+  botReply        String?
+  messageTemplate String?
+  sortOrder       Int       @default(0)
+  published       Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([siteId, parentId, sortOrder])
+  @@map("whatsapp_bot_node")
   @@schema("shop")
 }
 
