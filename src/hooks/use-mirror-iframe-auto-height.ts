@@ -31,7 +31,8 @@ export function useMirrorIframeAutoHeight(
       if (cancelled || updates >= MAX_UPDATES) return;
       try {
         const frame = iframeRef.current;
-        const doc = frame?.contentDocument;
+        if (!frame) return;
+        const doc = frame.contentDocument;
         if (!doc?.body) return;
         const h = Math.max(
           doc.documentElement.scrollHeight,
