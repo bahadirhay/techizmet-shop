@@ -9,7 +9,7 @@ const legacyProductRedirects = Object.entries(LEGACY_PRODUCT_REDIRECTS).map(([fr
 }));
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["@prisma/client", ".prisma/client", "linkedom"],
+  serverExternalPackages: ["@prisma/client", ".prisma/client", "linkedom", "html-encoding-sniffer", "@exodus/bytes"],
   // public/ statik CDN'den sunulur; fs ile taranan uploads/brands/cdn pakete girmesin (Vercel 250MB limiti).
   outputFileTracingExcludes: {
     "/*": [
