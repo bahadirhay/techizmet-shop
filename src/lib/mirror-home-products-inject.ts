@@ -9,6 +9,14 @@ import {
 import { buildProductCardGalleryMarkup, initProductCardGalleries } from "@/lib/mirror-product-card-gallery";
 import type { resolveMirrorCollectionTexts } from "@/lib/store-static-texts";
 
+function isDomElement(node: unknown): node is Element {
+  return !!node && typeof node === "object" && "nodeType" in node && (node as Element).nodeType === 1;
+}
+
+function isHtmlElement(node: unknown): node is HTMLElement {
+  return isDomElement(node) && "style" in node;
+}
+
 function readCardSlug(card: Element): string | null {
   return (
     card.getAttribute("data-id")?.trim() ||
@@ -19,7 +27,7 @@ function readCardSlug(card: Element): string | null {
 
 function readExistingGalleryUrls(card: Element): string[] | undefined {
   const media = card.querySelector("[data-product-media], .media");
-  if (!(media instanceof HTMLElement)) return undefined;
+  if (!isHtmlElement(media)) return undefined;
   const raw = media.getAttribute("data-kn-gallery");
   if (!raw?.trim()) return undefined;
   try {
@@ -95,7 +103,7 @@ function patchProductCardMedia(card: Element, product: VitrinCollectionProductCa
     });
 
     const media = card.querySelector("[data-product-media], .media");
-    if (media instanceof HTMLElement) {
+    if (isHtmlElement(media)) {
       if (galleryUrls.length > 1) {
         const { galleryAttr, indicatorHtml } = buildProductCardGalleryMarkup(galleryUrls);
         media.querySelector(".kn-card-gallery-indicator")?.remove();
