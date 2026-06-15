@@ -127,11 +127,8 @@ function bindGalleryMedia(media: HTMLElement) {
 }
 
 function canBindGalleriesInDocument(doc: Document): boolean {
-  return (
-    typeof window !== "undefined" &&
-    doc.defaultView === window &&
-    typeof window.Image === "function"
-  );
+  const view = doc.defaultView;
+  return !!view && typeof view.Image === "function";
 }
 
 /** Kart HTML'ine enjekte edilen galeri markup'ını bağlar */
