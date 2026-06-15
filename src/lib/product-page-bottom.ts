@@ -1,6 +1,5 @@
 /** Ürün PDP alt bölümleri — marquee, keşfet, revealing text, video metin */
 
-import { parseHTML } from "linkedom";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import {
   htmlToPlainText,
@@ -211,7 +210,7 @@ const REVEALING_STATIC_CSS = `<style id="kn-revealing-static-style">
 }
 </style>`;
 
-function injectRevealingStaticStyles(doc: Document) {
+export function injectRevealingStaticStyles(doc: Document) {
   if (doc.getElementById("kn-revealing-static-style")) return;
   const tpl = doc.createElement("template");
   tpl.innerHTML = REVEALING_STATIC_CSS;
@@ -268,46 +267,6 @@ export function applySiteMarqueeOverlay(
   }
 }
 
-function serializeMirrorHtml(html: string, document: Document): string {
-  const doctype = html.match(/^<!DOCTYPE[^>]*>/i)?.[0] ?? "<!DOCTYPE html>";
-  return `${doctype}\n${document.documentElement.outerHTML}`;
-}
-
-/** Sunucu — animasyonlu metin: reveal-text yerine her zaman görünür statik metin */
-export function injectRevealingTextMirrorHtml(
-  html: string,
-  config: { enabled: boolean; html: string },
-): string {
-  const out = stripBrokenSectionDisplayAttr(html);
-  if (!out.includes("section-revealing-text")) return out;
-
-  const { document } = parseHTML(out);
-  injectRevealingStaticStyles(document);
-
-  const section =
-    document.querySelector("#MainContent .section-revealing-text") ??
-    document.querySelector(".section-revealing-text");
-
-  if (!section) return serializeMirrorHtml(out, document);
-
-  if (!config.enabled) {
-    setSectionVisible(section, false);
-    document.getElementById("kn-revealing-static-guard")?.remove();
-    return serializeMirrorHtml(out, document);
-  }
-
-  setSectionVisible(section, true);
-  // config.html (DB'de kayıtlı değer) varsa onu kullan; yoksa HTML'deki metni oku
-  const existingPlain =
-    section.querySelector(".revealing-text--content")?.textContent?.replace(/\s+/g, " ").trim() ?? "";
-  const text = config.html || existingPlain;
-  applyRevealingTextStatic(document, section, text);
-  injectRevealingStaticGuard(document, text);
-
-  return serializeMirrorHtml(out, document);
-}
-
-/** Sunucu — mirror ürün HTML (reveal-text yüklenmeden önce) */
 /** İlk boyamadan önce kapalı PDP alt bölümlerini gizle — şablon flaşını önler */
 export function injectProductPageBottomCriticalCss(
   html: string,
@@ -337,49 +296,8 @@ export function injectProductPageBottomCriticalCss(
   return html.replace(/<head([^>]*)>/i, `<head$1>${style}`);
 }
 
-export function injectProductPageBottomMirrorHtml(
-  html: string,
-  config: ProductPageBottomSettings,
-): string {
-  let out = injectRevealingTextMirrorHtml(html, config.revealingText);
-
-  if (!config.marquee.enabled) {
-    out = out.replace(
-      /(<section\b[^>]*\bsection-marquee\b[^>]*)(>)/i,
-      `$1 data-kn-pdp-hidden="1" style="display:none!important"$2`,
-    );
-  } else if (config.marquee.html) {
-    const marqueeInner = config.marquee.html;
-    out = out.replace(/<p class="marquee-text[^"]*">[\s\S]*?<\/p>/gi, `<p class="marquee-text ">${marqueeInner}</p>`);
-  }
-
-  if (config.videoPromo.enabled) {
-    if (config.videoPromo.headingHtml) {
-      out = out.replace(
-        /(<section\b[^>]*\bsection-video\b[^>]*>[\s\S]*?<div class="section--heading[^"]*">)[\s\S]*?(<\/div>)/i,
-        `$1${config.videoPromo.headingHtml}$2`,
-      );
-    }
-    if (config.videoPromo.descriptionHtml) {
-      out = out.replace(
-        /(<section\b[^>]*\bsection-video\b[^>]*>[\s\S]*?<div class="section--description[^"]*">)[\s\S]*?(<\/div>)/i,
-        `$1${config.videoPromo.descriptionHtml}$2`,
-      );
-    }
-  }
-
-  if (!config.videoPromo.enabled) {
-    out = out.replace(
-      /(<section\b[^>]*\bsection-video\b[^>]*)(>)/i,
-      `$1 data-kn-pdp-hidden="1" style="display:none!important"$2`,
-    );
-  }
-
-  return out;
-}
-
 /** Tema reveal-text / SplitText animasyonunu kapat — düz okunabilir paragraf */
-function applyRevealingTextStatic(doc: Document, section: Element, html: string) {
+export function applyRevealingTextStatic(doc: Document, section: Element, html: string) {
   section.setAttribute("data-kn-revealing-ready", "1");
   injectRevealingStaticStyles(doc);
 
@@ -399,7 +317,7 @@ function applyRevealingTextStatic(doc: Document, section: Element, html: string)
   }
 }
 
-function injectRevealingStaticGuard(doc: Document, html: string) {
+export function injectRevealingStaticGuard(doc: Document, html: string) {
   const id = "kn-revealing-static-guard";
   doc.getElementById(id)?.remove();
 

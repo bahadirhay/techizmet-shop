@@ -51,10 +51,12 @@ import {
   type ProductExploreLook,
 } from "@/lib/product-explore-looks";
 import {
-  getProductPageBottomSettings,
-  injectProductPageBottomCriticalCss,
   injectProductPageBottomMirrorHtml,
   injectRevealingTextMirrorHtml,
+} from "@/lib/product-page-bottom-dom";
+import {
+  getProductPageBottomSettings,
+  injectProductPageBottomCriticalCss,
   injectSiteMarqueeMirrorHtml,
 } from "@/lib/product-page-bottom";
 import { injectPublishedProductIntoMirrorHtml } from "@/lib/mirror-product-detail-load";
