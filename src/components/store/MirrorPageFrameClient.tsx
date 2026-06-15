@@ -1,5 +1,6 @@
 "use client";
 
+import { useMirrorIframeAutoHeight } from "@/hooks/use-mirror-iframe-auto-height";
 import { useMirrorLocaleMessage } from "@/hooks/use-mirror-locale-message";
 import { useEffect, useRef, useState } from "react";
 import { deferMirrorFrameWork, scheduleMirrorFramePatches } from "@/lib/mirror-frame-patch";
@@ -31,6 +32,7 @@ export function MirrorPageFrameClient({
   const patchKey = JSON.stringify({ branding, nav, footer, locale, contact });
 
   useMirrorLocaleMessage();
+  useMirrorIframeAutoHeight(iframeRef, true, [src, patchKey]);
 
   useEffect(() => {
     const iframe = iframeRef.current;

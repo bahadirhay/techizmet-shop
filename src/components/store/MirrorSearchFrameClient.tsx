@@ -12,6 +12,7 @@ import {
 } from "@/lib/mirror-collections-sync";
 import { applySearchPageLayout } from "@/lib/mirror-search-page";
 import { useMirrorFrameRouteSync } from "@/hooks/use-mirror-frame-route-sync";
+import { useMirrorIframeAutoHeight } from "@/hooks/use-mirror-iframe-auto-height";
 import { useMirrorIframeLifecycle } from "@/hooks/use-mirror-iframe-lifecycle";
 import { useMirrorLocaleMessage } from "@/hooks/use-mirror-locale-message";
 import { useCallback, useRef } from "react";
@@ -99,6 +100,7 @@ export function MirrorSearchFrameClient({
   ]);
 
   useMirrorLocaleMessage();
+  useMirrorIframeAutoHeight(iframeRef, true, [src, patchKey]);
   useMirrorFrameRouteSync(iframeRef, src);
   const frameReady = useMirrorIframeLifecycle(iframeRef, src, runPatch, [patchKey, runPatch]);
 

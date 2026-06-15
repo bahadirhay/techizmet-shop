@@ -1,6 +1,7 @@
 "use client";
 
 import { useMirrorFrameRouteSync } from "@/hooks/use-mirror-frame-route-sync";
+import { useMirrorIframeAutoHeight } from "@/hooks/use-mirror-iframe-auto-height";
 import { useMirrorIframeLifecycle } from "@/hooks/use-mirror-iframe-lifecycle";
 import { injectMirrorProductBreadcrumb } from "@/lib/mirror-product-breadcrumb";
 import { stripSeoFromMirrorDocument } from "@/lib/mirror-html-seo-strip";
@@ -94,7 +95,6 @@ export function MirrorProductFrameClient({
   );
 
   useMirrorLocaleMessage();
-  // PDP iframe icindeki tema galerisi eski Shopify ürün URL'lerine gidebiliyor.
   // Ürün sayfasında parent route'u iframe location'ından senkronlamak güvenli değil.
   useMirrorFrameRouteSync(iframeRef, src, false);
 
@@ -178,6 +178,8 @@ export function MirrorProductFrameClient({
     pageBottomLive,
     share,
   });
+
+  useMirrorIframeAutoHeight(iframeRef, true, [src, patchKey]);
 
   const runPatch = useCallback(() => {
     const frame = iframeRef.current;
@@ -314,8 +316,6 @@ export function MirrorProductFrameClient({
           border: "none",
           margin: 0,
           padding: 0,
-          opacity: contentVisible ? 1 : 0,
-          transition: contentVisible ? "opacity 0.12s ease-out" : undefined,
         }}
       />
     </div>

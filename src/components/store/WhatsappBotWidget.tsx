@@ -1,7 +1,7 @@
 "use client";
 
 import type { WhatsAppBotNodeTree } from "@/lib/whatsapp-bot";
-import { botPathFromLabels } from "@/lib/whatsapp-bot";
+import { appendCustomerDetailToMessage, botPathFromLabels } from "@/lib/whatsapp-bot";
 import { useCallback, useEffect, useState } from "react";
 
 type ChatLine = { from: "bot" | "user"; text: string };
@@ -13,12 +13,23 @@ type BotConfig = {
   tree?: WhatsAppBotNodeTree[];
 };
 
+type PendingLeaf = {
+  node: WhatsAppBotNodeTree;
+  path: string[];
+};
+
+const DETAIL_PROMPT =
+  "Sipariş numaranız veya e-posta adresinizi yazın; ardından WhatsApp'a devam edin.";
+
 export function WhatsappBotWidget() {
   const [config, setConfig] = useState<BotConfig | null>(null);
   const [open, setOpen] = useState(false);
   const [lines, setLines] = useState<ChatLine[]>([]);
   const [pathLabels, setPathLabels] = useState<string[]>([]);
   const [options, setOptions] = useState<WhatsAppBotNodeTree[]>([]);
+  const [pendingLeaf, setPendingLeaf] = useState<PendingLeaf | null>(null);
+  const [customerDetail, setCustomerDetail] = useState("");
+  const [detailError, setDetailError] = useState<string | null>(null);
   const [opening, setOpening] = useState(false);
 
   const loadConfig = useCallback(async () => {
@@ -38,6 +49,9 @@ export function WhatsappBotWidget() {
     setLines([]);
     setPathLabels([]);
     setOptions(cfg.tree ?? []);
+    setPendingLeaf(null);
+    setCustomerDetail("");
+    setDetailError(null);
   }
 
   function openPanel() {
@@ -73,23 +87,25 @@ export function WhatsappBotWidget() {
     const nextPath = [...pathLabels, node.label];
     setPathLabels(nextPath);
     setLines((prev) => [...prev, { from: "user", text: node.label }]);
+    setDetailError(null);
 
     if (node.botReply?.trim()) {
       setLines((prev) => [...prev, { from: "bot", text: node.botReply!.trim() }]);
     }
 
     if (node.children.length > 0) {
+      setPendingLeaf(null);
+      setCustomerDetail("");
       setOptions(node.children);
       return;
     }
 
     const msg = node.messageTemplate?.trim();
     if (msg) {
-      void openWhatsApp(msg, nextPath);
-      setLines((prev) => [
-        ...prev,
-        { from: "bot", text: "WhatsApp açılıyor… Mesajınız hazır, göndermeniz yeterli." },
-      ]);
+      setPendingLeaf({ node, path: nextPath });
+      setCustomerDetail("");
+      setOptions([]);
+      setLines((prev) => [...prev, { from: "bot", text: DETAIL_PROMPT }]);
       return;
     }
 
@@ -102,24 +118,63 @@ export function WhatsappBotWidget() {
     ]);
   }
 
+  function confirmWhatsApp() {
+    if (!pendingLeaf) return;
+    const detail = customerDetail.trim();
+    if (!detail) {
+      setDetailError("Lütfen sipariş numaranızı veya e-posta adresinizi girin.");
+      return;
+    }
+
+    const template = pendingLeaf.node.messageTemplate?.trim();
+    if (!template) return;
+
+    const message = appendCustomerDetailToMessage(template, detail);
+    void openWhatsApp(message, pendingLeaf.path);
+    setLines((prev) => [
+      ...prev,
+      { from: "bot", text: "WhatsApp açılıyor… Mesajınız hazır, göndermeniz yeterli." },
+    ]);
+    setPendingLeaf(null);
+    setCustomerDetail("");
+    setDetailError(null);
+  }
+
   function goBack() {
     if (!config?.tree) return;
+
+    if (pendingLeaf) {
+      const nextLabels = pendingLeaf.path.slice(0, -1);
+      setPendingLeaf(null);
+      setCustomerDetail("");
+      setDetailError(null);
+      setPathLabels(nextLabels);
+      setLines((prev) => prev.slice(0, Math.max(0, prev.length - 2)));
+      restoreOptionsForPath(nextLabels);
+      return;
+    }
+
     if (pathLabels.length === 0) return;
 
     const nextLabels = pathLabels.slice(0, -1);
     setPathLabels(nextLabels);
+    setLines((prev) => prev.slice(0, Math.max(0, prev.length - 2)));
+    restoreOptionsForPath(nextLabels);
+  }
 
-    if (nextLabels.length === 0) {
+  function restoreOptionsForPath(labels: string[]) {
+    if (!config?.tree) return;
+    if (labels.length === 0) {
       setOptions(config.tree);
       return;
     }
 
     let nodes = config.tree;
-    for (let i = 0; i < nextLabels.length; i++) {
-      const label = nextLabels[i];
+    for (let i = 0; i < labels.length; i++) {
+      const label = labels[i];
       const found = nodes.find((n) => n.label === label);
       if (!found) break;
-      if (i === nextLabels.length - 1) {
+      if (i === labels.length - 1) {
         setOptions(found.children);
       } else {
         nodes = found.children;
@@ -129,13 +184,15 @@ export function WhatsappBotWidget() {
 
   if (!config?.enabled) return null;
 
+  const showBack = pathLabels.length > 0 || pendingLeaf !== null;
+
   return (
     <>
       {!open ? (
         <button
           type="button"
           onClick={openPanel}
-          className="fixed bottom-5 right-5 z-[99999] flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg ring-4 ring-white/10 transition hover:scale-105 hover:bg-emerald-700 hover:shadow-xl"
+          className="fixed bottom-5 left-5 z-[99999] flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg ring-4 ring-white/10 transition hover:scale-105 hover:bg-emerald-700 hover:shadow-xl"
           aria-label="WhatsApp asistan"
         >
           <svg viewBox="0 0 24 24" className="h-7 w-7" fill="currentColor" aria-hidden>
@@ -143,7 +200,7 @@ export function WhatsappBotWidget() {
           </svg>
         </button>
       ) : (
-        <div className="fixed bottom-5 right-5 z-[99999] flex w-[min(100vw-2rem,22rem)] flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl">
+        <div className="fixed bottom-5 left-5 z-[99999] flex w-[min(100vw-2rem,22rem)] flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl">
           <header className="flex items-start justify-between gap-2 bg-emerald-600 px-4 py-3 text-white">
             <div className="min-w-0">
               <p className="text-sm font-semibold">{config.title}</p>
@@ -183,7 +240,7 @@ export function WhatsappBotWidget() {
           </div>
 
           <div className="border-t border-zinc-100 px-3 py-3">
-            {pathLabels.length > 0 ? (
+            {showBack ? (
               <button
                 type="button"
                 className="mb-2 text-xs text-zinc-500 hover:text-zinc-800"
@@ -192,22 +249,56 @@ export function WhatsappBotWidget() {
                 ← Geri
               </button>
             ) : null}
-            <div className="flex flex-col gap-2">
-              {options.map((node) => (
+
+            {pendingLeaf ? (
+              <form
+                className="space-y-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  confirmWhatsApp();
+                }}
+              >
+                <label className="block text-xs text-zinc-600">
+                  Sipariş numarası veya e-posta
+                  <input
+                    type="text"
+                    value={customerDetail}
+                    onChange={(e) => {
+                      setCustomerDetail(e.target.value);
+                      if (detailError) setDetailError(null);
+                    }}
+                    placeholder="ör. AP-12345 veya ad@ornek.com"
+                    className="mt-1 w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-800 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                    disabled={opening}
+                  />
+                </label>
+                {detailError ? <p className="text-xs text-red-600">{detailError}</p> : null}
                 <button
-                  key={node.id}
-                  type="button"
+                  type="submit"
                   disabled={opening}
-                  onClick={() => handlePick(node)}
-                  className="rounded-xl border border-zinc-200 px-3 py-2 text-left text-sm font-medium text-zinc-800 transition hover:border-emerald-500 hover:bg-emerald-50 disabled:opacity-50"
+                  className="w-full rounded-xl bg-emerald-600 px-3 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:opacity-50"
                 >
-                  {node.label}
+                  {opening ? "Açılıyor…" : "WhatsApp'a devam et"}
                 </button>
-              ))}
-              {options.length === 0 ? (
-                <p className="text-xs text-zinc-500">Bu menüde seçenek yok.</p>
-              ) : null}
-            </div>
+              </form>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {options.map((node) => (
+                  <button
+                    key={node.id}
+                    type="button"
+                    disabled={opening}
+                    onClick={() => handlePick(node)}
+                    className="rounded-xl border border-zinc-200 px-3 py-2 text-left text-sm font-medium text-zinc-800 transition hover:border-emerald-500 hover:bg-emerald-50 disabled:opacity-50"
+                  >
+                    {node.label}
+                  </button>
+                ))}
+                {options.length === 0 ? (
+                  <p className="text-xs text-zinc-500">Bu menüde seçenek yok.</p>
+                ) : null}
+              </div>
+            )}
           </div>
         </div>
       )}

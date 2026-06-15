@@ -13,6 +13,7 @@ import {
   MIRROR_VISUAL_EDITOR_SCRIPT,
   MIRROR_VISUAL_EDITOR_VERSION,
 } from "@/lib/mirror-visual-editor-script";
+import { useMirrorIframeAutoHeight } from "@/hooks/use-mirror-iframe-auto-height";
 import { useMirrorLocaleMessage } from "@/hooks/use-mirror-locale-message";
 import { useEffect, useRef, useState } from "react";
 
@@ -41,6 +42,7 @@ export function MirrorHomeFrameClient({
   const configKey = JSON.stringify({ homeConfig, branding, nav, footer, locale });
 
   useMirrorLocaleMessage();
+  useMirrorIframeAutoHeight(iframeRef, !visualEditMode, [src, configKey]);
 
   useEffect(() => {
     baseSrcRef.current = src;

@@ -23,7 +23,8 @@ import { applyMirrorStoreUiFixToDocument } from "@/lib/mirror-store-ui-fix";
 import { ensureMirrorLayoutStyles } from "@/lib/mirror-nav-dropdown-inject";
 import type { MirrorBranding } from "@/lib/mirror-branding-overlay";
 import type { ShopLocale } from "@/lib/i18n/locale";
-import { applyMirrorFooter, type MirrorFooterData } from "@/lib/mirror-footer-overlay";
+import { applyMirrorFooter, scheduleMirrorFooterPatch, type MirrorFooterData } from "@/lib/mirror-footer-overlay";
+import { applyMirrorScrollStability } from "@/lib/mirror-scroll-stability";
 import { syncMirrorNavigation, type MirrorNavItem } from "@/lib/mirror-nav-overlay";
 import {
   applyMirrorPageOverlay,
@@ -63,6 +64,7 @@ import {
 } from "@/lib/mirror-visual-editor-script";
 import { applyCollectionCardEditShields, disableMirrorNavigation } from "@/lib/mirror-visual-edit-dom";
 import { useMirrorFrameRouteSync } from "@/hooks/use-mirror-frame-route-sync";
+import { useMirrorIframeAutoHeight } from "@/hooks/use-mirror-iframe-auto-height";
 import { useMirrorLocaleMessage } from "@/hooks/use-mirror-locale-message";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -72,6 +74,10 @@ function defer(fn: () => void) {
     return window.requestIdleCallback(fn, { timeout: 800 });
   }
   return window.setTimeout(fn, 50);
+}
+
+function isPrebuiltMirrorSrc(src: string): boolean {
+  return src.includes("/_mirror-prebuilt/");
 }
 
 export function MirrorVitrinFrameClient({
@@ -115,7 +121,7 @@ export function MirrorVitrinFrameClient({
   const baseSrcRef = useRef(src);
   const overlayKeyRef = useRef("");
   const [frameReady, setFrameReady] = useState(false);
-  const [contentVisible, setContentVisible] = useState(false);
+  const [contentVisible, setContentVisible] = useState(() => isPrebuiltMirrorSrc(src));
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const accountRaw = searchParams.get("account");
@@ -132,6 +138,7 @@ export function MirrorVitrinFrameClient({
     pathname === "/cart" || pathname === "/checkout" || pathname.startsWith("/checkout/");
 
   useMirrorLocaleMessage();
+  useMirrorIframeAutoHeight(iframeRef, !visualEditMode, [src, patchSig]);
   // Sepet/ödeme shell'lerinde iframe içinde sayfa geçişi olmaz — parent URL değişmemeli
   const syncParentRoute =
     !visualEditMode && !pathname.startsWith("/admin") && !isCartOrCheckoutShell;
@@ -159,9 +166,15 @@ export function MirrorVitrinFrameClient({
 
   useEffect(() => {
     baseSrcRef.current = src;
-    setContentVisible(false);
+    setContentVisible(isPrebuiltMirrorSrc(src));
     liveCatalogGenRef.current += 1;
   }, [src]);
+
+  useEffect(() => {
+    if (contentVisible || visualEditMode) return;
+    const t = window.setTimeout(() => setContentVisible(true), 2000);
+    return () => window.clearTimeout(t);
+  }, [contentVisible, visualEditMode, src]);
 
   useEffect(() => {
     const iframe = iframeRef.current;
@@ -170,6 +183,7 @@ export function MirrorVitrinFrameClient({
     const config = pageConfig;
     const expectedPath = new URL(src, window.location.origin).pathname;
     let cancelBranding: (() => void) | undefined;
+    let cancelFooter: (() => void) | undefined;
     let cancelIdle: number | undefined;
     let disposed = false;
 
@@ -252,20 +266,32 @@ export function MirrorVitrinFrameClient({
 
     async function finishCatalogAndVisibility(doc: Document) {
       const catalogGen = liveCatalogGenRef.current;
-      if (!visualEditMode && !isCartOrCheckoutShell) {
-        const payload = await fetchLiveStoreCatalog();
-        if (disposed || catalogGen !== liveCatalogGenRef.current) return;
-        if (payload) {
-          applyLiveStoreCatalogToDocument(doc, payload, locale ?? "tr", config, mirrorTexts);
+      try {
+        if (!visualEditMode && !isCartOrCheckoutShell) {
+          const payload = await fetchLiveStoreCatalog();
+          if (disposed || catalogGen !== liveCatalogGenRef.current) return;
+          if (payload) {
+            applyLiveStoreCatalogToDocument(doc, payload, locale ?? "tr", config, mirrorTexts);
+          } else {
+            applyEmbeddedCatalogPrices(doc);
+          }
         } else {
           applyEmbeddedCatalogPrices(doc);
         }
-      } else {
-        applyEmbeddedCatalogPrices(doc);
+        if (disposed || catalogGen !== liveCatalogGenRef.current) return;
+        if (usdRate && usdRate > 0) applyMirrorUsdPrices(doc, usdRate);
+      } catch (err) {
+        console.error("[mirror-vitrin] catalog", err);
+        try {
+          applyEmbeddedCatalogPrices(doc);
+        } catch {
+          /* ignore */
+        }
+      } finally {
+        if (!disposed && catalogGen === liveCatalogGenRef.current) {
+          setContentVisible(true);
+        }
       }
-      if (disposed || catalogGen !== liveCatalogGenRef.current) return;
-      if (usdRate && usdRate > 0) applyMirrorUsdPrices(doc, usdRate);
-      setContentVisible(true);
     }
 
     function runPatches() {
@@ -278,6 +304,7 @@ export function MirrorVitrinFrameClient({
       setFrameReady(true);
 
       applyMirrorStoreUiFixToDocument(doc);
+      applyMirrorScrollStability(doc);
       ensureMirrorLayoutStyles(doc);
 
       if (branding?.logoUrl?.trim()) {
@@ -325,7 +352,14 @@ export function MirrorVitrinFrameClient({
       if (accountDrawerForm) openAccountDrawer(doc, accountDrawerForm);
 
       if (nav?.length) syncMirrorNavigation(doc, nav, locale ?? "tr");
-      if (footer) applyMirrorFooter(doc, footer);
+      if (footer) {
+        applyMirrorFooter(doc, footer);
+        cancelFooter?.();
+        cancelFooter = scheduleMirrorFooterPatch(
+          () => iframeRef.current?.contentDocument ?? undefined,
+          footer,
+        );
+      }
 
       if (skipClientWork) {
         void finishCatalogAndVisibility(doc);
@@ -398,6 +432,9 @@ export function MirrorVitrinFrameClient({
     }
 
     function schedulePatches() {
+      if (iframeRef.current?.contentDocument?.getElementById("MainContent")) {
+        void runPatches();
+      }
       cancelIdle = defer(() => {
         if (!disposed) void runPatches();
       }) as number;
@@ -450,6 +487,7 @@ export function MirrorVitrinFrameClient({
     return () => {
       disposed = true;
       cancelBranding?.();
+      cancelFooter?.();
       if (cancelIdle) {
         if (typeof window.cancelIdleCallback === "function") {
           window.cancelIdleCallback(cancelIdle);
@@ -507,13 +545,7 @@ export function MirrorVitrinFrameClient({
   }, [focusSectionKey, visualEditMode, frameReady]);
 
   return (
-    <div
-      className="kn-home-mirror relative h-full min-h-[70vh] w-full"
-      style={{
-        opacity: visualEditMode || contentVisible ? 1 : 0,
-        transition: contentVisible ? "opacity 0.12s ease-out" : undefined,
-      }}
-    >
+    <div className="kn-home-mirror relative min-h-[70vh] w-full">
       {visualEditMode && !frameReady ? (
         <p className="absolute right-2 top-2 z-10 rounded-md bg-zinc-800/95 px-2 py-1 text-xs text-zinc-400">
           Yükleniyor…
@@ -533,6 +565,8 @@ export function MirrorVitrinFrameClient({
           border: "none",
           margin: 0,
           padding: 0,
+          opacity: visualEditMode && !contentVisible ? 0 : 1,
+          transition: contentVisible ? "opacity 0.12s ease-out" : undefined,
         }}
       />
     </div>

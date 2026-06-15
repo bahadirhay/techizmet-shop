@@ -201,6 +201,7 @@
   padding: 0;
   background: #fff;
   overflow-x: clip;
+  overflow-anchor: none;
 }
 .kn-home-mirror .mirror-home-frame {
   display: block;

@@ -23,6 +23,8 @@ import {
 import { KN_LEGACY_STUB_IDS } from "@/lib/mirror-html-shopify-strip";
 import { syncMirrorNavigation, type MirrorNavItem } from "@/lib/mirror-nav-overlay";
 import { applyMirrorContact, type MirrorContactData } from "@/lib/mirror-contact-overlay";
+import { installMirrorStreetFoodBar } from "@/lib/mirror-street-food-bar";
+import { applyMirrorScrollStability } from "@/lib/mirror-scroll-stability";
 
 export type MirrorFramePatchOpts = {
   branding?: MirrorBranding;
@@ -88,6 +90,9 @@ export function applyMirrorFramePatches(doc: Document, opts: MirrorFramePatchOpt
   ) {
     installMirrorSwiperQuiet(doc);
   }
+
+  installMirrorStreetFoodBar(doc);
+  applyMirrorScrollStability(doc);
 }
 
 /** Eski mirror dosyaları için yedek — sunucu hazırsa no-op */
@@ -102,7 +107,11 @@ export function scheduleMirrorFramePatches(
     return Boolean(opts.nav?.length && d.querySelector("ul.header--navigation-list[data-kn-nav-injected]"));
   };
 
-  const delays = opts.nav?.length ? [0, 120, 400, 1000] : [800];
+  const delays = opts.nav?.length
+    ? [0, 120, 400, 1000, 2000]
+    : opts.footer
+      ? [0, 200, 800, 2000]
+      : [800];
   const timers: number[] = [];
   for (const ms of delays) {
     timers.push(

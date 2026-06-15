@@ -107,5 +107,7 @@ export function applyVideoSectionToElement(section: Element, edit: VideoSectionE
     const el = media as HTMLElement;
     el.classList.add("kn-video-embed-host");
     el.style.minHeight = "min(56.25vw, 70vh)";
+    el.style.maxHeight = "min(70vh, 56.25vw)";
+    el.style.overflow = "hidden";
   }
 }

@@ -14,10 +14,12 @@ import {
   type VitrinCollectionProductCard,
   type VitrinCollectionDetail,
 } from "@/lib/mirror-collections-sync";
+import { initProductCardGalleries } from "@/lib/mirror-product-card-gallery";
 import { useMirrorFrameRouteSync } from "@/hooks/use-mirror-frame-route-sync";
+import { useMirrorIframeAutoHeight } from "@/hooks/use-mirror-iframe-auto-height";
 import { useMirrorIframeLifecycle } from "@/hooks/use-mirror-iframe-lifecycle";
 import { useMirrorLocaleMessage } from "@/hooks/use-mirror-locale-message";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ResolvedMirrorCollectionTexts } from "@/lib/store-static-texts";
 
 export function MirrorCollectionFrameClient({
@@ -111,6 +113,7 @@ export function MirrorCollectionFrameClient({
       productsPrebuilt &&
       doc.documentElement.getAttribute("data-kn-collection-catalog") === "1"
     ) {
+      initProductCardGalleries(doc);
       setProductsVisible(true);
     } else if (needsProductGuard) {
       setCollectionProductsAwaiting(doc, true);
@@ -133,19 +136,19 @@ export function MirrorCollectionFrameClient({
   ]);
 
   useMirrorLocaleMessage();
+  useMirrorIframeAutoHeight(iframeRef, true, [src, patchKey]);
   useMirrorFrameRouteSync(iframeRef, src);
 
   const frameReady = useMirrorIframeLifecycle(iframeRef, src, runPatch, [patchKey, runPatch]);
 
+  useEffect(() => {
+    if (productsPrebuilt || productsVisible || hasInitialPayload) return;
+    const t = window.setTimeout(() => setProductsVisible(true), 2000);
+    return () => window.clearTimeout(t);
+  }, [productsPrebuilt, productsVisible, hasInitialPayload, src, patchKey]);
+
   return (
-    <div
-      className="kn-home-mirror"
-      style={{
-        opacity: productsPrebuilt || productsVisible || hasInitialPayload ? 1 : 0,
-        transition:
-          productsPrebuilt || productsVisible || hasInitialPayload ? "opacity 0.12s ease-out" : "none",
-      }}
-    >
+    <div className="kn-home-mirror">
       <iframe
         key={`${src}|${activeCategorySlug ?? ""}|${currentPage}|${productsFromAdmin?.length ?? 0}|${productsPrebuilt ? "pre" : "patch"}`}
         ref={iframeRef}
