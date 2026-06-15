@@ -1,10 +1,10 @@
-import { parseHTML } from "linkedom";
+import { parseHTML } from "@/lib/linkedom-server";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import {
   applyHomeListingProductsToDocument,
 } from "@/lib/mirror-home-products-inject";
 import type { VitrinCollectionProductCard } from "@/lib/mirror-collections-sync";
-import { orderMediaForDisplay, primaryProductImageUrl } from "@/lib/product-media";
+import { imageUrlsFromProductRow, primaryImageUrlFromProductRow } from "@/lib/mirror-product-card-images";
 import { prisma } from "@/lib/prisma";
 import { getSiteSettingsUncached } from "@/lib/site-settings-load";
 import { resolveMirrorCollectionTexts } from "@/lib/store-static-texts";
@@ -26,22 +26,17 @@ export async function loadHomeListingProducts(siteId: string): Promise<VitrinCol
       kind: true,
       weightGrams: true,
       pieceCount: true,
-      images: { orderBy: { sortOrder: "asc" }, select: { url: true } },
+      images: { orderBy: { sortOrder: "asc" }, select: { url: true, mediaType: true } },
     },
   });
   return rows.map((p) => {
-    const media = orderMediaForDisplay(
-      p.images.map((img) => ({ url: img.url, mediaType: "image" as const })),
-    );
-    const imageUrl =
-      primaryProductImageUrl(media) ||
-      (p.imageUrl?.includes("/api/media/") ? p.imageUrl : null) ||
-      p.imageUrl ||
-      null;
+    const imageUrls = imageUrlsFromProductRow(p);
+    const imageUrl = primaryImageUrlFromProductRow(p);
     return withProductDisplayTitle({
       slug: p.slug,
       title: p.title,
       imageUrl,
+      imageUrls: imageUrls.length > 1 ? imageUrls : undefined,
       priceMinor: p.priceMinor,
       compareAtMinor: p.compareAtMinor,
       stockQty: p.stockQty,

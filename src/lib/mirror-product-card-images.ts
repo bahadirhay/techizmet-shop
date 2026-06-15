@@ -4,10 +4,13 @@ const MAX_CARD_GALLERY_IMAGES = 8;
 
 export function imageUrlsFromProductRow(row: {
   imageUrl?: string | null;
-  images?: { url: string }[];
+  images?: { url: string; mediaType?: string | null }[];
 }): string[] {
   const media = orderMediaForDisplay(
-    (row.images ?? []).map((img) => ({ url: img.url, mediaType: "image" as const })),
+    (row.images ?? []).map((img) => ({
+      url: img.url,
+      mediaType: img.mediaType === "video" ? ("video" as const) : ("image" as const),
+    })),
   );
   const urls = media
     .filter((m) => m.mediaType === "image")

@@ -51,6 +51,7 @@ import {
   applyLiveStoreCatalogToDocument,
   fetchLiveStoreCatalog,
 } from "@/lib/mirror-live-catalog-client";
+import { initProductCardGalleries } from "@/lib/mirror-product-card-gallery";
 import { applyInstagramFeedToDoc } from "@/lib/mirror-instagram-feed";
 import type { InstagramFeedPostDTO } from "@/lib/instagram-feed-card";
 
@@ -273,6 +274,7 @@ export function MirrorVitrinFrameClient({
           if (disposed || catalogGen !== liveCatalogGenRef.current) return;
           if (payload) {
             applyLiveStoreCatalogToDocument(doc, payload, locale ?? "tr", config, mirrorTexts);
+            initProductCardGalleries(doc);
           } else {
             applyEmbeddedCatalogPrices(doc);
           }
