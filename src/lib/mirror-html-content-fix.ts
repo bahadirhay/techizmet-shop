@@ -1,4 +1,5 @@
 import {
+  MIRROR_EMBED_HERO_CRITICAL_CSS,
   MIRROR_IMAGE_REVEAL_CSS,
   patchMirrorNoJsHiddenImagesHtml,
 } from "@/lib/mirror-image-reveal";
@@ -14,6 +15,7 @@ const VISIBLE_STYLE = `<style id="kn-mirror-visible-fallback">
   visibility: visible !important;
 }
 ${MIRROR_IMAGE_REVEAL_CSS}
+${MIRROR_EMBED_HERO_CRITICAL_CSS}
 </style>`;
 
 const BOOT_SCRIPT = `<script id="kn-mirror-content-boot">(function(){
@@ -22,6 +24,7 @@ const BOOT_SCRIPT = `<script id="kn-mirror-content-boot">(function(){
     if(done)return;
     done=true;
     try{
+      document.documentElement.classList.add("kn-mirror-embed");
       document.querySelectorAll("[data-saos],.revealing-text--content,.revealing-text--line").forEach(function(el){
         el.style.opacity="1";
         el.style.visibility="visible";

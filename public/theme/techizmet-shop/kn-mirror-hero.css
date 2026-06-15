@@ -1,6 +1,11 @@
 /**
  * Ana sayfa hero (media-grid) — şeffaf header altında tam yükseklik
+ * kn-mirror-embed: iframe auto-height svh'yi şişirir; sabit satır yüksekliği kullan
  */
+
+:root {
+  --kn-mirror-vh-cap: 960px;
+}
 
 @media (min-width: 768px) {
   #MainContent > .section-media-grid:first-of-type {
@@ -10,7 +15,7 @@
     );
     --desktop_height: max(
       300px,
-      calc((100svh - var(--kn-hero-stack)) / 3)
+      calc((min(100svh, var(--kn-mirror-vh-cap)) - var(--kn-hero-stack)) / 3)
     );
   }
 }
@@ -23,7 +28,36 @@
     );
     --mobile_height: max(
       200px,
-      calc((100svh - var(--kn-hero-stack)) / 2)
+      calc((min(100svh, var(--kn-mirror-vh-cap)) - var(--kn-hero-stack)) / 2)
     );
   }
+}
+
+html.kn-mirror-embed #MainContent > .section-media-grid:first-of-type {
+  --desktop_height: 300px !important;
+  --mobile_height: 200px !important;
+}
+
+html.kn-mirror-embed .section-media-grid:first-of-type .media-grid--image {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+html.kn-mirror-embed .section-media-grid:first-of-type .media-grid--image .media,
+html.kn-mirror-embed .section-media-grid:first-of-type .media-grid--image .media-fixed {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+html.kn-mirror-embed .section-media-grid:first-of-type img.media_image {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: cover !important;
 }

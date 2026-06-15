@@ -1,5 +1,5 @@
 const NAV_DROPDOWN_CSS = "/theme/techizmet-shop/kn-nav-dropdown.css?v=30";
-const MIRROR_HERO_CSS = "/theme/techizmet-shop/kn-mirror-hero.css?v=1";
+const MIRROR_HERO_CSS = "/theme/techizmet-shop/kn-mirror-hero.css?v=2";
 const MOBILE_MENU_CSS = "/theme/techizmet-shop/kn-mobile-menu.css?v=5";
 const BLOG_CARDS_CSS = "/theme/techizmet-shop/kn-blog-cards.css?v=2";
 
@@ -20,6 +20,9 @@ export function ensureMirrorLayoutStyles(doc: Document) {
     hero.rel = "stylesheet";
     hero.href = MIRROR_HERO_CSS;
     head.appendChild(hero);
+  } else {
+    const heroExisting = doc.getElementById("kn-mirror-hero-css") as HTMLLinkElement;
+    heroExisting.href = MIRROR_HERO_CSS;
   }
   const mobileExisting = doc.getElementById("kn-mobile-menu-css") as HTMLLinkElement | null;
   if (mobileExisting) {
@@ -55,6 +58,8 @@ export function injectMirrorNavDropdownStyles(html: string): string {
   if (!out.includes("kn-mirror-hero.css")) {
     const heroLink = `<link rel="stylesheet" href="${MIRROR_HERO_CSS}" id="kn-mirror-hero-css" />`;
     out = out.replace(/<\/head>/i, `${heroLink}\n</head>`);
+  } else {
+    out = out.replace(/kn-mirror-hero\.css\?v=\d+/g, "kn-mirror-hero.css?v=2");
   }
   if (!out.includes("kn-mobile-menu.css")) {
     const mobileLink = `<link rel="stylesheet" href="${MOBILE_MENU_CSS}" id="kn-mobile-menu-css" />`;
