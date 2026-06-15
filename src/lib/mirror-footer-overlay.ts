@@ -27,7 +27,12 @@ function setMenuHeading(heading: Element, title: string) {
   if (icon) heading.append(icon);
 }
 
+function mirrorFooterDomReady(doc: Document): boolean {
+  return Boolean(doc.querySelector(".section-footer, .footer--menu, .footer-quick-links"));
+}
+
 export function applyMirrorFooter(doc: Document, footer: MirrorFooterData) {
+  if (!mirrorFooterDomReady(doc)) return false;
   if (footer.introHtml?.trim()) {
     doc.querySelectorAll(".footer--text").forEach((el) => {
       el.innerHTML = footer.introHtml!.trim();
@@ -77,4 +82,22 @@ export function applyMirrorFooter(doc: Document, footer: MirrorFooterData) {
       (li as HTMLElement).style.display = matches ? "" : "none";
     });
   }
+
+  return true;
+}
+
+/** Footer DOM geç gelirse birkaç kez dene */
+export function scheduleMirrorFooterPatch(
+  getDoc: () => Document | null | undefined,
+  footer: MirrorFooterData,
+): () => void {
+  const delays = [0, 150, 500, 1200, 2500] as const;
+  const timers = delays.map((ms) =>
+    window.setTimeout(() => {
+      const doc = getDoc();
+      if (!doc) return;
+      applyMirrorFooter(doc, footer);
+    }, ms),
+  );
+  return () => timers.forEach((t) => window.clearTimeout(t));
 }
