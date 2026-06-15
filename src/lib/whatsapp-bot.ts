@@ -72,6 +72,13 @@ export const DEFAULT_BOT_SEED: Array<{
   },
 ];
 
+export function appendCustomerDetailToMessage(template: string, detail: string): string {
+  const base = template.trim();
+  const extra = detail.trim();
+  if (!extra) return base;
+  return `${base}\n\nSipariş no / e-posta: ${extra}`;
+}
+
 export const DEFAULT_BOT_TITLE = "Size nasıl yardımcı olabiliriz?";
 export const DEFAULT_BOT_WELCOME =
-  "Bir konu seçin; son adımda WhatsApp üzerinden bize ulaşabilirsiniz.";
+  "Bir konu seçin; son adımda bilgilerinizi girip WhatsApp üzerinden bize ulaşın.";
