@@ -6,7 +6,7 @@ import {
   buildMirrorProductCardHtml,
   type VitrinCollectionProductCard,
 } from "@/lib/mirror-collections-sync";
-import { buildProductCardGalleryMarkup, initProductCardGalleries } from "@/lib/mirror-product-card-gallery";
+import { buildProductCardGalleryMarkup, initProductCardGalleries, stripProductCardGalleryBoundFlags } from "@/lib/mirror-product-card-gallery";
 import type { resolveMirrorCollectionTexts } from "@/lib/store-static-texts";
 
 function isDomElement(node: unknown): node is Element {
@@ -202,5 +202,6 @@ export function applyHomeListingProductsToDocument(
 
   doc.documentElement.setAttribute("data-kn-home-products-injected", "1");
   doc.documentElement.setAttribute("data-kn-home-catalog-fp", fingerprint);
+  stripProductCardGalleryBoundFlags(doc);
   initProductCardGalleries(doc);
 }

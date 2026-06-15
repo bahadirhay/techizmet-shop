@@ -127,14 +127,28 @@ function bindGalleryMedia(media: HTMLElement) {
 }
 
 function canBindGalleriesInDocument(doc: Document): boolean {
-  return typeof doc.defaultView?.Image === "function";
+  return (
+    typeof window !== "undefined" &&
+    doc.defaultView === window &&
+    typeof window.Image === "function"
+  );
 }
 
 /** Kart HTML'ine enjekte edilen galeri markup'ını bağlar */
 export function initProductCardGalleries(doc: Document) {
   if (!canBindGalleriesInDocument(doc)) return;
   ensureGalleryStyles(doc);
-  doc.querySelectorAll<HTMLElement>("[data-kn-gallery]").forEach(bindGalleryMedia);
+  doc.querySelectorAll<HTMLElement>("[data-kn-gallery]").forEach((media) => {
+    media.removeAttribute("data-kn-gallery-bound");
+    bindGalleryMedia(media);
+  });
+}
+
+/** Sunucu/prebuild HTML — bağlı sanılan ama dinleyicisiz galeri bayraklarını temizler */
+export function stripProductCardGalleryBoundFlags(doc: Document) {
+  doc.querySelectorAll("[data-kn-gallery-bound]").forEach((media) => {
+    media.removeAttribute("data-kn-gallery-bound");
+  });
 }
 
 /** Ürün kartı görsel alanı — çoklu URL + çizgi göstergesi */

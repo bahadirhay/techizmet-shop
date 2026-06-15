@@ -1,3 +1,4 @@
+import { stripProductCardGalleryBoundFlags } from "@/lib/mirror-product-card-gallery";
 import { parseHTML } from "linkedom";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import {
@@ -60,6 +61,7 @@ export async function injectHomeListingProductsIntoHtml(
   const texts = resolveMirrorCollectionTexts(locale, settings.store?.texts);
   const { document } = parseHTML(html);
   applyHomeListingProductsToDocument(document, products, locale, texts);
+  stripProductCardGalleryBoundFlags(document);
   const doctype = html.match(/^<!DOCTYPE[^>]*>/i)?.[0] ?? "<!DOCTYPE html>";
   return `${doctype}\n${document.documentElement.outerHTML}`;
 }
