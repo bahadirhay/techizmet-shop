@@ -1,8 +1,9 @@
 /** Mirror HTML — tema çakışma düzeltmeleri (store-ui-fixes.css) */
 
+import { revealMirrorImagesInDocument } from "@/lib/mirror-image-reveal";
 import { patchMirrorLogoDimensions } from "@/lib/mirror-logo-unify";
 
-const FIXES_CSS_VERSION = 25;
+const FIXES_CSS_VERSION = 26;
 const FIXES_CSS_HREF = `/theme/techizmet-shop/store-ui-fixes.css?v=${FIXES_CSS_VERSION}`;
 
 export function patchMirrorLogoSize(html: string): string {
@@ -20,6 +21,7 @@ export function injectMirrorStoreUiFix(html: string): string {
 
 /** iframe — eski prebuild CSS sürümünü günceller */
 export function applyMirrorStoreUiFixToDocument(doc: Document) {
+  revealMirrorImagesInDocument(doc);
   const link =
     (doc.getElementById("kn-store-ui-fixes") as HTMLLinkElement | null) ??
     (doc.querySelector('link[href*="store-ui-fixes.css"]') as HTMLLinkElement | null);

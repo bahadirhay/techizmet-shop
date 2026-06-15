@@ -1,3 +1,8 @@
+import {
+  MIRROR_IMAGE_REVEAL_CSS,
+  patchMirrorNoJsHiddenImagesHtml,
+} from "@/lib/mirror-image-reveal";
+
 /** Mirror vitrin — boş sayfa / görünmeyen bölümler (hafif, reflow yok) */
 
 const VISIBLE_STYLE = `<style id="kn-mirror-visible-fallback">
@@ -8,6 +13,7 @@ const VISIBLE_STYLE = `<style id="kn-mirror-visible-fallback">
   opacity: 1 !important;
   visibility: visible !important;
 }
+${MIRROR_IMAGE_REVEAL_CSS}
 </style>`;
 
 const BOOT_SCRIPT = `<script id="kn-mirror-content-boot">(function(){
@@ -19,6 +25,14 @@ const BOOT_SCRIPT = `<script id="kn-mirror-content-boot">(function(){
       document.querySelectorAll("[data-saos],.revealing-text--content,.revealing-text--line").forEach(function(el){
         el.style.opacity="1";
         el.style.visibility="visible";
+      });
+      document.querySelectorAll("img.no-js-hidden,img.lazyload,img[lazyload],img.media_image").forEach(function(node){
+        if(!node||node.tagName!=="IMG")return;
+        var url=(node.getAttribute("data-original")||node.getAttribute("data-src")||node.src||"").trim();
+        if(url&&url.indexOf("{width}")<0){node.src=url;node.setAttribute("data-src",url);node.setAttribute("data-original",url);}
+        node.classList.remove("no-js-hidden","lazyload","lazyloading");
+        node.classList.add("lazyloaded");
+        node.removeAttribute("loading");
       });
     }catch(e){}
   }
@@ -33,7 +47,7 @@ const BOOT_SCRIPT = `<script id="kn-mirror-content-boot">(function(){
 
 /** Animasyonlar tamamlanmazsa içerik yine görünsün */
 export function injectMirrorContentFallback(html: string): string {
-  let out = html;
+  let out = patchMirrorNoJsHiddenImagesHtml(html);
   if (!out.includes('id="kn-mirror-visible-fallback"')) {
     out = out.replace(/<head>/i, `<head>${VISIBLE_STYLE}`);
   }

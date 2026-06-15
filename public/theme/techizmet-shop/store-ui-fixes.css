@@ -3,6 +3,15 @@
  * base2ff2: input,textarea,select { width:100%; min-height:62px } → radio/checkbox bozulur
  */
 
+/* Mirror hero / kart görselleri — tema .no-js-hidden { display:none } Shopify JS olmadan */
+img.no-js-hidden,
+img.media_image,
+.section-media-grid img {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
 /* Radio / checkbox — checkout/hesap (ürün varyasyon pill .productOption hariç) */
 input[type="radio"]:not(.productOption):not(.checkmark-input),
 input[type="checkbox"]:not(.checkmark-input) {

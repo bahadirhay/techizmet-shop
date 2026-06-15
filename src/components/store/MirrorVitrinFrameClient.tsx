@@ -24,6 +24,7 @@ import { ensureMirrorLayoutStyles } from "@/lib/mirror-nav-dropdown-inject";
 import type { MirrorBranding } from "@/lib/mirror-branding-overlay";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import { applyMirrorFooter, scheduleMirrorFooterPatch, type MirrorFooterData } from "@/lib/mirror-footer-overlay";
+import { revealMirrorImagesInDocument } from "@/lib/mirror-image-reveal";
 import { applyMirrorScrollStability } from "@/lib/mirror-scroll-stability";
 import { syncMirrorNavigation, type MirrorNavItem } from "@/lib/mirror-nav-overlay";
 import {
@@ -304,6 +305,7 @@ export function MirrorVitrinFrameClient({
       setFrameReady(true);
 
       applyMirrorStoreUiFixToDocument(doc);
+      revealMirrorImagesInDocument(doc);
       applyMirrorScrollStability(doc);
       ensureMirrorLayoutStyles(doc);
 
