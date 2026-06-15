@@ -126,8 +126,13 @@ function bindGalleryMedia(media: HTMLElement) {
   media.addEventListener("pointerleave", onLeave);
 }
 
+function canBindGalleriesInDocument(doc: Document): boolean {
+  return typeof doc.defaultView?.Image === "function";
+}
+
 /** Kart HTML'ine enjekte edilen galeri markup'ını bağlar */
 export function initProductCardGalleries(doc: Document) {
+  if (!canBindGalleriesInDocument(doc)) return;
   ensureGalleryStyles(doc);
   doc.querySelectorAll<HTMLElement>("[data-kn-gallery]").forEach(bindGalleryMedia);
 }

@@ -1,4 +1,4 @@
-import { parseHTML } from "@/lib/linkedom-server";
+import { parseHTML } from "linkedom";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import {
   applyHomeListingProductsToDocument,
