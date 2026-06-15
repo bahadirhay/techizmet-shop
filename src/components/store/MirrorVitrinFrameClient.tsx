@@ -137,13 +137,6 @@ export function MirrorVitrinFrameClient({
   const isCartOrCheckoutShell =
     pathname === "/cart" || pathname === "/checkout" || pathname.startsWith("/checkout/");
 
-  useMirrorLocaleMessage();
-  useMirrorIframeAutoHeight(iframeRef, !visualEditMode, [src, patchSig]);
-  // Sepet/ödeme shell'lerinde iframe içinde sayfa geçişi olmaz — parent URL değişmemeli
-  const syncParentRoute =
-    !visualEditMode && !pathname.startsWith("/admin") && !isCartOrCheckoutShell;
-  useMirrorFrameRouteSync(iframeRef, src, syncParentRoute);
-
   const patchSig = JSON.stringify({
     overlaySig,
     collectionsFromAdmin,
@@ -161,6 +154,13 @@ export function MirrorVitrinFrameClient({
     instagramPosts,
     instagramFeedTitle,
   });
+
+  useMirrorLocaleMessage();
+  useMirrorIframeAutoHeight(iframeRef, !visualEditMode, [src, patchSig]);
+  // Sepet/ödeme shell'lerinde iframe içinde sayfa geçişi olmaz — parent URL değişmemeli
+  const syncParentRoute =
+    !visualEditMode && !pathname.startsWith("/admin") && !isCartOrCheckoutShell;
+  useMirrorFrameRouteSync(iframeRef, src, syncParentRoute);
 
   const liveCatalogGenRef = useRef(0);
 
