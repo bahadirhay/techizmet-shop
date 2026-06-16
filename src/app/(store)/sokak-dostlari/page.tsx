@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { MirrorVitrinFrame } from "@/components/store/MirrorVitrinFrame";
 import { getStoreLocale } from "@/lib/i18n/server";
 import { buildStreetFoodFundPublicPayload } from "@/lib/street-food-fund/campaign";
 import { listPublishedStreetFoodDonations } from "@/lib/street-food-fund/donations";
 import { getStreetFoodFundSettings, streetFoodTexts } from "@/lib/street-food-fund/settings";
-import { getSiteSettings } from "@/lib/site-settings";
+import { getHomepageMode, getSiteSettings } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
 import { notFound } from "next/navigation";
 
@@ -24,6 +25,11 @@ export default async function StreetFoodFundPublicPage() {
   const settings = await getSiteSettings(site.id);
   const cfg = getStreetFoodFundSettings(settings);
   if (!cfg.enabled) notFound();
+
+  const homepageMode = getHomepageMode(settings);
+  if (homepageMode === "mirror") {
+    return <MirrorVitrinFrame pageKey="sokak-dostlari" />;
+  }
 
   const [fund, donations] = await Promise.all([
     buildStreetFoodFundPublicPayload(site.id, locale),

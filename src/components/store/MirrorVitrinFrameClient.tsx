@@ -27,6 +27,7 @@ import { applyMirrorFooter, scheduleMirrorFooterPatch, type MirrorFooterData } f
 import { markMirrorEmbedRoot, revealMirrorImagesInDocument } from "@/lib/mirror-image-reveal";
 import { applyMirrorScrollStability } from "@/lib/mirror-scroll-stability";
 import { installMirrorStreetFoodBar } from "@/lib/mirror-street-food-bar";
+import { installMirrorStreetFoodFundPage } from "@/lib/mirror-street-food-fund-page";
 import { syncMirrorNavigation, type MirrorNavItem } from "@/lib/mirror-nav-overlay";
 import {
   applyMirrorPageOverlay,
@@ -313,6 +314,7 @@ export function MirrorVitrinFrameClient({
       revealMirrorImagesInDocument(doc);
       applyMirrorScrollStability(doc);
       installMirrorStreetFoodBar(doc);
+      installMirrorStreetFoodFundPage(doc);
       ensureMirrorLayoutStyles(doc);
 
       if (branding?.logoUrl?.trim()) {

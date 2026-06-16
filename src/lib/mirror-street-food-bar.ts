@@ -241,6 +241,7 @@ async function fetchPayload(): Promise<StreetFoodBarPayload | null> {
 }
 
 export function installMirrorStreetFoodBar(doc: Document) {
+  if (doc.querySelector("[data-kn-street-food-fund-page]")) return;
   if (doc.documentElement.getAttribute("data-kn-street-food-bar") === "1") return;
   doc.documentElement.setAttribute("data-kn-street-food-bar", "1");
 

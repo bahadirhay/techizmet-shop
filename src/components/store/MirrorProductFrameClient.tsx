@@ -40,6 +40,10 @@ import {
 
 const PATCH_RETRY_MS = [50, 200, 500] as const;
 
+function isPrebuiltMirrorSrc(src: string): boolean {
+  return src.includes("/_mirror-prebuilt/");
+}
+
 function isProductDocSynced(doc: Document) {
   return doc.documentElement.getAttribute("data-kn-product-sync") === "1";
 }
@@ -84,7 +88,7 @@ export function MirrorProductFrameClient({
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const cancelBrandingRef = useRef<(() => void) | undefined>(undefined);
-  const [contentVisible, setContentVisible] = useState(false);
+  const [contentVisible, setContentVisible] = useState(() => isPrebuiltMirrorSrc(src));
   const [exploreLooks, setExploreLooks] = useState<ProductExploreLook[]>(exploreLooksInitial ?? []);
   const [exploreProductsBySlug, setExploreProductsBySlug] = useState<
     Record<string, ExploreOverlayProduct>
@@ -110,7 +114,7 @@ export function MirrorProductFrameClient({
   }, [src]);
 
   useEffect(() => {
-    setContentVisible(false);
+    setContentVisible(isPrebuiltMirrorSrc(src));
   }, [src]);
 
   useEffect(() => {
@@ -201,19 +205,23 @@ export function MirrorProductFrameClient({
         });
       };
       const reinitThemeGallery = (target = doc) => {
+        if (productGalleryReady(target, productFromAdmin)) return;
         const outer = target.querySelector("#MainContent .main--product-image-slider-outer");
         const host = outer?.closest("swiper-content") as (HTMLElement & { _initial_run?: () => void }) | null;
         host?._initial_run?.();
         applyProductPatch(target);
       };
       applyProductPatch();
-      reinitThemeGallery();
-      for (const ms of PATCH_RETRY_MS) {
-        window.setTimeout(() => {
-          const d = iframeRef.current?.contentDocument;
-          if (!d?.getElementById("MainContent")) return;
-          reinitThemeGallery(d);
-        }, ms);
+      if (!productGalleryReady(doc, productFromAdmin)) {
+        reinitThemeGallery();
+        for (const ms of PATCH_RETRY_MS) {
+          window.setTimeout(() => {
+            const d = iframeRef.current?.contentDocument;
+            if (!d?.getElementById("MainContent")) return;
+            if (productGalleryReady(d, productFromAdmin)) return;
+            reinitThemeGallery(d);
+          }, ms);
+        }
       }
       const stickyProduct = productFromAdmin;
       const reapplySticky = () => {
@@ -316,6 +324,9 @@ export function MirrorProductFrameClient({
           border: "none",
           margin: 0,
           padding: 0,
+          overflow: "hidden",
+          opacity: contentVisible ? 1 : 0,
+          transition: contentVisible ? "opacity 0.12s ease-out" : undefined,
         }}
       />
     </div>

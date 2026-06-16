@@ -20,6 +20,7 @@ export function isMirrorShellPath(pathname: string): boolean {
     pathname === "/checkout/pay" ||
     pathname === "/checkout/success" ||
     pathname === "/orders/track" ||
-    pathname === "/orders/track/embed"
+    pathname === "/orders/track/embed" ||
+    pathname === "/sokak-dostlari"
   );
 }

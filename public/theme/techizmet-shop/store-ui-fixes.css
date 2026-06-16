@@ -589,6 +589,30 @@ product-media-popup.popup {
   z-index: 300 !important;
 }
 
+/* Mirror iframe: scroll-lock fixed popup'ı sayfa akışına düşürür */
+html.kn-mirror-embed product-media-popup.popup,
+html.kn-mirror-embed .popup.product-media-popup {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  z-index: 10000 !important;
+}
+
+html.kn-mirror-embed product-media-popup.popup .popup-dialog.fullwidth,
+html.kn-mirror-embed .popup.product-media-popup .popup-dialog.fullwidth {
+  max-width: 100% !important;
+  width: 100% !important;
+  height: 100% !important;
+  padding: 0 !important;
+}
+
+html.kn-mirror-embed.kn-product-zoom-open,
+html.kn-mirror-embed.kn-product-zoom-open body {
+  overflow: visible !important;
+}
+
 /* Koleksiyon sıralama / filtre — tema checkmark radio (native appearance çakışmasını önle) */
 .filter-option-item.radio-box {
   position: relative;

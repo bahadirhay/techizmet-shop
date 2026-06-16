@@ -1,4 +1,3 @@
-import { parseHTML } from "linkedom";
 import {
   PRODUCT_GALLERY_SWIPER,
   PRODUCT_IMAGE_HEIGHT,
@@ -400,6 +399,52 @@ function ensureGalleryFallbackStyles(doc: Document) {
   doc.head.appendChild(style);
 }
 
+/** Mirror embed scroll-lock breaks theme lightbox (fixed → in-flow). */
+function ensureProductMediaZoomFix(doc: Document) {
+  if (!doc.getElementById("kn-product-media-zoom-fix-style")) {
+    const style = doc.createElement("style");
+    style.id = "kn-product-media-zoom-fix-style";
+    style.textContent = `
+html.kn-mirror-embed product-media-popup.popup,
+html.kn-mirror-embed .popup.product-media-popup {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  z-index: 10000 !important;
+  margin: 0 !important;
+}
+html.kn-mirror-embed product-media-popup.popup .popup-dialog.fullwidth,
+html.kn-mirror-embed .popup.product-media-popup .popup-dialog.fullwidth {
+  max-width: 100% !important;
+  width: 100% !important;
+  height: 100% !important;
+  padding: 0 !important;
+}
+html.kn-mirror-embed.kn-product-zoom-open,
+html.kn-mirror-embed.kn-product-zoom-open body {
+  overflow: visible !important;
+}`;
+    doc.head.appendChild(style);
+  }
+  if (doc.getElementById("kn-product-media-zoom-fix-script")) return;
+  const script = doc.createElement("script");
+  script.id = "kn-product-media-zoom-fix-script";
+  script.textContent = `(function(){
+  function sync(){
+    var open=!!document.querySelector("product-media-popup.show,.product-media-popup.show");
+    document.documentElement.classList.toggle("kn-product-zoom-open",open);
+  }
+  try{
+    new MutationObserver(sync).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:["class","style"]});
+  }catch(e){}
+  document.addEventListener("click",function(){setTimeout(sync,0);setTimeout(sync,450);});
+})();`;
+  (doc.body ?? doc.documentElement).appendChild(script);
+}
+
 function patchSwiperConfigForSlideCount(outer: Element, slideCount: number) {
   const raw = outer.getAttribute("data-swiper");
   if (!raw) return;
@@ -484,14 +529,25 @@ function patchMainImage(doc: Document, product: VitrinProductDetail) {
   if (!media.length) return;
 
   ensureGalleryFallbackStyles(doc);
+  ensureProductMediaZoomFix(doc);
 
   const outer = doc.querySelector("#MainContent .main--product-image-slider-outer") as HTMLElement | null;
   if (!outer) return;
 
   const fp = galleryFingerprint(product, media);
+  const alreadySynced =
+    outer.getAttribute("data-kn-gallery-fp") === fp &&
+    outer.getAttribute("data-kn-gallery-v") === PRODUCT_GALLERY_SWIPER.markupVersion &&
+    galleryDomMatchesAdminMedia(doc, media);
+
   const sectionId = detectProductMediaSectionId(doc);
   patchProductMediaZoomTemplate(doc, product, media);
   patchSwiperConfigForSlideCount(outer, media.length);
+
+  if (alreadySynced) {
+    outer.style.opacity = "1";
+    return;
+  }
 
   const wrapper =
     outer.querySelector(".main--product-image-slider[data-main-product-slider]") ??
@@ -797,6 +853,7 @@ export function applyProductDetailFromAdmin(
   options?: { templateSlug?: string },
 ) {
   ensureMirrorProductImageStyles(doc);
+  ensureProductMediaZoomFix(doc);
   patchTitle(doc, product);
   patchDescription(doc, product);
   patchMainImage(doc, product);
@@ -819,26 +876,4 @@ export function applyProductDetailFromAdmin(
   }
 
   doc.documentElement.setAttribute("data-kn-product-sync", "1");
-}
-
-const PRODUCT_SYNC_GUARD = `<style id="kn-product-sync-guard">html:not([data-kn-product-sync]) #MainContent{visibility:hidden}</style>`;
-
-/** Sunucu / prebuild — ürün başlık, galeri, fiyat HTML içine */
-export function applyProductDetailToMirrorHtml(
-  html: string,
-  product: VitrinProductDetail,
-  overlay: ProductContentOverlay = {},
-  commerce?: MirrorProductCommercePayload | null,
-  options?: { templateSlug?: string },
-): string {
-  const { document } = parseHTML(html);
-  if (!document.getElementById("kn-product-sync-guard")) {
-    document.head.insertAdjacentHTML("beforeend", PRODUCT_SYNC_GUARD);
-  }
-  applyProductDetailFromAdmin(document, product, options);
-  applyProductContentOverlay(document, overlay);
-  const doctype = html.match(/^<!DOCTYPE[^>]*>/i)?.[0] ?? "<!DOCTYPE html>";
-  let out = `${doctype}\n${document.documentElement.outerHTML}`;
-  if (commerce) out = injectMirrorProductCommerceHtml(out, commerce);
-  return out;
 }

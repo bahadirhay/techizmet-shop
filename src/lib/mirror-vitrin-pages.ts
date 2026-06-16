@@ -12,7 +12,8 @@ export type VitrinPageKey =
   | "privacy-policy"
   | "terms-of-service"
   | "refund-policy"
-  | "blog-news";
+  | "blog-news"
+  | "sokak-dostlari";
 
 /** Mirror HTML var; CMS blok editörü yerine vitrin editörü kullanılır */
 export const MIRROR_CONTENT_PAGE_SLUGS = [
@@ -75,6 +76,10 @@ const MIRROR_FILE: Record<VitrinPageKey, { tr: string; en: string }> = {
   "blog-news": {
     tr: "theme/techizmet-shop/mirror/blogs/news/index-tr.html",
     en: "theme/techizmet-shop/mirror/blogs/news/index.html",
+  },
+  "sokak-dostlari": {
+    tr: "theme/techizmet-shop/mirror/pages/sokak-dostlari-tr.html",
+    en: "theme/techizmet-shop/mirror/pages/sokak-dostlari.html",
   },
 };
 
@@ -176,6 +181,15 @@ export const VITRIN_PAGES: VitrinPageDef[] = [
     adminPath: "/admin/pages/vitrin/blog-news",
     mirrorFileRel: (locale) => vitrinMirrorFileRel("blog-news", locale),
     mirrorPath: (locale) => buildMirrorIframeSrc(vitrinMirrorFileRel("blog-news", locale), "blog-news"),
+  },
+  {
+    key: "sokak-dostlari",
+    label: "Sokak Dostları Mama Fonu",
+    route: "/sokak-dostlari",
+    adminPath: "/admin/pages/vitrin/sokak-dostlari",
+    mirrorFileRel: (locale) => vitrinMirrorFileRel("sokak-dostlari", locale),
+    mirrorPath: (locale) =>
+      buildMirrorIframeSrc(vitrinMirrorFileRel("sokak-dostlari", locale), "sokak-dostlari"),
   },
 ];
 
