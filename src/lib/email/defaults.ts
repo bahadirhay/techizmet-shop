@@ -10,6 +10,8 @@ export const EMAIL_TEMPLATE_PLACEHOLDERS = [
   "{{storeName}}",
   "{{trackingNumber}}",
   "{{statusLabel}}",
+  "{{streetFoodContribution}}",
+  "{{streetFoodContributionHtml}}",
 ] as const;
 
 export const DEFAULT_EMAIL_TEMPLATES: Record<EmailTemplateKey, EmailTemplate> = {
@@ -20,6 +22,7 @@ export const DEFAULT_EMAIL_TEMPLATES: Record<EmailTemplateKey, EmailTemplate> = 
   <h1 style="color:#1a5f4a;font-size:20px">Siparişiniz alındı</h1>
   <p>Merhaba {{customerName}},</p>
   <p><strong>{{orderNumber}}</strong> numaralı siparişiniz {{storeName}} tarafından kaydedildi.</p>
+  {{streetFoodContributionHtml}}
   {{linesTable}}
   <p style="font-size:18px"><strong>Toplam: {{total}}</strong></p>
   <p style="color:#71717a">Ödeme: {{paymentMethod}}</p>

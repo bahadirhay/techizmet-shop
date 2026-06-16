@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { sendOrderTemplateEmail } from "@/lib/email/order-confirmation";
 import { getSiteSettings, type EmailTemplateKey } from "@/lib/site-settings";
+import { getStreetFoodContributionForOrder } from "@/lib/street-food-fund/order-contribution-message";
+
 async function loadOrderPayload(orderId: string) {
   const order = await prisma.storeOrder.findUnique({
     where: { id: orderId },
@@ -9,6 +11,7 @@ async function loadOrderPayload(orderId: string) {
   if (!order?.customerEmail) return null;
 
   const settings = await getSiteSettings(order.siteId);
+  const contribution = await getStreetFoodContributionForOrder(order.siteId, order.id, "tr");
 
   return {
     settings,
@@ -26,6 +29,8 @@ async function loadOrderPayload(orderId: string) {
         qty: l.qty,
         lineMinor: l.lineMinor,
       })),
+      streetFoodContribution: contribution?.message ?? "",
+      streetFoodContributionHtml: contribution?.html ?? "",
     },
   };
 }

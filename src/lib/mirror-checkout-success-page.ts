@@ -8,6 +8,7 @@ export type MirrorCheckoutSuccessPayload = {
   paid: boolean;
   accountCreated: boolean;
   loggedIn: boolean;
+  streetFoodContributionMessage?: string;
 };
 
 function esc(s: string): string {
@@ -44,6 +45,16 @@ export const CHECKOUT_SUCCESS_CSS = `<style id="kn-checkout-success-css">
   padding: 12px 16px;
   background: var(--body_background, #fff);
   border-radius: 8px;
+}
+.kn-checkout-success__fund {
+  margin: 16px 0 0;
+  padding: 12px 16px;
+  background: #e8f5ef;
+  border-radius: 8px;
+  color: #1f4d3a;
+  font-size: 14px;
+  line-height: 1.45;
+  text-align: left;
 }
 .kn-checkout-success__actions {
   display: grid;
@@ -90,11 +101,16 @@ export function buildCheckoutSuccessMarkup(p: MirrorCheckoutSuccessPayload): str
 
   const shopBtn = `<a href="/collections/all" class="button text-button" style="margin-top:4px">${tr ? "Alışverişe devam" : "Continue shopping"}</a>`;
 
+  const fundBlock = p.streetFoodContributionMessage
+    ? `<p class="kn-checkout-success__fund text-medium">${esc(p.streetFoodContributionMessage)}</p>`
+    : "";
+
   return `<div class="kn-checkout-success-page" data-kn-checkout-success="1">
   <div class="kn-checkout-success-card">
     <h1 class="heading-font h2">${esc(title)}</h1>
     ${orderBlock}
     <p class="text-medium">${esc(bodyText)}</p>
+    ${fundBlock}
     ${accountMsg}
     <div class="kn-checkout-success__actions">
       ${trackBtn}

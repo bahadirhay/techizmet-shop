@@ -16,11 +16,13 @@ export async function MirrorCheckoutSuccessFrame({
   accountCreated,
   paid,
   loggedIn,
+  streetFoodContributionMessage,
 }: {
   orderNumber?: string;
   accountCreated: boolean;
   paid: boolean;
   loggedIn: boolean;
+  streetFoodContributionMessage?: string;
 }) {
   const site = await getDefaultSite();
   const locale = await getStoreLocale();
@@ -32,6 +34,9 @@ export async function MirrorCheckoutSuccessFrame({
   const q = new URLSearchParams({ path: successMirrorRel(locale) });
   if (orderNumber) q.set("order", orderNumber);
   if (accountCreated) q.set("account", "1");
+  if (streetFoodContributionMessage) {
+    q.set("fundMsg", streetFoodContributionMessage);
+  }
   q.set("paid", paid ? "1" : "0");
   q.set("loggedIn", loggedIn ? "1" : "0");
   const src = `/api/vitrin/mirror?${q.toString()}`;

@@ -43,6 +43,8 @@ export function buildOrderEmailVars(input: {
   trackingNumber?: string | null;
   status?: string;
   lines: { title: string; qty: number; lineMinor: number }[];
+  streetFoodContribution?: string;
+  streetFoodContributionHtml?: string;
 }): Record<string, string> {
   return {
     customerName: input.customerName || "değerli müşterimiz",
@@ -54,5 +56,7 @@ export function buildOrderEmailVars(input: {
     storeName: input.storeName,
     trackingNumber: input.trackingNumber?.trim() || "—",
     statusLabel: STATUS_LABELS[input.status ?? ""] ?? input.status ?? "",
+    streetFoodContribution: input.streetFoodContribution ?? "",
+    streetFoodContributionHtml: input.streetFoodContributionHtml ?? "",
   };
 }

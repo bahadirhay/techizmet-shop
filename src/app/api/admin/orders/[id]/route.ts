@@ -39,16 +39,11 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     include: { lines: true, carrier: true },
   });
 
-  if (
-    newPaymentStatus === "paid" &&
-    existing.paymentStatus !== "paid"
-  ) {
-    try {
-      const { recordStreetFoodContributionOnPayment } = await import("@/lib/street-food-fund/contribution");
-      await recordStreetFoodContributionOnPayment(auth.siteId, order.id);
-    } catch (e) {
-      console.error("[street-food-fund]", e);
-    }
+  try {
+    const { recordStreetFoodContributionOnPayment } = await import("@/lib/street-food-fund/contribution");
+    await recordStreetFoodContributionOnPayment(auth.siteId, order.id);
+  } catch (e) {
+    console.error("[street-food-fund]", e);
   }
 
   if (body.status != null && newStatus !== existing.status) {

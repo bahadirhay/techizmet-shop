@@ -4,6 +4,8 @@ import { getCustomerSession } from "@/lib/customer-session";
 import { prisma } from "@/lib/prisma";
 import { getDefaultSite } from "@/lib/site";
 import { getStoreHomepageMode } from "@/lib/site-settings";
+import { getStoreLocale } from "@/lib/i18n/server";
+import { getStreetFoodContributionForOrder } from "@/lib/street-food-fund/order-contribution-message";
 
 export default async function CheckoutSuccessPage({
   searchParams,
@@ -16,13 +18,19 @@ export default async function CheckoutSuccessPage({
   const loggedIn = Boolean(session.isLoggedIn);
 
   const site = await getDefaultSite();
+  const locale = await getStoreLocale();
   let paid = false;
+  let streetFoodContributionMessage: string | undefined;
   if (orderNumber) {
     const row = await prisma.storeOrder.findFirst({
       where: { siteId: site.id, orderNumber },
-      select: { paymentStatus: true, paymentMethod: true },
+      select: { id: true, paymentStatus: true, paymentMethod: true },
     });
     paid = row?.paymentStatus === "paid" || row?.paymentMethod !== "card";
+    if (row) {
+      const contribution = await getStreetFoodContributionForOrder(site.id, row.id, locale);
+      streetFoodContributionMessage = contribution?.message;
+    }
   }
 
   const homepageMode = await getStoreHomepageMode(site.id);
@@ -33,6 +41,7 @@ export default async function CheckoutSuccessPage({
         accountCreated={accountCreated}
         paid={paid}
         loggedIn={loggedIn}
+        streetFoodContributionMessage={streetFoodContributionMessage}
       />
     );
   }
@@ -50,6 +59,9 @@ export default async function CheckoutSuccessPage({
           ? "Onay e-postası adresinize gönderildi (e-posta ayarlıysa)."
           : "Kart ödemesi onaylandığında e-posta gönderilecektir."}
       </p>
+      {streetFoodContributionMessage ? (
+        <p className="kn-checkout-success__fund">{streetFoodContributionMessage}</p>
+      ) : null}
       {accountCreated ? (
         <p className="kn-checkout-success__account">
           Hesabınız oluşturuldu ve giriş yaptınız. Siparişlerinizi{" "}

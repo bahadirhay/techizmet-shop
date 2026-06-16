@@ -76,36 +76,49 @@ export async function notifyOrderSmsIfEnabled(
 }
 
 export async function sendOrderConfirmationBundle(orderId: string) {
+  const { prisma } = await import("@/lib/prisma");
+  const order = await prisma.storeOrder.findUnique({
+    where: { id: orderId },
+    select: { siteId: true },
+  });
+  if (order) {
+    try {
+      const { recordStreetFoodContributionOnPayment } = await import("@/lib/street-food-fund/contribution");
+      await recordStreetFoodContributionOnPayment(order.siteId, orderId);
+    } catch (e) {
+      console.error("[street-food-fund]", e);
+    }
+  }
+
   await sendOrderEmailForOrderId(orderId, "orderConfirmation").catch((e) =>
     console.error("[email]", e),
   );
-  const { prisma } = await import("@/lib/prisma");
-  const order = await prisma.storeOrder.findUnique({
+  const orderFull = await prisma.storeOrder.findUnique({
     where: { id: orderId },
     include: {
       site: { select: { name: true, settingsJson: true } },
       lines: { select: { title: true, qty: true } },
     },
   });
-  if (!order) return;
+  if (!orderFull) return;
   const { parseSiteSettings } = await import("@/lib/site-settings");
-  const settings = parseSiteSettings(order.site?.settingsJson ?? null);
-  await notifyNewOrder(orderId, settings, order.site?.name ?? "Mağaza").catch((e) =>
+  const settings = parseSiteSettings(orderFull.site?.settingsJson ?? null);
+  await notifyNewOrder(orderId, settings, orderFull.site?.name ?? "Mağaza").catch((e) =>
     console.error("[email admin]", e),
   );
   await notifyOrderSmsIfEnabled(orderId, settings, "orderConfirmation").catch((e) =>
     console.error("[sms]", e),
   );
 
-  const lines = order.lines?.map((l) => ({ title: l.title, qty: l.qty })) ?? [];
-  await notifyTelegramNewOrder(settings, order.site?.name ?? "Mağaza", {
-    id: order.id,
-    orderNumber: order.orderNumber,
-    totalMinor: order.totalMinor,
-    customerName: order.customerName,
-    customerEmail: order.customerEmail,
-    customerPhone: order.customerPhone,
-    paymentMethod: order.paymentMethod,
+  const lines = orderFull.lines?.map((l) => ({ title: l.title, qty: l.qty })) ?? [];
+  await notifyTelegramNewOrder(settings, orderFull.site?.name ?? "Mağaza", {
+    id: orderFull.id,
+    orderNumber: orderFull.orderNumber,
+    totalMinor: orderFull.totalMinor,
+    customerName: orderFull.customerName,
+    customerEmail: orderFull.customerEmail,
+    customerPhone: orderFull.customerPhone,
+    paymentMethod: orderFull.paymentMethod,
     lines,
   }).catch((e) => console.error("[telegram]", e));
 }

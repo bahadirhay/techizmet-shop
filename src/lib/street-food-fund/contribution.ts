@@ -5,6 +5,22 @@ import { ensureActiveStreetFoodCampaign } from "@/lib/street-food-fund/campaign"
 import { getStreetFoodFundSettings } from "@/lib/street-food-fund/settings";
 import { prisma } from "@/lib/prisma";
 
+function orderEligibleForStreetFoodContribution(
+  order: {
+    paymentStatus: string;
+    paymentMethod: string | null;
+    status: string;
+    marketplacePlatform: string | null;
+  },
+  includeMarketplaceOrders: boolean,
+): boolean {
+  if (order.status === "cancelled") return false;
+  if (order.marketplacePlatform && !includeMarketplaceOrders) return false;
+  if (order.paymentStatus === "paid") return true;
+  const method = order.paymentMethod ?? "cod";
+  return method === "cod" || method === "bank_transfer";
+}
+
 export async function calculateOrderContributionGrams(orderId: string, siteId: string): Promise<number> {
   const order = await prisma.storeOrder.findFirst({
     where: { id: orderId, siteId },
@@ -26,7 +42,7 @@ export async function calculateOrderContributionGrams(orderId: string, siteId: s
   return total;
 }
 
-/** Ödeme onaylandığında mama fonuna gram ekle (idempotent) */
+/** Sipariş mama fonuna katkı sağlıyorsa gram ekle (idempotent) */
 export async function recordStreetFoodContributionOnPayment(
   siteId: string,
   orderId: string,
@@ -40,11 +56,12 @@ export async function recordStreetFoodContributionOnPayment(
     select: {
       id: true,
       paymentStatus: true,
+      paymentMethod: true,
+      status: true,
       marketplacePlatform: true,
     },
   });
-  if (!order || order.paymentStatus !== "paid") return { grams: 0, recorded: false };
-  if (order.marketplacePlatform && !cfg.includeMarketplaceOrders) {
+  if (!order || !orderEligibleForStreetFoodContribution(order, cfg.includeMarketplaceOrders)) {
     return { grams: 0, recorded: false };
   }
 

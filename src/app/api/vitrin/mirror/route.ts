@@ -101,6 +101,7 @@ export async function GET(req: Request) {
       accountCreated: url.searchParams.get("account") === "1",
       paid: url.searchParams.get("paid") !== "0",
       loggedIn: url.searchParams.get("loggedIn") === "1",
+      streetFoodContributionMessage: url.searchParams.get("fundMsg")?.trim() || undefined,
     };
     localized = applyCheckoutSuccessToMirrorHtml(localized, successPayload);
   } else if (normalized.includes("mirror/orders/")) {

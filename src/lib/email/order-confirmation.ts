@@ -14,6 +14,8 @@ export type OrderEmailPayload = {
   status?: string;
   storeName: string;
   lines: { title: string; qty: number; lineMinor: number }[];
+  streetFoodContribution?: string;
+  streetFoodContributionHtml?: string;
 };
 
 export async function sendOrderTemplateEmail(
@@ -34,6 +36,8 @@ export async function sendOrderTemplateEmail(
     trackingNumber: payload.trackingNumber,
     status: payload.status,
     lines: payload.lines,
+    streetFoodContribution: payload.streetFoodContribution,
+    streetFoodContributionHtml: payload.streetFoodContributionHtml,
   });
   const { subject, html } = renderEmailTemplate(template, vars);
   const e = emailNotifications(settings);
