@@ -60,9 +60,9 @@ export default async function StreetFoodFundPublicPage() {
           <p className="text-sm text-[var(--kn-muted,#555)]">{fund.counterSubtext}</p>
         </header>
 
-        <section className="rounded-2xl border border-black/10 bg-white p-6 space-y-3">
+        <section className="rounded-2xl border border-black/10 bg-white p-6 space-y-3 text-center">
           <h2 className="text-lg font-semibold">Nasıl çalışır?</h2>
-          <ol className="list-decimal space-y-2 pl-5 text-sm leading-relaxed">
+          <ol className="mx-auto inline-block list-decimal space-y-2 pl-5 text-left text-sm leading-relaxed">
             <li>Ödül mamalarımızdan sipariş verirsiniz.</li>
             <li>Siparişinizdeki ürün gramajı kadar kuru mama fonumuzda birikir.</li>
             <li>Hedefe ulaşınca mama, ihtiyaç sahibi barınak veya sokak dostlarına ulaştırılır.</li>

@@ -1,75 +1,30 @@
 "use client";
 
-import { measureMirrorIframeContentHeight } from "@/lib/mirror-iframe-height";
-import { type DependencyList, type RefObject, useEffect } from "react";
+import { applyMirrorIframeHeight } from "@/lib/mirror-iframe-height";
+import { type RefObject, useEffect } from "react";
 
-/** Tek seferlik ölçüm — ResizeObserver/MutationObserver yok (sürekli kaydırmayı önler). */
-const MEASURE_AT_MS = [300, 1000, 2500, 4500, 7000] as const;
-const MAX_UPDATES = 5;
-const MIN_DELTA_PX = 20;
-
+/** iframe yüksekliği 100vh — içerik iframe içinde kayar */
 export function useMirrorIframeAutoHeight(
   iframeRef: RefObject<HTMLIFrameElement | null>,
   enabled = true,
-  deps: DependencyList = [],
+  src?: string,
 ) {
   useEffect(() => {
     if (!enabled) return;
     const iframe = iframeRef.current;
     if (!iframe) return;
 
-    let cancelled = false;
-    let lastApplied = 0;
-    let updates = 0;
-    const timers = new Set<number>();
-
-    function clearTimers() {
-      timers.forEach((id) => window.clearTimeout(id));
-      timers.clear();
+    function apply() {
+      applyMirrorIframeHeight(iframeRef.current);
     }
 
-    function measure() {
-      if (cancelled || updates >= MAX_UPDATES) return;
-      try {
-        const frame = iframeRef.current;
-        if (!frame) return;
-        const doc = frame.contentDocument;
-        if (!doc?.body) return;
-        const measured = measureMirrorIframeContentHeight(doc);
-        if (measured == null || measured <= 0) return;
-        const next = measured;
-        if (lastApplied > 0 && Math.abs(next - lastApplied) < MIN_DELTA_PX) return;
-        lastApplied = next;
-        updates += 1;
-        frame.style.height = `${next}px`;
-      } catch {
-        /* same-origin only */
-      }
-    }
-
-    function schedule() {
-      clearTimers();
-      for (const ms of MEASURE_AT_MS) {
-        const id = window.setTimeout(() => {
-          timers.delete(id);
-          measure();
-        }, ms);
-        timers.add(id);
-      }
-    }
-
-    function onLoad() {
-      schedule();
-    }
-
-    iframe.addEventListener("load", onLoad);
-    schedule();
+    iframe.addEventListener("load", apply);
+    apply();
+    window.addEventListener("resize", apply);
 
     return () => {
-      cancelled = true;
-      clearTimers();
-      iframe.removeEventListener("load", onLoad);
+      iframe.removeEventListener("load", apply);
+      window.removeEventListener("resize", apply);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- caller deps + stable iframe ref
-  }, [iframeRef, enabled, ...deps]);
+  }, [iframeRef, enabled, src]);
 }

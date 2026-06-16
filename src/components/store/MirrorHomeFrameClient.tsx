@@ -42,7 +42,7 @@ export function MirrorHomeFrameClient({
   const configKey = JSON.stringify({ homeConfig, branding, nav, footer, locale });
 
   useMirrorLocaleMessage();
-  useMirrorIframeAutoHeight(iframeRef, !visualEditMode, [src, configKey]);
+  useMirrorIframeAutoHeight(iframeRef, !visualEditMode, src);
 
   useEffect(() => {
     baseSrcRef.current = src;

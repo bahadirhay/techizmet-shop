@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { CartProvider } from "@/components/cart/CartContext";
 import { HtmlLang } from "@/components/store/HtmlLang";
+import { MirrorIframeBootScript } from "@/components/store/MirrorIframeBootScript";
 import { StoreThemeStyles } from "@/components/store/StoreThemeStyles";
 import { StoreFooter } from "@/components/store/StoreFooter";
 import { StoreShell } from "@/components/store/StoreShell";
@@ -28,6 +29,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
       return (
         <>
           <HtmlLang locale={locale} />
+          <MirrorIframeBootScript />
           <CartProvider>{children}</CartProvider>
         </>
       );

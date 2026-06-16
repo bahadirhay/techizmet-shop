@@ -68,6 +68,7 @@ import {
 } from "@/lib/mirror-visual-editor-script";
 import { applyCollectionCardEditShields, disableMirrorNavigation } from "@/lib/mirror-visual-edit-dom";
 import { useMirrorFrameRouteSync } from "@/hooks/use-mirror-frame-route-sync";
+import { applyMirrorIframeHeight } from "@/lib/mirror-iframe-height";
 import { useMirrorIframeAutoHeight } from "@/hooks/use-mirror-iframe-auto-height";
 import { useMirrorLocaleMessage } from "@/hooks/use-mirror-locale-message";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -160,7 +161,7 @@ export function MirrorVitrinFrameClient({
   });
 
   useMirrorLocaleMessage();
-  useMirrorIframeAutoHeight(iframeRef, !visualEditMode, [src, patchSig]);
+  useMirrorIframeAutoHeight(iframeRef, !visualEditMode, src);
   // Sepet/ödeme shell'lerinde iframe içinde sayfa geçişi olmaz — parent URL değişmemeli
   const syncParentRoute =
     !visualEditMode && !pathname.startsWith("/admin") && !isCartOrCheckoutShell;
@@ -294,6 +295,8 @@ export function MirrorVitrinFrameClient({
         }
       } finally {
         if (!disposed && catalogGen === liveCatalogGenRef.current) {
+          initProductCardGalleries(doc);
+          applyMirrorIframeHeight(iframeRef.current);
           setContentVisible(true);
         }
       }
@@ -313,6 +316,7 @@ export function MirrorVitrinFrameClient({
       ensureMirrorLayoutStyles(doc);
       revealMirrorImagesInDocument(doc);
       applyMirrorScrollStability(doc);
+      applyMirrorIframeHeight(frame);
       installMirrorStreetFoodBar(doc);
       installMirrorStreetFoodFundPage(doc);
       ensureMirrorLayoutStyles(doc);
@@ -372,7 +376,10 @@ export function MirrorVitrinFrameClient({
       }
 
       if (skipClientWork) {
-        void finishCatalogAndVisibility(doc);
+        initProductCardGalleries(doc);
+        void finishCatalogAndVisibility(doc).finally(() => {
+          if (!disposed) applyMirrorIframeHeight(frame);
+        });
         return;
       }
 
@@ -439,6 +446,7 @@ export function MirrorVitrinFrameClient({
       }
 
       void finishCatalogAndVisibility(doc);
+      applyMirrorIframeHeight(frame);
     }
 
     function schedulePatches() {
@@ -555,7 +563,7 @@ export function MirrorVitrinFrameClient({
   }, [focusSectionKey, visualEditMode, frameReady]);
 
   return (
-    <div className="kn-home-mirror relative min-h-[70vh] w-full">
+    <div className="kn-home-mirror relative h-screen w-full overflow-hidden">
       {visualEditMode && !frameReady ? (
         <p className="absolute right-2 top-2 z-10 rounded-md bg-zinc-800/95 px-2 py-1 text-xs text-zinc-400">
           Yükleniyor…
@@ -568,16 +576,6 @@ export function MirrorVitrinFrameClient({
         loading="eager"
         sandbox={visualEditMode ? "allow-same-origin allow-scripts" : undefined}
         className="mirror-home-frame"
-        style={{
-          display: "block",
-          width: "100%",
-          border: "none",
-          margin: 0,
-          padding: 0,
-          overflow: "hidden",
-          opacity: visualEditMode && !contentVisible ? 0 : 1,
-          transition: contentVisible ? "opacity 0.12s ease-out" : undefined,
-        }}
       />
     </div>
   );

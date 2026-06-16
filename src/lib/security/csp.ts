@@ -1,13 +1,14 @@
 /** Mağaza vitrini CSP — PayTR, Instagram/YouTube embed, GA/FB Pixel ile uyumlu */
 
 export function storeContentSecurityPolicy(): string {
+  const devEval = process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : "";
   return [
     "default-src 'self'",
     "base-uri 'self'",
     "form-action 'self' https://www.paytr.com",
     "frame-ancestors 'self'",
     "object-src 'none'",
-    "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net https://www.paytr.com",
+    `script-src 'self' 'unsafe-inline'${devEval} https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net https://www.paytr.com`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data: https:",

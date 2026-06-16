@@ -3,7 +3,7 @@ import {
   MIRROR_IMAGE_REVEAL_CSS,
   patchMirrorNoJsHiddenImagesHtml,
 } from "@/lib/mirror-image-reveal";
-import { MIRROR_EMBED_SCROLL_LOCK_CSS } from "@/lib/mirror-scroll-stability";
+import { MIRROR_EMBED_BOOT_SCRIPT_ID, MIRROR_EMBED_BOOT_SCRIPT_SRC } from "@/lib/mirror-embed-boot";
 
 /** Mirror vitrin — boş sayfa / görünmeyen bölümler (hafif, reflow yok) */
 
@@ -17,7 +17,6 @@ const VISIBLE_STYLE = `<style id="kn-mirror-visible-fallback">
 }
 ${MIRROR_IMAGE_REVEAL_CSS}
 ${MIRROR_EMBED_HERO_CRITICAL_CSS}
-${MIRROR_EMBED_SCROLL_LOCK_CSS}
 </style>`;
 
 const BOOT_SCRIPT = `<script id="kn-mirror-content-boot">(function(){
@@ -51,6 +50,8 @@ const BOOT_SCRIPT = `<script id="kn-mirror-content-boot">(function(){
   window.addEventListener("load",schedule,{once:true});
 })();</script>`;
 
+const EMBED_BOOT = `<script id="${MIRROR_EMBED_BOOT_SCRIPT_ID}" src="${MIRROR_EMBED_BOOT_SCRIPT_SRC}" async></script>`;
+
 /** Animasyonlar tamamlanmazsa içerik yine görünsün */
 export function injectMirrorContentFallback(html: string): string {
   let out = patchMirrorNoJsHiddenImagesHtml(html);
@@ -59,6 +60,9 @@ export function injectMirrorContentFallback(html: string): string {
   }
   if (!out.includes('id="kn-mirror-content-boot"')) {
     out = out.replace(/<\/body>/i, `${BOOT_SCRIPT}</body>`);
+  }
+  if (!out.includes('id="kn-mirror-embed-boot"')) {
+    out = out.replace(/<\/body>/i, `${EMBED_BOOT}</body>`);
   }
   return out;
 }

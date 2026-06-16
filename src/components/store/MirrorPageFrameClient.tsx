@@ -32,7 +32,7 @@ export function MirrorPageFrameClient({
   const patchKey = JSON.stringify({ branding, nav, footer, locale, contact });
 
   useMirrorLocaleMessage();
-  useMirrorIframeAutoHeight(iframeRef, true, [src, patchKey]);
+  useMirrorIframeAutoHeight(iframeRef, true, src);
 
   useEffect(() => {
     const iframe = iframeRef.current;

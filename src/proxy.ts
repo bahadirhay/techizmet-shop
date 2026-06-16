@@ -54,6 +54,7 @@ function attachLocaleOnNext(request: NextRequest, locale: ShopLocale, pathname: 
 }
 
 async function isStoreInMaintenance(request: NextRequest): Promise<boolean> {
+  if (process.env.NODE_ENV === "development") return false;
   try {
     const url = new URL("/api/site/maintenance", request.url);
     const res = await fetch(url, { cache: "no-store" });
@@ -139,6 +140,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|BingSiteAuth\\.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|xml|css|txt)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|BingSiteAuth\\.xml|indexnow-key\\.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|xml|css|txt)$).*)",
   ],
 };

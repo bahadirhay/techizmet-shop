@@ -75,7 +75,7 @@ function richText(sectionKey, bodyHtml) {
 <link href="/theme/techizmet-shop/cdn/shop/t/5/assets/richtext5169.css?v=67875551086195285421750848849" rel="stylesheet" type="text/css" media="all" />
 <div class="section-wrapper section-spacing scheme-primary section-solid">
   <div class="container-narrow">
-    <div class="richtext--content content-medium position-left text-left">
+    <div class="richtext--content content-medium position-center text-center">
 ${bodyHtml}
     </div>
   </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMirrorFrameRouteSync } from "@/hooks/use-mirror-frame-route-sync";
+import { applyMirrorIframeHeight } from "@/lib/mirror-iframe-height";
 import { useMirrorIframeAutoHeight } from "@/hooks/use-mirror-iframe-auto-height";
 import { useMirrorIframeLifecycle } from "@/hooks/use-mirror-iframe-lifecycle";
 import { injectMirrorProductBreadcrumb } from "@/lib/mirror-product-breadcrumb";
@@ -185,7 +186,7 @@ export function MirrorProductFrameClient({
     share,
   });
 
-  useMirrorIframeAutoHeight(iframeRef, true, [src, patchKey]);
+  useMirrorIframeAutoHeight(iframeRef, true, src);
 
   const runPatch = useCallback(() => {
     const frame = iframeRef.current;
@@ -194,6 +195,7 @@ export function MirrorProductFrameClient({
     if (!doc?.getElementById("MainContent")) return;
 
     applyMirrorScrollStability(doc);
+    applyMirrorIframeHeight(frame);
     applyMirrorStoreUiFixToDocument(doc);
     stripSeoFromMirrorDocument(doc);
     if (breadcrumbs.length) {
@@ -314,23 +316,13 @@ export function MirrorProductFrameClient({
   }, [patchKey, src]);
 
   return (
-    <div className="kn-home-mirror">
+    <div className="kn-home-mirror relative h-screen w-full overflow-hidden">
       <iframe
         ref={iframeRef}
         title={title}
         src={src}
         className="mirror-home-frame"
         loading="eager"
-        style={{
-          display: "block",
-          width: "100%",
-          border: "none",
-          margin: 0,
-          padding: 0,
-          overflow: "hidden",
-          opacity: contentVisible ? 1 : 0,
-          transition: contentVisible ? "opacity 0.12s ease-out" : undefined,
-        }}
       />
     </div>
   );

@@ -6,41 +6,29 @@ import { parseSiteSettings } from "@/lib/site-settings";
 import { requireStaffApi } from "@/lib/staff-auth";
 import { prisma } from "@/lib/prisma";
 import { formatFoodFundKg } from "@/lib/street-food-fund/format";
+import { Prisma } from "@prisma/client";
 
-export async function GET() {
-  const auth = await requireStaffApi();
-  if (auth instanceof NextResponse) return auth;
+type ContributionDto = {
+  id: string;
+  source: string;
+  orderNumber: string | null;
+  manualNote: string | null;
+  grams: number;
+  gramsLabel: string;
+  createdAt: string;
+};
 
-  const site = await prisma.storeSite.findUnique({ where: { id: auth.siteId } });
-  if (!site) return NextResponse.json({ error: "Site yok" }, { status: 404 });
+async function loadContributions(siteId: string, campaignId?: string): Promise<ContributionDto[]> {
+  const where = { siteId, ...(campaignId ? { campaignId } : {}) };
 
-  const settings = parseSiteSettings(site.settingsJson);
-  const cfg = getStreetFoodFundSettings(settings);
-  const campaign = await getActiveStreetFoodCampaign(auth.siteId);
-
-  const [contributions, donations, totalContributions] = await Promise.all([
-    prisma.streetFoodContribution.findMany({
-      where: { siteId: auth.siteId, ...(campaign ? { campaignId: campaign.id } : {}) },
+  try {
+    const rows = await prisma.streetFoodContribution.findMany({
+      where,
       orderBy: { createdAt: "desc" },
       take: 30,
       include: { order: { select: { orderNumber: true } } },
-    }),
-    prisma.streetFoodDonation.findMany({
-      where: { siteId: auth.siteId },
-      orderBy: { donatedAt: "desc" },
-      take: 20,
-    }),
-    prisma.streetFoodContribution.aggregate({
-      where: { siteId: auth.siteId, ...(campaign ? { campaignId: campaign.id } : {}) },
-      _sum: { grams: true },
-      _count: true,
-    }),
-  ]);
-
-  return NextResponse.json({
-    settings: cfg,
-    campaign,
-    contributions: contributions.map((c) => ({
+    });
+    return rows.map((c) => ({
       id: c.id,
       source: c.source,
       orderNumber: c.order?.orderNumber ?? null,
@@ -48,24 +36,88 @@ export async function GET() {
       grams: c.grams,
       gramsLabel: `${c.grams.toLocaleString("tr-TR")} g`,
       createdAt: c.createdAt.toISOString(),
-    })),
-    donations: donations.map((d) => ({
-      id: d.id,
-      recipientName: d.recipientName,
-      gramsDelivered: d.gramsDelivered,
-      gramsLabel: `${formatFoodFundKg(d.gramsDelivered)} kg`,
-      donatedAt: d.donatedAt.toISOString(),
-      published: d.published,
-      videoUrl: d.videoUrl,
-      photoUrlsJson: d.photoUrlsJson,
-      storyHtml: d.storyHtml,
-      campaignId: d.campaignId,
-    })),
-    stats: {
-      orderCount: totalContributions._count,
-      totalGrams: totalContributions._sum.grams ?? 0,
-    },
-  });
+    }));
+  } catch {
+    const rows = await prisma.$queryRaw<
+      Array<{
+        id: string;
+        orderId: string | null;
+        grams: number;
+        createdAt: Date;
+        orderNumber: string | null;
+      }>
+    >`
+      SELECT c.id, c."orderId", c.grams, c."createdAt", o."orderNumber"
+      FROM shop.street_food_contribution c
+      LEFT JOIN shop.store_order o ON o.id = c."orderId"
+      WHERE c."siteId" = ${siteId}
+      ${campaignId ? Prisma.sql`AND c."campaignId" = ${campaignId}` : Prisma.empty}
+      ORDER BY c."createdAt" DESC
+      LIMIT 30
+    `;
+    return rows.map((c) => ({
+      id: c.id,
+      source: "order",
+      orderNumber: c.orderNumber,
+      manualNote: null,
+      grams: c.grams,
+      gramsLabel: `${c.grams.toLocaleString("tr-TR")} g`,
+      createdAt: new Date(c.createdAt).toISOString(),
+    }));
+  }
+}
+
+export async function GET() {
+  const auth = await requireStaffApi();
+  if (auth instanceof NextResponse) return auth;
+
+  try {
+    const site = await prisma.storeSite.findUnique({ where: { id: auth.siteId } });
+    if (!site) return NextResponse.json({ error: "Site yok" }, { status: 404 });
+
+    const settings = parseSiteSettings(site.settingsJson);
+    const cfg = getStreetFoodFundSettings(settings);
+    const campaign = await getActiveStreetFoodCampaign(auth.siteId);
+
+    const [contributions, donations, totalContributions] = await Promise.all([
+      loadContributions(auth.siteId, campaign?.id),
+      prisma.streetFoodDonation.findMany({
+        where: { siteId: auth.siteId },
+        orderBy: { donatedAt: "desc" },
+        take: 20,
+      }),
+      prisma.streetFoodContribution.aggregate({
+        where: { siteId: auth.siteId, ...(campaign ? { campaignId: campaign.id } : {}) },
+        _sum: { grams: true },
+        _count: true,
+      }),
+    ]);
+
+    return NextResponse.json({
+      settings: cfg,
+      campaign,
+      contributions,
+      donations: donations.map((d) => ({
+        id: d.id,
+        recipientName: d.recipientName,
+        gramsDelivered: d.gramsDelivered,
+        gramsLabel: `${formatFoodFundKg(d.gramsDelivered)} kg`,
+        donatedAt: d.donatedAt.toISOString(),
+        published: d.published,
+        videoUrl: d.videoUrl,
+        photoUrlsJson: d.photoUrlsJson,
+        storyHtml: d.storyHtml,
+        campaignId: d.campaignId,
+      })),
+      stats: {
+        orderCount: totalContributions._count,
+        totalGrams: totalContributions._sum.grams ?? 0,
+      },
+    });
+  } catch (err) {
+    console.error("[street-food-fund/admin] GET failed", err);
+    return NextResponse.json({ error: "Mama fonu verileri yüklenemedi" }, { status: 500 });
+  }
 }
 
 export async function PATCH(req: Request) {

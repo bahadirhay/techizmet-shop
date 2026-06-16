@@ -35,6 +35,20 @@ const PAGE_STYLES = `
 .kn-street-food-donation__meta { font-size: .85rem; color: color-mix(in srgb, var(--text_color, #111) 60%, transparent); }
 .kn-street-food-donation__photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-top: 12px; }
 .kn-street-food-donation__photos img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; }
+#kn-mirror-section-template--street_food_fund__richtext .richtext--content {
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
+}
+#kn-mirror-section-template--street_food_fund__richtext .richtext--content ol {
+  display: inline-block;
+  text-align: left;
+  margin: 0 auto;
+  padding-left: 1.25rem;
+}
+#kn-mirror-section-template--street_food_fund__richtext .richtext--content .button {
+  display: inline-block;
+}
 `;
 
 function escHtml(value: string): string {

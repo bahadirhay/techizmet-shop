@@ -100,7 +100,7 @@ export function MirrorSearchFrameClient({
   ]);
 
   useMirrorLocaleMessage();
-  useMirrorIframeAutoHeight(iframeRef, true, [src, patchKey]);
+  useMirrorIframeAutoHeight(iframeRef, true, src);
   useMirrorFrameRouteSync(iframeRef, src);
   const frameReady = useMirrorIframeLifecycle(iframeRef, src, runPatch, [patchKey, runPatch]);
 

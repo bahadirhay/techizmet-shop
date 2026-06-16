@@ -24,6 +24,7 @@ import { KN_LEGACY_STUB_IDS } from "@/lib/mirror-html-shopify-strip";
 import { syncMirrorNavigation, type MirrorNavItem } from "@/lib/mirror-nav-overlay";
 import { applyMirrorContact, type MirrorContactData } from "@/lib/mirror-contact-overlay";
 import { installMirrorStreetFoodBar } from "@/lib/mirror-street-food-bar";
+import { applyMirrorIframeHeight } from "@/lib/mirror-iframe-height";
 import { revealMirrorImagesInDocument } from "@/lib/mirror-image-reveal";
 import { applyMirrorScrollStability } from "@/lib/mirror-scroll-stability";
 
@@ -95,6 +96,8 @@ export function applyMirrorFramePatches(doc: Document, opts: MirrorFramePatchOpt
   installMirrorStreetFoodBar(doc);
   revealMirrorImagesInDocument(doc);
   applyMirrorScrollStability(doc);
+  const frame = doc.defaultView?.frameElement as HTMLIFrameElement | null | undefined;
+  applyMirrorIframeHeight(frame);
 }
 
 /** Eski mirror dosyaları için yedek — sunucu hazırsa no-op */

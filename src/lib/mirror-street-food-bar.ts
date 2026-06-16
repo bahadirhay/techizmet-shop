@@ -195,10 +195,11 @@ function renderHeroHtml(payload: StreetFoodBarPayload): string {
 export function applyStreetFoodFundBar(doc: Document, payload: StreetFoodBarPayload | null) {
   ensureStyles(doc);
   let bar = doc.getElementById(BAR_ID);
-  if (!payload?.enabled) {
+  if (payload && !payload.enabled) {
     if (bar) bar.setAttribute("hidden", "");
     return;
   }
+  if (!payload) return;
   if (!bar) {
     bar = doc.createElement("div");
     bar.id = BAR_ID;
@@ -216,10 +217,11 @@ export function applyStreetFoodFundHero(doc: Document, payload: StreetFoodBarPay
 
   ensureHeroStyles(doc);
   let hero = doc.getElementById(HERO_ID);
-  if (!payload?.enabled) {
+  if (payload && !payload.enabled) {
     hero?.setAttribute("hidden", "");
     return;
   }
+  if (!payload) return;
 
   if (!hero) {
     hero = doc.createElement("div");
