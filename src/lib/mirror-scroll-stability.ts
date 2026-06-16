@@ -2,6 +2,7 @@
 
 const STYLE_ID = "kn-scroll-stability-style";
 const SCRIPT_ID = "kn-scroll-stability-script";
+const SCROLL_BRIDGE_SCRIPT_ID = "kn-scroll-bridge-script";
 
 export const MIRROR_EMBED_SCROLL_LOCK_CSS = `
 html.kn-mirror-embed,
@@ -38,6 +39,30 @@ ${MIRROR_EMBED_SCROLL_LOCK_CSS}
 }
 `;
 
+const SCROLL_BRIDGE_SCRIPT = `(function(){
+  var parentWin=window.parent;
+  if(!parentWin||parentWin===window)return;
+  var root=document.documentElement;
+  if(root.getAttribute("data-kn-scroll-bridge")==="1")return;
+  root.setAttribute("data-kn-scroll-bridge","1");
+  var btn=document.querySelector("[back-to-top-button]");
+  if(!btn)return;
+  function sync(){
+    try{
+      var st=parentWin.pageYOffset||parentWin.document.documentElement.scrollTop||0;
+      if(st>1000)btn.classList.add("show");
+      else btn.classList.remove("show");
+    }catch(e){}
+  }
+  parentWin.addEventListener("scroll",sync,{passive:true});
+  sync();
+  btn.addEventListener("click",function(ev){
+    ev.preventDefault();
+    try{parentWin.scrollTo({top:0,behavior:"smooth"});}
+    catch(e){try{parentWin.scrollTo(0,0);}catch(e2){}}
+  });
+})();`;
+
 const SCROLL_GUARD_SCRIPT = `(function(){
   function killRevealScroll(){
     try{
@@ -67,5 +92,11 @@ export function applyMirrorScrollStability(doc: Document) {
     script.id = SCRIPT_ID;
     script.textContent = SCROLL_GUARD_SCRIPT;
     (doc.body ?? doc.documentElement).appendChild(script);
+  }
+  if (!doc.getElementById(SCROLL_BRIDGE_SCRIPT_ID)) {
+    const bridge = doc.createElement("script");
+    bridge.id = SCROLL_BRIDGE_SCRIPT_ID;
+    bridge.textContent = SCROLL_BRIDGE_SCRIPT;
+    (doc.body ?? doc.documentElement).appendChild(bridge);
   }
 }

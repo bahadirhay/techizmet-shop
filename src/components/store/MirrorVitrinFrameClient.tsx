@@ -571,7 +571,6 @@ export function MirrorVitrinFrameClient({
         style={{
           display: "block",
           width: "100%",
-          minHeight: "100vh",
           border: "none",
           margin: 0,
           padding: 0,

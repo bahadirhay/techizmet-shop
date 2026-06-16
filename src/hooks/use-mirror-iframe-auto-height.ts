@@ -1,5 +1,6 @@
 "use client";
 
+import { measureMirrorIframeContentHeight } from "@/lib/mirror-iframe-height";
 import { type DependencyList, type RefObject, useEffect } from "react";
 
 /** Tek seferlik ölçüm — ResizeObserver/MutationObserver yok (sürekli kaydırmayı önler). */
@@ -34,14 +35,9 @@ export function useMirrorIframeAutoHeight(
         if (!frame) return;
         const doc = frame.contentDocument;
         if (!doc?.body) return;
-        const h = Math.max(
-          doc.documentElement.scrollHeight,
-          doc.documentElement.offsetHeight,
-          doc.body.scrollHeight,
-          doc.body.offsetHeight,
-        );
-        if (!Number.isFinite(h) || h <= 0) return;
-        const next = Math.ceil(h);
+        const measured = measureMirrorIframeContentHeight(doc);
+        if (measured == null || measured <= 0) return;
+        const next = measured;
         if (lastApplied > 0 && Math.abs(next - lastApplied) < MIN_DELTA_PX) return;
         lastApplied = next;
         updates += 1;

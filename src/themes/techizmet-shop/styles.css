@@ -206,7 +206,6 @@
 .kn-home-mirror .mirror-home-frame {
   display: block;
   width: 100%;
-  min-height: 100vh;
   border: none;
   overflow: hidden;
 }

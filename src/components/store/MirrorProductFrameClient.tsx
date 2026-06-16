@@ -13,6 +13,8 @@ import {
   type ProductExploreLook,
 } from "@/lib/product-explore-looks";
 import { scheduleMirrorFramePatches } from "@/lib/mirror-frame-patch";
+import { applyMirrorScrollStability } from "@/lib/mirror-scroll-stability";
+import { applyMirrorStoreUiFixToDocument } from "@/lib/mirror-store-ui-fix";
 import type { MirrorBranding } from "@/lib/mirror-branding-overlay";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import type { MirrorFooterData } from "@/lib/mirror-footer-overlay";
@@ -191,6 +193,8 @@ export function MirrorProductFrameClient({
     const doc = frame.contentDocument;
     if (!doc?.getElementById("MainContent")) return;
 
+    applyMirrorScrollStability(doc);
+    applyMirrorStoreUiFixToDocument(doc);
     stripSeoFromMirrorDocument(doc);
     if (breadcrumbs.length) {
       injectMirrorProductBreadcrumb(doc, breadcrumbs, locale ?? "tr");
@@ -320,7 +324,6 @@ export function MirrorProductFrameClient({
         style={{
           display: "block",
           width: "100%",
-          minHeight: "100vh",
           border: "none",
           margin: 0,
           padding: 0,

@@ -597,7 +597,7 @@ html.kn-mirror-embed .popup.product-media-popup {
   width: 100% !important;
   height: 100% !important;
   max-width: none !important;
-  z-index: 10000 !important;
+  z-index: 20000 !important;
 }
 
 html.kn-mirror-embed product-media-popup.popup .popup-dialog.fullwidth,
@@ -606,6 +606,17 @@ html.kn-mirror-embed .popup.product-media-popup .popup-dialog.fullwidth {
   width: 100% !important;
   height: 100% !important;
   padding: 0 !important;
+}
+
+html.kn-mirror-embed product-media-popup .popup-close,
+html.kn-mirror-embed .product-media-popup .popup-close {
+  pointer-events: all !important;
+  z-index: 5 !important;
+  position: relative !important;
+}
+
+html.kn-mirror-embed.kn-product-zoom-open #kn-street-food-bar {
+  display: none !important;
 }
 
 html.kn-mirror-embed.kn-product-zoom-open,
@@ -683,6 +694,13 @@ html.kn-mirror-embed.kn-product-zoom-open body {
 /* Yukarı çık — tema SVG + icon_bounce bazen görünmez; CSS ok */
 .scroll-to-top {
   z-index: 90 !important;
+}
+
+/* Mirror embed: parent sayfa kaydırır; fixed buton iframe viewport'una yapışır */
+html.kn-mirror-embed .scroll-to-top {
+  position: fixed !important;
+  bottom: calc(20px + var(--scroll-top-vertical-position, 10px)) !important;
+  z-index: 20010 !important;
 }
 
 .scroll-to-top-inner {

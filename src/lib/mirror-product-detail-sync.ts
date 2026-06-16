@@ -413,7 +413,7 @@ html.kn-mirror-embed .popup.product-media-popup {
   height: 100% !important;
   max-width: none !important;
   max-height: none !important;
-  z-index: 10000 !important;
+  z-index: 20000 !important;
   margin: 0 !important;
 }
 html.kn-mirror-embed product-media-popup.popup .popup-dialog.fullwidth,
@@ -422,6 +422,15 @@ html.kn-mirror-embed .popup.product-media-popup .popup-dialog.fullwidth {
   width: 100% !important;
   height: 100% !important;
   padding: 0 !important;
+}
+html.kn-mirror-embed product-media-popup .popup-close,
+html.kn-mirror-embed .product-media-popup .popup-close {
+  pointer-events: all !important;
+  z-index: 5 !important;
+  position: relative !important;
+}
+html.kn-mirror-embed.kn-product-zoom-open #kn-street-food-bar {
+  display: none !important;
 }
 html.kn-mirror-embed.kn-product-zoom-open,
 html.kn-mirror-embed.kn-product-zoom-open body {
@@ -436,11 +445,20 @@ html.kn-mirror-embed.kn-product-zoom-open body {
   function sync(){
     var open=!!document.querySelector("product-media-popup.show,.product-media-popup.show");
     document.documentElement.classList.toggle("kn-product-zoom-open",open);
+    var bar=document.getElementById("kn-street-food-bar");
+    if(bar)bar.toggleAttribute("hidden",open);
   }
   try{
     new MutationObserver(sync).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:["class","style"]});
   }catch(e){}
   document.addEventListener("click",function(){setTimeout(sync,0);setTimeout(sync,450);});
+  document.addEventListener("keydown",function(e){
+    if(e.key!=="Escape")return;
+    var p=document.querySelector("product-media-popup.show,.product-media-popup.show");
+    if(!p)return;
+    var close=p.querySelector("[data-popup-close]");
+    if(close)close.click();
+  });
 })();`;
   (doc.body ?? doc.documentElement).appendChild(script);
 }
