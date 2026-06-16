@@ -696,11 +696,16 @@ html.kn-mirror-embed.kn-product-zoom-open body {
   z-index: 90 !important;
 }
 
-/* Mirror embed: parent sayfa kaydırır; fixed buton iframe viewport'una yapışır */
-html.kn-mirror-embed .scroll-to-top {
-  position: fixed !important;
-  bottom: calc(20px + var(--scroll-top-vertical-position, 10px)) !important;
-  z-index: 20010 !important;
+.scroll-to-top:not(.show) {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+.scroll-to-top.show {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: all !important;
 }
 
 .scroll-to-top-inner {

@@ -1211,8 +1211,11 @@ model StreetFoodContribution {
   site       StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
   campaignId String
   campaign   StreetFoodCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  orderId    String   @unique
-  order      StoreOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId    String?  @unique
+  order      StoreOrder? @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  /** order | manual */
+  source     String   @default("order")
+  manualNote String?
   grams      Int
   createdAt  DateTime @default(now())
 

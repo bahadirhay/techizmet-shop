@@ -62,7 +62,7 @@ export async function recordStreetFoodContributionOnPayment(
 
   await prisma.$transaction(async (tx) => {
     await tx.streetFoodContribution.create({
-      data: { siteId, campaignId: campaign.id, orderId, grams },
+      data: { siteId, campaignId: campaign.id, orderId, grams, source: "order" },
     });
 
     const updated = await tx.streetFoodCampaign.update({
@@ -82,4 +82,52 @@ export async function recordStreetFoodContributionOnPayment(
   });
 
   return { grams, recorded: true };
+}
+
+/** Admin — kumbaraya manuel gram ekle */
+export async function recordManualStreetFoodContribution(
+  siteId: string,
+  grams: number,
+  note?: string,
+): Promise<{ grams: number; recorded: boolean }> {
+  const settings = await getSiteSettings(siteId);
+  const cfg = getStreetFoodFundSettings(settings);
+  if (!cfg.enabled) return { grams: 0, recorded: false };
+
+  const rounded = Math.round(grams);
+  if (rounded <= 0) return { grams: 0, recorded: false };
+
+  const campaign = await ensureActiveStreetFoodCampaign(siteId, cfg);
+  if (campaign.status === "closed") return { grams: 0, recorded: false };
+
+  const trimmedNote = note?.trim() || null;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.streetFoodContribution.create({
+      data: {
+        siteId,
+        campaignId: campaign.id,
+        grams: rounded,
+        source: "manual",
+        manualNote: trimmedNote,
+      },
+    });
+
+    const updated = await tx.streetFoodCampaign.update({
+      where: { id: campaign.id },
+      data: { collectedGrams: { increment: rounded } },
+    });
+
+    if (
+      updated.collectedGrams >= updated.targetGrams &&
+      updated.status === "active"
+    ) {
+      await tx.streetFoodCampaign.update({
+        where: { id: campaign.id },
+        data: { status: "goal_reached", completedAt: new Date() },
+      });
+    }
+  });
+
+  return { grams: rounded, recorded: true };
 }

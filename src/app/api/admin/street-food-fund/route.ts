@@ -42,7 +42,9 @@ export async function GET() {
     campaign,
     contributions: contributions.map((c) => ({
       id: c.id,
-      orderNumber: c.order.orderNumber,
+      source: c.source,
+      orderNumber: c.order?.orderNumber ?? null,
+      manualNote: c.manualNote,
       grams: c.grams,
       gramsLabel: `${c.grams.toLocaleString("tr-TR")} g`,
       createdAt: c.createdAt.toISOString(),

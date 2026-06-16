@@ -16,7 +16,14 @@ type FundData = {
     collectedGrams: number;
     status: string;
   } | null;
-  contributions: { id: string; orderNumber: string; gramsLabel: string; createdAt: string }[];
+  contributions: {
+    id: string;
+    source: string;
+    orderNumber: string | null;
+    manualNote: string | null;
+    gramsLabel: string;
+    createdAt: string;
+  }[];
   donations: {
     id: string;
     recipientName: string;
@@ -43,6 +50,7 @@ export function StreetFoodFundPanel() {
     videoUrl: "",
     publish: true,
   });
+  const [manualForm, setManualForm] = useState({ grams: "", note: "" });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -104,6 +112,31 @@ export function StreetFoodFundPanel() {
       });
       await load();
       setMessage("Yeni kampanya başlatıldı.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function submitManual(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/admin/street-food-fund/manual", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          grams: Number(manualForm.grams),
+          note: manualForm.note || undefined,
+        }),
+      });
+      const body = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(body.error ?? "Kayıt başarısız");
+      setManualForm({ grams: "", note: "" });
+      await load();
+      setMessage("Kumbaraya manuel ekleme kaydedildi.");
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Manuel ekleme başarısız.");
     } finally {
       setSaving(false);
     }
@@ -220,6 +253,40 @@ export function StreetFoodFundPanel() {
                 Yeni döngü başlat
               </button>
             </div>
+            <form
+              className="mt-4 flex flex-wrap items-end gap-3 rounded-lg border border-dashed border-[var(--kn-border)] p-4"
+              onSubmit={(e) => void submitManual(e)}
+            >
+              <p className="w-full text-sm font-medium">Kumbaraya manuel ekle</p>
+              <label className="text-sm block">
+                Gram (gr)
+                <input
+                  required
+                  type="number"
+                  min={1}
+                  step={1}
+                  className="mt-1 w-32 rounded-lg border border-[var(--kn-border)] px-3 py-2"
+                  value={manualForm.grams}
+                  onChange={(e) => setManualForm((f) => ({ ...f, grams: e.target.value }))}
+                />
+              </label>
+              <label className="text-sm block flex-1 min-w-[12rem]">
+                Not (isteğe bağlı)
+                <input
+                  className="mt-1 w-full rounded-lg border border-[var(--kn-border)] px-3 py-2"
+                  placeholder="Örn. nakit bağış, etkinlik"
+                  value={manualForm.note}
+                  onChange={(e) => setManualForm((f) => ({ ...f, note: e.target.value }))}
+                />
+              </label>
+              <button
+                type="submit"
+                disabled={saving || !data.settings.enabled}
+                className="rounded-lg bg-[var(--kn-brand)] px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+              >
+                Ekle
+              </button>
+            </form>
           </>
         ) : (
           <p className="text-sm text-[var(--kn-muted)]">
@@ -300,7 +367,18 @@ export function StreetFoodFundPanel() {
           {data.contributions.length ? (
             data.contributions.map((c) => (
               <li key={c.id} className="flex justify-between gap-4 px-4 py-3 text-sm">
-                <span>#{c.orderNumber}</span>
+                <span>
+                  {c.source === "manual" ? (
+                    <>
+                      Manuel
+                      {c.manualNote ? (
+                        <span className="text-[var(--kn-muted)]"> · {c.manualNote}</span>
+                      ) : null}
+                    </>
+                  ) : (
+                    <>#{c.orderNumber ?? "—"}</>
+                  )}
+                </span>
                 <span>{c.gramsLabel}</span>
                 <span className="text-[var(--kn-muted)]">
                   {new Date(c.createdAt).toLocaleString("tr-TR")}
