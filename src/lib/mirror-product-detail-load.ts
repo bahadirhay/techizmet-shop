@@ -2,10 +2,8 @@
 
 import { loadMirrorProductCommerceUncached } from "@/lib/mirror-product-commerce-load";
 import type { MirrorProductCommercePayload } from "@/lib/mirror-product-commerce";
-import {
-  applyProductDetailToMirrorHtml,
-  type VitrinProductDetail,
-} from "@/lib/mirror-product-detail-sync";
+import { applyProductDetailToMirrorHtml } from "@/lib/mirror-product-detail-html";
+import type { VitrinProductDetail } from "@/lib/mirror-product-detail-sync";
 import type { ProductContentOverlay } from "@/lib/mirror-product-overlay";
 import { productHighlightsForPatch } from "@/lib/product-highlights";
 import { getProductPageBottomSettings } from "@/lib/product-page-bottom";
