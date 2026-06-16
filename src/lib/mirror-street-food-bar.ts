@@ -24,7 +24,7 @@ function ensureStyles(doc: Document) {
   style.textContent = `
 #${BAR_ID} {
   position: relative;
-  z-index: 10050;
+  z-index: 1;
   width: 100%;
   background: linear-gradient(90deg, #1f4d3a 0%, #2d6a4f 55%, #40916c 100%);
   color: #fff;
@@ -98,7 +98,7 @@ function ensureHeroStyles(doc: Document) {
   left: 16px;
   right: 16px;
   bottom: 16px;
-  z-index: 12;
+  z-index: 2;
   pointer-events: none;
   max-width: 420px;
 }
@@ -192,6 +192,48 @@ function renderHeroHtml(payload: StreetFoodBarPayload): string {
 </div>`;
 }
 
+function findStreetFoodBarAnchor(doc: Document): Element {
+  return (
+    doc.querySelector(".section-header") ??
+    doc.querySelector("[data-header-section]") ??
+    doc.body
+  );
+}
+
+function mountStreetFoodBar(doc: Document, bar: HTMLElement) {
+  const anchor = findStreetFoodBarAnchor(doc);
+  if (anchor === doc.body) {
+    doc.body.prepend(bar);
+    return;
+  }
+  if (bar.parentElement !== anchor.parentElement || bar.previousElementSibling !== anchor) {
+    anchor.insertAdjacentElement("afterend", bar);
+  }
+}
+
+function syncHeroUnderHeader(doc: Document) {
+  const win = doc.defaultView;
+  const hero = doc.getElementById(HERO_ID);
+  if (!win || !hero) return;
+
+  const onScroll = () => {
+    const header = doc.querySelector(".section-header");
+    if (!header) return;
+    const headerBottom = header.getBoundingClientRect().bottom;
+    const heroTop = hero.getBoundingClientRect().top;
+    const overlap = heroTop < headerBottom - 2;
+    hero.style.visibility = overlap ? "hidden" : "";
+    hero.style.pointerEvents = overlap ? "none" : "";
+  };
+
+  const key = "__knStreetFoodHeroScroll";
+  const prev = (win as unknown as Record<string, (() => void) | undefined>)[key];
+  if (prev) win.removeEventListener("scroll", prev);
+  (win as unknown as Record<string, () => void>)[key] = onScroll;
+  win.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
+}
+
 export function applyStreetFoodFundBar(doc: Document, payload: StreetFoodBarPayload | null) {
   ensureStyles(doc);
   let bar = doc.getElementById(BAR_ID);
@@ -203,8 +245,8 @@ export function applyStreetFoodFundBar(doc: Document, payload: StreetFoodBarPayl
   if (!bar) {
     bar = doc.createElement("div");
     bar.id = BAR_ID;
-    doc.body.prepend(bar);
   }
+  mountStreetFoodBar(doc, bar);
   bar.removeAttribute("hidden");
   bar.innerHTML = renderBarHtml(payload);
 }
@@ -251,6 +293,7 @@ export function installMirrorStreetFoodBar(doc: Document) {
     const payload = await fetchPayload();
     applyStreetFoodFundBar(doc, payload);
     applyStreetFoodFundHero(doc, payload);
+    syncHeroUnderHeader(doc);
   };
 
   void refresh();

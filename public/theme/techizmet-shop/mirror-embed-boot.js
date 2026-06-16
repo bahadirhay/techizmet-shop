@@ -99,23 +99,50 @@
       '">Detaylar</a></div>'
     );
   }
+  function findBarAnchor() {
+    return qs(".section-header") || qs("[data-header-section]") || document.body;
+  }
+  function mountBar(bar) {
+    var anchor = findBarAnchor();
+    if (anchor === document.body) {
+      if (bar.parentElement !== document.body || bar !== document.body.firstElementChild) {
+        document.body.prepend(bar);
+      }
+      return;
+    }
+    if (bar.parentElement !== anchor.parentElement || bar.previousElementSibling !== anchor) {
+      anchor.insertAdjacentElement("afterend", bar);
+    }
+  }
+  function syncHeroUnderHeader() {
+    var hero = qs("#kn-street-food-hero");
+    if (!hero) return;
+    var header = qs(".section-header");
+    if (!header) return;
+    var headerBottom = header.getBoundingClientRect().bottom;
+    var heroTop = hero.getBoundingClientRect().top;
+    var overlap = heroTop < headerBottom - 2;
+    hero.style.visibility = overlap ? "hidden" : "";
+    hero.style.pointerEvents = overlap ? "none" : "";
+  }
   function applyBar(p) {
     if (!p || !p.enabled) return;
     if (!qs("#kn-street-food-bar-styles")) {
       var st = document.createElement("style");
       st.id = "kn-street-food-bar-styles";
       st.textContent =
-        "#kn-street-food-bar{position:relative;z-index:10050;width:100%;background:linear-gradient(90deg,#1f4d3a 0%,#2d6a4f 55%,#40916c 100%);color:#fff;font-size:12px;line-height:1.35;box-shadow:0 1px 0 rgba(255,255,255,.08)}#kn-street-food-bar[hidden]{display:none!important}.kn-street-food-bar__inner{max-width:1320px;margin:0 auto;padding:8px 16px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px}.kn-street-food-bar__title{font-weight:700;white-space:nowrap}.kn-street-food-bar__meter{flex:1 1 180px;min-width:140px}.kn-street-food-bar__counts{font-weight:600;white-space:nowrap}.kn-street-food-bar__track{height:4px;border-radius:999px;background:rgba(255,255,255,.25);margin-top:4px;overflow:hidden}.kn-street-food-bar__fill{height:100%;border-radius:999px;background:#b7e4c7;transition:width .35s ease}.kn-street-food-bar__sub{opacity:.92;font-size:11px}.kn-street-food-bar__link{color:#fff;text-decoration:underline;text-underline-offset:2px;white-space:nowrap}";
+        "#kn-street-food-bar{position:relative;z-index:1;width:100%;background:linear-gradient(90deg,#1f4d3a 0%,#2d6a4f 55%,#40916c 100%);color:#fff;font-size:12px;line-height:1.35;box-shadow:0 1px 0 rgba(255,255,255,.08)}#kn-street-food-bar[hidden]{display:none!important}.kn-street-food-bar__inner{max-width:1320px;margin:0 auto;padding:8px 16px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px}.kn-street-food-bar__title{font-weight:700;white-space:nowrap}.kn-street-food-bar__meter{flex:1 1 180px;min-width:140px}.kn-street-food-bar__counts{font-weight:600;white-space:nowrap}.kn-street-food-bar__track{height:4px;border-radius:999px;background:rgba(255,255,255,.25);margin-top:4px;overflow:hidden}.kn-street-food-bar__fill{height:100%;border-radius:999px;background:#b7e4c7;transition:width .35s ease}.kn-street-food-bar__sub{opacity:.92;font-size:11px}.kn-street-food-bar__link{color:#fff;text-decoration:underline;text-underline-offset:2px;white-space:nowrap}";
       document.head.appendChild(st);
     }
     var bar = qs("#kn-street-food-bar");
     if (!bar) {
       bar = document.createElement("div");
       bar.id = "kn-street-food-bar";
-      document.body.prepend(bar);
     }
+    mountBar(bar);
     bar.removeAttribute("hidden");
     bar.innerHTML = renderBar(p);
+    syncHeroUnderHeader();
   }
   function refreshBar() {
     fetch("/api/vitrin/street-food-fund", { cache: "no-store", credentials: "same-origin" })
@@ -128,5 +155,6 @@
   if (!qs("[data-kn-street-food-fund-page]")) {
     refreshBar();
     setInterval(refreshBar, 60000);
+    window.addEventListener("scroll", syncHeroUnderHeader, { passive: true });
   }
 })();

@@ -3,7 +3,7 @@
 import { revealMirrorImagesInDocument } from "@/lib/mirror-image-reveal";
 import { patchMirrorLogoDimensions } from "@/lib/mirror-logo-unify";
 
-const FIXES_CSS_VERSION = 28;
+const FIXES_CSS_VERSION = 30;
 const FIXES_CSS_HREF = `/theme/techizmet-shop/store-ui-fixes.css?v=${FIXES_CSS_VERSION}`;
 
 export function patchMirrorLogoSize(html: string): string {

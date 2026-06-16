@@ -406,6 +406,21 @@ sticky-on-scroll.header {
   --logo_width: 320px !important;
 }
 
+/* Sticky header — mama fonu şeridi ve hero kartının üstünde */
+html.kn-mirror-embed .section-header {
+  z-index: 250 !important;
+  isolation: isolate;
+}
+
+html.kn-mirror-embed #kn-street-food-bar {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+html.kn-mirror-embed #kn-street-food-hero {
+  z-index: 2 !important;
+}
+
 @media (max-width: 1024px) {
   html.kn-mobile-header .section-header,
   html.kn-mobile-header sticky-always.header,
@@ -580,6 +595,39 @@ sticky-on-scroll.header {
     max-width: 100% !important;
     padding-left: max(8px, env(safe-area-inset-left, 0px)) !important;
     padding-right: max(8px, env(safe-area-inset-right, 0px)) !important;
+  }
+
+  /* Mobil mirror — header kaydırınca gizlenmesin / şeffaflık flaşı olmasın */
+  html.kn-mirror-embed.kn-mobile-header sticky-always.header.is-hidden,
+  html.kn-mirror-embed.kn-mobile-header sticky-on-scroll.header.is-hidden {
+    transform: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+  }
+
+  html.kn-mirror-embed.kn-mobile-header .header.mobile-transparent::before,
+  html.kn-mirror-embed.kn-mobile-header .header.mobile-transparent.is-sticky::before {
+    opacity: 1 !important;
+    transition: none !important;
+  }
+
+  html.kn-mirror-embed.kn-mobile-header .header.mobile-transparent .transparent-logo-img {
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  html.kn-mirror-embed.kn-mobile-header .header.mobile-transparent .header--logo-img:not(.transparent-logo-img) {
+    opacity: 1 !important;
+  }
+
+  html.kn-mirror-embed.kn-mobile-header .section-header {
+    z-index: 250 !important;
+  }
+
+  html.kn-mirror-embed.kn-mobile-header .section-header,
+  html.kn-mirror-embed.kn-mobile-header .header {
+    transition: none !important;
   }
 }
 
