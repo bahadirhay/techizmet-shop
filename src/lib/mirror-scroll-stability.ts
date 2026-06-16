@@ -3,10 +3,26 @@
 const STYLE_ID = "kn-scroll-stability-style";
 const SCRIPT_ID = "kn-scroll-stability-script";
 
+export const MIRROR_EMBED_SCROLL_LOCK_CSS = `
+html.kn-mirror-embed,
+html.kn-mirror-embed body {
+  overflow-x: clip !important;
+  overflow-y: hidden !important;
+  height: auto !important;
+  scrollbar-width: none !important;
+}
+html.kn-mirror-embed *::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
+`;
+
 export const MIRROR_SCROLL_STABILITY_CSS = `
 html, body {
   overflow-anchor: none !important;
 }
+${MIRROR_EMBED_SCROLL_LOCK_CSS}
 .section-video .media,
 .section-video .video--wrapper,
 .kn-video-embed-host {

@@ -573,6 +573,7 @@ export function MirrorVitrinFrameClient({
           border: "none",
           margin: 0,
           padding: 0,
+          overflow: "hidden",
           opacity: visualEditMode && !contentVisible ? 0 : 1,
           transition: contentVisible ? "opacity 0.12s ease-out" : undefined,
         }}

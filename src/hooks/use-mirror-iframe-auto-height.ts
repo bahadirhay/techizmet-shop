@@ -3,8 +3,8 @@
 import { type DependencyList, type RefObject, useEffect } from "react";
 
 /** Tek seferlik ölçüm — ResizeObserver/MutationObserver yok (sürekli kaydırmayı önler). */
-const MEASURE_AT_MS = [300, 1000, 2500, 4500] as const;
-const MAX_UPDATES = 4;
+const MEASURE_AT_MS = [300, 1000, 2500, 4500, 7000] as const;
+const MAX_UPDATES = 5;
 const MIN_DELTA_PX = 20;
 
 export function useMirrorIframeAutoHeight(
@@ -36,8 +36,9 @@ export function useMirrorIframeAutoHeight(
         if (!doc?.body) return;
         const h = Math.max(
           doc.documentElement.scrollHeight,
+          doc.documentElement.offsetHeight,
           doc.body.scrollHeight,
-          window.innerHeight,
+          doc.body.offsetHeight,
         );
         if (!Number.isFinite(h) || h <= 0) return;
         const next = Math.ceil(h);

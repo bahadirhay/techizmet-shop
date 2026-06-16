@@ -3,6 +3,7 @@ import {
   MIRROR_IMAGE_REVEAL_CSS,
   patchMirrorNoJsHiddenImagesHtml,
 } from "@/lib/mirror-image-reveal";
+import { MIRROR_EMBED_SCROLL_LOCK_CSS } from "@/lib/mirror-scroll-stability";
 
 /** Mirror vitrin — boş sayfa / görünmeyen bölümler (hafif, reflow yok) */
 
@@ -16,9 +17,11 @@ const VISIBLE_STYLE = `<style id="kn-mirror-visible-fallback">
 }
 ${MIRROR_IMAGE_REVEAL_CSS}
 ${MIRROR_EMBED_HERO_CRITICAL_CSS}
+${MIRROR_EMBED_SCROLL_LOCK_CSS}
 </style>`;
 
 const BOOT_SCRIPT = `<script id="kn-mirror-content-boot">(function(){
+  try{document.documentElement.classList.add("kn-mirror-embed");}catch(e){}
   var done=false;
   function reveal(){
     if(done)return;
