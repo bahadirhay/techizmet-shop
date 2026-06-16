@@ -7,6 +7,7 @@ import {
 import { formatPercentOffBadge, percentOffFromPrices } from "@/lib/product-discount";
 import { badgePreset, parseProductBadges } from "@/lib/product-badges";
 import type { ResolvedMirrorCollectionTexts } from "@/lib/store-static-texts";
+import { buildProductCardGalleryMarkup, initProductCardGalleries } from "@/lib/mirror-product-card-gallery";
 
 /** Admin → Koleksiyonlar verisini mirror /collections kartlarına yazar */
 
@@ -28,6 +29,8 @@ export type VitrinCollectionProductCard = {
   slug: string;
   title: string;
   imageUrl?: string | null;
+  /** Liste kartı hover scrub — yalnızca görseller, sıralı */
+  imageUrls?: string[];
   priceMinor: number;
   compareAtMinor?: number | null;
   stockQty: number;
@@ -229,7 +232,11 @@ function productCardHtml(
   const href = productHref(product.slug);
   const title = escText(product.title);
   const addLabel = options?.locale?.toLowerCase().startsWith("en") ? "Add to cart" : "Sepete ekle";
-  const image = product.imageUrl?.trim() || EMPTY_IMAGE;
+  const galleryUrls =
+    product.imageUrls?.filter((u) => u.trim()).slice(0, 8) ??
+    (product.imageUrl?.trim() ? [product.imageUrl.trim()] : []);
+  const image = galleryUrls[0]?.trim() || product.imageUrl?.trim() || EMPTY_IMAGE;
+  const { galleryAttr, indicatorHtml } = buildProductCardGalleryMarkup(galleryUrls);
   const price = escText(formatTry(product.priceMinor));
   const compare = product.compareAtMinor && product.compareAtMinor > product.priceMinor
     ? `<span class="product--cut-price line-through">${escText(formatTry(product.compareAtMinor))}</span>`
@@ -249,7 +256,7 @@ function productCardHtml(
         aria-label="${options?.locale?.toLowerCase().startsWith("en") ? "Add to favorites" : "Favorilere ekle"}"
       >♡</button>
       <a href="${escAttr(href)}" aria-label="${title}" class="product--image d-block width-100">
-        <div class="media" style="${productImageMediaRatioStyle()}" data-product-media>
+        <div class="media" style="${productImageMediaRatioStyle()}" data-product-media${galleryAttr}>
           <img
             class="product--card-image"
             data-src="${escAttr(image)}"
@@ -260,6 +267,7 @@ function productCardHtml(
             height="${PRODUCT_IMAGE_HEIGHT}"
             loading="lazy"
           >
+          ${indicatorHtml}
         </div>
       </a>
       <div class="product--card-badges">${badges}</div>
@@ -445,6 +453,7 @@ export function applyCollectionProductsFromAdmin(
   list.innerHTML = pageItems
     .map((product) => productCardHtml(product, resolved, { locale }))
     .join("");
+  initProductCardGalleries(doc);
 }
 
 export function applyCollectionCategoryFiltersFromAdmin(

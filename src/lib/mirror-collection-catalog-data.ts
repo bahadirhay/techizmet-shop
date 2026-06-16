@@ -6,6 +6,7 @@ import { getSiteSettingsUncached } from "@/lib/site-settings-load";
 import { resolveMirrorCollectionTexts } from "@/lib/store-static-texts";
 import { MIRROR_COLLECTION_PAGE_SIZE } from "@/lib/mirror-collections-sync";
 import { withProductDisplayTitle } from "@/lib/product-display-title";
+import { imageUrlsFromProductRow, primaryImageUrlFromProductRow } from "@/lib/mirror-product-card-images";
 import { getCategoryFilterOptions, getCategoryScopeIds } from "@/lib/store-category-tree";
 
 /** Koleksiyon/kategori ürün listesi — prebuild ve runtime (server-only değil) */
@@ -75,6 +76,7 @@ export async function loadCollectionCatalogCore(
         kind: true,
         weightGrams: true,
         pieceCount: true,
+        images: { orderBy: { sortOrder: "asc" }, select: { url: true } },
       },
     }),
   ]);
@@ -104,7 +106,14 @@ export async function loadCollectionCatalogCore(
 
   return {
     collectionFromAdmin,
-    productsFromAdmin: products.map(withProductDisplayTitle),
+    productsFromAdmin: products.map((p) => {
+      const imageUrls = imageUrlsFromProductRow(p);
+      return withProductDisplayTitle({
+        ...p,
+        imageUrl: primaryImageUrlFromProductRow(p),
+        imageUrls: imageUrls.length > 1 ? imageUrls : undefined,
+      });
+    }),
     totalProductCount,
     categoriesFromAdmin: getCategoryFilterOptions(categories, categorySlug).map((c) => ({
       slug: c.slug,
