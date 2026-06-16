@@ -194,6 +194,7 @@ function renderHeroHtml(payload: StreetFoodBarPayload): string {
 
 function findStreetFoodBarAnchor(doc: Document): Element {
   return (
+    doc.querySelector(".section-announcement-bar") ??
     doc.querySelector(".section-header") ??
     doc.querySelector("[data-header-section]") ??
     doc.body

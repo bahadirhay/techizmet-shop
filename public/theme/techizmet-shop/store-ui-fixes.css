@@ -414,11 +414,23 @@ html.kn-mirror-embed .section-header {
 
 html.kn-mirror-embed #kn-street-food-bar {
   position: relative !important;
-  z-index: 1 !important;
+  z-index: 2 !important;
+  flex-shrink: 0;
 }
 
 html.kn-mirror-embed #kn-street-food-hero {
   z-index: 2 !important;
+}
+
+@media (min-width: 1025px) {
+  /* Duyuru yoksa: şeffaf header absolute — şerit header yüksekliği kadar aşağı */
+  html.kn-mirror-embed .section-header + #kn-street-food-bar {
+    margin-top: var(--header_height, 80px);
+  }
+
+  html.kn-mirror-embed .section-announcement-bar + #kn-street-food-bar {
+    margin-top: 0 !important;
+  }
 }
 
 @media (max-width: 1024px) {

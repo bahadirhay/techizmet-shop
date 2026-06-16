@@ -100,7 +100,12 @@
     );
   }
   function findBarAnchor() {
-    return qs(".section-header") || qs("[data-header-section]") || document.body;
+    return (
+      qs(".section-announcement-bar") ||
+      qs(".section-header") ||
+      qs("[data-header-section]") ||
+      document.body
+    );
   }
   function mountBar(bar) {
     var anchor = findBarAnchor();
