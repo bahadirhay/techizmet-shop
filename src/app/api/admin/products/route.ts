@@ -94,6 +94,7 @@ export async function POST(req: Request) {
         priceMinor: tryToMinor(body.price as string),
         compareAtMinor: body.compareAt ? tryToMinor(body.compareAt as string) : null,
         costMinor: body.cost ? tryToMinor(body.cost as string) : null,
+        wholesalePriceMinor: body.wholesale ? tryToMinor(body.wholesale as string) : null,
         vatRate: vatRateFromRequestBody(body),
         marketplacePricesJson: serializeMarketplacePricesFromForm(
           (body.marketplacePrices as Record<string, string>) ?? {},

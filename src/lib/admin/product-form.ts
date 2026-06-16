@@ -35,6 +35,7 @@ type ProductRow = {
   priceMinor: number;
   compareAtMinor: number | null;
   costMinor: number | null;
+  wholesalePriceMinor?: number | null;
   vatRate?: number;
   marketplacePricesJson?: string | null;
   stockQty: number;
@@ -79,6 +80,7 @@ export function emptyProductForm(): ProductFormData {
     price: "",
     compareAt: "",
     cost: "",
+    wholesale: "",
     vatRate: DEFAULT_TR_VAT_RATE,
     marketplacePrices: {},
     stockQty: "0",
@@ -146,6 +148,7 @@ export function productToForm(
     price: minorToTry(p.priceMinor),
     compareAt: p.compareAtMinor ? minorToTry(p.compareAtMinor) : "",
     cost: p.costMinor ? minorToTry(p.costMinor) : "",
+    wholesale: p.wholesalePriceMinor ? minorToTry(p.wholesalePriceMinor) : "",
     vatRate: normalizeVatRate(p.vatRate),
     marketplacePrices,
     stockQty: String(p.stockQty),

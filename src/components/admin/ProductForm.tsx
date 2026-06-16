@@ -20,6 +20,7 @@ import { ProductProfitEstimate } from "@/components/admin/ProductProfitEstimate"
 import { ProductCompetitorPrices } from "@/components/admin/ProductCompetitorPrices";
 import { VatRateSelect } from "@/components/admin/VatRateSelect";
 import { ProductMarketplacePrices } from "@/components/admin/ProductMarketplacePrices";
+import { ProductPricingBreakdown } from "@/components/admin/ProductPricingBreakdown";
 import { DEFAULT_TR_VAT_RATE } from "@/lib/tr-vat-rates";
 import type { ActiveMarketplaceOption } from "@/lib/marketplace/product-prices";
 import { serializeExploreLooks, type ProductExploreLook } from "@/lib/product-explore-looks";
@@ -51,6 +52,7 @@ export type ProductFormData = {
   price: string;
   compareAt: string;
   cost: string;
+  wholesale: string;
   vatRate: number;
   marketplacePrices: Record<string, string>;
   stockQty: string;
@@ -366,7 +368,7 @@ export function ProductForm({
             </label>
           </AdminField>
         </div>
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <AdminField label="Satış fiyatı (TL) *" hint="Web sitesinde müşterinin ödediği fiyat (KDV dahil)">
             <input
               className={inputClass}
@@ -410,6 +412,19 @@ export function ProductForm({
               onChange={(e) => set("cost", e.target.value)}
             />
           </AdminField>
+          <AdminField
+            label="Toptan fiyat (TL)"
+            hint="Bayi / toptan satış — raporlama ve marj hesabı için"
+          >
+            <input
+              className={inputClass}
+              type="number"
+              step="0.01"
+              min={0}
+              value={form.wholesale}
+              onChange={(e) => set("wholesale", e.target.value)}
+            />
+          </AdminField>
         </div>
 
         <ProductCompetitorPrices
@@ -446,6 +461,15 @@ export function ProductForm({
           brandName={brands.find((b) => b.id === form.brandId)?.title ?? ""}
           weightGrams={parseFloat(form.weightGrams) > 0 ? parseFloat(form.weightGrams) : undefined}
           pieceCount={parseInt(form.pieceCount) > 0 ? parseInt(form.pieceCount) : undefined}
+        />
+
+        <ProductPricingBreakdown
+          webPrice={form.price}
+          cost={form.cost}
+          wholesale={form.wholesale}
+          categoryId={form.categoryId}
+          platforms={activeMarketplaces}
+          marketplacePrices={form.marketplacePrices}
         />
 
         <div className="grid gap-4 sm:grid-cols-3">

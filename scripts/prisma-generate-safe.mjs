@@ -13,6 +13,7 @@ const REQUIRED_MARKERS = [
   "CookieConsentLog: 'CookieConsentLog'",
   "marketplacePlatform",
   "marketplacePricesJson",
+  "wholesalePriceMinor",
   "invoiceUuid",
   "MarketplaceCategoryMapping: 'MarketplaceCategoryMapping'",
   "MarketplaceProductListing: 'MarketplaceProductListing'",

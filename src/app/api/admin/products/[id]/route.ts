@@ -137,6 +137,12 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
             : undefined,
         costMinor:
           body.cost !== undefined ? (body.cost ? tryToMinor(body.cost as string) : null) : undefined,
+        wholesalePriceMinor:
+          body.wholesale !== undefined
+            ? body.wholesale
+              ? tryToMinor(body.wholesale as string)
+              : null
+            : undefined,
         vatRate: body.vatRate !== undefined ? vatRateFromRequestBody(body) : undefined,
         marketplacePricesJson:
           body.marketplacePrices !== undefined

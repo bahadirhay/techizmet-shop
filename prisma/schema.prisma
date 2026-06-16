@@ -422,6 +422,8 @@ model StoreProduct {
   /** Toplu fiyat geri alma — ilk kural/uygulama anındaki satış fiyatı */
   basePriceMinor   Int?
   costMinor        Int?
+  /** Toptan / B2B satış fiyatı (kuruş, KDV dahil) */
+  wholesalePriceMinor Int?
   /** JSON: { "trendyol": 94900, "hepsiburada": 92900 } — kuruş, boşsa web fiyatı */
   marketplacePricesJson String?
   /** KDV oranı (%) — satış fiyatı KDV dahil kabul edilir */
