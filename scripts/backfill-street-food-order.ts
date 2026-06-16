@@ -44,8 +44,8 @@ async function ensureCampaign(siteId: string, settingsJson: string | null) {
       status: "active",
       targetGrams: defaultTargetGrams(settingsJson),
       collectedGrams: 0,
-      titleTr: "Sokak Dostları Mama Fonu",
-      titleEn: "Street Friends Food Fund",
+      sloganTr: "Ödül Dostunu Mutlu Eder, Siparişin Bir Sokak Dostunu Doyurur.",
+      sloganEn: "Street Friends Food Fund",
     },
   });
 }
