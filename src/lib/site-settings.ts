@@ -223,6 +223,8 @@ export type SiteSettings = {
       string,
       { seoTitle?: string; seoDescription?: string; imageAlt?: string; imageUrl?: string }
     >;
+    /** Arama motoru / dizin dağıtım durumu */
+    distribution?: import("@/lib/seo/distribution-types").SiteDistributionSettings;
   };
   /** Statik sayfa özel ayarları */
   pages?: {
@@ -245,6 +247,8 @@ export type SiteSettings = {
   gsc?: import("@/lib/admin/gsc/settings").GscSettings;
   /** WhatsApp gelen kutusu, bot, takip */
   whatsapp?: import("@/lib/whatsapp-settings").StoreWhatsAppSettings;
+  /** Sokak dostları mama fonu */
+  streetFoodFund?: import("@/lib/street-food-fund/types").StreetFoodFundSettings;
 };
 
 export type SeoAiProvider = "auto" | "gemini" | "openai" | "claude";

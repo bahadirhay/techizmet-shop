@@ -132,5 +132,8 @@ export function mergeSiteSettings(current: SiteSettings, patch: SiteSettings): S
       : current.blogAutomation,
     gsc: patch.gsc ? { ...current.gsc, ...patch.gsc } : current.gsc,
     whatsapp: patch.whatsapp ? { ...current.whatsapp, ...patch.whatsapp } : current.whatsapp,
+    streetFoodFund: patch.streetFoodFund
+      ? { ...current.streetFoodFund, ...patch.streetFoodFund }
+      : current.streetFoodFund,
   };
 }

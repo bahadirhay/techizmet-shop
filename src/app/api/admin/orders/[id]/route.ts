@@ -24,6 +24,8 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
 
   const body = (await req.json()) as Record<string, unknown>;
   const newStatus = body.status != null ? String(body.status) : existing.status;
+  const newPaymentStatus =
+    body.paymentStatus != null ? String(body.paymentStatus) : existing.paymentStatus;
   const order = await prisma.storeOrder.update({
     where: { id },
     data: {
@@ -31,11 +33,23 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       carrierId: body.carrierId !== undefined ? String(body.carrierId ?? "").trim() || null : undefined,
       trackingNumber:
         body.trackingNumber !== undefined ? String(body.trackingNumber).trim() || null : undefined,
-      paymentStatus: body.paymentStatus != null ? String(body.paymentStatus) : undefined,
+      paymentStatus: body.paymentStatus != null ? newPaymentStatus : undefined,
       adminNotes: body.adminNotes !== undefined ? String(body.adminNotes).trim() || null : undefined,
     },
     include: { lines: true, carrier: true },
   });
+
+  if (
+    newPaymentStatus === "paid" &&
+    existing.paymentStatus !== "paid"
+  ) {
+    try {
+      const { recordStreetFoodContributionOnPayment } = await import("@/lib/street-food-fund/contribution");
+      await recordStreetFoodContributionOnPayment(auth.siteId, order.id);
+    } catch (e) {
+      console.error("[street-food-fund]", e);
+    }
+  }
 
   if (body.status != null && newStatus !== existing.status) {
     await sendOrderStatusEmailIfNeeded(order.id, existing.status, newStatus).catch((e) =>

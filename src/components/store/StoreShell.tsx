@@ -2,6 +2,7 @@
 
 import { CartProvider } from "@/components/cart/CartContext";
 import { MiniCart } from "@/components/cart/MiniCart";
+import { StreetFoodFundBar } from "@/components/store/StreetFoodFundBar";
 import { StoreHeader } from "@/components/store/StoreHeader";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import type { StoreMessages } from "@/lib/i18n/messages";
@@ -23,6 +24,7 @@ export function StoreShell({
 }) {
   return (
     <CartProvider>
+      <StreetFoodFundBar />
       <StoreHeader siteName={siteName} logoSrc={logoSrc} locale={locale} messages={messages} nav={nav} />
       <MiniCart />
       {children}

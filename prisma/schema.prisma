@@ -58,6 +58,9 @@ model StoreSite {
   financeInvoiceApprovalLogs FinanceInvoiceApprovalLog[]
   financePostingTemplates FinancePostingTemplate[]
   financeInvoicePostJobs   FinanceInvoicePostJob[]
+  streetFoodCampaigns      StreetFoodCampaign[]
+  streetFoodContributions  StreetFoodContribution[]
+  streetFoodDonations      StreetFoodDonation[]
 
   @@map("site")
   @@schema("shop")
@@ -912,6 +915,7 @@ model StoreOrder {
   updatedAt       DateTime @updatedAt
   lines           StoreOrderLine[]
   financeTransactions FinanceTransaction[]
+  streetFoodContribution StreetFoodContribution?
 
   @@unique([siteId, orderNumber])
   @@index([siteId, status, createdAt])
@@ -1176,5 +1180,67 @@ model FinanceInvoicePostJob {
   @@index([siteId, status, nextRetryAt])
   @@index([siteId, invoiceId])
   @@map("finance_invoice_post_job")
+  @@schema("shop")
+}
+
+model StreetFoodCampaign {
+  id             String   @id @default(cuid())
+  siteId         String
+  site           StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  targetGrams    Int
+  collectedGrams Int      @default(0)
+  /** active | goal_reached | closed */
+  status         String   @default("active")
+  sloganTr       String?
+  sloganEn       String?
+  startedAt      DateTime @default(now())
+  completedAt    DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  contributions  StreetFoodContribution[]
+  donations      StreetFoodDonation[]
+
+  @@index([siteId, status])
+  @@map("street_food_campaign")
+  @@schema("shop")
+}
+
+model StreetFoodContribution {
+  id         String   @id @default(cuid())
+  siteId     String
+  site       StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  campaignId String
+  campaign   StreetFoodCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  orderId    String   @unique
+  order      StoreOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  grams      Int
+  createdAt  DateTime @default(now())
+
+  @@index([siteId, campaignId])
+  @@index([campaignId, createdAt])
+  @@map("street_food_contribution")
+  @@schema("shop")
+}
+
+model StreetFoodDonation {
+  id             String   @id @default(cuid())
+  siteId         String
+  site           StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  campaignId     String
+  campaign       StreetFoodCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  recipientName  String
+  gramsDelivered Int
+  storyHtml      String?
+  photoUrlsJson  String?
+  videoUrl       String?
+  donatedAt      DateTime
+  published      Boolean  @default(false)
+  publishedAt    DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([siteId, published, donatedAt])
+  @@index([campaignId])
+  @@map("street_food_donation")
   @@schema("shop")
 }

@@ -168,6 +168,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     items: [
       { href: "/admin/campaigns", label: "Kupon & Kampanyalar", perm: "store.campaigns" },
       { href: "/admin/campaigns/new", label: "Yeni Kampanya", perm: "store.campaigns" },
+      { href: "/admin/street-food-fund", label: "Sokak Dostları Mama Fonu", perm: null },
     ],
   },
   {
@@ -331,6 +332,7 @@ export const ADMIN_PAGE_TITLES: Record<string, string> = {
   "/admin/collections/new": "Yeni Koleksiyon",
   "/admin/orders": "Siparişler",
   "/admin/campaigns": "Kampanyalar",
+  "/admin/street-food-fund": "Sokak Dostları Mama Fonu",
   "/admin/campaigns/new": "Yeni Kampanya",
   "/admin/home": "Ana Sayfa",
   "/admin/pages": "Sayfalar",

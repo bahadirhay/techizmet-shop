@@ -88,6 +88,12 @@ export async function POST(req: Request) {
       console.error("[finance]", e);
     }
     try {
+      const { recordStreetFoodContributionOnPayment } = await import("@/lib/street-food-fund/contribution");
+      await recordStreetFoodContributionOnPayment(site.id, order.id);
+    } catch (e) {
+      console.error("[street-food-fund]", e);
+    }
+    try {
       const { recordPurchaseEvent } = await import("@/lib/analytics/events");
       await recordPurchaseEvent({
         siteId: site.id,

@@ -83,7 +83,10 @@ function defaultOpenGroups(
   if (pathname.startsWith("/admin/integrations/payments")) open.add("payments");
   else if (pathname.startsWith("/admin/integrations/emails")) open.add("notifications");
   else if (pathname.startsWith("/admin/integrations")) open.add("marketplace");
-  if (pathname.startsWith("/admin/campaigns")) open.add("marketing");
+  if (pathname.startsWith("/admin/campaigns") || pathname.startsWith("/admin/street-food-fund")) {
+    open.add("marketing");
+  }
+  if (pathname.startsWith("/admin/street-food-fund")) open.add("marketing");
   if (
     pathname.startsWith("/admin/customers") ||
     pathname.startsWith("/admin/customer-groups") ||
