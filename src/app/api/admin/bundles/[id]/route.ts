@@ -10,7 +10,10 @@ import { getSiteSettings } from "@/lib/site-settings";
 import { syncProductMedia } from "@/lib/admin/sync-product-media";
 import { parseProductMediaInput } from "@/lib/product-media";
 import { vatRateFromRequestBody } from "@/lib/admin/product-vat";
-import { serializeMarketplacePricesFromForm } from "@/lib/marketplace/product-prices";
+import {
+  serializeMarketplaceMarkupFromForm,
+  serializeMarketplacePricesFromForm,
+} from "@/lib/marketplace/product-prices";
 import { resolveProductCategorySelection, syncProductCategoryLinks } from "@/lib/store-product-categories";
 import { resolveProductSeoFields } from "@/lib/admin/product-seo/ensure-seo";
 import { productAdminErrorResponse } from "@/lib/admin/product-api-errors";
@@ -176,6 +179,13 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
             ? {
                 marketplacePricesJson: serializeMarketplacePricesFromForm(
                   (body.marketplacePrices as Record<string, string>) ?? {},
+                ),
+              }
+            : {}),
+          ...(body.marketplaceMarkups !== undefined
+            ? {
+                marketplaceMarkupPercentJson: serializeMarketplaceMarkupFromForm(
+                  (body.marketplaceMarkups as Record<string, string>) ?? {},
                 ),
               }
             : {}),

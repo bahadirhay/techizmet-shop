@@ -426,6 +426,8 @@ model StoreProduct {
   wholesalePriceMinor Int?
   /** JSON: { "trendyol": 94900, "hepsiburada": 92900 } — kuruş, boşsa web fiyatı */
   marketplacePricesJson String?
+  /** JSON: { "trendyol": 15, "hepsiburada": 10 } — web fiyatı üzerinden % fark */
+  marketplaceMarkupPercentJson String?
   /** KDV oranı (%) — satış fiyatı KDV dahil kabul edilir */
   vatRate          Int      @default(20)
   imageUrl         String?

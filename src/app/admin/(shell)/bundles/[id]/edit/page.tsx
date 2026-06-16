@@ -41,6 +41,7 @@ export default async function EditBundlePage({ params }: { params: Promise<{ id:
       costMinor: true,
       vatRate: true,
       marketplacePricesJson: true,
+      marketplaceMarkupPercentJson: true,
       stockQty: true,
       lowStockThreshold: true,
       weightGrams: true,

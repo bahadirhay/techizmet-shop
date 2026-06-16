@@ -5,7 +5,7 @@ import { htmlToPlainText } from "@/lib/product-content-format";
 import type { ProductMediaItem } from "@/lib/product-media";
 import { primaryProductImageUrl } from "@/lib/product-media";
 import type { ActiveMarketplaceOption } from "@/lib/marketplace/product-prices";
-import { parseMarketplacePricesJson } from "@/lib/marketplace/product-prices";
+import { parseMarketplacePricesJson, parseMarketplaceMarkupJson } from "@/lib/marketplace/product-prices";
 import { DEFAULT_TR_VAT_RATE, normalizeVatRate } from "@/lib/tr-vat-rates";
 
 type BundleRow = {
@@ -25,6 +25,7 @@ type BundleRow = {
   costMinor: number | null;
   vatRate?: number;
   marketplacePricesJson?: string | null;
+  marketplaceMarkupPercentJson?: string | null;
   stockQty: number;
   lowStockThreshold: number;
   weightGrams: number | null;
@@ -62,6 +63,7 @@ export function emptyBundleForm(): BundleFormData {
     cost: "",
     vatRate: DEFAULT_TR_VAT_RATE,
     marketplacePrices: {},
+    marketplaceMarkups: {},
     lowStockThreshold: "5",
     weightGrams: "",
     pieceCount: "",
@@ -91,9 +93,12 @@ export function bundleToForm(
     })) ?? (product.imageUrl ? [{ url: product.imageUrl, mediaType: "image" }] : []);
 
   const mp = parseMarketplacePricesJson(product.marketplacePricesJson);
+  const markupMap = parseMarketplaceMarkupJson(product.marketplaceMarkupPercentJson);
   const marketplacePrices: Record<string, string> = {};
+  const marketplaceMarkups: Record<string, string> = {};
   for (const p of activeMarketplaces) {
     marketplacePrices[p.id] = mp[p.id] != null ? minorToTry(mp[p.id]!) : "";
+    marketplaceMarkups[p.id] = markupMap[p.id] != null ? String(markupMap[p.id]) : "";
   }
 
   return {
@@ -113,6 +118,7 @@ export function bundleToForm(
     cost: product.costMinor ? minorToTry(product.costMinor) : "",
     vatRate: normalizeVatRate(product.vatRate ?? DEFAULT_TR_VAT_RATE),
     marketplacePrices,
+    marketplaceMarkups,
     lowStockThreshold: String(product.lowStockThreshold),
     weightGrams: product.weightGrams != null ? String(product.weightGrams) : "",
     pieceCount: product.pieceCount != null ? String(product.pieceCount) : "",

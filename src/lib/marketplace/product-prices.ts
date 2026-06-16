@@ -1,6 +1,8 @@
 import { tryToMinor } from "@/lib/admin/money";
+import { normalizeMarkupPercent, webMarkupPriceMinor } from "@/lib/marketplace/pricing-calculator";
 
 export type MarketplacePricesMap = Record<string, number>;
+export type MarketplaceMarkupMap = Record<string, number>;
 
 export type ActiveMarketplaceOption = { id: string; label: string };
 
@@ -8,6 +10,7 @@ export type ProductChannelPriceSource = {
   priceMinor: number;
   compareAtMinor?: number | null;
   marketplacePricesJson?: string | null;
+  marketplaceMarkupPercentJson?: string | null;
 };
 
 /** JSON → platform → kuruş */
@@ -42,7 +45,35 @@ export function serializeMarketplacePricesFromForm(
   return Object.keys(out).length ? JSON.stringify(out) : null;
 }
 
-/** Pazaryeri satış fiyatı — tanımlı değilse web fiyatına düşer. */
+/** JSON → platform → markup % */
+export function parseMarketplaceMarkupJson(raw: string | null | undefined): MarketplaceMarkupMap {
+  if (!raw?.trim()) return {};
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const out: MarketplaceMarkupMap = {};
+    for (const [platform, val] of Object.entries(parsed)) {
+      const pct = normalizeMarkupPercent(val);
+      if (pct != null) out[platform] = pct;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+export function serializeMarketplaceMarkupFromForm(
+  markups: Record<string, string | number | undefined | null>,
+): string | null {
+  const out: MarketplaceMarkupMap = {};
+  for (const [platform, val] of Object.entries(markups)) {
+    if (val == null || val === "") continue;
+    const pct = normalizeMarkupPercent(val);
+    if (pct != null) out[platform] = pct;
+  }
+  return Object.keys(out).length ? JSON.stringify(out) : null;
+}
+
+/** Pazaryeri satış fiyatı — önce sabit kanal fiyatı, yoksa web + markup %, yoksa web. */
 export function resolveMarketplaceSalePriceMinor(
   product: ProductChannelPriceSource,
   platform: string,
@@ -50,6 +81,14 @@ export function resolveMarketplaceSalePriceMinor(
   const map = parseMarketplacePricesJson(product.marketplacePricesJson);
   const channel = map[platform];
   if (channel != null && channel > 0) return channel;
+
+  const markups = parseMarketplaceMarkupJson(product.marketplaceMarkupPercentJson);
+  const markup = markups[platform];
+  if (markup != null && product.priceMinor > 0) {
+    const fromMarkup = webMarkupPriceMinor(product.priceMinor, markup);
+    if (fromMarkup != null && fromMarkup > 0) return fromMarkup;
+  }
+
   return product.priceMinor;
 }
 
@@ -70,7 +109,10 @@ export function hasDistinctMarketplacePrice(
 ): boolean {
   const map = parseMarketplacePricesJson(product.marketplacePricesJson);
   const channel = map[platform];
-  return channel != null && channel > 0 && channel !== product.priceMinor;
+  if (channel != null && channel > 0 && channel !== product.priceMinor) return true;
+  const markups = parseMarketplaceMarkupJson(product.marketplaceMarkupPercentJson);
+  const markup = markups[platform];
+  return markup != null && markup !== 0;
 }
 
 export function marketplacePriceSummary(

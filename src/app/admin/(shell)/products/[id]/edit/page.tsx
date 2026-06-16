@@ -45,6 +45,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
       wholesalePriceMinor: true,
       vatRate: true,
       marketplacePricesJson: true,
+      marketplaceMarkupPercentJson: true,
       stockQty: true,
       lowStockThreshold: true,
       weightGrams: true,

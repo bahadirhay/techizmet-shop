@@ -55,6 +55,7 @@ export type ProductFormData = {
   wholesale: string;
   vatRate: number;
   marketplacePrices: Record<string, string>;
+  marketplaceMarkups: Record<string, string>;
   stockQty: string;
   lowStockThreshold: string;
   weightGrams: string;
@@ -454,8 +455,12 @@ export function ProductForm({
           categoryId={form.categoryId}
           platforms={activeMarketplaces}
           prices={form.marketplacePrices}
+          markups={form.marketplaceMarkups}
           onChange={(platform, value) =>
             set("marketplacePrices", { ...form.marketplacePrices, [platform]: value })
+          }
+          onMarkupChange={(platform, value) =>
+            set("marketplaceMarkups", { ...form.marketplaceMarkups, [platform]: value })
           }
           title={form.title}
           brandName={brands.find((b) => b.id === form.brandId)?.title ?? ""}
@@ -470,6 +475,7 @@ export function ProductForm({
           categoryId={form.categoryId}
           platforms={activeMarketplaces}
           marketplacePrices={form.marketplacePrices}
+          marketplaceMarkups={form.marketplaceMarkups}
         />
 
         <div className="grid gap-4 sm:grid-cols-3">

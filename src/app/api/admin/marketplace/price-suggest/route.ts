@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import {
-  DEFAULT_TARGET_MARGIN_PERCENT,
-  suggestMarketplacePriceMinor,
-} from "@/lib/marketplace/commission-types";
 import { resolveProductCommission } from "@/lib/marketplace/commission-rules";
+import {
+  DEFAULT_WEB_MARKUP_PERCENT,
+  normalizeMarkupPercent,
+  resolveSuggestedMarketplacePriceMinor,
+} from "@/lib/marketplace/pricing-calculator";
 import { tryToMinor } from "@/lib/admin/money";
 import { requireStaffApi } from "@/lib/staff-auth";
 
@@ -14,8 +15,9 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const platform = url.searchParams.get("platform")?.trim();
   const categoryId = url.searchParams.get("categoryId")?.trim() || null;
-  const costMinor = tryToMinor(url.searchParams.get("cost"));
-  const targetMargin = parseFloat(url.searchParams.get("targetMargin") ?? "") || DEFAULT_TARGET_MARGIN_PERCENT;
+  const webMinor = tryToMinor(url.searchParams.get("webPrice"));
+  const markupPercent =
+    normalizeMarkupPercent(url.searchParams.get("markupPercent")) ?? DEFAULT_WEB_MARKUP_PERCENT;
 
   if (!platform) {
     return NextResponse.json({ error: "platform gerekli" }, { status: 400 });
@@ -23,18 +25,14 @@ export async function GET(req: Request) {
 
   const rule = await resolveProductCommission(auth.siteId, platform, categoryId);
   const suggestedMinor =
-    costMinor > 0
-      ? suggestMarketplacePriceMinor({
-          costMinor,
-          targetMarginPercent: targetMargin,
-          commissionPercent: rule.commissionPercent,
-          shippingFeeMinor: rule.shippingModel === "marketplace_cargo" ? rule.shippingFeeMinor : 0,
-        })
+    webMinor > 0
+      ? resolveSuggestedMarketplacePriceMinor({ webPriceMinor: webMinor, markupPercent })
       : null;
 
   return NextResponse.json({
     rule,
     suggestedMinor,
-    targetMarginPercent: targetMargin,
+    markupPercent,
+    webPriceMinor: webMinor > 0 ? webMinor : null,
   });
 }

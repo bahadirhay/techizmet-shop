@@ -34,6 +34,7 @@ async function syncOnePlatform(
       priceMinor: true,
       compareAtMinor: true,
       marketplacePricesJson: true,
+      marketplaceMarkupPercentJson: true,
       stockQty: true,
     },
   });

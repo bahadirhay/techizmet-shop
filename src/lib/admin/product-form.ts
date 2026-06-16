@@ -13,7 +13,7 @@ import type { ProductMediaItem } from "@/lib/product-media";
 import { primaryProductImageUrl } from "@/lib/product-media";
 import type { VariantFormRow } from "@/lib/product-variants";
 import type { ActiveMarketplaceOption } from "@/lib/marketplace/product-prices";
-import { parseMarketplacePricesJson } from "@/lib/marketplace/product-prices";
+import { parseMarketplacePricesJson, parseMarketplaceMarkupJson } from "@/lib/marketplace/product-prices";
 import { DEFAULT_TR_VAT_RATE, normalizeVatRate } from "@/lib/tr-vat-rates";
 
 type ProductRow = {
@@ -38,6 +38,7 @@ type ProductRow = {
   wholesalePriceMinor?: number | null;
   vatRate?: number;
   marketplacePricesJson?: string | null;
+  marketplaceMarkupPercentJson?: string | null;
   stockQty: number;
   lowStockThreshold: number;
   weightGrams: number | null;
@@ -83,6 +84,7 @@ export function emptyProductForm(): ProductFormData {
     wholesale: "",
     vatRate: DEFAULT_TR_VAT_RATE,
     marketplacePrices: {},
+    marketplaceMarkups: {},
     stockQty: "0",
     lowStockThreshold: "5",
     weightGrams: "",
@@ -107,10 +109,14 @@ export function productToForm(
   activeMarketplaces: ActiveMarketplaceOption[] = [],
 ): ProductFormData {
   const mpMap = parseMarketplacePricesJson(p.marketplacePricesJson);
+  const markupMap = parseMarketplaceMarkupJson(p.marketplaceMarkupPercentJson);
   const marketplacePrices: Record<string, string> = {};
+  const marketplaceMarkups: Record<string, string> = {};
   for (const m of activeMarketplaces) {
     const minor = mpMap[m.id];
     marketplacePrices[m.id] = minor != null ? minorToTry(minor) : "";
+    const pct = markupMap[m.id];
+    marketplaceMarkups[m.id] = pct != null ? String(pct) : "";
   }
   const mediaItems: ProductMediaItem[] = p.images?.length
     ? p.images
@@ -151,6 +157,7 @@ export function productToForm(
     wholesale: p.wholesalePriceMinor ? minorToTry(p.wholesalePriceMinor) : "",
     vatRate: normalizeVatRate(p.vatRate),
     marketplacePrices,
+    marketplaceMarkups,
     stockQty: String(p.stockQty),
     lowStockThreshold: String(p.lowStockThreshold),
     weightGrams: p.weightGrams != null ? String(p.weightGrams) : "",

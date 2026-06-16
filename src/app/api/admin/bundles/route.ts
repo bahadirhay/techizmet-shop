@@ -10,7 +10,10 @@ import { getSiteSettings } from "@/lib/site-settings";
 import { syncProductMedia } from "@/lib/admin/sync-product-media";
 import { parseProductMediaInput } from "@/lib/product-media";
 import { vatRateFromRequestBody } from "@/lib/admin/product-vat";
-import { serializeMarketplacePricesFromForm } from "@/lib/marketplace/product-prices";
+import {
+  serializeMarketplaceMarkupFromForm,
+  serializeMarketplacePricesFromForm,
+} from "@/lib/marketplace/product-prices";
 import { resolveProductCategorySelection, syncProductCategoryLinks } from "@/lib/store-product-categories";
 import { resolveProductSeoFields } from "@/lib/admin/product-seo/ensure-seo";
 import { productAdminErrorResponse } from "@/lib/admin/product-api-errors";
@@ -118,6 +121,9 @@ export async function POST(req: Request) {
           vatRate: vatRateFromRequestBody(body),
           marketplacePricesJson: serializeMarketplacePricesFromForm(
             (body.marketplacePrices as Record<string, string>) ?? {},
+          ),
+          marketplaceMarkupPercentJson: serializeMarketplaceMarkupFromForm(
+            (body.marketplaceMarkups as Record<string, string>) ?? {},
           ),
           stockQty: 0,
           lowStockThreshold: parseInt(String(body.lowStockThreshold ?? "5"), 10) || 5,

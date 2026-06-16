@@ -154,6 +154,7 @@ export async function syncMarketplaceInventory(
       priceMinor: true,
       compareAtMinor: true,
       marketplacePricesJson: true,
+      marketplaceMarkupPercentJson: true,
       stockQty: true,
     },
   });

@@ -45,6 +45,7 @@ export type BundleFormData = {
   cost: string;
   vatRate: number;
   marketplacePrices: Record<string, string>;
+  marketplaceMarkups: Record<string, string>;
   lowStockThreshold: string;
   weightGrams: string;
   pieceCount: string;
@@ -510,8 +511,12 @@ export function BundleForm({
           categoryId={form.categoryId}
           platforms={activeMarketplaces}
           prices={form.marketplacePrices}
+          markups={form.marketplaceMarkups}
           onChange={(platform, value) =>
             set("marketplacePrices", { ...form.marketplacePrices, [platform]: value })
+          }
+          onMarkupChange={(platform, value) =>
+            set("marketplaceMarkups", { ...form.marketplaceMarkups, [platform]: value })
           }
           title={form.title}
           brandName={brands.find((b) => b.id === form.brandId)?.title ?? ""}

@@ -6,10 +6,11 @@ import { formatTry } from "@/lib/admin/money";
 import type { ActiveMarketplaceOption } from "@/lib/marketplace/product-prices";
 import {
   buildChannelEconomicsRow,
+  DEFAULT_WEB_MARKUP_PERCENT,
   type ChannelEconomicsRow,
 } from "@/lib/marketplace/pricing-calculator";
 import type { ResolvedCommissionRule } from "@/lib/marketplace/commission-types";
-import { DEFAULT_TARGET_MARGIN_PERCENT } from "@/lib/marketplace/commission-types";
+import { normalizeMarkupPercent } from "@/lib/marketplace/pricing-calculator";
 import { shippingModelLabel } from "@/lib/marketplace/commission-types";
 
 function parseTryInput(v: string): number {
@@ -33,6 +34,11 @@ function ChannelRow({ row }: { row: ChannelEconomicsRow }) {
         <span className="font-medium">{formatTry(row.grossMinor)}</span>
         {row.usesWebFallback ? (
           <span className="mt-0.5 block text-[10px] text-zinc-500">web fiyatı</span>
+        ) : row.usesWebMarkup && row.markupPercent != null ? (
+          <span className="mt-0.5 block text-[10px] text-violet-600">
+            web {row.markupPercent >= 0 ? "+" : ""}
+            {row.markupPercent}%
+          </span>
         ) : null}
       </td>
       <td className="py-2 pr-3 text-right tabular-nums text-amber-900">
@@ -76,6 +82,7 @@ export function ProductPricingBreakdown({
   categoryId,
   platforms,
   marketplacePrices,
+  marketplaceMarkups,
 }: {
   webPrice: string;
   cost: string;
@@ -83,6 +90,7 @@ export function ProductPricingBreakdown({
   categoryId: string;
   platforms: ActiveMarketplaceOption[];
   marketplacePrices: Record<string, string>;
+  marketplaceMarkups: Record<string, string>;
 }) {
   const [rules, setRules] = useState<Record<string, ResolvedCommissionRule>>({});
   const [rulesBusy, setRulesBusy] = useState(false);
@@ -123,18 +131,20 @@ export function ProductPricingBreakdown({
         if (!rule) return null;
         const overrideRaw = marketplacePrices[p.id]?.trim();
         const overrideMinor = overrideRaw ? parseTryInput(overrideRaw) : null;
+        const markupPercent = normalizeMarkupPercent(marketplaceMarkups[p.id]);
         return buildChannelEconomicsRow({
           platform: p.id,
           platformLabel: p.label,
           webPriceMinor: webMinor,
           marketplaceOverrideMinor: overrideMinor,
+          markupPercent,
           costMinor,
           wholesaleMinor,
           rule,
         });
       })
       .filter((r): r is ChannelEconomicsRow => r != null);
-  }, [platforms, webMinor, costMinor, wholesaleMinor, marketplacePrices, rules]);
+  }, [platforms, webMinor, costMinor, wholesaleMinor, marketplacePrices, marketplaceMarkups, rules]);
 
   if (!platforms.length) return null;
   if (webMinor <= 0) return null;
@@ -149,8 +159,8 @@ export function ProductPricingBreakdown({
       <div>
         <p className="text-sm font-semibold text-violet-950">Fiyat özeti ve pazaryeri hakedişi</p>
         <p className="mt-1 text-xs text-violet-900">
-          Komisyon tablosundan hesaplanır (%{DEFAULT_TARGET_MARGIN_PERCENT} hedef marj önerileri maliyet
-          girildiğinde).{" "}
+          Komisyon tablosundan hesaplanır. Önerilen fiyatlar web satış üzerinden +%
+          {DEFAULT_WEB_MARKUP_PERCENT} varsayılan fark ile gelir.{" "}
           <Link href="/admin/integrations" className="underline">
             Komisyon kuralları
           </Link>
@@ -206,7 +216,7 @@ export function ProductPricingBreakdown({
 
       {rows.some((r) => r.suggestedMinor != null) ? (
         <div className="space-y-1 border-t border-violet-200 pt-2 text-xs text-violet-900">
-          <p className="font-medium">Önerilen pazaryeri fiyatları (maliyet + %{DEFAULT_TARGET_MARGIN_PERCENT} marj)</p>
+          <p className="font-medium">Önerilen pazaryeri fiyatları (web + %{DEFAULT_WEB_MARKUP_PERCENT})</p>
           {rows.map((r) =>
             r.suggestedMinor != null ? (
               <p key={r.platform}>
@@ -224,8 +234,8 @@ export function ProductPricingBreakdown({
             ) : null,
           )}
         </div>
-      ) : !costMinor ? (
-        <p className="text-xs text-amber-900">Maliyet girilmedi — önerilen pazaryeri fiyatı hesaplanmaz.</p>
+      ) : webMinor <= 0 ? (
+        <p className="text-xs text-amber-900">Web satış fiyatı girilmedi — pazaryeri önerisi hesaplanmaz.</p>
       ) : null}
     </div>
   );
