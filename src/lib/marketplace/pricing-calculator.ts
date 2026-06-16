@@ -15,6 +15,8 @@ export type ChannelEconomicsRow = {
   grossMinor: number;
   commissionMinor: number;
   commissionPercent: number;
+  extraCommissionMinor: number;
+  extraCommissionPercent: number;
   shippingDeductionMinor: number;
   shippingModel: ShippingModelId;
   netPayoutMinor: number;
@@ -60,19 +62,41 @@ export function marketplaceShippingDeduction(rule: {
 /** Brüt pazaryeri satışından komisyon ve kargo kesintisi sonrası net hakediş (kuruş). */
 export function computeMarketplaceNetPayout(
   grossMinor: number,
-  rule: Pick<ResolvedCommissionRule, "commissionPercent" | "shippingModel" | "shippingFeeMinor">,
+  rule: Pick<
+    ResolvedCommissionRule,
+    "commissionPercent" | "extraCommissionPercent" | "shippingModel" | "shippingFeeMinor"
+  >,
 ): {
   commissionMinor: number;
+  primaryCommissionMinor: number;
+  extraCommissionMinor: number;
   shippingDeductionMinor: number;
   netPayoutMinor: number;
 } {
   if (grossMinor <= 0) {
-    return { commissionMinor: 0, shippingDeductionMinor: 0, netPayoutMinor: 0 };
+    return {
+      commissionMinor: 0,
+      primaryCommissionMinor: 0,
+      extraCommissionMinor: 0,
+      shippingDeductionMinor: 0,
+      netPayoutMinor: 0,
+    };
   }
-  const commissionMinor = commissionMinorFromGross(grossMinor, rule.commissionPercent);
+  const primaryCommissionMinor = commissionMinorFromGross(grossMinor, rule.commissionPercent);
+  const extraCommissionMinor = commissionMinorFromGross(
+    grossMinor,
+    rule.extraCommissionPercent ?? 0,
+  );
+  const commissionMinor = primaryCommissionMinor + extraCommissionMinor;
   const shippingDeductionMinor = marketplaceShippingDeduction(rule);
   const netPayoutMinor = Math.max(0, grossMinor - commissionMinor - shippingDeductionMinor);
-  return { commissionMinor, shippingDeductionMinor, netPayoutMinor };
+  return {
+    commissionMinor,
+    primaryCommissionMinor,
+    extraCommissionMinor,
+    shippingDeductionMinor,
+    netPayoutMinor,
+  };
 }
 
 export function marginOnCostPercent(netMinor: number, costMinor: number | null | undefined): number | null {
@@ -127,10 +151,8 @@ export function buildChannelEconomicsRow(input: {
     input.marketplaceOverrideMinor,
     input.markupPercent,
   );
-  const { commissionMinor, shippingDeductionMinor, netPayoutMinor } = computeMarketplaceNetPayout(
-    grossMinor,
-    input.rule,
-  );
+  const { commissionMinor, extraCommissionMinor, shippingDeductionMinor, netPayoutMinor } =
+    computeMarketplaceNetPayout(grossMinor, input.rule);
 
   const suggestedMinor = resolveSuggestedMarketplacePriceMinor({
     webPriceMinor: input.webPriceMinor,
@@ -149,6 +171,8 @@ export function buildChannelEconomicsRow(input: {
     grossMinor,
     commissionMinor,
     commissionPercent: input.rule.commissionPercent,
+    extraCommissionMinor,
+    extraCommissionPercent: input.rule.extraCommissionPercent ?? 0,
     shippingDeductionMinor,
     shippingModel: input.rule.shippingModel,
     netPayoutMinor,

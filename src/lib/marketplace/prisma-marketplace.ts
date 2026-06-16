@@ -29,6 +29,7 @@ type CommissionRuleRow = {
   platform: string;
   categoryId: string | null;
   commissionPercent: number;
+  extraCommissionPercent: number;
   shippingModel: string;
   shippingFeeMinor: number;
   notes: string | null;

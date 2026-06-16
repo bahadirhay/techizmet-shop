@@ -43,7 +43,10 @@ function ChannelRow({ row }: { row: ChannelEconomicsRow }) {
       </td>
       <td className="py-2 pr-3 text-right tabular-nums text-amber-900">
         −{formatTry(row.commissionMinor)}
-        <span className="block text-[10px] text-zinc-500">%{row.commissionPercent}</span>
+        <span className="block text-[10px] text-zinc-500">
+          %{row.commissionPercent}
+          {row.extraCommissionPercent > 0 ? ` + %${row.extraCommissionPercent} ek` : ""}
+        </span>
       </td>
       <td className="py-2 pr-3 text-right tabular-nums text-amber-900">
         {row.shippingDeductionMinor > 0 ? (
@@ -159,8 +162,8 @@ export function ProductPricingBreakdown({
       <div>
         <p className="text-sm font-semibold text-violet-950">Fiyat özeti ve pazaryeri hakedişi</p>
         <p className="mt-1 text-xs text-violet-900">
-          Komisyon tablosundan hesaplanır. Önerilen fiyatlar web satış üzerinden +%
-          {DEFAULT_WEB_MARKUP_PERCENT} varsayılan fark ile gelir.{" "}
+          Komisyon ve kargo kuralları pazaryeri entegrasyonundan alınır. Satış fiyatındaki +%
+          {DEFAULT_WEB_MARKUP_PERCENT}, web fiyatına göre pazaryeri artışıdır (komisyon değil).{" "}
           <Link href="/admin/integrations" className="underline">
             Komisyon kuralları
           </Link>

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AdminField, btnPrimary, inputClass } from "@/components/admin/AdminForm";
-import { formatTry } from "@/lib/admin/money";
+import { formatTry, minorToTry } from "@/lib/admin/money";
 import { SHIPPING_MODELS, type CommissionRuleRow } from "@/lib/marketplace/commission-types";
 
 type CategoryOption = { id: string; label: string };
@@ -23,11 +23,26 @@ export function MarketplaceCommissionRulesPanel({
   const [rules, setRules] = useState(initialRules);
   const [categoryId, setCategoryId] = useState("");
   const [commissionPercent, setCommissionPercent] = useState("18");
+  const [extraCommissionPercent, setExtraCommissionPercent] = useState("0");
   const [shippingModel, setShippingModel] = useState("marketplace_cargo");
   const [shippingFee, setShippingFee] = useState("");
   const [notes, setNotes] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  function loadRuleIntoForm(rule: CommissionRuleRow) {
+    setCategoryId(rule.categoryId ?? "");
+    setCommissionPercent(String(rule.commissionPercent));
+    setExtraCommissionPercent(String(rule.extraCommissionPercent ?? 0));
+    setShippingModel(rule.shippingModel);
+    setShippingFee(rule.shippingFeeMinor > 0 ? minorToTry(rule.shippingFeeMinor) : "");
+    setNotes(rule.notes ?? "");
+  }
+
+  useEffect(() => {
+    const platformDefault = initialRules.find((r) => !r.categoryId);
+    if (platformDefault) loadRuleIntoForm(platformDefault);
+  }, [initialRules]);
 
   async function saveRule() {
     setBusy(true);
@@ -39,6 +54,7 @@ export function MarketplaceCommissionRulesPanel({
         platform,
         categoryId: categoryId || null,
         commissionPercent: parseFloat(commissionPercent.replace(",", ".")) || 15,
+        extraCommissionPercent: parseFloat(extraCommissionPercent.replace(",", ".")) || 0,
         shippingModel,
         shippingFee,
         notes: notes.trim() || undefined,
@@ -85,8 +101,8 @@ export function MarketplaceCommissionRulesPanel({
     <div className="mt-8 rounded-xl border border-violet-200 bg-violet-50/50 p-5">
       <h3 className="font-semibold text-violet-950">{platformLabel} — komisyon & kargo kuralları</h3>
       <p className="mt-1 text-xs text-violet-900">
-        Kategori bazlı komisyon oranı tanımlayın. Pazaryeri siparişlerinde tahmini kesinti ve ürün fiyat
-        önerisi bu tablodan hesaplanır.
+        Kategori bazlı komisyon, ek komisyon ve kargo kesintisi tanımlayın. Değişikliklerin ürün
+        fiyat özetine yansıması için <strong>Kural kaydet</strong> düğmesine basın.
       </p>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -109,6 +125,20 @@ export function MarketplaceCommissionRulesPanel({
             max={100}
             value={commissionPercent}
             onChange={(e) => setCommissionPercent(e.target.value)}
+          />
+        </AdminField>
+        <AdminField
+          label="Ek komisyon (%)"
+          hint="Hizmet bedeli vb. — brüt satış üzerinden, ana komisyona eklenir"
+        >
+          <input
+            className={inputClass}
+            type="number"
+            step="0.1"
+            min={0}
+            max={100}
+            value={extraCommissionPercent}
+            onChange={(e) => setExtraCommissionPercent(e.target.value)}
           />
         </AdminField>
         <AdminField label="Kargo modeli">
@@ -150,6 +180,7 @@ export function MarketplaceCommissionRulesPanel({
               <tr>
                 <th className="px-3 py-2">Kategori</th>
                 <th className="px-3 py-2">Komisyon</th>
+                <th className="px-3 py-2">Ek kom.</th>
                 <th className="px-3 py-2">Kargo</th>
                 <th className="px-3 py-2">Kargo kesintisi</th>
                 <th className="px-3 py-2" />
@@ -160,6 +191,9 @@ export function MarketplaceCommissionRulesPanel({
                 <tr key={r.id} className="border-t border-violet-100">
                   <td className="px-3 py-2">{r.categoryTitle ?? "—"}</td>
                   <td className="px-3 py-2">%{r.commissionPercent}</td>
+                  <td className="px-3 py-2">
+                    {r.extraCommissionPercent > 0 ? `%${r.extraCommissionPercent}` : "—"}
+                  </td>
                   <td className="px-3 py-2">
                     {SHIPPING_MODELS.find((m) => m.id === r.shippingModel)?.label ?? r.shippingModel}
                   </td>
@@ -183,7 +217,8 @@ export function MarketplaceCommissionRulesPanel({
         </div>
       ) : (
         <p className="mt-4 text-sm text-violet-800">
-          Henüz kural yok — varsayılan %15 komisyon kullanılır.
+          Henüz kayıtlı kural yok — formu doldurup <strong>Kural kaydet</strong> ile %18 (veya istediğiniz
+          oran) kaydedin. Kayıt yoksa ürün sayfasında varsayılan %15 komisyon kullanılır.
         </p>
       )}
 

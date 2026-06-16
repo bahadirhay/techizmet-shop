@@ -838,6 +838,8 @@ model MarketplaceCommissionRule {
   category          StoreCategory? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   /** Komisyon oranı (%) — brüt satış üzerinden */
   commissionPercent Float
+  /** Ek komisyon / hizmet bedeli (%) — brüt satış üzerinden, ana komisyona ek */
+  extraCommissionPercent Float @default(0)
   /** marketplace_cargo | seller_cargo | none */
   shippingModel     String   @default("marketplace_cargo")
   /** Tahmini kargo kesintisi (kuruş) — marketplace_cargo için */

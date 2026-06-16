@@ -116,9 +116,11 @@ export async function buildOrderFinanceSnapshot(order: OrderInput): Promise<Orde
     const categoryId = product?.categoryId ?? null;
 
     let commissionPercent = 0;
+    let extraCommissionPercent = 0;
     if (isMarketplace && platform) {
       const rule = await resolveCommissionRule(order.siteId, platform, categoryId);
       commissionPercent = rule.commissionPercent;
+      extraCommissionPercent = rule.extraCommissionPercent ?? 0;
       if (!shippingRuleResolved) {
         shippingModel = rule.shippingModel;
         shippingDeductionMinor =
@@ -128,7 +130,8 @@ export async function buildOrderFinanceSnapshot(order: OrderInput): Promise<Orde
     }
 
     const commissionMinor = isMarketplace
-      ? commissionMinorFromGross(netLineMinor, commissionPercent)
+      ? commissionMinorFromGross(netLineMinor, commissionPercent) +
+        commissionMinorFromGross(netLineMinor, extraCommissionPercent)
       : 0;
     totalCommissionMinor += commissionMinor;
 

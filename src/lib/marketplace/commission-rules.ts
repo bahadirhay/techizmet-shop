@@ -27,6 +27,7 @@ export async function listCommissionRules(
     categoryId: r.categoryId,
     categoryTitle: r.category?.title ?? (r.categoryId ? null : "Varsayılan (tüm kategoriler)"),
     commissionPercent: r.commissionPercent,
+    extraCommissionPercent: r.extraCommissionPercent ?? 0,
     shippingModel: r.shippingModel,
     shippingFeeMinor: r.shippingFeeMinor,
     notes: r.notes,
@@ -42,6 +43,7 @@ export async function resolveCommissionRule(
   const fallback: ResolvedCommissionRule = {
     id: null,
     commissionPercent: 15,
+    extraCommissionPercent: 0,
     shippingModel: "marketplace_cargo",
     shippingFeeMinor: 0,
     source: "fallback",
@@ -56,6 +58,7 @@ export async function resolveCommissionRule(
       return {
         id: byCategory.id,
         commissionPercent: byCategory.commissionPercent,
+        extraCommissionPercent: byCategory.extraCommissionPercent ?? 0,
         shippingModel: normalizeShippingModel(byCategory.shippingModel),
         shippingFeeMinor: byCategory.shippingFeeMinor,
         source: "category",
@@ -71,6 +74,7 @@ export async function resolveCommissionRule(
     return {
       id: platformDefault.id,
       commissionPercent: platformDefault.commissionPercent,
+      extraCommissionPercent: platformDefault.extraCommissionPercent ?? 0,
       shippingModel: normalizeShippingModel(platformDefault.shippingModel),
       shippingFeeMinor: platformDefault.shippingFeeMinor,
       source: "platform_default",
@@ -85,6 +89,7 @@ export async function upsertCommissionRule(input: {
   platform: string;
   categoryId: string | null;
   commissionPercent: number;
+  extraCommissionPercent?: number;
   shippingModel: string;
   shippingFeeMinor: number;
   notes?: string | null;
@@ -98,6 +103,7 @@ export async function upsertCommissionRule(input: {
   const categoryId = input.categoryId || null;
   const data = {
     commissionPercent: normalizeCommissionPercent(input.commissionPercent),
+    extraCommissionPercent: normalizeCommissionPercent(input.extraCommissionPercent ?? 0, 0),
     shippingModel: normalizeShippingModel(input.shippingModel),
     shippingFeeMinor: Math.max(0, Math.round(input.shippingFeeMinor)),
     notes: input.notes?.trim() || null,

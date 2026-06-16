@@ -28,6 +28,7 @@ export async function POST(req: Request) {
     platform?: string;
     categoryId?: string | null;
     commissionPercent?: number;
+    extraCommissionPercent?: number;
     shippingModel?: string;
     shippingFeeMinor?: number | string;
     shippingFee?: string | number;
@@ -45,6 +46,7 @@ export async function POST(req: Request) {
       platform,
       categoryId: body.categoryId?.trim() || null,
       commissionPercent: body.commissionPercent ?? 15,
+      extraCommissionPercent: body.extraCommissionPercent ?? 0,
       shippingModel: body.shippingModel ?? "marketplace_cargo",
       shippingFeeMinor: tryToMinor(body.shippingFeeMinor ?? body.shippingFee ?? 0),
       notes: body.notes,

@@ -12,6 +12,7 @@ export type CommissionRuleRow = {
   categoryId: string | null;
   categoryTitle: string | null;
   commissionPercent: number;
+  extraCommissionPercent: number;
   shippingModel: string;
   shippingFeeMinor: number;
   notes: string | null;
@@ -20,6 +21,7 @@ export type CommissionRuleRow = {
 export type ResolvedCommissionRule = {
   id: string | null;
   commissionPercent: number;
+  extraCommissionPercent: number;
   shippingModel: ShippingModelId;
   shippingFeeMinor: number;
   source: "category" | "platform_default" | "fallback";
@@ -52,13 +54,15 @@ export function suggestMarketplacePriceMinor(input: {
   costMinor: number;
   targetMarginPercent: number;
   commissionPercent: number;
+  extraCommissionPercent?: number;
   shippingFeeMinor: number;
 }): number | null {
   const { costMinor, targetMarginPercent, commissionPercent, shippingFeeMinor } = input;
+  const extra = input.extraCommissionPercent ?? 0;
   if (costMinor <= 0) return null;
   const margin = targetMarginPercent / 100;
-  const commission = commissionPercent / 100;
-  const divisor = 1 - commission;
+  const totalCommission = (commissionPercent + extra) / 100;
+  const divisor = 1 - totalCommission;
   if (divisor <= 0.01) return null;
   const needAfterCommission = costMinor * (1 + margin) + shippingFeeMinor;
   return Math.max(0, Math.ceil(needAfterCommission / divisor));
