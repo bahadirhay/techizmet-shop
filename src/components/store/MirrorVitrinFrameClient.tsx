@@ -26,6 +26,7 @@ import type { ShopLocale } from "@/lib/i18n/locale";
 import { applyMirrorFooter, scheduleMirrorFooterPatch, type MirrorFooterData } from "@/lib/mirror-footer-overlay";
 import { markMirrorEmbedRoot, revealMirrorImagesInDocument } from "@/lib/mirror-image-reveal";
 import { applyMirrorScrollStability } from "@/lib/mirror-scroll-stability";
+import { installMirrorStreetFoodBar } from "@/lib/mirror-street-food-bar";
 import { syncMirrorNavigation, type MirrorNavItem } from "@/lib/mirror-nav-overlay";
 import {
   applyMirrorPageOverlay,
@@ -311,6 +312,7 @@ export function MirrorVitrinFrameClient({
       ensureMirrorLayoutStyles(doc);
       revealMirrorImagesInDocument(doc);
       applyMirrorScrollStability(doc);
+      installMirrorStreetFoodBar(doc);
       ensureMirrorLayoutStyles(doc);
 
       if (branding?.logoUrl?.trim()) {
