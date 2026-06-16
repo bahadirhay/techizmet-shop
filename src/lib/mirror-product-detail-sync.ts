@@ -477,7 +477,7 @@ html.kn-mirror-embed.kn-product-zoom-open body {
   overflow: visible !important;
 }
 @media (max-width: 767px) {
-  #MainContent .main--product-image-slider-outer .swiper-slide:not(.swiper-slide-active) media-zoom-button {
+  #MainContent .main--product-image-slider-outer media-zoom-button {
     pointer-events: none !important;
   }
 }
@@ -490,8 +490,15 @@ html.kn-mirror-embed.kn-product-zoom-open body {
   const script = doc.createElement("script");
   script.id = "kn-product-media-zoom-fix-script";
   script.textContent = `(function(){
-  if(window.__knProductZoomBridge)return;
-  window.__knProductZoomBridge=1;
+  var KN_ZOOM_VER=3;
+  if(window.__knProductZoomVer===KN_ZOOM_VER)return;
+  window.__knProductZoomVer=KN_ZOOM_VER;
+  var TAP_MOVE_PX=14;
+  var TAP_MAX_MS=420;
+  var pending=null;
+  function isMobile(){
+    return window.matchMedia("(max-width: 767px)").matches;
+  }
   function mainGallerySwiper(){
     var outer=document.querySelector("#MainContent .main--product-image-slider-outer");
     return outer&&outer.swiper?outer.swiper:null;
@@ -547,20 +554,44 @@ html.kn-mirror-embed.kn-product-zoom-open body {
     }
     return true;
   }
-  function onGalleryZoomPointer(e){
-    var btn=e.target&&e.target.closest&&e.target.closest("#MainContent media-zoom-button");
-    if(!btn){
-      var media=e.target&&e.target.closest&&e.target.closest("#MainContent .main--product-image-slider-outer .swiper-slide-active .media");
-      btn=media&&media.querySelector("media-zoom-button");
-    }
+  function activeGalleryMedia(target){
+    return target&&target.closest&&target.closest("#MainContent .main--product-image-slider-outer .swiper-slide-active .media");
+  }
+  document.addEventListener("touchstart",function(e){
+    if(!isMobile())return;
+    var media=activeGalleryMedia(e.target);
+    if(!media){pending=null;return;}
+    var t=e.changedTouches&&e.changedTouches[0];
+    if(!t)return;
+    pending={x:t.clientX,y:t.clientY,t:Date.now(),moved:false,media:media};
+  },{passive:true,capture:true});
+  document.addEventListener("touchmove",function(e){
+    if(!pending)return;
+    var t=e.changedTouches&&e.changedTouches[0];
+    if(!t)return;
+    if(Math.abs(t.clientX-pending.x)>TAP_MOVE_PX||Math.abs(t.clientY-pending.y)>TAP_MOVE_PX)pending.moved=true;
+  },{passive:true,capture:true});
+  document.addEventListener("touchend",function(e){
+    if(!isMobile()||!pending)return;
+    var snap=pending;
+    pending=null;
+    if(snap.moved||Date.now()-snap.t>TAP_MAX_MS)return;
+    var media=activeGalleryMedia(e.target);
+    if(!media||media!==snap.media)return;
+    var btn=media.querySelector("media-zoom-button");
     if(!btn)return;
     e.preventDefault();
-    e.stopPropagation();
+    openProductZoom(btn);
+  },true);
+  document.addEventListener("touchcancel",function(){pending=null;},true);
+  document.addEventListener("click",function(e){
+    if(isMobile())return;
+    var btn=e.target&&e.target.closest&&e.target.closest("#MainContent media-zoom-button");
+    if(!btn)return;
+    e.preventDefault();
     e.stopImmediatePropagation();
     openProductZoom(btn);
-  }
-  document.addEventListener("click",onGalleryZoomPointer,true);
-  document.addEventListener("touchend",onGalleryZoomPointer,true);
+  },true);
   function sync(){
     var open=!!document.querySelector("product-media-popup.show,.product-media-popup.show");
     document.documentElement.classList.toggle("kn-product-zoom-open",open);
