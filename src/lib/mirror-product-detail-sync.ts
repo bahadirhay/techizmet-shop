@@ -401,10 +401,13 @@ function ensureGalleryFallbackStyles(doc: Document) {
 
 /** Mirror embed scroll-lock breaks theme lightbox (fixed → in-flow). */
 function ensureProductMediaZoomFix(doc: Document) {
-  if (!doc.getElementById("kn-product-media-zoom-fix-style")) {
-    const style = doc.createElement("style");
+  let style = doc.getElementById("kn-product-media-zoom-fix-style");
+  if (!style) {
+    style = doc.createElement("style");
     style.id = "kn-product-media-zoom-fix-style";
-    style.textContent = `
+    doc.head.appendChild(style);
+  }
+  style.textContent = `
 html.kn-mirror-embed product-media-popup.popup,
 html.kn-mirror-embed .popup.product-media-popup {
   position: fixed !important;
@@ -435,13 +438,32 @@ html.kn-mirror-embed.kn-product-zoom-open #kn-street-food-bar {
 html.kn-mirror-embed.kn-product-zoom-open,
 html.kn-mirror-embed.kn-product-zoom-open body {
   overflow: visible !important;
-}`;
-    doc.head.appendChild(style);
+}
+@media (max-width: 767px) {
+  #MainContent .main--product-image-slider-outer .swiper-slide:not(.swiper-slide-active) media-zoom-button {
+    pointer-events: none !important;
   }
-  if (doc.getElementById("kn-product-media-zoom-fix-script")) return;
+}`;
+
+  doc.getElementById("kn-product-media-zoom-fix-script")?.remove();
   const script = doc.createElement("script");
   script.id = "kn-product-media-zoom-fix-script";
   script.textContent = `(function(){
+  function mainGallerySwiper(){
+    var outer=document.querySelector("#MainContent .main--product-image-slider-outer");
+    return outer&&outer.swiper?outer.swiper:null;
+  }
+  function activeGalleryIndex(){
+    var sw=mainGallerySwiper();
+    if(!sw)return null;
+    return typeof sw.realIndex==="number"?sw.realIndex:sw.activeIndex;
+  }
+  document.addEventListener("click",function(e){
+    var btn=e.target&&e.target.closest&&e.target.closest("#MainContent media-zoom-button");
+    if(!btn)return;
+    var idx=activeGalleryIndex();
+    if(typeof idx==="number"&&!isNaN(idx))btn.slideIndex=String(idx);
+  },true);
   function sync(){
     var open=!!document.querySelector("product-media-popup.show,.product-media-popup.show");
     document.documentElement.classList.toggle("kn-product-zoom-open",open);

@@ -18,6 +18,7 @@ async function main() {
 
   const payout = computeMarketplaceNetPayout(74900, {
     commissionPercent: 18,
+    extraCommissionPercent: 0,
     shippingModel: "marketplace_cargo",
     shippingFeeMinor: 4500,
   });
@@ -33,6 +34,7 @@ async function main() {
     rule: {
       id: null,
       commissionPercent: 18,
+      extraCommissionPercent: 0,
       shippingModel: "marketplace_cargo",
       shippingFeeMinor: 4500,
       source: "fallback",
