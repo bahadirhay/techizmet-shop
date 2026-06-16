@@ -265,6 +265,54 @@ function fixPopupCloseIconInTemplate(doc: Document) {
     });
 }
 
+function replaceSwiperWrapperInner(html: string, innerHtml: string): string {
+  const openRe = /<div\b([^>]*\bclass="[^"]*\bswiper-wrapper\b[^"]*"[^>]*)>/i;
+  const openMatch = openRe.exec(html);
+  if (!openMatch || openMatch.index === undefined) return html;
+
+  const contentStart = openMatch.index + openMatch[0].length;
+  let depth = 1;
+  let pos = contentStart;
+  let closeStart = -1;
+
+  while (pos < html.length && depth > 0) {
+    const nextOpen = html.indexOf("<div", pos);
+    const nextClose = html.indexOf("</div>", pos);
+    if (nextClose === -1) break;
+
+    if (nextOpen !== -1 && nextOpen < nextClose) {
+      depth += 1;
+      pos = nextOpen + 4;
+      continue;
+    }
+
+    depth -= 1;
+    if (depth === 0) closeStart = nextClose;
+    pos = nextClose + "</div>".length;
+  }
+
+  if (closeStart < 0) return html;
+  return `${html.slice(0, contentStart)}${innerHtml}${html.slice(closeStart)}`;
+}
+
+function patchZoomSwiperConfigInHtml(html: string, slideCount: number): string {
+  return html.replace(/data-swiper=(['"])\s*(\{[\s\S]*?\})\s*\1/g, (match, quote: string, jsonStr: string) => {
+    try {
+      const cfg = JSON.parse(jsonStr.trim()) as SwiperCfg;
+      cfg.slidesPerView = capSlidesPerView(cfg.slidesPerView, slideCount) ?? 1;
+      cfg.loop = false;
+      if (cfg.breakpoints) {
+        for (const bp of Object.values(cfg.breakpoints)) {
+          if (bp) bp.loop = false;
+        }
+      }
+      return `data-swiper=${quote}${JSON.stringify(cfg)}${quote}`;
+    } catch {
+      return match;
+    }
+  });
+}
+
 function patchProductMediaZoomTemplate(
   doc: Document,
   product: VitrinProductDetail,
@@ -272,32 +320,16 @@ function patchProductMediaZoomTemplate(
 ) {
   const newSlides = media.map((item, index) => zoomModalSlideHtml(item, product, index)).join("");
 
-  // linkedom'da template.content'e yapılan DOM yazımları outerHTML serialize
-  // edilirken kaybolur — template.innerHTML'i doğrudan string olarak yazıyoruz.
+  // linkedom'da template.content serialize kaybı — innerHTML string ile tam wrapper değişimi
   const templateRoot = doc.querySelector(
     "[data-product-media-content] template",
   ) as HTMLTemplateElement | null;
   if (templateRoot) {
-    const current = templateRoot.innerHTML;
-    const next = current.replace(
-      /<div\b([^>]*\bclass="[^"]*\bswiper-wrapper\b[^"]*"[^>]*)>[\s\S]*?<\/div>\s*(?=<\/div>\s*<\/swiper-content>|<\/div>\s*<div class="swiper--button-wrapper")/i,
-      `<div$1>${newSlides}</div>`,
-    );
-    templateRoot.innerHTML =
-      next !== current
-        ? next
-        : current.replace(
-            /<div\b([^>]*\bclass="[^"]*\bswiper-wrapper\b[^"]*"[^>]*)>[\s\S]*?<\/div>/i,
-            `<div$1>${newSlides}</div>`,
-          );
+    let templateHtml = replaceSwiperWrapperInner(templateRoot.innerHTML, newSlides);
+    templateHtml = patchZoomSwiperConfigInHtml(templateHtml, media.length);
+    templateRoot.innerHTML = templateHtml;
     fixPopupCloseIconInTemplate(doc);
   }
-
-  // Bazı tema versiyonlarında popup zaten DOM'da render edilmiş gelir (template dışında);
-  // bu wrapper'ları da güncelle.
-  doc.querySelectorAll("[data-product-media-content] .swiper-wrapper").forEach((liveWrapper) => {
-    liveWrapper.innerHTML = newSlides;
-  });
 
   patchZoomGallerySwiperConfig(doc, media.length);
 }
@@ -382,8 +414,13 @@ function patchZoomGallerySwiperConfig(doc: Document, slideCount: number) {
       try {
         const cfg = JSON.parse(raw.trim()) as SwiperCfg;
         cfg.slidesPerView = capSlidesPerView(cfg.slidesPerView, slideCount) ?? 1;
-        const patched = disableLoopWhenInsufficient(cfg, slideCount);
-        el.setAttribute("data-swiper", JSON.stringify(patched));
+        cfg.loop = false;
+        if (cfg.breakpoints) {
+          for (const bp of Object.values(cfg.breakpoints)) {
+            if (bp) bp.loop = false;
+          }
+        }
+        el.setAttribute("data-swiper", JSON.stringify(cfg));
       } catch {
         /* şablon JSON bozuksa yoksay */
       }
@@ -443,27 +480,87 @@ html.kn-mirror-embed.kn-product-zoom-open body {
   #MainContent .main--product-image-slider-outer .swiper-slide:not(.swiper-slide-active) media-zoom-button {
     pointer-events: none !important;
   }
+}
+#MainContent .main--product-image-slider-outer .main--product-img .media > img,
+#MainContent .main--product-image-slider-outer .main--product-img .media > video {
+  pointer-events: none !important;
 }`;
 
   doc.getElementById("kn-product-media-zoom-fix-script")?.remove();
   const script = doc.createElement("script");
   script.id = "kn-product-media-zoom-fix-script";
   script.textContent = `(function(){
+  if(window.__knProductZoomBridge)return;
+  window.__knProductZoomBridge=1;
   function mainGallerySwiper(){
     var outer=document.querySelector("#MainContent .main--product-image-slider-outer");
     return outer&&outer.swiper?outer.swiper:null;
   }
-  function activeGalleryIndex(){
+  function resolveGalleryIndex(btn){
     var sw=mainGallerySwiper();
-    if(!sw)return null;
-    return typeof sw.realIndex==="number"?sw.realIndex:sw.activeIndex;
+    if(sw&&typeof sw.realIndex==="number"&&!isNaN(sw.realIndex))return sw.realIndex;
+    if(sw&&typeof sw.activeIndex==="number"&&!isNaN(sw.activeIndex))return sw.activeIndex;
+    var slide=btn&&btn.closest?btn.closest(".swiper-slide"):null;
+    if(slide&&!slide.classList.contains("swiper-slide-duplicate")){
+      var outer=document.querySelector("#MainContent .main--product-image-slider-outer");
+      var slides=outer?Array.prototype.slice.call(outer.querySelectorAll(".swiper-slide:not(.swiper-slide-duplicate)")):[];
+      var idx=slides.indexOf(slide);
+      if(idx>=0)return idx;
+    }
+    var parsed=parseInt(btn&&(btn.slideIndex||btn.dataset.index),10);
+    return isNaN(parsed)?0:parsed;
   }
-  document.addEventListener("click",function(e){
+  function selectPopupSlide(popup,index){
+    var host=popup.querySelector("swiper-content");
+    var tries=0;
+    function run(){
+      var sw=(host&&host.swiper)||(function(){var el=popup.querySelector(".swiper");return el&&el.swiper;})();
+      if(!sw)return false;
+      if(sw.params&&sw.params.loop&&typeof sw.slideToLoop==="function")sw.slideToLoop(index,0);
+      else if(typeof sw.slideTo==="function")sw.slideTo(index,0);
+      return true;
+    }
+    if(run())return;
+    var timer=setInterval(function(){
+      if(run()||++tries>40)clearInterval(timer);
+    },50);
+  }
+  function openProductZoom(btn){
+    if(!btn)return false;
+    var section=btn.closest(".kn-mirror-section");
+    var sectionId=btn.dataset.section;
+    var template=section&&section.querySelector("[data-product-media-content] template");
+    if(!template||!sectionId)return false;
+    var index=resolveGalleryIndex(btn);
+    document.querySelectorAll("product-media-popup[id^='product-media-content-']").forEach(function(node){node.remove();});
+    var content=template.content.firstElementChild.cloneNode(true);
+    document.body.appendChild(content);
+    var popup=document.getElementById("product-media-content-"+sectionId);
+    if(!popup)return false;
+    popup.style.display="flex";
+    setTimeout(function(){selectPopupSlide(popup,index);},60);
+    setTimeout(function(){popup.classList.add("show");},180);
+    setTimeout(function(){popup.classList.add("shadow");},420);
+    var outerHost=document.querySelector("#MainContent swiper-content");
+    if(outerHost&&typeof outerHost._selectSlide==="function"){
+      setTimeout(function(){outerHost._selectSlide(index);},500);
+    }
+    return true;
+  }
+  function onGalleryZoomPointer(e){
     var btn=e.target&&e.target.closest&&e.target.closest("#MainContent media-zoom-button");
+    if(!btn){
+      var media=e.target&&e.target.closest&&e.target.closest("#MainContent .main--product-image-slider-outer .swiper-slide-active .media");
+      btn=media&&media.querySelector("media-zoom-button");
+    }
     if(!btn)return;
-    var idx=activeGalleryIndex();
-    if(typeof idx==="number"&&!isNaN(idx))btn.slideIndex=String(idx);
-  },true);
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    openProductZoom(btn);
+  }
+  document.addEventListener("click",onGalleryZoomPointer,true);
+  document.addEventListener("touchend",onGalleryZoomPointer,true);
   function sync(){
     var open=!!document.querySelector("product-media-popup.show,.product-media-popup.show");
     document.documentElement.classList.toggle("kn-product-zoom-open",open);
