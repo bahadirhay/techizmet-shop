@@ -17,12 +17,14 @@
 /.next/
 /out/
 /public/_mirror-prebuilt/
+/public/tinymce/
 
 # production
 /build
 
 # misc
 .DS_Store
+.vercel-skip-mirror-prebuild
 *.pem
 
 # debug
@@ -42,5 +44,7 @@ scripts/setup-anatolianpaw.config.json
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+.vercel
 
 .vercel

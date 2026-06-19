@@ -696,6 +696,14 @@ model CustomerGroup {
   discountPercent Int      @default(0)
   /** B2B / bayi grubu sipariş no öneki — boşsa mağaza varsayılanı */
   orderNumberPrefix String?
+  /** B2B bayi/toptan grubu — onaylı üyelere özel fiyat ve açık hesap */
+  isB2b             Boolean  @default(false)
+  /** Bu gruptaki onaylı üyeler açık hesap (vadeli) kullanabilir */
+  openAccountEnabled Boolean @default(false)
+  /** Varsayılan vade günü (fatura / açık hesap) */
+  defaultPaymentTermDays Int?
+  /** Varsayılan cari risk limiti (kuruş) */
+  defaultCreditLimitMinor Int?
   active          Boolean  @default(true)
   description     String?
   createdAt       DateTime @default(now())
@@ -720,6 +728,16 @@ model StoreCustomer {
   googleSub       String?
   appleSub        String?
   notes           String?
+  /** Son kullanılan TCKN/VKN (fatura) */
+  taxId           String?
+  taxOffice       String?
+  /** B2B başvuru: pending | approved | rejected — null = perakende */
+  b2bStatus       String?
+  companyName     String?
+  b2bAppliedAt    DateTime?
+  b2bApprovedAt   DateTime?
+  b2bApprovedByStaffUserId String?
+  b2bApplicationNote String?
   customerGroupId String?
   customerGroup   CustomerGroup? @relation(fields: [customerGroupId], references: [id], onDelete: SetNull)
   createdAt       DateTime @default(now())
@@ -890,6 +908,9 @@ model StoreOrder {
   customerPhone   String?
   customerName    String?
   shippingAddressJson String?
+  billingAddressJson  String?
+  billingTaxId        String?
+  billingTaxOffice    String?
   subtotalMinor   Int      @default(0)
   shippingMinor   Int      @default(0)
   discountMinor   Int      @default(0)
@@ -901,6 +922,8 @@ model StoreOrder {
   marketplacePlatform String?
   /** JSON: shipmentPackageId, orderNumber, tyStatus, lines[{lineId,qty,barcode}] */
   marketplaceMetaJson String?
+  /** JSON: Geliver shipmentId, labelURL, trackingUrl, statusCode, … */
+  shipmentMetaJson    String?
   /** GİB e-Arşiv fatura no */
   invoiceNumber   String?
   /** GİB belge UUID (ETTN) */
@@ -921,6 +944,7 @@ model StoreOrder {
   updatedAt       DateTime @updatedAt
   lines           StoreOrderLine[]
   financeTransactions FinanceTransaction[]
+  financeInvoices FinanceInvoice[]
   streetFoodContribution StreetFoodContribution?
 
   @@unique([siteId, orderNumber])
@@ -1055,6 +1079,18 @@ model FinanceCounterparty {
   city          String?
   district      String?
   notes         String?
+  /** Vade günü (net 30 vb.) */
+  paymentTermDays Int?
+  /** Cari risk limiti (kuruş) — açık alacak üst sınırı */
+  creditLimitMinor Int?
+  /** Açık hesap (vadeli) siparişe izin */
+  openAccountEnabled Boolean @default(false)
+  /** open_account | bank_transfer | mixed */
+  preferredPaymentMethod String?
+  /** Risk kilidi — sipariş engellenir */
+  creditHold    Boolean  @default(false)
+  /** Etiketler: B2B,Bayi (virgülle) */
+  tags          String?
   active        Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -1081,6 +1117,9 @@ model FinanceInvoice {
   customer              StoreCustomer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
   counterpartyId        String?
   counterparty          FinanceCounterparty? @relation(fields: [counterpartyId], references: [id], onDelete: SetNull)
+  /** Açık hesap siparişinden otomatik oluşturulan fatura */
+  orderId               String?
+  order                 StoreOrder? @relation(fields: [orderId], references: [id], onDelete: SetNull)
   title                 String?
   description           String?
   currency              String   @default("TRY")
@@ -1122,6 +1161,7 @@ model FinanceInvoice {
   @@index([siteId, source, direction])
   @@index([siteId, customerId])
   @@index([siteId, counterpartyId])
+  @@unique([siteId, orderId])
   @@map("finance_invoice")
   @@schema("shop")
 }

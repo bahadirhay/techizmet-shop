@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { BlogAiGenerationError } from "@/lib/admin/blog-automation/ai-blog";
 import { runBlogAutomation } from "@/lib/admin/blog-automation/run";
 import { getDefaultSite } from "@/lib/site";
 import { requireStaffApi } from "@/lib/staff-auth";
@@ -27,6 +28,9 @@ export async function POST(req: Request) {
     });
     return NextResponse.json(result);
   } catch (e) {
+    if (e instanceof BlogAiGenerationError) {
+      return NextResponse.json({ ok: false, error: e.message }, { status: 422 });
+    }
     const message = e instanceof Error ? e.message : "Üretim başarısız";
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }

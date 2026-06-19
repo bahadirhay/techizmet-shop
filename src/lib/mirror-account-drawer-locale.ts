@@ -1,6 +1,6 @@
 /** Hesap çekmecesi — TR etiket / placeholder (gömülü Shopify İngilizce metinleri) */
 
-import { parseHTML } from "linkedom";
+import { parseHTML } from "@/lib/linkedom-server";
 import { isElementNode, isInputNode } from "@/lib/mirror-dom-node";
 
 /** linkedom / Node prebuild — Node.TEXT_NODE global yok */

@@ -4,7 +4,12 @@ import { mergeSiteSettings } from "@/lib/merge-site-settings";
 import { parseSiteSettings, type SiteSettings } from "@/lib/site-settings";
 import { prisma } from "@/lib/prisma";
 
-export type CronJobId = "cartAbandonmentRemind" | "marketplaceOrders" | "blogAutomation" | "gscSync";
+export type CronJobId =
+  | "cartAbandonmentRemind"
+  | "marketplaceOrders"
+  | "blogAutomation"
+  | "gscSync"
+  | "seoDistribution";
 
 export type CronRunRecord = {
   jobId: CronJobId;
@@ -29,6 +34,8 @@ const SCHEDULES: Record<CronJobId, string> = {
     "Harici zamanlayıcı — GET /api/cron/blog-automation/run?secret=CRON_SECRET (öneri: Pazartesi/Perşembe 09:00)",
   gscSync:
     "Harici zamanlayıcı — GET /api/cron/gsc/sync?secret=CRON_SECRET&days=7 (öneri: her gün 06:00)",
+  seoDistribution:
+    "Harici zamanlayıcı — GET /api/cron/seo/distribution?secret=CRON_SECRET (öneri: her gün 05:30)",
 };
 
 function getOps(settings: SiteSettings) {

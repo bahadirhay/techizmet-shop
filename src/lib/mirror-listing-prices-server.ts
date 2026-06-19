@@ -1,9 +1,20 @@
 /** DB fiyat haritası — prebuild (tsx) ve runtime; server-only değil */
 import { prisma } from "@/lib/prisma";
+import { parseHTML } from "@/lib/linkedom-server";
 import {
-  applyCatalogPricesToHtml,
+  applyCatalogPricesToDocument,
+  injectCatalogPriceMapScript,
   type CatalogPriceMap,
 } from "@/lib/mirror-listing-prices";
+
+export function applyCatalogPricesToHtml(html: string, map: CatalogPriceMap): string {
+  if (!Object.keys(map).length) return html;
+  const withScript = injectCatalogPriceMapScript(html, map);
+  const { document } = parseHTML(withScript);
+  applyCatalogPricesToDocument(document, map);
+  const doctype = html.match(/^<!DOCTYPE[^>]*>/i)?.[0] ?? "<!DOCTYPE html>";
+  return `${doctype}\n${document.documentElement.outerHTML}`;
+}
 
 export async function loadCatalogPriceMap(siteId: string): Promise<CatalogPriceMap> {
   const rows = await prisma.storeProduct.findMany({

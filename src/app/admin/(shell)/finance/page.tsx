@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { FinanceDashboardView } from "@/components/admin/FinanceDashboardView";
+import { FinanceAlertsPanel } from "@/components/admin/FinanceAlertsPanel";
 import { FinanceEconomicsSettingsForm } from "@/components/admin/FinanceEconomicsSettingsForm";
 import { ensureFinanceDefaults } from "@/lib/finance/defaults";
+import { loadFinanceAlerts } from "@/lib/finance/finance-alerts";
 import { loadFinanceSummary } from "@/lib/finance/summary";
 import { getSiteSettings } from "@/lib/site-settings";
 import { requireStaffPage } from "@/lib/staff-auth";
@@ -23,9 +25,10 @@ export default async function FinancePage({
   const period = parsePeriod(days);
 
   await ensureFinanceDefaults(auth.siteId);
-  const [summary, settings] = await Promise.all([
+  const [summary, settings, alerts] = await Promise.all([
     loadFinanceSummary(auth.siteId, period),
     getSiteSettings(auth.siteId),
+    loadFinanceAlerts(auth.siteId),
   ]);
 
   return (
@@ -43,6 +46,7 @@ export default async function FinancePage({
         }
       />
       <FinanceDashboardView summary={summary} />
+      <FinanceAlertsPanel alerts={alerts} />
       <FinanceEconomicsSettingsForm initial={settings} />
     </div>
   );

@@ -403,6 +403,7 @@ export function syncMirrorNavigation(
   }
   dedupeMegaNavPortal(doc);
   rebindMirrorNavDropdown(doc);
+  bindMobileNavAccordion(doc);
 }
 
 export function applyMirrorNavigation(doc: Document, nav: MirrorNavItem[], locale: "tr" | "en" = "tr") {

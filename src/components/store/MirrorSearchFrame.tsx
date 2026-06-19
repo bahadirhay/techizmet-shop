@@ -10,6 +10,7 @@ import { getDefaultSite } from "@/lib/site";
 import { withProductDisplayTitle } from "@/lib/product-display-title";
 import { prisma } from "@/lib/prisma";
 import { resolveMirrorCollectionTexts } from "@/lib/store-static-texts";
+import { imageUrlsFromProductRow, primaryImageUrlFromProductRow } from "@/lib/mirror-product-card-images";
 
 function searchMirrorRel(locale: "tr" | "en") {
   return locale === "tr"
@@ -48,10 +49,18 @@ async function loadSearchProducts(siteId: string, term: string): Promise<VitrinC
       badgesJson: true,
       weightGrams: true,
       pieceCount: true,
+      images: { orderBy: { sortOrder: "asc" }, select: { url: true } },
     },
   });
 
-  return rows.map(withProductDisplayTitle);
+  return rows.map((p) => {
+    const imageUrls = imageUrlsFromProductRow(p);
+    return withProductDisplayTitle({
+      ...p,
+      imageUrl: primaryImageUrlFromProductRow(p),
+      imageUrls: imageUrls.length > 1 ? imageUrls : undefined,
+    });
+  });
 }
 
 /** Techizmet Shop vitrin — /search?q= sonuç sayfası */

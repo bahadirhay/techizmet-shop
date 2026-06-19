@@ -20,6 +20,8 @@ export type CheckoutPrefill = {
   phone: string;
   firstName: string;
   lastName: string;
+  taxId: string;
+  taxOffice: string;
   addresses: CheckoutAddress[];
 };
 
@@ -41,6 +43,8 @@ export async function getCheckoutPrefill(siteId: string): Promise<CheckoutPrefil
     phone: customer.phone ?? "",
     firstName: customer.firstName ?? "",
     lastName: customer.lastName ?? "",
+    taxId: customer.taxId ?? "",
+    taxOffice: customer.taxOffice ?? "",
     addresses: customer.addresses.map((a) => ({
       id: a.id,
       label: a.label,

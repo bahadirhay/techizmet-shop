@@ -7,6 +7,7 @@ import {
   accountLoginPath,
   sanitizeAccountReturnPath,
 } from "@/lib/account-return-path";
+import { formatTaxIdInput } from "@/lib/efatura/consumer-tax-id";
 
 export function AccountRegisterForm() {
   const router = useRouter();
@@ -18,9 +19,15 @@ export function AccountRegisterForm() {
     firstName: "",
     lastName: "",
     phone: "",
+    b2bApplication: false,
+    companyName: "",
+    taxId: "",
+    taxOffice: "",
+    b2bApplicationNote: "",
   });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [b2bPending, setB2bPending] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -29,16 +36,38 @@ export function AccountRegisterForm() {
     const res = await fetch("/api/account/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify({
+        ...form,
+        b2bApplication: form.b2bApplication ? "1" : "",
+      }),
     });
-    const json = (await res.json()) as { error?: string };
+    const json = (await res.json()) as { error?: string; b2bPending?: boolean };
     setBusy(false);
     if (!res.ok) {
       setErr(json.error ?? "Kayıt başarısız");
       return;
     }
+    if (json.b2bPending) {
+      setB2bPending(true);
+      return;
+    }
     router.push(returnTo);
     router.refresh();
+  }
+
+  if (b2bPending) {
+    return (
+      <div className="kn-account">
+        <h1>Başvurunuz alındı</h1>
+        <p className="kn-account__lead">
+          B2B / toptan üyelik başvurunuz inceleniyor. Onaylandığında size özel indirim oranı ve
+          ödeme koşulları tanımlanacak; e-posta ile bilgilendirileceksiniz.
+        </p>
+        <Link href={accountLoginPath(returnTo)} className="kn-btn kn-btn--primary kn-btn--block">
+          Hesabıma git
+        </Link>
+      </div>
+    );
   }
 
   return (
@@ -85,9 +114,58 @@ export function AccountRegisterForm() {
             onChange={(e) => setForm({ ...form, password: e.target.value })}
           />
         </label>
+
+        <label className="kn-account__b2b-toggle">
+          <input
+            type="checkbox"
+            checked={form.b2bApplication}
+            onChange={(e) => setForm({ ...form, b2bApplication: e.target.checked })}
+          />
+          <span>B2B / toptan müşteri başvurusu (admin onayı gerekir)</span>
+        </label>
+
+        {form.b2bApplication ? (
+          <div className="kn-account__b2b-fields">
+            <label>
+              Firma ünvanı *
+              <input
+                required={form.b2bApplication}
+                value={form.companyName}
+                onChange={(e) => setForm({ ...form, companyName: e.target.value })}
+              />
+            </label>
+            <label>
+              VKN / TCKN
+              <input
+                inputMode="numeric"
+                value={form.taxId}
+                onChange={(e) =>
+                  setForm({ ...form, taxId: formatTaxIdInput(e.target.value) })
+                }
+              />
+            </label>
+            <label>
+              Vergi dairesi
+              <input
+                value={form.taxOffice}
+                onChange={(e) => setForm({ ...form, taxOffice: e.target.value })}
+              />
+            </label>
+            <label>
+              Başvuru notu
+              <textarea
+                rows={3}
+                value={form.b2bApplicationNote}
+                onChange={(e) => setForm({ ...form, b2bApplicationNote: e.target.value })}
+                placeholder="Ciro, ürün grubu, ödeme tercihi…"
+              />
+            </label>
+          </div>
+        ) : null}
+
         {err ? <p className="kn-form-error">{err}</p> : null}
         <button type="submit" className="kn-btn kn-btn--primary kn-btn--block" disabled={busy}>
-          {busy ? "…" : "Kayıt ol"}
+          {busy ? "…" : form.b2bApplication ? "B2B başvurusu gönder" : "Kayıt ol"}
         </button>
       </form>
       <p className="kn-account__footer">

@@ -1,6 +1,6 @@
 /** Sunucu — mirror HTML üzerinde sayfa ayarları (iframe yüklemeden önce) */
 
-import { parseHTML } from "linkedom";
+import { parseHTML } from "@/lib/linkedom-server";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import {
   applyMirrorPageOverlay,

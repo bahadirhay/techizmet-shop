@@ -12,6 +12,7 @@ export async function GET() {
     marketplaceOrders: cronJobStale(health.jobs.marketplaceOrders, 48),
     blogAutomation: cronJobStale(health.jobs.blogAutomation, 96),
     gscSync: cronJobStale(health.jobs.gscSync, 30),
+    seoDistribution: cronJobStale(health.jobs.seoDistribution, 26),
   };
 
   return NextResponse.json({ ...health, stale });

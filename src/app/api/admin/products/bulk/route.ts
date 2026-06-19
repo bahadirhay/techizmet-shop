@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireStaffApi } from "@/lib/staff-auth";
 import { prisma } from "@/lib/prisma";
 import { resolveProductCategorySelection, syncProductCategoryLinks } from "@/lib/store-product-categories";
+import { notifyPublishedProducts } from "@/lib/seo/publish-notify";
 
 export async function PATCH(req: Request) {
   const auth = await requireStaffApi("store.products");
@@ -24,7 +25,7 @@ export async function PATCH(req: Request) {
 
   const owned = await prisma.storeProduct.findMany({
     where: { siteId: auth.siteId, id: { in: ids } },
-    select: { id: true, stockQty: true },
+    select: { id: true, stockQty: true, slug: true, published: true },
   });
   if (owned.length === 0) {
     return NextResponse.json({ error: "Ürün bulunamadı" }, { status: 404 });
@@ -74,6 +75,10 @@ export async function PATCH(req: Request) {
         });
       }
     }
+  }
+
+  if (body.published === true) {
+    notifyPublishedProducts(owned.filter((p) => p.published || body.published).map((p) => p.slug));
   }
 
   return NextResponse.json({ ok: true, count: ownedIds.length });

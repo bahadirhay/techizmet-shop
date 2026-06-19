@@ -19,7 +19,7 @@ export default async function SeoAiSettingsPage() {
           { label: "SEO AI" },
         ]}
         title="Ürün SEO — AI ayarları"
-        description="Gemini, Claude veya OpenAI ile ürün açıklaması ve SEO metni üretimi."
+        description="Gemini, Claude veya OpenAI ile metin; fal.ai veya DALL·E ile blog görseli."
       />
       <SeoAiSettingsForm
         initial={{
@@ -31,9 +31,13 @@ export default async function SeoAiSettingsPage() {
           geminiModel: config.geminiModel,
           openaiModel: config.openaiModel,
           claudeModel: config.claudeModel,
+          falApiKey: "",
+          falImageModel: config.falImageModel,
+          imageProvider: config.imageProvider,
           hasGeminiKey: Boolean(settings.seoAi?.geminiApiKey?.trim() || process.env.GEMINI_API_KEY?.trim()),
           hasOpenaiKey: Boolean(settings.seoAi?.openaiApiKey?.trim() || process.env.OPENAI_API_KEY?.trim()),
           hasClaudeKey: Boolean(settings.seoAi?.claudeApiKey?.trim() || process.env.ANTHROPIC_API_KEY?.trim()),
+          hasFalKey: Boolean(settings.seoAi?.falApiKey?.trim() || process.env.FAL_KEY?.trim()),
         }}
       />
     </div>

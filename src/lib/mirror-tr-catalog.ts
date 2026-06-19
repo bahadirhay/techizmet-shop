@@ -170,6 +170,8 @@ export const MIRROR_TR_CATALOG: ReadonlyArray<readonly [string, string]> = [
   ["Size", "Boyut"],
   ["Color", "Renk"],
   ["Quantity", "Adet"],
+  ["Volume", "Hacim"],
+  ["Shades", "Tonlar"],
   ["Subtotal", "Ara toplam"],
   ["Total", "Toplam"],
   ["Checkout", "Ödeme"],

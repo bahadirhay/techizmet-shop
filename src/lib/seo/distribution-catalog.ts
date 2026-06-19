@@ -1,0 +1,159 @@
+import type { DistributionPlatform } from "@/lib/seo/distribution-types";
+
+/** anatolianpaw.com — arama motoru, haber ve blog dizin kurgusu */
+export const DISTRIBUTION_PLATFORMS: DistributionPlatform[] = [
+  {
+    id: "google-search-console",
+    category: "search",
+    label: "Google Search Console",
+    description: "Sitemap gönderimi, tarama istatistikleri, URL denetimi.",
+    actionUrl: "https://search.google.com/search-console",
+    steps: [
+      "Mülk ekle: https://www.anatolianpaw.com veya sc-domain:anatolianpaw.com",
+      "Doğrulama: Admin → Logo & SEO → Google doğrulama kodu",
+      "Site Haritaları → sitemap.xml ekle",
+      "Ana sayfa için URL denetimi → Dizine eklenmesini iste",
+    ],
+  },
+  {
+    id: "bing-webmaster",
+    category: "search",
+    label: "Bing Webmaster Tools",
+    description: "Bing, Yahoo ve DuckDuckGo taraması için sitemap.",
+    actionUrl: "https://www.bing.com/webmasters",
+    steps: [
+      "Site ekle: https://www.anatolianpaw.com",
+      "Doğrulama: meta etiketi veya /BingSiteAuth.xml",
+      "Sitemap gönder: /sitemap.xml",
+    ],
+  },
+  {
+    id: "yandex-webmaster",
+    category: "search",
+    label: "Yandex Webmaster",
+    description: "Yandex arama dizini (Türkiye'de ikincil trafik kaynağı).",
+    actionUrl: "https://webmaster.yandex.com",
+    steps: [
+      "Site ekle ve Yandex doğrulama meta kodunu SEO ayarlarına kaydet",
+      "Sitemap: /sitemap.xml",
+      "Yandex Business / Harita (varsa fiziksel adres)",
+    ],
+  },
+  {
+    id: "indexnow",
+    category: "search",
+    label: "IndexNow (Bing + Yandex + Seznam)",
+    description: "Yeni/güncel URL'ler anında bildirilir — otomatik.",
+    automated: true,
+    steps: [
+      "Anahtar dosyası sitede barındırılır",
+      "Yayın ve toplu indeksleme admin panelinden tetiklenir",
+    ],
+  },
+  {
+    id: "sitemap-ping",
+    category: "search",
+    label: "Sitemap ping (Bing)",
+    description: "Sitemap güncellendiğinde Bing'e bildirim — otomatik.",
+    automated: true,
+  },
+  {
+    id: "rss-feed",
+    category: "blog",
+    label: "Blog RSS beslemesi",
+    description: "Feedly, haber okuyucuları ve agregatörler için /blogs/news/feed.xml",
+    automated: true,
+    steps: [
+      "RSS URL'yi Feedly ve blog dizinlerine ekleyin",
+      "Blog listesi sayfasında alternate link otomatik",
+    ],
+  },
+  {
+    id: "google-news",
+    category: "news",
+    label: "Google Haberler / Publisher Center",
+    description: "Haber sitesi kriterleri karşılandığında başvuru.",
+    actionUrl: "https://publishercenter.google.com",
+    steps: [
+      "Düzenli orijinal blog içeriği (köpek bakımı, ürün rehberleri)",
+      "Yazar, tarih, kategori net olmalı (BlogPosting schema mevcut)",
+      "Publisher Center'da site ve RSS beslemesi tanımla",
+    ],
+  },
+  {
+    id: "bing-news",
+    category: "news",
+    label: "Bing News PubHub",
+    description: "Bing haber akışına dahil olmak için başvuru.",
+    actionUrl: "https://www.bing.com/webmasters/help/webmasters-guidelines-30fba23a",
+    steps: [
+      "Webmaster Tools'ta site doğrulanmış olmalı",
+      "Haber/blog URL yapısı tutarlı: /blogs/news/{slug}",
+    ],
+  },
+  {
+    id: "pinterest",
+    category: "social",
+    label: "Pinterest İşletme",
+    description: "Ürün görselleri ve blog pinleri.",
+    actionUrl: "https://www.pinterest.com/business/create",
+    steps: ["İşletme hesabı aç", "Site doğrula", "Ürün kataloğu / zengin pinler"],
+  },
+  {
+    id: "facebook-business",
+    category: "social",
+    label: "Meta Business / Facebook Sayfası",
+    description: "Marka sayfası + site linki.",
+    actionUrl: "https://www.facebook.com/business",
+    steps: ["Sayfa oluştur", "Web sitesi alanına anatolianpaw.com ekle", "Pixel ID SEO ayarlarında"],
+  },
+  {
+    id: "instagram-bio",
+    category: "social",
+    label: "Instagram profil linki",
+    description: "Bio'da site + vitrin entegrasyonu.",
+    steps: ["Profilde https://www.anatolianpaw.com", "Mağaza vitrin Instagram bölümü"],
+  },
+  {
+    id: "feedly",
+    category: "blog",
+    label: "Feedly / RSS okuyucular",
+    description: "RSS beslemesini manuel ekle.",
+    actionUrl: "https://feedly.com/i/subscription/feed%2F",
+    steps: ["RSS URL: /blogs/news/feed.xml", "Kategori: Evcil hayvan / E-ticaret"],
+  },
+  {
+    id: "apple-business",
+    category: "directory",
+    label: "Apple Maps / Business Connect",
+    description: "Marka ve iletişim bilgisi (varsa mağaza).",
+    actionUrl: "https://businessconnect.apple.com",
+  },
+  {
+    id: "google-business",
+    category: "directory",
+    label: "Google İşletme Profili",
+    description: "Yerel arama ve harita görünürlüğü.",
+    actionUrl: "https://business.google.com",
+    steps: ["İşletme adı, web sitesi, kategori: Evcil hayvan malzemeleri"],
+  },
+  {
+    id: "turkey-pet-directories",
+    category: "directory",
+    label: "Türkiye pet / e-ticaret dizinleri",
+    description: "Sektörel listeleme sitelerine manuel kayıt.",
+    steps: [
+      "Evcil hayvan forumları ve bloglarında marka tanıtımı",
+      "İlgili bloglara misafir yazı / ürün incelemesi",
+      "Sektör dernekleri ve fuar listeleri",
+    ],
+  },
+];
+
+export const DISTRIBUTION_CATEGORY_LABELS: Record<DistributionPlatform["category"], string> = {
+  search: "Arama motorları",
+  news: "Haber kaynakları",
+  blog: "Blog & RSS",
+  social: "Sosyal medya",
+  directory: "Dizinler & haritalar",
+};

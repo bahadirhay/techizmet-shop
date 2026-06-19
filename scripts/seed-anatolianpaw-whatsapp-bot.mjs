@@ -4,7 +4,7 @@ import { PrismaClient } from "@prisma/client";
 const DEFAULT_BOT_SEED = [
   {
     label: "Sipariş durumu",
-    botReply: "Sipariş numaranız veya e-posta adresiniz ile yardımcı olalım.",
+    botReply: "Aşağıdan konunuzu seçin.",
     children: [
       { label: "Kargom nerede?", messageTemplate: "Merhaba, siparişimin kargo durumunu öğrenmek istiyorum." },
       { label: "Sipariş iptali", messageTemplate: "Merhaba, siparişimi iptal etmek istiyorum." },

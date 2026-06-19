@@ -3,6 +3,7 @@ import { revalidateCollectionPaths } from "@/lib/admin/revalidate-collections";
 import { slugify } from "@/lib/admin/slug";
 import { requireStaffApi } from "@/lib/staff-auth";
 import { prisma } from "@/lib/prisma";
+import { notifyPublishedCollection } from "@/lib/seo/publish-notify";
 
 function parseCollectionBody(body: Record<string, unknown>) {
   return {
@@ -48,5 +49,6 @@ export async function POST(req: Request) {
     },
   });
   revalidateCollectionPaths(slug);
+  notifyPublishedCollection(slug);
   return NextResponse.json({ collection });
 }

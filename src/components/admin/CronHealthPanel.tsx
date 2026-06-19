@@ -8,6 +8,7 @@ const JOB_LABELS: Record<CronJobId, string> = {
   marketplaceOrders: "Pazar yeri sipariş çekme",
   blogAutomation: "Blog otomasyonu",
   gscSync: "GSC arama senkronu",
+  seoDistribution: "SEO indeksleme (IndexNow + sitemap)",
 };
 
 function statusTone(record: CronRunRecord | undefined, stale: boolean) {
@@ -40,7 +41,13 @@ export function CronHealthPanel() {
 
   if (!health) return null;
 
-  const jobs: CronJobId[] = ["cartAbandonmentRemind", "marketplaceOrders", "blogAutomation", "gscSync"];
+  const jobs: CronJobId[] = [
+    "cartAbandonmentRemind",
+    "marketplaceOrders",
+    "blogAutomation",
+    "gscSync",
+    "seoDistribution",
+  ];
 
   return (
     <section className="admin-card admin-card-pad">

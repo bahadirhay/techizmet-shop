@@ -3,6 +3,10 @@ import { revalidateCategoryPaths } from "@/lib/admin/revalidate-categories";
 import { slugify } from "@/lib/admin/slug";
 import { requireStaffApi } from "@/lib/staff-auth";
 import { prisma } from "@/lib/prisma";
+import {
+  notifyActiveCategory,
+  shouldReindexActiveCategory,
+} from "@/lib/seo/publish-notify";
 
 function parseCategoryPatch(body: Record<string, unknown>) {
   return {
@@ -77,6 +81,17 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   });
   revalidateCategoryPaths(existing.slug);
   if (category.slug !== existing.slug) revalidateCategoryPaths(category.slug);
+
+  if (
+    shouldReindexActiveCategory(
+      { active: existing.active, slug: existing.slug },
+      { active: category.active, slug: category.slug },
+      body,
+    )
+  ) {
+    notifyActiveCategory(category.slug);
+  }
+
   return NextResponse.json({ category });
 }
 

@@ -48,6 +48,26 @@ export function BlogPostsDbPanel({
     }
   }
 
+  async function publishPost(id: string) {
+    setSavingId(id);
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/blog/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ published: true, publishedAt: new Date().toISOString() }),
+      });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(data.error ?? "Yayınlanamadı");
+      setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, published: true } : p)));
+      onImageSaved?.();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Yayın hatası");
+    } finally {
+      setSavingId(null);
+    }
+  }
+
   if (!posts.length) {
     return (
       <div className="mt-4 space-y-2 border-t border-zinc-700 pt-4">
@@ -68,6 +88,11 @@ export function BlogPostsDbPanel({
         Görseller veritabanında saklanır. Sürükleyip bırakın veya dosya seçin — yükleme sonrası otomatik
         kaydedilir.
       </p>
+      <p className="rounded-md border border-amber-500/40 bg-amber-950/40 px-2 py-1.5 text-xs text-amber-100">
+        Canlı sitede (<code className="text-amber-50">/blogs/news</code>) yalnızca{" "}
+        <strong>yayında</strong> yazılar görünür. Turuncu <strong>(taslak)</strong> etiketli yazılar vitrinde
+        listelenmez — önce yayınlayın.
+      </p>
       <Link href="/admin/blog" className="inline-block text-xs text-sky-400 hover:underline">
         Başlık, metin ve yayın → Blog yönetimi
       </Link>
@@ -87,7 +112,34 @@ export function BlogPostsDbPanel({
               <span className="ml-2 text-xs font-normal text-emerald-400">Kaydedildi</span>
             ) : null}
           </summary>
-          <div className="mt-3">
+          <div className="mt-3 space-y-2">
+            {!post.published ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  className="rounded-md bg-emerald-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-emerald-500 disabled:opacity-50"
+                  disabled={savingId === post.id}
+                  onClick={() => void publishPost(post.id)}
+                >
+                  Yayınla
+                </button>
+                <Link
+                  href={`/admin/blog/${post.id}/edit`}
+                  className="text-xs text-sky-400 hover:underline"
+                >
+                  Metni düzenle →
+                </Link>
+              </div>
+            ) : (
+              <Link
+                href={`/blogs/news/${post.slug}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-block text-xs text-emerald-400 hover:underline"
+              >
+                Canlıda görüntüle ↗
+              </Link>
+            )}
             <MirrorImageField
               editorChrome
               label="Kapak görseli"

@@ -2,8 +2,16 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { slugify } from "@/lib/admin/slug";
 import { revalidateBlogPaths } from "@/lib/blog/revalidate-blog";
+import { sanitizePublicHtml } from "@/lib/html-sanitize";
+import { notifySearchEnginesForBlogSlug } from "@/lib/seo/notify-search-engines";
 import { requireStaffApi } from "@/lib/staff-auth";
 import { prisma } from "@/lib/prisma";
+
+function sanitizeOptionalHtml(v: unknown): string | null | undefined {
+  if (v === undefined) return undefined;
+  const s = String(v ?? "").trim();
+  return s ? sanitizePublicHtml(s) : null;
+}
 
 function parseDateInput(v: unknown): Date | null | undefined {
   if (v === undefined) return undefined;
@@ -50,10 +58,11 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       slug,
       titleTr: body.titleTr !== undefined ? String(body.titleTr).trim() : undefined,
       titleEn: body.titleEn !== undefined ? String(body.titleEn).trim() || null : undefined,
-      excerptTr: body.excerptTr !== undefined ? String(body.excerptTr).trim() || null : undefined,
-      excerptEn: body.excerptEn !== undefined ? String(body.excerptEn).trim() || null : undefined,
-      bodyTr: body.bodyTr !== undefined ? String(body.bodyTr) : undefined,
-      bodyEn: body.bodyEn !== undefined ? String(body.bodyEn).trim() || null : undefined,
+      excerptTr: sanitizeOptionalHtml(body.excerptTr),
+      excerptEn: sanitizeOptionalHtml(body.excerptEn),
+      bodyTr:
+        body.bodyTr !== undefined ? sanitizePublicHtml(String(body.bodyTr)) : undefined,
+      bodyEn: sanitizeOptionalHtml(body.bodyEn),
       imageUrl: body.imageUrl !== undefined ? String(body.imageUrl).trim() || null : undefined,
       author: body.author !== undefined ? String(body.author).trim() || null : undefined,
       publishedAt,
@@ -68,6 +77,9 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
 
   revalidateBlogPaths(current.slug, current.published);
   revalidateBlogPaths(post.slug, post.published);
+  if (post.published && (!current.published || current.slug !== post.slug)) {
+    notifySearchEnginesForBlogSlug(post.slug);
+  }
   return NextResponse.json({ post });
 }
 

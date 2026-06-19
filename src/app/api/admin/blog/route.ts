@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server";
 import { slugify } from "@/lib/admin/slug";
 import { revalidateBlogPaths } from "@/lib/blog/revalidate-blog";
+import { sanitizePublicHtml } from "@/lib/html-sanitize";
+import { notifySearchEnginesForBlogSlug } from "@/lib/seo/notify-search-engines";
 import { requireStaffApi } from "@/lib/staff-auth";
 import { prisma } from "@/lib/prisma";
+
+function sanitizeOptionalHtml(v: unknown): string | null {
+  const s = String(v ?? "").trim();
+  return s ? sanitizePublicHtml(s) : null;
+}
 
 function parseDateInput(v: unknown): Date | null {
   const s = String(v ?? "").trim();
@@ -44,10 +51,10 @@ export async function POST(req: Request) {
       slug,
       titleTr,
       titleEn: String(body.titleEn ?? "").trim() || null,
-      excerptTr: String(body.excerptTr ?? "").trim() || null,
-      excerptEn: String(body.excerptEn ?? "").trim() || null,
-      bodyTr: String(body.bodyTr ?? ""),
-      bodyEn: String(body.bodyEn ?? "").trim() || null,
+      excerptTr: sanitizeOptionalHtml(body.excerptTr),
+      excerptEn: sanitizeOptionalHtml(body.excerptEn),
+      bodyTr: sanitizePublicHtml(String(body.bodyTr ?? "")),
+      bodyEn: sanitizeOptionalHtml(body.bodyEn),
       imageUrl: String(body.imageUrl ?? "").trim() || null,
       author: String(body.author ?? "").trim() || null,
       publishedAt: parseDateInput(body.publishedAt) ?? new Date(),
@@ -60,5 +67,6 @@ export async function POST(req: Request) {
   });
 
   revalidateBlogPaths(post.slug, post.published);
+  if (post.published) notifySearchEnginesForBlogSlug(post.slug);
   return NextResponse.json({ post });
 }

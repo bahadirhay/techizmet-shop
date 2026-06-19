@@ -12,10 +12,15 @@ import type { CheckoutPrefill } from "@/lib/checkout/prefill";
 import {
   hasAnyCheckoutPaymentMethod,
   resolveDefaultPaymentMethod,
-  type CheckoutPaymentFlags,
   type PaymentMethodId,
 } from "@/lib/checkout/payment-options";
+import type { CheckoutPaymentContext } from "@/lib/checkout/payment-context";
 import { formatCheckoutLine1, splitSavedLine1 } from "@/lib/tr-address/format";
+import {
+  formatTaxIdInput,
+  isLikelyVkn,
+  normalizeConsumerTaxId,
+} from "@/lib/efatura/consumer-tax-id";
 import { accountLoginPath } from "@/lib/account-return-path";
 import { DistanceSalesAgreementCheckoutPreview } from "@/components/legal/DistanceSalesAgreementCheckoutPreview";
 import type { LegalSellerProfile } from "@/lib/legal/seller-profile";
@@ -60,7 +65,7 @@ export function CheckoutForm({
   usdRate,
   sellerProfile,
 }: {
-  payment: CheckoutPaymentFlags;
+  payment: CheckoutPaymentContext;
   prefill?: CheckoutPrefill | null;
   embed?: boolean;
   initialShipping?: ShippingOption[];
@@ -104,6 +109,16 @@ export function CheckoutForm({
     neighborhood: addrFields?.neighborhood ?? "",
     line1: addrFields?.line1 ?? "",
     postalCode: addrFields?.postalCode ?? "",
+    taxId: prefill?.taxId ?? "",
+    taxOffice: prefill?.taxOffice ?? "",
+    billingSameAsShipping: true,
+    billingFirstName: prefill?.firstName || addrFields?.firstName || "",
+    billingLastName: prefill?.lastName || addrFields?.lastName || "",
+    billingCity: addrFields?.city ?? "",
+    billingDistrict: addrFields?.district ?? "",
+    billingNeighborhood: addrFields?.neighborhood ?? "",
+    billingLine1: addrFields?.line1 ?? "",
+    billingPostalCode: addrFields?.postalCode ?? "",
     paymentMethod: defaultPay ?? ("cod" as PaymentMethodId),
     acceptTerms: false,
   });
@@ -181,22 +196,44 @@ export function CheckoutForm({
   const isNewAddress = !selectedAddressId;
   const showSaveAddressOption = Boolean(prefill?.loggedIn && isNewAddress);
 
-  const patchAddress = useCallback((patch: Partial<typeof EMPTY_ADDRESS & { line1: string; postalCode: string }>) => {
-    setForm((prev) => ({ ...prev, ...patch }));
-  }, []);
+  const patchBillingAddress = useCallback(
+    (patch: Partial<typeof EMPTY_ADDRESS & { line1: string; postalCode: string }>) => {
+      setForm((prev) => ({ ...prev, ...patch }));
+    },
+    [],
+  );
+
+  function copyShippingToBilling(prev: typeof form): typeof form {
+    return {
+      ...prev,
+      billingFirstName: prev.firstName,
+      billingLastName: prev.lastName,
+      billingCity: prev.city,
+      billingDistrict: prev.district,
+      billingNeighborhood: prev.neighborhood,
+      billingLine1: prev.line1,
+      billingPostalCode: prev.postalCode,
+    };
+  }
+
+  function setBillingSameAsShipping(checked: boolean) {
+    setForm((prev) => {
+      const next = { ...prev, billingSameAsShipping: checked };
+      return checked ? copyShippingToBilling(next) : next;
+    });
+  }
+  const patchAddress = useCallback(
+    (patch: Partial<typeof EMPTY_ADDRESS & { line1: string; postalCode: string }>) => {
+      setForm((prev) => {
+        const next = { ...prev, ...patch };
+        return prev.billingSameAsShipping ? copyShippingToBilling(next) : next;
+      });
+    },
+    [],
+  );
 
   useEffect(() => {
     refresh();
-    // Sunucudan gelen initialShipping varsa ilk yüklemede fetch atlamak için flag
-    const hasInitial = initialShipping.length > 0 || initialFreeShipping;
-    if (hasInitial) {
-      // initialShipping'den ilk seçeneği varsayılan yap
-      if (initialShipping[0] && !carrierId) {
-        setCarrierId(initialShipping[0].carrierId);
-        setRateId(initialShipping[0].rateId);
-      }
-      return;
-    }
     fetch("/api/checkout/shipping", { credentials: "same-origin" })
       .then((r) => r.json())
       .then((j: { options: ShippingOption[]; freeShipping: boolean }) => {
@@ -225,23 +262,33 @@ export function CheckoutForm({
   function selectNewAddress() {
     setSelectedAddressId("");
     setSaveAddress(true);
-    setForm((prev) => ({
-      ...prev,
-      ...EMPTY_ADDRESS,
-    }));
+    setForm((prev) => {
+      const next = { ...prev, ...EMPTY_ADDRESS };
+      return prev.billingSameAsShipping ? copyShippingToBilling(next) : next;
+    });
   }
 
   function selectSavedAddress(a: CheckoutPrefill["addresses"][0]) {
     setSelectedAddressId(a.id);
     setSaveAddress(false);
     const f = addressToForm(a);
-    setForm((prev) => ({
-      ...prev,
-      ...f,
-      phone: f.phone || prev.phone,
-      firstName: f.firstName || prev.firstName,
-      lastName: f.lastName || prev.lastName,
-    }));
+    setForm((prev) => {
+      const next = {
+        ...prev,
+        ...f,
+        phone: f.phone || prev.phone,
+        firstName: f.firstName || prev.firstName,
+        lastName: f.lastName || prev.lastName,
+      };
+      return prev.billingSameAsShipping ? copyShippingToBilling(next) : next;
+    });
+  }
+
+  function patchShippingName(patch: { firstName?: string; lastName?: string }) {
+    setForm((prev) => {
+      const next = { ...prev, ...patch };
+      return prev.billingSameAsShipping ? copyShippingToBilling(next) : next;
+    });
   }
 
   const pageClass = embed ? "kn-checkout-page kn-checkout-page--embed" : "kn-checkout-page";
@@ -300,6 +347,16 @@ export function CheckoutForm({
       setErr("İl, ilçe, mahalle ve adres (sokak) zorunludur");
       return;
     }
+    if (
+      !form.billingSameAsShipping &&
+      (!form.billingCity ||
+        !form.billingDistrict ||
+        !form.billingNeighborhood ||
+        !form.billingLine1.trim())
+    ) {
+      setErr("Fatura adresi: il, ilçe, mahalle ve adres (sokak) zorunludur");
+      return;
+    }
     if (!paymentAvailable) {
       setErr("Şu an aktif ödeme yöntemi yok. Lütfen mağaza yöneticisiyle iletişime geçin.");
       return;
@@ -307,7 +364,8 @@ export function CheckoutForm({
     if (
       (form.paymentMethod === "cod" && !payment.codEnabled) ||
       (form.paymentMethod === "bank_transfer" && !payment.bankTransferEnabled) ||
-      (form.paymentMethod === "card" && !payment.cardEnabled)
+      (form.paymentMethod === "card" && !payment.cardEnabled) ||
+      (form.paymentMethod === "open_account" && !payment.openAccount.enabled)
     ) {
       setErr("Seçilen ödeme yöntemi kullanılamıyor. Lütfen başka bir yöntem seçin.");
       return;
@@ -322,6 +380,12 @@ export function CheckoutForm({
       body: JSON.stringify({
         ...form,
         line1: fullLine1,
+        billingLine1: form.billingSameAsShipping
+          ? form.line1
+          : form.billingLine1,
+        billingNeighborhood: form.billingSameAsShipping
+          ? form.neighborhood
+          : form.billingNeighborhood,
         carrierId: freeShipping ? shipping[0]?.carrierId ?? "" : carrierId,
         rateId: freeShipping ? shipping[0]?.rateId ?? "" : rateId,
         createAccount: !prefill?.loggedIn && createAccount,
@@ -504,7 +568,7 @@ export function CheckoutForm({
                   className="form-control"
                   required
                   value={form.firstName}
-                  onChange={(e) => setForm({ ...form, firstName: e.target.value })}
+                  onChange={(e) => patchShippingName({ firstName: e.target.value })}
                 />
               </div>
               <div className="form-group">
@@ -514,7 +578,7 @@ export function CheckoutForm({
                   className="form-control"
                   required
                   value={form.lastName}
-                  onChange={(e) => setForm({ ...form, lastName: e.target.value })}
+                  onChange={(e) => patchShippingName({ lastName: e.target.value })}
                 />
               </div>
               <TurkeyAddressFields
@@ -541,11 +605,105 @@ export function CheckoutForm({
             ) : null}
           </section>
           <section className="kn-checkout__section">
+            <h2>Fatura bilgileri</h2>
+            <p className="kn-checkout__hint">
+              TCKN veya VKN girmezseniz faturada otomatik olarak 11111111111 kullanılır.
+            </p>
+            <div className="kn-form-grid input-form--fields">
+              <div className="form-group">
+                <label htmlFor="kn-checkout-tax-id">TCKN / VKN</label>
+                <input
+                  id="kn-checkout-tax-id"
+                  className="form-control"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  placeholder="11 haneli TCKN veya 10 haneli VKN"
+                  value={form.taxId}
+                  onChange={(e) =>
+                    setForm({ ...form, taxId: formatTaxIdInput(e.target.value) })
+                  }
+                  onBlur={() => {
+                    if (!form.taxId.trim()) return;
+                    setForm((prev) => ({
+                      ...prev,
+                      taxId: normalizeConsumerTaxId(prev.taxId),
+                    }));
+                  }}
+                />
+                {form.taxId && isLikelyVkn(normalizeConsumerTaxId(form.taxId)) ? (
+                  <p className="kn-checkout__field-hint">10 haneli VKN (şirket) olarak algılandı.</p>
+                ) : null}
+              </div>
+              <div className="form-group">
+                <label htmlFor="kn-checkout-tax-office">Vergi dairesi</label>
+                <input
+                  id="kn-checkout-tax-office"
+                  className="form-control"
+                  placeholder={isLikelyVkn(normalizeConsumerTaxId(form.taxId)) ? "Şirket vergi dairesi" : "İsteğe bağlı"}
+                  value={form.taxOffice}
+                  onChange={(e) => setForm({ ...form, taxOffice: e.target.value })}
+                />
+              </div>
+            </div>
+            <label className="kn-checkout__account-toggle kn-checkout__billing-same">
+              <input
+                type="checkbox"
+                checked={form.billingSameAsShipping}
+                onChange={(e) => setBillingSameAsShipping(e.target.checked)}
+              />
+              <span>Kargo adresini fatura adresi olarak kullan</span>
+            </label>
+            {!form.billingSameAsShipping ? (
+              <div className="kn-checkout__billing-fields">
+                <h3 className="kn-checkout__subsection-title">Fatura adresi</h3>
+                <div className="kn-form-grid input-form--fields">
+                  <div className="form-group">
+                    <label htmlFor="kn-checkout-bill-first">Ad *</label>
+                    <input
+                      id="kn-checkout-bill-first"
+                      className="form-control"
+                      required
+                      value={form.billingFirstName}
+                      onChange={(e) =>
+                        setForm({ ...form, billingFirstName: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="kn-checkout-bill-last">Soyad *</label>
+                    <input
+                      id="kn-checkout-bill-last"
+                      className="form-control"
+                      required
+                      value={form.billingLastName}
+                      onChange={(e) =>
+                        setForm({ ...form, billingLastName: e.target.value })
+                      }
+                    />
+                  </div>
+                  <TurkeyAddressFields
+                    idPrefix="kn-checkout-bill"
+                    value={{
+                      city: form.billingCity,
+                      district: form.billingDistrict,
+                      neighborhood: form.billingNeighborhood,
+                      postalCode: form.billingPostalCode,
+                      line1: form.billingLine1,
+                    }}
+                    onChange={patchBillingAddress}
+                  />
+                </div>
+              </div>
+            ) : null}
+          </section>
+          <section className="kn-checkout__section">
             <h2>Kargo</h2>
             {freeShipping ? (
               <p className="kn-text-success">Ücretsiz kargo uygulandı.</p>
             ) : shipping.length === 0 ? (
-              <p className="kn-alert kn-alert--warn">Aktif kargo tarifesi yok. Admin → Kargo bölümünden ekleyin.</p>
+              <p className="kn-alert kn-alert--warn">
+                Kargo seçeneği şu an tanımlı değil. Sipariş vermek için lütfen mağazamızla iletişime geçin.
+              </p>
             ) : (
               <div className="kn-shipping-options">
                 {shipping.map((o) => (
@@ -577,8 +735,7 @@ export function CheckoutForm({
             ) : null}
             {!paymentAvailable ? (
               <p className="kn-alert kn-alert--warn">
-                Aktif ödeme yöntemi tanımlı değil. Admin → Entegrasyon → Ödeme bölümünden en az bir yöntemi
-                açın.
+                Ödeme yöntemi şu an kullanılamıyor. Lütfen daha sonra tekrar deneyin veya bizimle iletişime geçin.
               </p>
             ) : (
             <div className="kn-payment-options">
@@ -618,8 +775,35 @@ export function CheckoutForm({
                   Kredi / banka kartı (PayTR{payment.paytrTestMode ? " · test" : ""} güvenli ödeme)
                 </label>
               ) : null}
+              {payment.openAccount.enabled ? (
+                <label>
+                  <input
+                    type="radio"
+                    name="pay"
+                    value="open_account"
+                    checked={form.paymentMethod === "open_account"}
+                    onChange={() => setForm({ ...form, paymentMethod: "open_account" })}
+                  />
+                  Açık hesap (vadeli)
+                  {payment.openAccount.groupName ? (
+                    <span className="kn-checkout__pay-badge"> · {payment.openAccount.groupName}</span>
+                  ) : null}
+                </label>
+              ) : null}
             </div>
             )}
+            {payment.openAccount.enabled && form.paymentMethod === "open_account" ? (
+              <p className="kn-checkout__card-hint">
+                {payment.openAccount.hint ?? "Onaylı B2B açık hesap — fatura vadesi cari kartınızdaki koşullara göre uygulanır."}
+                {payment.openAccount.availableCreditMinor != null ? (
+                  <>
+                    {" "}
+                    Kullanılabilir limit:{" "}
+                    {fmt(payment.openAccount.availableCreditMinor)}
+                  </>
+                ) : null}
+              </p>
+            ) : null}
             {payment.cardEnabled && form.paymentMethod === "card" ? (
               <p className="kn-checkout__card-hint">
                 Kart numarası bu adımda istenmez. Siparişi tamamladıktan sonra güvenli PayTR ödeme

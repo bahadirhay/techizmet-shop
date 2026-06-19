@@ -12,6 +12,13 @@ export default async function ShippingPage() {
 
   return (
     <div>
+      <div className="mb-6 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-950">
+        Otomatik kargo (Geliver) için{" "}
+        <Link href="/admin/integrations/shipping" className="font-medium underline">
+          Geliver Entegrasyonu
+        </Link>{" "}
+        sayfasına gidin — yalnızca API token yeterli. Bu listedeki firmalar manuel takip içindir.
+      </div>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">Kargo firmaları</h1>

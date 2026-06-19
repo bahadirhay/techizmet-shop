@@ -36,6 +36,7 @@ const LABELS: Record<string, string> = {
   video: "Video",
   "main-collection-list": "Koleksiyon kartları",
   "main-collection": "Ürün listesi",
+  "collapsible-content": "SSS / Açılır sorular",
 };
 
 /** @deprecated — yalnızca geriye dönük import; yeni kod parseMirrorSectionHead kullanır */

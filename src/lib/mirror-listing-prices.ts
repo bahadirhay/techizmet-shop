@@ -2,7 +2,6 @@
  * Vitrin liste fiyatları — sunucuda HTML'e gömülür, istemci overlay sonrası tekrar uygular.
  */
 
-import { parseHTML } from "linkedom";
 import { formatTry } from "@/lib/format";
 
 export type CatalogPriceEntry = { priceMinor: number; compareAtMinor: number | null };
@@ -103,13 +102,4 @@ export function applyCatalogPricesToDocument(doc: Document, map: CatalogPriceMap
       link.querySelector(".collections-tab--info");
     if (info) (info as HTMLElement).style.removeProperty("display");
   });
-}
-
-export function applyCatalogPricesToHtml(html: string, map: CatalogPriceMap): string {
-  if (!Object.keys(map).length) return html;
-  const withScript = injectCatalogPriceMapScript(html, map);
-  const { document } = parseHTML(withScript);
-  applyCatalogPricesToDocument(document, map);
-  const doctype = html.match(/^<!DOCTYPE[^>]*>/i)?.[0] ?? "<!DOCTYPE html>";
-  return `${doctype}\n${document.documentElement.outerHTML}`;
 }

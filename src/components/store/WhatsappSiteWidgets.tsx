@@ -17,10 +17,18 @@ export function WhatsappSiteWidgets({
   botEnabled: boolean;
 }) {
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const [inIframe, setInIframe] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+    try {
+      setInIframe(window.self !== window.top);
+    } catch {
+      setInIframe(true);
+    }
+  }, []);
 
   const digits = phoneDigits.replace(/\D/g, "");
-  if (!digits) return null;
+  if (!digits || inIframe) return null;
 
   const widgets = (
     <div className="kn-whatsapp-widgets" style={{ position: "relative", zIndex: 99999 }}>

@@ -34,6 +34,9 @@ function CollectionFrameInner({
       categoriesFromAdmin={productsPrebuilt ? undefined : payload?.categoriesFromAdmin}
       activeCategorySlug={payload?.activeCategorySlug}
       mirrorTexts={payload?.mirrorTexts}
+      filterFacets={payload?.filterFacets}
+      activeFilters={payload?.activeFilters}
+      filterConfig={payload?.filterConfig}
       currentPage={currentPage}
       paginationBasePath={payload?.paginationBasePath ?? "/collections/all"}
       productsPrebuilt={productsPrebuilt}

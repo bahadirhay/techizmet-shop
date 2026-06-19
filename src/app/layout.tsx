@@ -8,6 +8,7 @@ import { StoreEventTracker } from "@/components/store/StoreEventTracker";
 import { JsonLdScript } from "@/components/store/JsonLdScript";
 import { buildSiteMetadata } from "@/lib/site-metadata";
 import { buildOrganizationJsonLd, buildWebSiteJsonLd } from "@/lib/seo/site-json-ld";
+import { safeGoogleAnalyticsId } from "@/lib/seo/google-analytics-id";
 import { getCachedParsedSiteSettings } from "@/lib/cache/store-cache";
 import { resolveStoreMirrorIframeSrcForRequest } from "@/lib/mirror-prebuilt-resolve-server";
 import { getDefaultSite } from "@/lib/site";
@@ -32,6 +33,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const site = await getDefaultSite();
   const settings = await getCachedParsedSiteSettings(site.id);
   const seo = getSiteSeo(settings, site.name);
+  const gaId = safeGoogleAnalyticsId(seo.googleAnalyticsId);
   const wa = getWhatsAppConfig(settings);
   const siteJsonLd = [buildOrganizationJsonLd(settings, site.name), buildWebSiteJsonLd(settings, site.name)];
   const mirrorHomePreload = await resolveStoreMirrorIframeSrcForRequest(
@@ -43,11 +45,21 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="tr">
       <head>
         <link rel="preload" href={mirrorHomePreload} as="document" />
+        {gaId ? (
+          <>
+            <script async src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} />
+            <script
+              dangerouslySetInnerHTML={{
+                __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('consent','default',{analytics_storage:'denied',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',wait_for_update:500});gtag('js',new Date());gtag('config','${gaId}');`,
+              }}
+            />
+          </>
+        ) : null}
       </head>
       <body className={`${poppins.variable} antialiased`}>
         <JsonLdScript data={siteJsonLd} />
         <ConsentAwareAnalytics
-          googleAnalyticsId={seo.googleAnalyticsId}
+          googleAnalyticsId={gaId ?? ""}
           facebookPixelId={seo.facebookPixelId}
         />
         <CookieConsentBanner rawConfig={settings.cookieConsentJson} />

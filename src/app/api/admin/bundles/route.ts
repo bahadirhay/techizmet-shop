@@ -24,6 +24,10 @@ import {
   syncBundleStockCache,
   validateBundleComponents,
 } from "@/lib/product-bundle";
+import {
+  notifyPublishedProduct,
+  shouldReindexPublishedProduct,
+} from "@/lib/seo/publish-notify";
 
 export async function GET() {
   const auth = await requireStaffApi("store.products");
@@ -171,6 +175,9 @@ export async function POST(req: Request) {
     });
 
     await revalidateStorePublicCache(auth.siteId);
+    if (created.published) {
+      notifyPublishedProduct(created.slug);
+    }
     return NextResponse.json({ bundle: created });
   } catch (e) {
     return productAdminErrorResponse(e);

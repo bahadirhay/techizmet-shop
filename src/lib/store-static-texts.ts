@@ -23,6 +23,28 @@ export type StoreTextSettings = {
   mirrorLowStockPrefixEn?: string;
   mirrorStartingPricePrefixTr?: string;
   mirrorStartingPricePrefixEn?: string;
+  mirrorPriceLabelTr?: string;
+  mirrorPriceLabelEn?: string;
+  mirrorBrandLabelTr?: string;
+  mirrorBrandLabelEn?: string;
+  mirrorTonesLabelTr?: string;
+  mirrorTonesLabelEn?: string;
+  mirrorVolumeLabelTr?: string;
+  mirrorVolumeLabelEn?: string;
+  mirrorQuantityLabelTr?: string;
+  mirrorQuantityLabelEn?: string;
+  mirrorStockLabelTr?: string;
+  mirrorStockLabelEn?: string;
+  /** Ana sayfa ürün listesi sıralaması */
+  homeListingSort?: "title_asc" | "title_desc" | "newest" | "oldest" | "price_asc" | "price_desc";
+  collectionFilters?: {
+    price?: boolean;
+    brand?: boolean;
+    tones?: boolean;
+    volume?: boolean;
+    quantity?: boolean;
+    stock?: boolean;
+  };
 };
 
 type StoreBlockMessages = StoreMessages["blocks"];
@@ -96,8 +118,8 @@ export function resolveCollectionsFallbackTexts(
       locale,
       overrides?.collectionsListEmptyTr,
       overrides?.collectionsListEmptyEn,
-      "Henüz koleksiyon yok — Admin → Koleksiyonlar",
-      "No collections yet — Admin → Collections",
+      "Henüz koleksiyon eklenmedi.",
+      "No collections available yet.",
     ),
   };
 }
@@ -107,8 +129,8 @@ export function resolveProductGridEmptyText(locale: ShopLocale, overrides: Store
     locale,
     overrides?.productGridEmptyTr,
     overrides?.productGridEmptyEn,
-    "Henüz ürün yok. Admin → Ürünler veya npm run db:seed",
-    "No products yet. Admin → Products or npm run db:seed",
+    "Şu an listelenecek ürün yok.",
+    "No products to show right now.",
   );
 }
 

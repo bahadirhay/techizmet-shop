@@ -16,6 +16,10 @@ import {
 } from "@/lib/product-bundle";
 import { variantCatalogPrices } from "@/lib/product-variants";
 import { prisma } from "@/lib/prisma";
+import { ensureGeliverCheckoutRate } from "@/lib/shipping/geliver/ensure-checkout-rate";
+import { prepareGeliverCheckoutRates } from "@/lib/shipping/geliver/checkout-quotes";
+import { LEGACY_GELIVER_CARRIER_CODE } from "@/lib/shipping/geliver/provider-labels";
+import { geliverReady } from "@/lib/shipping/geliver/settings";
 import { resolveOrderNumberPrefix, generateOrderNumber } from "@/lib/admin/order-number";
 import { getSiteSettings } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
@@ -323,6 +327,14 @@ export async function getShippingOptions(
 ): Promise<ShippingOption[]> {
   if (freeShipping) return [];
 
+  const settings = await getSiteSettings(siteId);
+  const geliverEnabled = geliverReady(settings);
+  if (geliverEnabled) {
+    await prepareGeliverCheckoutRates(siteId).catch(() => undefined);
+  } else {
+    await ensureGeliverCheckoutRate(siteId).catch(() => undefined);
+  }
+
   const carriers = await prisma.shippingCarrier.findMany({
     where: { siteId, active: true },
     include: { rates: { where: { active: true }, orderBy: { sortOrder: "asc" } } },
@@ -330,22 +342,33 @@ export async function getShippingOptions(
   });
 
   const options: ShippingOption[] = [];
+  let geliverCheapest: ShippingOption | null = null;
 
   for (const c of carriers) {
+    if (geliverEnabled && c.code === LEGACY_GELIVER_CARRIER_CODE) continue;
     for (const r of c.rates) {
       if (r.minDesi != null && totalDesi < r.minDesi) continue;
       if (r.maxDesi != null && totalDesi > r.maxDesi) continue;
       let price = r.priceMinor;
       if (r.freeOverMinor != null && subtotalMinor >= r.freeOverMinor) price = 0;
-      options.push({
+      const option: ShippingOption = {
         carrierId: c.id,
         carrierName: c.name,
         rateId: r.id,
         rateName: r.name,
         priceMinor: price,
-      });
+      };
+      if (geliverEnabled && c.code.startsWith("geliver:")) {
+        if (!geliverCheapest || option.priceMinor < geliverCheapest.priceMinor) {
+          geliverCheapest = option;
+        }
+        continue;
+      }
+      options.push(option);
     }
   }
+
+  if (geliverCheapest) options.unshift(geliverCheapest);
 
   return options.sort((a, b) => a.priceMinor - b.priceMinor);
 }
@@ -413,6 +436,16 @@ export async function createOrderFromCart(params: {
       line1: string;
       postalCode?: string;
     };
+    billingAddress?: {
+      city: string;
+      district: string;
+      line1: string;
+      postalCode?: string;
+      firstName?: string;
+      lastName?: string;
+    };
+    billingTaxId?: string;
+    billingTaxOffice?: string;
   };
   carrierId: string;
   rateId: string;
@@ -434,6 +467,12 @@ export async function createOrderFromCart(params: {
             phone: params.customer.phone,
             firstName: params.customer.firstName,
             lastName: params.customer.lastName,
+            ...(params.customer.billingTaxId
+              ? { taxId: params.customer.billingTaxId }
+              : {}),
+            ...(params.customer.billingTaxOffice
+              ? { taxOffice: params.customer.billingTaxOffice }
+              : {}),
           },
         });
       }
@@ -486,6 +525,12 @@ export async function createOrderFromCart(params: {
   const totalMinor = Math.max(0, cart.subtotalMinor - discountMinor + shippingMinor);
   const customerName = `${params.customer.firstName} ${params.customer.lastName}`.trim();
 
+  if (params.paymentMethod === "open_account") {
+    if (!orderCustomerId) throw new Error("Açık hesap için üye girişi gerekli");
+    const { assertOpenAccountCredit } = await import("@/lib/finance/b2b-credit");
+    await assertOpenAccountCredit(params.siteId, orderCustomerId, totalMinor);
+  }
+
   const orderNotes: string[] = [];
   if (params.session.couponCode) orderNotes.push(`Kupon: ${params.session.couponCode}`);
   else if (cart.couponLabel && cart.campaignId) {
@@ -493,6 +538,9 @@ export async function createOrderFromCart(params: {
   }
   if (cart.memberGroupName && cart.memberDiscountPercent > 0) {
     orderNotes.push(`Üye grubu: ${cart.memberGroupName} (%${cart.memberDiscountPercent} indirim)`);
+  }
+  if (params.paymentMethod === "open_account") {
+    orderNotes.push("Ödeme: açık hesap (vadeli)");
   }
 
   const settings = await getSiteSettings(params.siteId);
@@ -616,12 +664,22 @@ export async function createOrderFromCart(params: {
         customerPhone: params.customer.phone,
         customerName,
         shippingAddressJson: JSON.stringify(params.customer.address),
+        billingAddressJson: params.customer.billingAddress
+          ? JSON.stringify(params.customer.billingAddress)
+          : JSON.stringify(params.customer.address),
+        billingTaxId: params.customer.billingTaxId ?? null,
+        billingTaxOffice: params.customer.billingTaxOffice ?? null,
         subtotalMinor: cart.subtotalMinor,
         shippingMinor,
         discountMinor,
         totalMinor,
         paymentMethod: params.paymentMethod,
-        paymentStatus: params.paymentMethod === "cod" ? "pending" : "unpaid",
+        paymentStatus:
+          params.paymentMethod === "cod"
+            ? "pending"
+            : params.paymentMethod === "open_account"
+              ? "open_account"
+              : "unpaid",
         adminNotes: orderNotes.length ? orderNotes.join(" · ") : null,
         visitorKey: params.visitorKey?.trim() || null,
         lines: {
@@ -670,6 +728,36 @@ export async function createOrderFromCart(params: {
     await applyOrderFinanceSnapshot(params.siteId, order.id);
   } catch {
     /* ekonomi snapshot hatası siparişi iptal etmez */
+  }
+
+  if (orderCustomerId) {
+    try {
+      const { ensureCounterpartyAfterOrder } = await import(
+        "@/lib/finance/ensure-site-member-counterparty"
+      );
+      await ensureCounterpartyAfterOrder(params.siteId, orderCustomerId, {
+        firstName: params.customer.firstName,
+        lastName: params.customer.lastName,
+        email: params.customer.email,
+        phone: params.customer.phone,
+        billingTaxId: params.customer.billingTaxId,
+        billingTaxOffice: params.customer.billingTaxOffice,
+        billingAddress: params.customer.billingAddress ?? params.customer.address,
+      });
+    } catch (e) {
+      console.error("[counterparty:auto]", e);
+    }
+  }
+
+  if (params.paymentMethod === "open_account") {
+    try {
+      const { createOpenAccountFinanceInvoice } = await import(
+        "@/lib/finance/open-account-invoice"
+      );
+      await createOpenAccountFinanceInvoice(params.siteId, order.id);
+    } catch (e) {
+      console.error("[finance:open-account-invoice]", e);
+    }
   }
 
   return { orderId: order.id, orderNumber: order.orderNumber, customerId: orderCustomerId };

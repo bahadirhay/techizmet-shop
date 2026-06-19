@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AdminField, btnPrimary, btnSecondary, inputClass } from "@/components/admin/AdminForm";
+import { AdminRichTextEditor } from "@/components/admin/AdminRichTextEditor";
 import { MirrorImageField } from "@/components/admin/MirrorImageField";
 import { PlainHtmlTextarea } from "@/components/admin/PlainHtmlTextarea";
 
@@ -25,8 +26,6 @@ export type BlogPostFormValues = {
   seoTitle: string;
   seoDescription: string;
 };
-
-const textareaClass = `${inputClass} min-h-[200px] resize-y font-mono text-xs`;
 
 export function BlogPostForm({ initial }: { initial: BlogPostFormValues }) {
   const router = useRouter();
@@ -117,38 +116,39 @@ export function BlogPostForm({ initial }: { initial: BlogPostFormValues }) {
       </AdminField>
 
       <PlainHtmlTextarea
+        lightChrome
         label="Özet (Türkçe) — liste ve ana sayfa kartı"
         rows={3}
         valueHtml={v.excerptTr}
         onChangeHtml={(html) => setV({ ...v, excerptTr: html })}
       />
       <PlainHtmlTextarea
+        lightChrome
         label="Özet (İngilizce)"
         rows={3}
         valueHtml={v.excerptEn}
         onChangeHtml={(html) => setV({ ...v, excerptEn: html })}
       />
 
-      <AdminField label="İçerik (Türkçe) — HTML">
-        <textarea
-          className={textareaClass}
+      <section className="space-y-4 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+        <h3 className="text-sm font-semibold text-zinc-900">İçerik (Türkçe)</h3>
+        <AdminRichTextEditor
+          label="Yazı gövdesi"
+          hint="Biçimlendirme araç çubuğunu kullanın; kaynak kodu için «code» düğmesine tıklayın."
           value={v.bodyTr}
-          onChange={(e) => setV({ ...v, bodyTr: e.target.value })}
-          placeholder="<p>...</p>"
+          onChange={(html) => setV({ ...v, bodyTr: html })}
         />
-        <p className="mt-1 text-xs text-zinc-500">
-          Paragraf için &lt;p&gt;, kalın için &lt;strong&gt; kullanabilirsiniz. Mirror şablondan
-          içe aktarılan HTML burada düzenlenir.
-        </p>
-      </AdminField>
+      </section>
 
-      <AdminField label="İçerik (İngilizce) — HTML">
-        <textarea
-          className={textareaClass}
+      <section className="space-y-4 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+        <h3 className="text-sm font-semibold text-zinc-900">İçerik (English)</h3>
+        <AdminRichTextEditor
+          label="Body"
+          hint="Use the toolbar to format text. English visitors see this when provided."
           value={v.bodyEn}
-          onChange={(e) => setV({ ...v, bodyEn: e.target.value })}
+          onChange={(html) => setV({ ...v, bodyEn: html })}
         />
-      </AdminField>
+      </section>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <AdminField label="SEO başlık">

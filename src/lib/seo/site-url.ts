@@ -10,15 +10,29 @@ export function normalizeSiteUrl(raw: string): string {
   return `https://${trimmed}`;
 }
 
+/** Apex → www yönlendirmesi olan mağazalar için tek kanonik kök */
+function applyCanonicalOrigin(origin: string): string {
+  try {
+    const url = new URL(origin);
+    if (url.hostname === "anatolianpaw.com") {
+      url.hostname = "www.anatolianpaw.com";
+      return url.origin;
+    }
+  } catch {
+    /* ignore */
+  }
+  return origin;
+}
+
 export function getPublicSiteUrl(): string {
   const fromHost = getActivePublicOrigin();
-  if (fromHost) return fromHost;
+  if (fromHost) return applyCanonicalOrigin(fromHost);
 
   const raw =
     process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
     process.env.NEXT_PUBLIC_STORE_URL?.trim() ||
     "";
-  return normalizeSiteUrl(raw || "http://localhost:5555");
+  return applyCanonicalOrigin(normalizeSiteUrl(raw || "http://localhost:5555"));
 }
 
 export function getPublicSiteHost(): string {

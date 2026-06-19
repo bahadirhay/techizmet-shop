@@ -1,5 +1,12 @@
 import { formatTry } from "@/lib/format";
 import {
+  type ActiveCollectionFilters,
+  type CollectionFilterFacets,
+  formatQuantityFilterLabel,
+} from "@/lib/collection-filter-facets";
+import type { CollectionFilterConfig } from "@/lib/collection-filter-settings";
+import type { CollectionFilterKey } from "@/lib/collection-filter-facets";
+import {
   PRODUCT_IMAGE_HEIGHT,
   PRODUCT_IMAGE_WIDTH,
   productImageMediaRatioStyle,
@@ -509,6 +516,307 @@ export function applyCollectionCategoryFiltersFromAdmin(
     setDropdownButtonLabel(menu.closest("custom-dropdown"));
     patchList(menu.querySelector(".filter--option-list-items"));
   });
+}
+
+function normalizeFilterLabel(text: string | null | undefined) {
+  return String(text ?? "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+function detectFilterKind(text: string, labels: CollectionFilterConfig["labels"]): CollectionFilterKey | null {
+  const t = normalizeFilterLabel(text);
+  const pairs: [CollectionFilterKey, string[]][] = [
+    ["stock", ["availability", "stok durumu", normalizeFilterLabel(labels.stock)]],
+    ["price", ["price", "fiyat", normalizeFilterLabel(labels.price)]],
+    ["brand", ["brand", "marka", normalizeFilterLabel(labels.brand)]],
+    ["tones", ["tones", "tonlar", "shade", "shades", normalizeFilterLabel(labels.tones)]],
+    ["volume", ["volume", "hacim", normalizeFilterLabel(labels.volume)]],
+    ["quantity", ["quantity", "adet", "miktar", "amount", normalizeFilterLabel(labels.quantity)]],
+  ];
+  for (const [kind, aliases] of pairs) {
+    if (aliases.includes(t)) return kind;
+  }
+  return null;
+}
+
+function checkboxItemHtml(
+  id: string,
+  name: string,
+  value: string,
+  label: string,
+  checked: boolean,
+) {
+  return `<li class="filter-option-item radio-box">
+    <input type="checkbox" class="checkmark-input" name="${escAttr(name)}" value="${escAttr(value)}" id="${escAttr(id)}"${checked ? " checked" : ""}>
+    <span class="checkmark"></span>
+    <label class="cursor-pointer" for="${escAttr(id)}">${escText(label)}</label>
+  </li>`;
+}
+
+function patchCheckboxFilterList(
+  list: Element | null,
+  name: string,
+  items: { value: string; label: string }[],
+  active: string[],
+  idPrefix: string,
+) {
+  if (!list || !items.length) return false;
+  list.innerHTML = items
+    .map((item, index) =>
+      checkboxItemHtml(
+        `${idPrefix}-${index}`,
+        name,
+        item.value,
+        item.label,
+        active.includes(item.value),
+      ),
+    )
+    .join("");
+  return true;
+}
+
+function patchPriceFilter(root: ParentNode, facets: CollectionFilterFacets, active: ActiveCollectionFilters, label: string) {
+  const minTry = Math.floor(facets.price.minMinor / 100);
+  const maxTry = Math.ceil(facets.price.maxMinor / 100);
+  const currentMin = active.priceMinMinor != null ? Math.floor(active.priceMinMinor / 100) : minTry;
+  const currentMax = active.priceMaxMinor != null ? Math.ceil(active.priceMaxMinor / 100) : maxTry;
+
+  root.querySelectorAll(".filter--price-range, .filter--columns-item.filter--price-range").forEach((block) => {
+    block.querySelectorAll(".filter--columns-heading").forEach((h) => {
+      h.textContent = label;
+    });
+    block.querySelectorAll(".field-currency").forEach((el) => {
+      el.textContent = "₺";
+    });
+    block.querySelectorAll('input[name="filter.v.price.gte"], input[name="price_min"], #Filter-Price-GTE').forEach((input) => {
+      input.setAttribute("name", "price_min");
+      input.setAttribute("min", String(minTry));
+      input.setAttribute("max", String(maxTry));
+      input.setAttribute("value", String(currentMin));
+      input.setAttribute("placeholder", String(minTry));
+    });
+    block.querySelectorAll('input[name="filter.v.price.lte"], input[name="price_max"], #Filter-Price-LTE').forEach((input) => {
+      input.setAttribute("name", "price_max");
+      input.setAttribute("min", String(minTry));
+      input.setAttribute("max", String(maxTry));
+      input.setAttribute("value", String(currentMax));
+      input.setAttribute("placeholder", String(maxTry));
+    });
+    block.querySelectorAll(".filter--slider-range.input-min").forEach((input) => {
+      input.setAttribute("min", String(minTry));
+      input.setAttribute("max", String(maxTry));
+      input.setAttribute("value", String(currentMin));
+    });
+    block.querySelectorAll(".filter--slider-range.input-max").forEach((input) => {
+      input.setAttribute("min", String(minTry));
+      input.setAttribute("max", String(maxTry));
+      input.setAttribute("value", String(currentMax));
+    });
+  });
+}
+
+function hideFilterRoot(root: Element | null) {
+  if (!root) return;
+  const el = root as HTMLElement;
+  el.style.display = "none";
+  el.setAttribute("hidden", "");
+}
+
+function setDropdownLabel(dropdown: Element, label: string) {
+  dropdown.querySelectorAll("[data-dropdown-button] span").forEach((span) => {
+    if (span.closest("svg")) return;
+    span.textContent = label;
+  });
+}
+
+function hideOrphanThemeFilters(doc: Document, config: CollectionFilterConfig) {
+  const orphanQuantity = new Set(["quantity", "adet", "miktar", "amount"]);
+  const hideIfOrphan = (text: string, root: Element | null) => {
+    const normalized = normalizeFilterLabel(text);
+    if (!orphanQuantity.has(normalized)) return;
+    const kind = detectFilterKind(text, config.labels);
+    if (kind === "quantity" && config.enabled.quantity) return;
+    hideFilterRoot(root);
+  };
+
+  doc.querySelectorAll("#MainContent custom-dropdown.horizontal-filters--list-item").forEach((dropdown) => {
+    hideIfOrphan(dropdown.querySelector("[data-dropdown-button]")?.textContent ?? "", dropdown);
+  });
+  doc.querySelectorAll("#MainContent .filter--columns-item").forEach((block) => {
+    hideIfOrphan(block.querySelector(".filter--columns-heading")?.textContent ?? "", block);
+  });
+}
+
+export function applyCollectionFacetFiltersFromAdmin(
+  doc: Document,
+  facets: CollectionFilterFacets,
+  active: ActiveCollectionFilters,
+  config: CollectionFilterConfig,
+  locale?: string,
+) {
+  const isTr = locale?.toLowerCase().startsWith("tr") ?? true;
+  const stockItems = [
+    { value: "in", label: isTr ? "Stokta" : "In stock" },
+    { value: "out", label: isTr ? "Stokta yok" : "Out of stock" },
+  ];
+  const activeStock: string[] = [];
+  if (active.stockIn) activeStock.push("in");
+  if (active.stockOut) activeStock.push("out");
+
+  const brandItems = facets.brands.map((b) => ({ value: b.slug, label: b.name }));
+  const volumeItems = facets.volumes.map((v) => ({ value: v.value, label: v.value }));
+  const toneItems = facets.tones.map((t) => ({ value: t.value, label: t.value }));
+  const quantityItems = facets.quantities.map((q) => ({
+    value: q.value,
+    label: formatQuantityFilterLabel(q.value, isTr),
+  }));
+
+  const shouldShow = (kind: CollectionFilterKey) => {
+    if (!config.enabled[kind]) return false;
+    if (kind === "price") return facets.price.maxMinor > facets.price.minMinor || facets.price.maxMinor > 0;
+    if (kind === "brand") return brandItems.length > 0;
+    if (kind === "volume") return volumeItems.length > 0;
+    if (kind === "tones") return toneItems.length > 0;
+    if (kind === "quantity") return quantityItems.length > 0;
+    if (kind === "stock") return facets.stock.inStock > 0 || facets.stock.outOfStock > 0;
+    return false;
+  };
+
+  doc.querySelectorAll("#MainContent custom-dropdown.horizontal-filters--list-item").forEach((dropdown) => {
+    const buttonText = normalizeFilterLabel(dropdown.querySelector("[data-dropdown-button]")?.textContent);
+    const kind = detectFilterKind(buttonText, config.labels);
+    if (!kind || kind === "price") return;
+    if (!shouldShow(kind)) {
+      hideFilterRoot(dropdown);
+      return;
+    }
+    setDropdownLabel(dropdown, config.labels[kind]);
+    const list = dropdown.querySelector(".filter--option-list-items");
+    if (kind === "stock") {
+      patchCheckboxFilterList(list, "stock", stockItems, activeStock, "kn-stock-h");
+    } else if (kind === "brand") {
+      patchCheckboxFilterList(list, "brand", brandItems, active.brandSlugs, "kn-brand-h");
+    } else if (kind === "volume") {
+      patchCheckboxFilterList(list, "volume", volumeItems, active.volumes, "kn-volume-h");
+    } else if (kind === "tones") {
+      patchCheckboxFilterList(list, "tone", toneItems, active.tones, "kn-tone-h");
+    } else if (kind === "quantity") {
+      patchCheckboxFilterList(list, "quantity", quantityItems, active.quantities, "kn-quantity-h");
+    }
+  });
+
+  doc.querySelectorAll("#MainContent .filter--columns-item").forEach((block) => {
+    const heading = block.querySelector(".filter--columns-heading");
+    const kind = detectFilterKind(heading?.textContent ?? "", config.labels);
+    if (!kind) return;
+    if (!shouldShow(kind)) {
+      hideFilterRoot(block);
+      return;
+    }
+    if (heading) heading.textContent = config.labels[kind];
+    if (kind === "price") {
+      patchPriceFilter(block, facets, active, config.labels.price);
+      return;
+    }
+    const list = block.querySelector(".filter--option-list-items");
+    if (kind === "stock") {
+      patchCheckboxFilterList(list, "stock", stockItems, activeStock, "kn-stock-v");
+    } else if (kind === "brand") {
+      patchCheckboxFilterList(list, "brand", brandItems, active.brandSlugs, "kn-brand-v");
+    } else if (kind === "volume") {
+      patchCheckboxFilterList(list, "volume", volumeItems, active.volumes, "kn-volume-v");
+    } else if (kind === "tones") {
+      patchCheckboxFilterList(list, "tone", toneItems, active.tones, "kn-tone-v");
+    } else if (kind === "quantity") {
+      patchCheckboxFilterList(list, "quantity", quantityItems, active.quantities, "kn-quantity-v");
+    }
+  });
+
+  if (shouldShow("price")) {
+    patchPriceFilter(doc, facets, active, config.labels.price);
+    doc.querySelectorAll("#MainContent custom-dropdown.horizontal-filters--list-item").forEach((dropdown) => {
+      const kind = detectFilterKind(
+        dropdown.querySelector("[data-dropdown-button]")?.textContent ?? "",
+        config.labels,
+      );
+      if (kind !== "price") return;
+      setDropdownLabel(dropdown, config.labels.price);
+    });
+  } else {
+    doc.querySelectorAll("#MainContent custom-dropdown.horizontal-filters--list-item").forEach((dropdown) => {
+      const kind = detectFilterKind(
+        dropdown.querySelector("[data-dropdown-button]")?.textContent ?? "",
+        config.labels,
+      );
+      if (kind === "price") hideFilterRoot(dropdown);
+    });
+    doc.querySelectorAll("#MainContent .filter--columns-item").forEach((block) => {
+      const kind = detectFilterKind(block.querySelector(".filter--columns-heading")?.textContent ?? "", config.labels);
+      if (kind === "price") hideFilterRoot(block);
+    });
+  }
+
+  hideOrphanThemeFilters(doc, config);
+
+  injectCollectionFilterBridge(doc, active);
+}
+
+function injectCollectionFilterBridge(doc: Document, _active: ActiveCollectionFilters) {
+  doc.getElementById("kn-collection-filter-bridge")?.remove();
+  const script = doc.createElement("script");
+  script.id = "kn-collection-filter-bridge";
+  script.textContent = `(function(){
+  var KN_FILTER_VER=2;
+  if(window.__knCollectionFilterVer===KN_FILTER_VER)return;
+  window.__knCollectionFilterVer=KN_FILTER_VER;
+  function readList(form,name){
+    return Array.prototype.slice.call(form.querySelectorAll('input[name="'+name+'"]:checked')).map(function(el){return el.value;});
+  }
+  function buildHref(){
+    var topLoc=window.top&&window.top.location?window.top.location:window.location;
+    var p=new URLSearchParams(topLoc.search||"");
+    p.delete("page");
+    var form=document.getElementById("horizontalFilterForm")||document.getElementById("filter-sorting-form");
+    if(!form)return topLoc.pathname;
+    ["brand","volume","tone","quantity","stock","price_min","price_max"].forEach(function(k){p.delete(k);});
+    var brands=readList(form,"brand");
+    if(brands.length)p.set("brand",brands.join(","));
+    var volumes=readList(form,"volume");
+    if(volumes.length)p.set("volume",volumes.join(","));
+    var tones=readList(form,"tone");
+    if(tones.length)p.set("tone",tones.join(","));
+    var quantities=readList(form,"quantity");
+    if(quantities.length)p.set("quantity",quantities.join(","));
+    var stock=readList(form,"stock");
+    if(stock.length)p.set("stock",stock.join(","));
+    var min=form.querySelector('input[name="price_min"]');
+    var max=form.querySelector('input[name="price_max"]');
+    if(min&&min.value)p.set("price_min",min.value);
+    if(max&&max.value)p.set("price_max",max.value);
+    var q=p.toString();
+    return topLoc.pathname+(q?"?"+q:"");
+  }
+  function bindForm(form){
+    if(!form||form.__knFilterBridge)return;
+    form.__knFilterBridge=1;
+    form.addEventListener("change",function(){
+      var href=buildHref();
+      if(window.top&&window.top!==window)window.top.location.href=href;
+      else window.location.href=href;
+    });
+    form.addEventListener("submit",function(e){
+      e.preventDefault();
+      var href=buildHref();
+      if(window.top&&window.top!==window)window.top.location.href=href;
+      else window.location.href=href;
+    });
+  }
+  bindForm(document.getElementById("horizontalFilterForm"));
+  bindForm(document.getElementById("filter-sorting-form"));
+})();`;
+  (doc.body ?? doc.documentElement).appendChild(script);
 }
 
 /** /collections/{slug} — banner başlık ve açıklama */

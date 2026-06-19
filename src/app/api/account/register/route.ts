@@ -17,9 +17,17 @@ export async function POST(req: Request) {
   const firstName = String(body.firstName ?? "").trim();
   const lastName = String(body.lastName ?? "").trim();
   const phone = String(body.phone ?? "").trim();
+  const b2bApplication = body.b2bApplication === "true" || body.b2bApplication === "1";
+  const companyName = String(body.companyName ?? "").trim();
+  const taxId = String(body.taxId ?? "").trim();
+  const taxOffice = String(body.taxOffice ?? "").trim();
+  const b2bApplicationNote = String(body.b2bApplicationNote ?? "").trim();
 
   if (!email || password.length < 6) {
     return NextResponse.json({ error: "E-posta ve en az 6 karakterli şifre gerekli" }, { status: 400 });
+  }
+  if (b2bApplication && !companyName) {
+    return NextResponse.json({ error: "B2B başvurusu için firma ünvanı gerekli" }, { status: 400 });
   }
 
   const site = await getDefaultSite();
@@ -43,7 +51,22 @@ export async function POST(req: Request) {
   const customer = existing
     ? await prisma.storeCustomer.update({
         where: { id: existing.id },
-        data: { passwordHash: hash, firstName, lastName, phone: phone || existing.phone },
+        data: {
+          passwordHash: hash,
+          firstName,
+          lastName,
+          phone: phone || existing.phone,
+          ...(b2bApplication && existing.b2bStatus !== "approved"
+            ? {
+                b2bStatus: "pending",
+                companyName,
+                b2bAppliedAt: new Date(),
+                b2bApplicationNote: b2bApplicationNote || null,
+                ...(taxId ? { taxId } : {}),
+                ...(taxOffice ? { taxOffice } : {}),
+              }
+            : {}),
+        },
       })
     : await prisma.storeCustomer.create({
         data: {
@@ -53,9 +76,22 @@ export async function POST(req: Request) {
           firstName,
           lastName,
           phone: phone || null,
+          ...(b2bApplication
+            ? {
+                b2bStatus: "pending",
+                companyName,
+                b2bAppliedAt: new Date(),
+                b2bApplicationNote: b2bApplicationNote || null,
+                taxId: taxId || null,
+                taxOffice: taxOffice || null,
+              }
+            : {}),
         },
       });
 
   await setCustomerSession(customer.id, email, site.id);
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({
+    ok: true,
+    b2bPending: b2bApplication && customer.b2bStatus === "pending",
+  });
 }

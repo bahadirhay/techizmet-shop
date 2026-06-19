@@ -4,6 +4,7 @@ import { serializeBlocks } from "@/lib/blocks/schema";
 import { slugify } from "@/lib/admin/slug";
 import { requireStaffApi } from "@/lib/staff-auth";
 import { prisma } from "@/lib/prisma";
+import { notifyPublishedCmsPage } from "@/lib/seo/publish-notify";
 
 export async function POST(req: Request) {
   const auth = await requireStaffApi("content.pages");
@@ -26,5 +27,8 @@ export async function POST(req: Request) {
       seoDescription: String(body.seoDescription ?? "").trim() || null,
     },
   });
+  if (page.published) {
+    notifyPublishedCmsPage(page.slug);
+  }
   return NextResponse.json({ page });
 }

@@ -14,6 +14,10 @@ type Group = {
   orderNumberPrefix: string;
   active: boolean;
   description: string;
+  isB2b: boolean;
+  openAccountEnabled: boolean;
+  defaultPaymentTermDays: string;
+  defaultCreditLimitTry: string;
 };
 
 export function CustomerGroupForm({ initial }: { initial?: Group }) {
@@ -26,6 +30,10 @@ export function CustomerGroupForm({ initial }: { initial?: Group }) {
       orderNumberPrefix: "",
       active: true,
       description: "",
+      isB2b: false,
+      openAccountEnabled: false,
+      defaultPaymentTermDays: "30",
+      defaultCreditLimitTry: "",
     },
   );
   const [msg, setMsg] = useState<string | null>(null);
@@ -92,6 +100,43 @@ export function CustomerGroupForm({ initial }: { initial?: Group }) {
           <p className="mt-1 text-xs text-zinc-500">Örnek: {orderNumberPreview(form.orderNumberPrefix)}</p>
         ) : null}
       </AdminField>
+      <div className="rounded-lg border border-indigo-100 bg-indigo-50/50 p-4 space-y-3">
+        <p className="text-sm font-medium text-indigo-950">B2B / toptan ayarları</p>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={form.isB2b}
+            onChange={(e) => setForm({ ...form, isB2b: e.target.checked })}
+          />
+          B2B müşteri grubu (etiket: B2B)
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={form.openAccountEnabled}
+            onChange={(e) => setForm({ ...form, openAccountEnabled: e.target.checked })}
+          />
+          Onaylı üyeler açık hesap (vadeli) kullanabilsin
+        </label>
+        <AdminField label="Varsayılan vade (gün)">
+          <input
+            className={`${inputClass} max-w-[8rem]`}
+            type="number"
+            min={0}
+            value={form.defaultPaymentTermDays}
+            onChange={(e) => setForm({ ...form, defaultPaymentTermDays: e.target.value })}
+          />
+        </AdminField>
+        <AdminField label="Varsayılan cari risk limiti (TL)">
+          <input
+            className={`${inputClass} max-w-[12rem]`}
+            inputMode="decimal"
+            value={form.defaultCreditLimitTry}
+            onChange={(e) => setForm({ ...form, defaultCreditLimitTry: e.target.value })}
+            placeholder="Örn. 100000"
+          />
+        </AdminField>
+      </div>
       <AdminField label="Açıklama">
         <textarea
           className={`${inputClass} min-h-[80px]`}
@@ -108,11 +153,11 @@ export function CustomerGroupForm({ initial }: { initial?: Group }) {
         Grup aktif
       </label>
       <p className="text-xs text-zinc-500">
-        Üyeler önce{" "}
-        <Link href="/account/register" className="underline" target="_blank">
-          mağazada kayıt
-        </Link>{" "}
-        olur; siz Müşteriler veya müşteri kartından gruba atarsınız.
+        Perakende üyeler normal kayıt olur. B2B başvurusu onaylanınca gruba atanır ve indirim oranı uygulanır.
+        {" "}
+        <Link href="/admin/customers?segment=b2b_pending" className="underline">
+          Onay bekleyenler
+        </Link>
       </p>
       <div className="flex gap-2">
         <button type="button" className={btnPrimary} onClick={save} disabled={busy}>

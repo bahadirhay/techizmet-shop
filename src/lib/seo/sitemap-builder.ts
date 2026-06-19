@@ -1,5 +1,6 @@
 import "server-only";
 
+import { MIRROR_CONTENT_PAGE_SLUGS } from "@/lib/mirror-vitrin-pages";
 import type { MetadataRoute } from "next";
 import { getPublicSiteUrl } from "@/lib/seo/site-url";
 import { prisma } from "@/lib/prisma";
@@ -46,6 +47,18 @@ export async function buildStoreSitemapEntries(siteId: string): Promise<Metadata
     });
   }
 
+  const mirrorPageRoutes: MetadataRoute.Sitemap = MIRROR_CONTENT_PAGE_SLUGS.map((slug) => ({
+    url: `${root}/pages/${slug}`,
+    lastModified: now,
+    changeFrequency: "monthly" as const,
+    priority: 0.5,
+  }));
+
+  const dbPageSlugs = new Set(pages.filter((p) => p.slug !== "home").map((p) => p.slug));
+  const extraMirrorPages = mirrorPageRoutes.filter(
+    (r) => !dbPageSlugs.has(r.url.replace(`${root}/pages/`, "")),
+  );
+
   return [
     ...staticRoutes,
     ...collections
@@ -81,6 +94,7 @@ export async function buildStoreSitemapEntries(siteId: string): Promise<Metadata
         changeFrequency: "monthly" as const,
         priority: 0.55,
       })),
+    ...extraMirrorPages,
     ...blogPosts.map((p) => ({
       url: `${root}/blogs/news/${p.slug}`,
       lastModified: p.updatedAt ?? p.publishedAt ?? now,

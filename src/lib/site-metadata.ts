@@ -4,6 +4,7 @@ import { getPublicSiteUrl } from "@/lib/seo/site-url";
 import { getDefaultSite } from "@/lib/site";
 import { getSiteBranding, getSiteSeo } from "@/lib/site-settings";
 import { ensureStoreTenant } from "@/lib/store-tenant";
+import { blogFeedPath } from "@/lib/seo/rss-feed";
 
 function faviconMime(url: string): string {
   const path = url.split("?")[0]?.toLowerCase() ?? "";
@@ -42,6 +43,11 @@ export async function buildSiteMetadata(): Promise<Metadata> {
     openGraph: ogImage
       ? { title: pageTitle, description: pageDescription, images: [{ url: ogImage }] }
       : { title: pageTitle, description: pageDescription },
+    alternates: {
+      types: {
+        "application/rss+xml": blogFeedPath(),
+      },
+    },
     verification:
       seo.googleSiteVerification || seo.yandexVerification || seo.bingVerification
         ? {

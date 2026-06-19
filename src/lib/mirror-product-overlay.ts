@@ -9,6 +9,9 @@ export type ProductContentOverlay = {
   descriptionHtml?: string | null;
   keyFeaturesHtml?: string | null;
   howToUseHtml?: string | null;
+  productBlogHtml?: string | null;
+  productBlogTitle?: string | null;
+  productBlogHref?: string | null;
 };
 
 type AccordionSection = "description" | "features" | "howToUse";
@@ -65,4 +68,46 @@ export function applyProductContentOverlay(doc: Document, overlay: ProductConten
   patchAccordionSection(doc, "description", overlay.descriptionHtml, contentForVitrinDescription);
   patchAccordionSection(doc, "features", overlay.keyFeaturesHtml, contentForVitrinAccordion);
   patchAccordionSection(doc, "howToUse", overlay.howToUseHtml, contentForVitrinAccordion);
+  patchProductBlogSection(doc, overlay);
+}
+
+function patchProductBlogSection(doc: Document, overlay: ProductContentOverlay) {
+  const html = overlay.productBlogHtml?.trim() ?? "";
+  const title = overlay.productBlogTitle?.trim() || "Detaylı bilgi";
+  const href = overlay.productBlogHref?.trim() ?? "";
+  const host = doc.querySelector("#MainContent .product-accordion");
+  const existing = doc.getElementById("kn-product-blog-accordion");
+
+  if (!html) {
+    existing?.remove();
+    return;
+  }
+
+  const linkHtml = href
+    ? `<p><a href="${href.replace(/"/g, "&quot;")}" class="text-underline">Tam yazıyı oku</a></p>`
+    : "";
+  const body = `${html}${linkHtml}`;
+
+  if (existing) {
+    const heading = existing.querySelector(".product-accordion--heading-text");
+    if (heading) heading.textContent = title;
+    const bodyEl = existing.querySelector(".product-accordion--content-body");
+    if (bodyEl) bodyEl.innerHTML = body;
+    (existing as HTMLElement).style.display = "";
+    return;
+  }
+
+  if (!host) return;
+  host.insertAdjacentHTML(
+    "beforeend",
+    `<details class="product-accordion--item border-bottom" id="kn-product-blog-accordion" open>
+      <summary class="product-accordion--heading detail-summary">
+        <p class="product-accordion--heading-text h6">${title.replace(/</g, "&lt;")}</p>
+        <span class="product-accordion--icon"></span>
+      </summary>
+      <div class="product-accordion--content" data-accordion-content>
+        <div class="product-accordion--content-body rte">${body}</div>
+      </div>
+    </details>`,
+  );
 }

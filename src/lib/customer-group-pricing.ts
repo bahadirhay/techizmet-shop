@@ -19,6 +19,7 @@ export async function getCustomerGroupPricing(
     include: { customerGroup: true },
   });
   if (!customer?.customerGroup?.active) return null;
+  if (customer.b2bStatus === "pending" || customer.b2bStatus === "rejected") return null;
   const percent = customer.customerGroup.discountPercent;
   if (percent <= 0) return null;
 

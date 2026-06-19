@@ -19,6 +19,10 @@ import { resolveProductCategorySelection, syncProductCategoryLinks } from "@/lib
 import { resolveProductSeoFields } from "@/lib/admin/product-seo/ensure-seo";
 import { SITE_DEFAULT_EXPLORE_SENTINEL } from "@/lib/product-explore-looks";
 import { productAdminErrorResponse } from "@/lib/admin/product-api-errors";
+import {
+  notifyPublishedProduct,
+  shouldReindexPublishedProduct,
+} from "@/lib/seo/publish-notify";
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const auth = await requireStaffApi("store.products");
@@ -231,6 +235,19 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       },
     });
     revalidateStorePublicCache(auth.siteId, product?.slug ?? existing.slug);
+
+    const nextSlug = product?.slug ?? slug;
+    const nextPublished = product?.published ?? existing.published;
+    if (
+      shouldReindexPublishedProduct(
+        { published: existing.published, slug: existing.slug },
+        { published: nextPublished, slug: nextSlug },
+        body,
+      )
+    ) {
+      notifyPublishedProduct(nextSlug);
+    }
+
     return NextResponse.json({ product });
   } catch (e) {
     return productAdminErrorResponse(e);

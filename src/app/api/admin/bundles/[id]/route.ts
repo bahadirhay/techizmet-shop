@@ -24,6 +24,10 @@ import {
   syncBundleStockCache,
   validateBundleComponents,
 } from "@/lib/product-bundle";
+import {
+  notifyPublishedProduct,
+  shouldReindexPublishedProduct,
+} from "@/lib/seo/publish-notify";
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const auth = await requireStaffApi("store.products");
@@ -240,6 +244,19 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     });
 
     await revalidateStorePublicCache(auth.siteId);
+
+    const nextPublished =
+      body.published !== undefined ? body.published !== false : existing.published;
+    if (
+      shouldReindexPublishedProduct(
+        { published: existing.published, slug: existing.slug },
+        { published: nextPublished, slug: updated.slug },
+        body,
+      )
+    ) {
+      notifyPublishedProduct(updated.slug);
+    }
+
     return NextResponse.json({ bundle: updated });
   } catch (e) {
     return productAdminErrorResponse(e);

@@ -230,7 +230,7 @@ export function WhatsappBotFlowEditor({
         <div>
           <h2 className="text-lg font-semibold">Bot akışı</h2>
           <p className="mt-1 text-sm text-zinc-600">
-            Ziyaretçi sağ alt köşedeki asistan balonundan menüye girer. Yaprak seçenekte WhatsApp açılır.
+            Ziyaretçi menüden konu seçer; son adımda sipariş no veya e-posta girer, ardından WhatsApp açılır.
           </p>
         </div>
         {initialNodes.length === 0 ? (

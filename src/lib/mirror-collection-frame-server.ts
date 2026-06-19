@@ -8,6 +8,7 @@ import {
   storeSettingsTag,
 } from "@/lib/cache/store-cache";
 import type { ShopLocale } from "@/lib/i18n/locale";
+import { filtersCacheKey, type ActiveCollectionFilters, emptyActiveCollectionFilters } from "@/lib/collection-filter-facets";
 import { loadCollectionCatalogCore } from "@/lib/mirror-collection-catalog-data";
 import type { CollectionFramePayload } from "@/lib/mirror-collection-payload-types";
 
@@ -25,11 +26,13 @@ export function getCollectionCatalogPayload(
   categorySlug?: string,
   page = 1,
   titleHint?: string,
+  activeFilters?: ActiveCollectionFilters,
 ): Promise<import("@/lib/mirror-collection-payload-types").CollectionCatalogPayload> {
   const cat = categorySlug?.trim() || "";
+  const filterKey = filtersCacheKey(activeFilters ?? emptyActiveCollectionFilters());
   return unstable_cache(
-    () => loadCollectionCatalogCore(siteId, slug, locale, cat || undefined, page, titleHint),
-    ["collection-catalog-v1", siteId, slug, locale, cat, String(page), titleHint ?? ""],
+    () => loadCollectionCatalogCore(siteId, slug, locale, cat || undefined, page, titleHint, activeFilters ?? emptyActiveCollectionFilters()),
+    ["collection-catalog-v2", siteId, slug, locale, cat, String(page), titleHint ?? "", filterKey],
     {
       revalidate: STORE_PUBLIC_REVALIDATE_SEC,
       tags: [storeSettingsTag(siteId), storeMirrorTag(siteId), "store-products"],
@@ -44,6 +47,7 @@ async function loadCollectionFramePayloadCore(
   categorySlug?: string,
   page = 1,
   titleHint?: string,
+  activeFilters?: ActiveCollectionFilters,
 ): Promise<CollectionFramePayload> {
   const { getSiteBranding } = await import("@/lib/site-settings-branding");
   const { loadMirrorNavItems } = await import("@/lib/mirror-nav-server");
@@ -52,7 +56,7 @@ async function loadCollectionFramePayloadCore(
   const settings = await getCachedParsedSiteSettings(siteId);
   const branding = getSiteBranding(settings);
   const [catalog, nav, footer] = await Promise.all([
-    getCollectionCatalogPayload(siteId, slug, locale, categorySlug, page, titleHint),
+    getCollectionCatalogPayload(siteId, slug, locale, categorySlug, page, titleHint, activeFilters),
     loadMirrorNavItems(siteId, locale),
     loadMirrorFooterData(siteId, locale),
   ]);
@@ -67,11 +71,13 @@ export function getCollectionFramePayload(
   categorySlug?: string,
   page = 1,
   titleHint?: string,
+  activeFilters?: ActiveCollectionFilters,
 ): Promise<CollectionFramePayload> {
   const cat = categorySlug?.trim() || "";
+  const filterKey = filtersCacheKey(activeFilters ?? emptyActiveCollectionFilters());
   return unstable_cache(
-    () => loadCollectionFramePayloadCore(siteId, slug, locale, cat || undefined, page, titleHint),
-    ["collection-frame-v1", siteId, slug, locale, cat, String(page)],
+    () => loadCollectionFramePayloadCore(siteId, slug, locale, cat || undefined, page, titleHint, activeFilters),
+    ["collection-frame-v2", siteId, slug, locale, cat, String(page), filterKey],
     {
       revalidate: STORE_PUBLIC_REVALIDATE_SEC,
       tags: [storeSettingsTag(siteId), storeMirrorTag(siteId), "store-products"],

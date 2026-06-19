@@ -1,6 +1,6 @@
 /** Mirror HTML — yalnızca veritabanında yayında olan ürün kartlarını bırakır */
 
-import { parseHTML } from "linkedom";
+import { parseHTML } from "@/lib/linkedom-server";
 import { prisma } from "@/lib/prisma";
 
 const PRODUCT_HREF = /\/products\/([^/?#]+)/i;

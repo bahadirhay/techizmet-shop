@@ -15,7 +15,7 @@ export type CheckoutPaymentFlags = {
   bankAccounts: { bank: string; iban: string; holder: string }[];
 };
 
-export type PaymentMethodId = "cod" | "bank_transfer" | "card";
+export type PaymentMethodId = "cod" | "bank_transfer" | "card" | "open_account";
 
 /** Admin panelinde açık olan yöntemler — varsayılan true değil */
 export function getCheckoutPaymentFlags(settings: SiteSettings): CheckoutPaymentFlags {
@@ -29,8 +29,13 @@ export function getCheckoutPaymentFlags(settings: SiteSettings): CheckoutPayment
   };
 }
 
-export function hasAnyCheckoutPaymentMethod(flags: CheckoutPaymentFlags): boolean {
-  return flags.codEnabled || flags.bankTransferEnabled || flags.cardEnabled;
+export function hasAnyCheckoutPaymentMethod(flags: CheckoutPaymentFlags & { openAccount?: { enabled: boolean } }): boolean {
+  return (
+    flags.codEnabled ||
+    flags.bankTransferEnabled ||
+    flags.cardEnabled ||
+    Boolean(flags.openAccount?.enabled)
+  );
 }
 
 export function resolveDefaultPaymentMethod(flags: CheckoutPaymentFlags): PaymentMethodId | null {

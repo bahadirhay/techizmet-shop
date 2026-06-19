@@ -245,13 +245,20 @@ export type SiteSettings = {
   blogAutomation?: import("@/lib/admin/blog-automation/settings").BlogAutomationSettings;
   /** Google Search Console — organik arama sorguları */
   gsc?: import("@/lib/admin/gsc/settings").GscSettings;
+  /** Google Merchant Center ürün feed */
+  googleMerchant?: import("@/lib/seo/google-merchant-types").GoogleMerchantSettings;
   /** WhatsApp gelen kutusu, bot, takip */
   whatsapp?: import("@/lib/whatsapp-settings").StoreWhatsAppSettings;
+  /** Geliver kargo pazaryeri */
+  geliver?: import("@/lib/shipping/geliver/types").GeliverSiteSettings;
   /** Sokak dostları mama fonu */
   streetFoodFund?: import("@/lib/street-food-fund/types").StreetFoodFundSettings;
 };
 
 export type SeoAiProvider = "auto" | "gemini" | "openai" | "claude";
+
+/** Blog kapak görseli sağlayıcısı */
+export type ImageAiProvider = "auto" | "fal" | "openai";
 
 export type StoreSeoAiSettings = {
   enabled?: boolean;
@@ -263,6 +270,12 @@ export type StoreSeoAiSettings = {
   geminiModel?: string;
   openaiModel?: string;
   claudeModel?: string;
+  /** fal.ai — blog görsel üretimi (https://fal.ai/dashboard/keys) */
+  falApiKey?: string;
+  /** örn. fal-ai/flux/schnell, fal-ai/flux/dev */
+  falImageModel?: string;
+  /** auto = fal varsa önce fal, sonra OpenAI DALL·E */
+  imageProvider?: ImageAiProvider;
 };
 
 export type StoreEfaturaSettings = {

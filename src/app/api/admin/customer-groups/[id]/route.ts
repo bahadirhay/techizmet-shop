@@ -23,6 +23,17 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   if (!existing) return NextResponse.json({ error: "Bulunamadı" }, { status: 404 });
 
   const body = (await req.json()) as Record<string, unknown>;
+  const defaultCreditTry =
+    body.defaultCreditLimitTry !== undefined
+      ? String(body.defaultCreditLimitTry).trim()
+      : undefined;
+  const defaultCreditLimitMinor =
+    defaultCreditTry !== undefined
+      ? defaultCreditTry
+        ? Math.round(parseFloat(defaultCreditTry.replace(",", ".")) * 100)
+        : null
+      : undefined;
+
   const group = await prisma.customerGroup.update({
     where: { id },
     data: {
@@ -38,6 +49,15 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
         body.orderNumberPrefix !== undefined
           ? String(body.orderNumberPrefix).trim().toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8) || null
           : undefined,
+      isB2b: body.isB2b !== undefined ? Boolean(body.isB2b) : undefined,
+      openAccountEnabled:
+        body.openAccountEnabled !== undefined ? Boolean(body.openAccountEnabled) : undefined,
+      defaultPaymentTermDays:
+        body.defaultPaymentTermDays !== undefined
+          ? parseInt(String(body.defaultPaymentTermDays), 10) || null
+          : undefined,
+      defaultCreditLimitMinor:
+        defaultCreditLimitMinor !== undefined ? defaultCreditLimitMinor : undefined,
     },
   });
   return NextResponse.json({ group });

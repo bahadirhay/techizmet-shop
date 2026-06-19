@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { SeoAiProvider, StoreSeoAiSettings } from "@/lib/site-settings";
+import type { ImageAiProvider, SeoAiProvider, StoreSeoAiSettings } from "@/lib/site-settings";
 import { getSiteSettings } from "@/lib/site-settings";
 
 export type ResolvedSeoAiConfig = {
@@ -12,6 +12,9 @@ export type ResolvedSeoAiConfig = {
   geminiModel: string;
   openaiModel: string;
   claudeModel: string;
+  falApiKey: string;
+  falImageModel: string;
+  imageProvider: ImageAiProvider;
 };
 
 export function parseSeoAiSettings(raw: StoreSeoAiSettings | undefined): ResolvedSeoAiConfig {
@@ -24,7 +27,10 @@ export function parseSeoAiSettings(raw: StoreSeoAiSettings | undefined): Resolve
     claudeApiKey: (s.claudeApiKey?.trim() || process.env.ANTHROPIC_API_KEY?.trim() || ""),
     geminiModel: s.geminiModel?.trim() || process.env.GEMINI_MODEL?.trim() || "gemini-2.0-flash",
     openaiModel: s.openaiModel?.trim() || process.env.OPENAI_MODEL?.trim() || "gpt-4o-mini",
-    claudeModel: s.claudeModel?.trim() || process.env.CLAUDE_MODEL?.trim() || "claude-3-5-haiku-latest",
+    claudeModel: s.claudeModel?.trim() || process.env.CLAUDE_MODEL?.trim() || "claude-sonnet-4-6",
+    falApiKey: (s.falApiKey?.trim() || process.env.FAL_KEY?.trim() || ""),
+    falImageModel: s.falImageModel?.trim() || process.env.FAL_IMAGE_MODEL?.trim() || "fal-ai/flux/schnell",
+    imageProvider: s.imageProvider ?? "auto",
   };
 }
 
@@ -57,6 +63,15 @@ export function providerOrder(config: ResolvedSeoAiConfig): ("gemini" | "openai"
   const order: ("gemini" | "openai" | "claude")[] = [];
   if (config.geminiApiKey) order.push("gemini");
   if (config.claudeApiKey) order.push("claude");
+  if (config.openaiApiKey) order.push("openai");
+  return order;
+}
+
+export function imageProviderOrder(config: ResolvedSeoAiConfig): ("fal" | "openai")[] {
+  if (config.imageProvider === "fal") return config.falApiKey ? ["fal"] : [];
+  if (config.imageProvider === "openai") return config.openaiApiKey ? ["openai"] : [];
+  const order: ("fal" | "openai")[] = [];
+  if (config.falApiKey) order.push("fal");
   if (config.openaiApiKey) order.push("openai");
   return order;
 }

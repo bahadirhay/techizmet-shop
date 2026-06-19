@@ -1,4 +1,4 @@
-import { parseHTML } from "linkedom";
+import { parseHTML } from "@/lib/linkedom-server";
 
 /**
  * Koleksiyon sayfası sıralama menüsü (Shopify mirror HTML).

@@ -23,6 +23,7 @@ export function OrderInvoicePanel({
   efaturaEnabled,
   efaturaReady,
   focusInvoice = false,
+  defaultRecipientTaxId,
 }: {
   orderId: string;
   orderNumber: string;
@@ -37,10 +38,12 @@ export function OrderInvoicePanel({
   efaturaReady: boolean;
   /** Kargo kaydı sonrası — panele kaydır ve ön izlemeyi aç */
   focusInvoice?: boolean;
+  /** Siparişteki TCKN/VKN — fatura ön izlemesine önceden doldurulur */
+  defaultRecipientTaxId?: string | null;
 }) {
   const router = useRouter();
   const panelRef = useRef<HTMLDivElement>(null);
-  const [recipientTaxId, setRecipientTaxId] = useState("");
+  const [recipientTaxId, setRecipientTaxId] = useState(defaultRecipientTaxId ?? "");
   const [sendToMarketplace, setSendToMarketplace] = useState(Boolean(marketplacePlatform));
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);

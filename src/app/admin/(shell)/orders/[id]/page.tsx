@@ -4,6 +4,7 @@ import { OrderDeliveryBlock } from "@/components/admin/OrderDeliveryBlock";
 import { OrderLinesPanel } from "@/components/admin/OrderLinesPanel";
 import { OrderFinancePanel } from "@/components/admin/OrderFinancePanel";
 import { OrderDetailForm } from "@/components/admin/OrderDetailForm";
+import { GeliverOrderPanel } from "@/components/admin/GeliverOrderPanel";
 import { MarketplaceOrderPanel } from "@/components/admin/MarketplaceOrderPanel";
 import { OrderInvoicePanel } from "@/components/admin/OrderInvoicePanel";
 import { isOrderInvoiceComplete } from "@/lib/admin/order-invoice-workflow";
@@ -59,6 +60,17 @@ export default async function OrderDetailPage({
 
   const financeSnapshot = parseOrderFinanceSnapshot(order.financeSnapshotJson);
 
+  const openAccountInvoice = await prisma.financeInvoice.findFirst({
+    where: { siteId: auth.siteId, orderId: order.id },
+    select: {
+      id: true,
+      status: true,
+      dueDate: true,
+      totalMinor: true,
+      issueDate: true,
+    },
+  });
+
   return (
     <div>
       <Link href="/admin/orders" className="text-sm text-[var(--kn-brand)] underline">
@@ -99,6 +111,9 @@ export default async function OrderDetailPage({
           ) : null}
           <OrderDeliveryBlock
             shippingAddressJson={order.shippingAddressJson}
+            billingAddressJson={order.billingAddressJson}
+            billingTaxId={order.billingTaxId}
+            billingTaxOffice={order.billingTaxOffice}
             carrierName={order.carrier?.name ?? null}
             trackingUrlTemplate={order.carrier?.trackingUrlTemplate ?? null}
             trackingNumber={order.trackingNumber}
@@ -132,13 +147,16 @@ export default async function OrderDetailPage({
         efaturaEnabled={efaturaConfig.enabled}
         efaturaReady={efaturaReady(efaturaConfig)}
         focusInvoice={focusInvoice}
+        defaultRecipientTaxId={order.billingTaxId}
       />
       <OrderFinancePanel
         orderId={order.id}
         orderNumber={order.orderNumber}
         marketplacePlatform={order.marketplacePlatform}
+        paymentMethod={order.paymentMethod}
         financeSnapshot={financeSnapshot}
         transactions={financeTransactions}
+        openAccountInvoice={openAccountInvoice}
       />
       {order.marketplacePlatform && order.marketplaceMetaJson ? (
         <MarketplaceOrderPanel
@@ -146,7 +164,9 @@ export default async function OrderDetailPage({
           platform={order.marketplacePlatform}
           metaJson={order.marketplaceMetaJson}
         />
-      ) : null}
+      ) : (
+        <GeliverOrderPanel orderId={order.id} marketplacePlatform={order.marketplacePlatform} />
+      )}
     </div>
   );
 }

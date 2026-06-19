@@ -1,5 +1,5 @@
 import { stripProductCardGalleryBoundFlags } from "@/lib/mirror-product-card-gallery";
-import { parseHTML } from "linkedom";
+import { parseHTML } from "@/lib/linkedom-server";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import {
   applyHomeListingProductsToDocument,
@@ -9,12 +9,15 @@ import { imageUrlsFromProductRow, primaryImageUrlFromProductRow } from "@/lib/mi
 import { prisma } from "@/lib/prisma";
 import { getSiteSettingsUncached } from "@/lib/site-settings-load";
 import { resolveMirrorCollectionTexts } from "@/lib/store-static-texts";
+import { resolveHomeListingSort, homeListingOrderBy } from "@/lib/home-listing-sort";
 import { withProductDisplayTitle } from "@/lib/product-display-title";
 
 export async function loadHomeListingProducts(siteId: string): Promise<VitrinCollectionProductCard[]> {
+  const settings = await getSiteSettingsUncached(siteId);
+  const sort = resolveHomeListingSort(settings.store?.texts);
   const rows = await prisma.storeProduct.findMany({
     where: { siteId, published: true },
-    orderBy: [{ title: "asc" }],
+    orderBy: homeListingOrderBy(sort),
     select: {
       slug: true,
       title: true,

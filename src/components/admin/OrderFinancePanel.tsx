@@ -29,14 +29,24 @@ export function OrderFinancePanel({
   orderId,
   orderNumber,
   marketplacePlatform,
+  paymentMethod,
   financeSnapshot,
   transactions,
+  openAccountInvoice,
 }: {
   orderId: string;
   orderNumber: string;
   marketplacePlatform: string | null;
+  paymentMethod?: string | null;
   financeSnapshot: OrderFinanceSnapshot | null;
   transactions: TxRow[];
+  openAccountInvoice?: {
+    id: string;
+    status: string;
+    dueDate: Date | null;
+    totalMinor: number;
+    issueDate: Date;
+  } | null;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -95,6 +105,41 @@ export function OrderFinancePanel({
           Muhasebe paneli →
         </Link>
       </div>
+
+      {openAccountInvoice ? (
+        <div className="mt-3 rounded-lg border border-indigo-200 bg-indigo-50/80 p-3 text-sm">
+          <p className="font-medium text-indigo-950">Açık hesap alacağı</p>
+          <p className="mt-1 text-indigo-900">
+            Tutar: {formatTry(openAccountInvoice.totalMinor)}
+            {openAccountInvoice.dueDate ? (
+              <>
+                {" "}
+                · Vade:{" "}
+                {new Date(openAccountInvoice.dueDate).toLocaleDateString("tr-TR")}
+              </>
+            ) : null}
+          </p>
+          <p className="mt-2">
+            <Link
+              href={`/admin/finance/invoices`}
+              className="font-medium text-[var(--kn-brand)] underline"
+            >
+              Ön muhasebe faturası ({openAccountInvoice.status}) →
+            </Link>
+            {" · "}
+            <Link
+              href={`/admin/finance/cari`}
+              className="text-[var(--kn-brand)] underline"
+            >
+              Cari listesi
+            </Link>
+          </p>
+        </div>
+      ) : paymentMethod === "open_account" ? (
+        <p className="mt-3 text-sm text-amber-800">
+          Açık hesap siparişi — alacak faturası oluşturulamadıysa sipariş loglarını kontrol edin.
+        </p>
+      ) : null}
 
       {snap ? (
         <div className="mt-3 rounded-lg border border-blue-200 bg-white p-3 text-sm space-y-1">

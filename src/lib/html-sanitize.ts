@@ -125,10 +125,4 @@ export function sanitizeStaffHeadHtml(html: string): string {
   });
 }
 
-export function escapePublicHtmlText(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
+export { escapePublicHtmlText } from "@/lib/html-escape";

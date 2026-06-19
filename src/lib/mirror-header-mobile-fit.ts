@@ -109,6 +109,7 @@ export function buildHeaderMobileFitScript(): string {
   return `(function(){
 var BP=${MOBILE_BP};
 var LOGO_H=${LOGO_MAX_H};
+if(window.matchMedia("(max-width:"+BP+"px)").matches){document.documentElement.classList.add("kn-mobile-header");}
 function mob(){return window.matchMedia("(max-width:"+BP+"px)").matches;}
 function fitImg(img,boxW,boxH){
   if(!img)return;

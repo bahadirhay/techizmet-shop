@@ -19,6 +19,18 @@ const CSS = `
   stroke:#1a1a1a!important;
   color:#1a1a1a!important;
 }
+@media (max-width:1024px){
+.hamburger--toggler.mobile-toggler,
+[data-mobile-toggler]{
+  display:block!important;
+  visibility:visible!important;
+  opacity:1!important;
+}
+.hamburger--toggler-icon .line,
+.header.mobile-transparent .hamburger--toggler-icon .line,
+.header:not(.is-sticky).mobile-transparent .hamburger--toggler-icon .line{
+  background:#1a1a1a!important;
+}
 .header--icons-list .kn-locale-icon-item .kn-iframe-locale{font-size:10px}
 .header--icons-list .kn-locale-icon-item .kn-iframe-locale button{padding:4px 8px}
 @media (max-width:1024px){

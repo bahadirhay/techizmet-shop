@@ -32,6 +32,10 @@ export async function POST(req: Request) {
 
   const discountPercent = Math.min(99, Math.max(0, parseInt(String(body.discountPercent ?? 0), 10) || 0));
   const slug = String(body.slug ?? "").trim() || slugify(name);
+  const defaultCreditTry = String(body.defaultCreditLimitTry ?? "").trim();
+  const defaultCreditLimitMinor = defaultCreditTry
+    ? Math.round(parseFloat(defaultCreditTry.replace(",", ".")) * 100)
+    : null;
 
   const group = await prisma.customerGroup.create({
     data: {
@@ -42,6 +46,13 @@ export async function POST(req: Request) {
       active: body.active !== false,
       description: String(body.description ?? "").trim() || null,
       orderNumberPrefix: String(body.orderNumberPrefix ?? "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8) || null,
+      isB2b: Boolean(body.isB2b),
+      openAccountEnabled: Boolean(body.openAccountEnabled),
+      defaultPaymentTermDays:
+        body.defaultPaymentTermDays != null
+          ? parseInt(String(body.defaultPaymentTermDays), 10) || null
+          : null,
+      defaultCreditLimitMinor: Number.isFinite(defaultCreditLimitMinor!) ? defaultCreditLimitMinor : null,
     },
   });
   return NextResponse.json({ group });

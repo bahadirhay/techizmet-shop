@@ -3,6 +3,7 @@
  * Vercel build: DATABASE_URL + STORE_SITE_SLUG (Production + Build) gerekir.
  */
 import "dotenv/config";
+import { existsSync } from "node:fs";
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { listPublishedBlogPosts } from "../src/lib/blog/blog-posts-server";
@@ -47,15 +48,18 @@ async function writePrebuilt(normalized: string, html: string) {
   await writeFile(abs, html, "utf8");
 }
 
+const SKIP_PREBUILD_FLAG = ".vercel-skip-mirror-prebuild";
+
 async function main() {
   const slug = process.env.STORE_SITE_SLUG?.trim() || "demo";
   const hasDb = Boolean(process.env.DATABASE_URL?.trim());
+  const skipByFlag = existsSync(SKIP_PREBUILD_FLAG);
 
   console.log(`[mirror:prebuild] slug=${slug} DATABASE_URL=${hasDb ? "ok" : "EKSIK"}`);
 
-  if (!hasDb || process.env.SKIP_MIRROR_PREBUILD === "1") {
+  if (!hasDb || process.env.SKIP_MIRROR_PREBUILD === "1" || skipByFlag) {
     console.warn(
-      "[mirror:prebuild] Atlandi — DATABASE_URL yok veya SKIP_MIRROR_PREBUILD=1 (mevcut _mirror-prebuilt kullanilir).",
+      "[mirror:prebuild] Atlandi — veritabani yok/ulasilamadi veya SKIP flag (mevcut _mirror-prebuilt kullanilir).",
     );
     return;
   }

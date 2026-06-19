@@ -7,6 +7,11 @@ import type {
   VitrinCollectionProductCard,
 } from "@/lib/mirror-collections-sync";
 import type { ResolvedMirrorCollectionTexts } from "@/lib/store-static-texts";
+import type { CollectionFilterConfig } from "@/lib/collection-filter-settings";
+import type {
+  ActiveCollectionFilters,
+  CollectionFilterFacets,
+} from "@/lib/collection-filter-facets";
 
 export type CollectionCatalogPayload = {
   collectionFromAdmin: VitrinCollectionDetail | null;
@@ -18,6 +23,9 @@ export type CollectionCatalogPayload = {
   mirrorTexts: ResolvedMirrorCollectionTexts;
   paginationBasePath: string;
   title: string;
+  filterFacets: CollectionFilterFacets;
+  activeFilters: ActiveCollectionFilters;
+  filterConfig: CollectionFilterConfig;
 };
 
 export type CollectionFramePayload = CollectionCatalogPayload & {

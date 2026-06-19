@@ -12,9 +12,12 @@ function toClientState(settings: SiteSettings["seoAi"], resolved: ReturnType<typ
     geminiModel: resolved.geminiModel,
     openaiModel: resolved.openaiModel,
     claudeModel: resolved.claudeModel,
+    falImageModel: resolved.falImageModel,
+    imageProvider: resolved.imageProvider,
     hasGeminiKey: Boolean(settings?.geminiApiKey?.trim() || process.env.GEMINI_API_KEY?.trim()),
     hasOpenaiKey: Boolean(settings?.openaiApiKey?.trim() || process.env.OPENAI_API_KEY?.trim()),
     hasClaudeKey: Boolean(settings?.claudeApiKey?.trim() || process.env.ANTHROPIC_API_KEY?.trim()),
+    hasFalKey: Boolean(settings?.falApiKey?.trim() || process.env.FAL_KEY?.trim()),
   };
 }
 
@@ -34,6 +37,7 @@ export async function GET() {
       geminiApiKey: "",
       openaiApiKey: "",
       claudeApiKey: "",
+      falApiKey: "",
     },
   });
 }
@@ -53,6 +57,7 @@ export async function PATCH(req: Request) {
   if (patch.geminiApiKey === "") delete nextSeoAi?.geminiApiKey;
   if (patch.openaiApiKey === "") delete nextSeoAi?.openaiApiKey;
   if (patch.claudeApiKey === "") delete nextSeoAi?.claudeApiKey;
+  if (patch.falApiKey === "") delete nextSeoAi?.falApiKey;
 
   const next = mergeSiteSettings(current, { seoAi: nextSeoAi });
   await prisma.storeSite.update({
@@ -68,6 +73,7 @@ export async function PATCH(req: Request) {
       geminiApiKey: "",
       openaiApiKey: "",
       claudeApiKey: "",
+      falApiKey: "",
     },
   });
 }

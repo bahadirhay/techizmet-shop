@@ -7,6 +7,7 @@ import { createOrderFromCart, buildCartView } from "@/lib/cart/service";
 import { clearCartSession, getCartSession } from "@/lib/cart/session";
 import { createAccountAfterOrder } from "@/lib/checkout/create-account-after-order";
 import { saveCheckoutAddressToCustomer } from "@/lib/checkout/save-address";
+import { normalizeConsumerTaxId } from "@/lib/efatura/consumer-tax-id";
 import { getCustomerSession } from "@/lib/customer-session";
 import { sendOrderConfirmationBundle } from "@/lib/email/send-order-notifications";
 import { getSiteSettings, isCardPaymentEnabled } from "@/lib/site-settings";
@@ -22,7 +23,7 @@ export async function POST(req: Request) {
   const paymentMethod = String(body.paymentMethod ?? "cod");
   if (paymentMethod === "card" && !isCardPaymentEnabled(settings)) {
     return NextResponse.json(
-      { error: "Kartlı ödeme kapalı. Admin → Entegrasyon → Ödeme bölümünden PayTR bilgilerini girin." },
+      { error: "Kartlı ödeme şu an kullanılamıyor. Lütfen kapıda ödeme veya havale seçeneğini deneyin." },
       { status: 400 },
     );
   }
@@ -31,6 +32,15 @@ export async function POST(req: Request) {
   }
   if (paymentMethod === "bank_transfer" && !settings.payment?.bankTransferEnabled) {
     return NextResponse.json({ error: "Havale/EFT şu an kapalı" }, { status: 400 });
+  }
+  if (paymentMethod === "open_account") {
+    const custSession = await getCustomerSession();
+    if (!custSession.isLoggedIn || !custSession.customerId) {
+      return NextResponse.json(
+        { error: "Açık hesap için üye girişi ve onaylı B2B hesabı gerekli" },
+        { status: 400 },
+      );
+    }
   }
 
   if (!body.acceptTerms) {
@@ -47,6 +57,34 @@ export async function POST(req: Request) {
 
   if (!city || !district || !neighborhood || !streetLine) {
     return NextResponse.json({ error: "İl, ilçe, mahalle ve adres zorunlu" }, { status: 400 });
+  }
+
+  const firstName = String(body.firstName ?? "").trim();
+  const lastName = String(body.lastName ?? "").trim();
+  const billingSameAsShipping = body.billingSameAsShipping !== false;
+  const taxOffice = String(body.taxOffice ?? "").trim() || undefined;
+  const billingTaxId = normalizeConsumerTaxId(String(body.taxId ?? "").trim() || undefined);
+
+  const shippingAddress = { city, district, line1, postalCode, firstName, lastName };
+
+  let billingAddress = shippingAddress;
+  if (!billingSameAsShipping) {
+    const bNeighborhood = String(body.billingNeighborhood ?? "").trim();
+    const bStreet = String(body.billingLine1 ?? "").trim();
+    const bCity = String(body.billingCity ?? "").trim();
+    const bDistrict = String(body.billingDistrict ?? "").trim();
+    const bLine1 = formatCheckoutLine1(bNeighborhood, bStreet) || bStreet;
+    if (!bCity || !bDistrict || !bNeighborhood || !bStreet) {
+      return NextResponse.json({ error: "Fatura adresi: il, ilçe, mahalle ve sokak zorunlu" }, { status: 400 });
+    }
+    billingAddress = {
+      city: bCity,
+      district: bDistrict,
+      line1: bLine1,
+      postalCode: String(body.billingPostalCode ?? "").trim() || undefined,
+      firstName: String(body.billingFirstName ?? "").trim() || firstName,
+      lastName: String(body.billingLastName ?? "").trim() || lastName,
+    };
   }
 
   try {
@@ -94,14 +132,12 @@ export async function POST(req: Request) {
       customer: {
         email,
         phone,
-        firstName: String(body.firstName ?? "").trim(),
-        lastName: String(body.lastName ?? "").trim(),
-        address: {
-          city,
-          district,
-          line1,
-          postalCode,
-        },
+        firstName,
+        lastName,
+        address: shippingAddress,
+        billingAddress,
+        billingTaxId,
+        billingTaxOffice: taxOffice,
       },
       carrierId: String(body.carrierId ?? ""),
       rateId: String(body.rateId ?? ""),

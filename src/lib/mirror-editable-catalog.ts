@@ -111,6 +111,33 @@ function extractFieldsFromSectionBlock(sectionKey: string, block: string): Edita
     );
   }
 
+  if (block.includes("section-collapsible-content") || block.includes("collapsible-content--")) {
+    let ci = 0;
+    const collapseTitleRe = /class="collapsible--text[^"]*"[^>]*>([\s\S]*?)<\/h[1-6]>/gi;
+    let ctm: RegExpExecArray | null;
+    while ((ctm = collapseTitleRe.exec(block))) {
+      add(
+        `${sectionKey}--collapsible-title--${ci}`,
+        "text",
+        `SSS başlık ${ci + 1}`,
+        stripHtml(ctm[1]),
+      );
+      ci += 1;
+    }
+    let cbi = 0;
+    const collapseBodyRe = /class="collapsible--content-body[^"]*"[^>]*>([\s\S]*?)<\/div>/gi;
+    while ((ctm = collapseBodyRe.exec(block))) {
+      add(
+        `${sectionKey}--collapsible-body--${cbi}`,
+        "html",
+        `SSS içerik ${cbi + 1}`,
+        ctm[1].trim(),
+        "Paragraf ve link ekleyebilirsiniz.",
+      );
+      cbi += 1;
+    }
+  }
+
   const headingRe =
     /class="(media-content-heading|section--heading|section-heading|image-with-text--heading|collection--heading|product-card--title|section--description)[^"]*"[^>]*>([\s\S]*?)<\/[^>]+>/gi;
   let hm: RegExpExecArray | null;

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { AdminField, btnPrimary, inputClass } from "@/components/admin/AdminForm";
-import type { SeoAiProvider } from "@/lib/site-settings";
+import type { ImageAiProvider, SeoAiProvider } from "@/lib/site-settings";
 
 type SeoAiFormState = {
   enabled: boolean;
@@ -14,9 +14,13 @@ type SeoAiFormState = {
   geminiModel: string;
   openaiModel: string;
   claudeModel: string;
+  falApiKey: string;
+  falImageModel: string;
+  imageProvider: ImageAiProvider;
   hasGeminiKey: boolean;
   hasOpenaiKey: boolean;
   hasClaudeKey: boolean;
+  hasFalKey: boolean;
 };
 
 export function SeoAiSettingsForm({ initial }: { initial: SeoAiFormState }) {
@@ -40,13 +44,23 @@ export function SeoAiSettingsForm({ initial }: { initial: SeoAiFormState }) {
           geminiModel: s.geminiModel,
           openaiModel: s.openaiModel,
           claudeModel: s.claudeModel,
+          falApiKey: s.falApiKey || undefined,
+          falImageModel: s.falImageModel,
+          imageProvider: s.imageProvider,
         },
       }),
     });
     const j = (await res.json()) as { seoAi?: SeoAiFormState; error?: string };
     setBusy(false);
     if (res.ok && j.seoAi) {
-      setS({ ...s, ...j.seoAi, geminiApiKey: "", openaiApiKey: "", claudeApiKey: "" });
+      setS({
+        ...s,
+        ...j.seoAi,
+        geminiApiKey: "",
+        openaiApiKey: "",
+        claudeApiKey: "",
+        falApiKey: "",
+      });
       setMsg("Kaydedildi");
     } else {
       setMsg(j.error ?? "Kayıt başarısız");
@@ -125,15 +139,34 @@ export function SeoAiSettingsForm({ initial }: { initial: SeoAiFormState }) {
             className={inputClass}
             value={s.claudeModel}
             onChange={(e) => setS({ ...s, claudeModel: e.target.value })}
-            placeholder="claude-3-5-haiku-latest"
+            placeholder="claude-sonnet-4-6"
           />
         </AdminField>
         <p className="text-xs text-zinc-500">
           <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noreferrer" className="underline">
             Anthropic Console
           </a>{" "}
-          · env: <code>ANTHROPIC_API_KEY</code>
+          · env: <code>ANTHROPIC_API_KEY</code> · Blog için önerilen: <code>claude-sonnet-4-6</code>
         </p>
+        <button
+          type="button"
+          className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm hover:bg-zinc-50 disabled:opacity-50"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            setMsg(null);
+            const res = await fetch("/api/admin/settings/seo-ai/test-blog", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ provider: "claude" }),
+            });
+            const j = (await res.json()) as { ok?: boolean; message?: string; error?: string };
+            setBusy(false);
+            setMsg(j.message ?? j.error ?? (res.ok ? "Test tamam" : "Test başarısız"));
+          }}
+        >
+          Claude blog testi (kısa)
+        </button>
       </div>
 
       <div className="mt-4 space-y-4 rounded-lg border border-zinc-200 bg-zinc-50/80 p-4">
@@ -156,7 +189,51 @@ export function SeoAiSettingsForm({ initial }: { initial: SeoAiFormState }) {
           />
         </AdminField>
         <p className="text-xs text-zinc-500">
-          env: <code>OPENAI_API_KEY</code>
+          env: <code>OPENAI_API_KEY</code> — DALL·E görsel üretimi için (fal.ai yoksa yedek)
+        </p>
+      </div>
+
+      <div className="mt-4 space-y-4 rounded-lg border border-violet-200 bg-violet-50/50 p-4">
+        <p className="text-sm font-semibold text-zinc-800">Blog görsel üretimi — fal.ai</p>
+        <p className="text-xs text-zinc-600">
+          Blog otomasyonu kapak görseli için fal.ai FLUX kullanır. Site giriş şifreniz değil —{" "}
+          <strong>API anahtarı</strong> gerekir (
+          <a href="https://fal.ai/dashboard/keys" target="_blank" rel="noreferrer" className="underline">
+            fal.ai → Keys
+          </a>
+          ). Ücretsiz kredi ile başlayabilirsiniz.
+        </p>
+        <AdminField label="Görsel sağlayıcı">
+          <select
+            className={inputClass}
+            value={s.imageProvider}
+            onChange={(e) => setS({ ...s, imageProvider: e.target.value as ImageAiProvider })}
+          >
+            <option value="auto">Otomatik (fal.ai → OpenAI DALL·E)</option>
+            <option value="fal">Yalnızca fal.ai</option>
+            <option value="openai">Yalnızca OpenAI DALL·E</option>
+          </select>
+        </AdminField>
+        <AdminField label="fal.ai API anahtarı">
+          <input
+            type="password"
+            className={inputClass}
+            value={s.falApiKey}
+            onChange={(e) => setS({ ...s, falApiKey: e.target.value })}
+            placeholder={s.hasFalKey ? "Kayıtlı — değiştirmek için yazın" : "fal_..."}
+          />
+        </AdminField>
+        <AdminField label="fal.ai model">
+          <input
+            className={inputClass}
+            value={s.falImageModel}
+            onChange={(e) => setS({ ...s, falImageModel: e.target.value })}
+            placeholder="fal-ai/flux/schnell"
+          />
+        </AdminField>
+        <p className="text-xs text-zinc-500">
+          Önerilen: <code>fal-ai/flux/schnell</code> (hızlı) veya <code>fal-ai/flux/dev</code> (kaliteli) · env:{" "}
+          <code>FAL_KEY</code>
         </p>
       </div>
 

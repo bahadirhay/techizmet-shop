@@ -18,6 +18,7 @@ import { resolveProductCategorySelection, syncProductCategoryLinks } from "@/lib
 import { resolveProductSeoFields } from "@/lib/admin/product-seo/ensure-seo";
 import { SITE_DEFAULT_EXPLORE_SENTINEL } from "@/lib/product-explore-looks";
 import { productAdminErrorResponse } from "@/lib/admin/product-api-errors";
+import { notifyPublishedProduct } from "@/lib/seo/publish-notify";
 
 export async function GET(req: Request) {
   const auth = await requireStaffApi("store.products");
@@ -132,6 +133,10 @@ export async function POST(req: Request) {
     await syncProductCategoryLinks(prisma, created.id, categoryIds);
     if (variants.length) {
       await upsertProductVariants(prisma, created.id, variantOptionName, variants);
+    }
+
+    if (created.published) {
+      notifyPublishedProduct(created.slug);
     }
 
     return NextResponse.json({ product: created });

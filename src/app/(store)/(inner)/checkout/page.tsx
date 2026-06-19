@@ -1,7 +1,8 @@
 import { CheckoutForm } from "@/components/cart/CheckoutForm";
 import { MirrorCheckoutFrame } from "@/components/store/MirrorCheckoutFrame";
 import { getCheckoutPrefill } from "@/lib/checkout/prefill";
-import { getCheckoutPaymentFlags } from "@/lib/checkout/payment-options";
+import { getCheckoutPaymentContext } from "@/lib/checkout/payment-context";
+import { getCustomerSession } from "@/lib/customer-session";
 import { getStoreHomepageMode, getSiteSettings } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
 import { resolveLegalSellerProfile } from "@/lib/legal/seller-profile";
@@ -15,8 +16,13 @@ export default async function CheckoutPage() {
   }
 
   const settings = await getSiteSettings(site.id);
+  const session = await getCustomerSession();
   const prefill = await getCheckoutPrefill(site.id);
-  const payment = getCheckoutPaymentFlags(settings);
+  const payment = await getCheckoutPaymentContext(
+    settings,
+    site.id,
+    session.isLoggedIn ? session.customerId : null,
+  );
   const sellerProfile = resolveLegalSellerProfile(settings, site);
 
   return (

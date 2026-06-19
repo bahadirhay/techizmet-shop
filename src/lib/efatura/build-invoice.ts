@@ -1,4 +1,5 @@
 import type { InvoiceDetails, InvoiceItem } from "fatura";
+import { normalizeConsumerTaxId } from "@/lib/efatura/consumer-tax-id";
 import type { ResolvedEfaturaConfig } from "@/lib/efatura/settings";
 
 type OrderLine = {
@@ -66,6 +67,9 @@ export function buildInvoiceDetailsFromOrder(
     customerEmail: string | null;
     customerPhone: string | null;
     shippingAddressJson: string | null;
+    billingAddressJson?: string | null;
+    billingTaxId?: string | null;
+    billingTaxOffice?: string | null;
     shippingMinor: number;
     discountMinor: number;
     totalMinor: number;
@@ -80,9 +84,11 @@ export function buildInvoiceDetailsFromOrder(
   const customer = splitCustomerName(order.customerName);
 
   let address: ShippingAddress = {};
-  if (order.shippingAddressJson) {
+  const billingRaw = order.billingAddressJson?.trim();
+  const addressJson = billingRaw || order.shippingAddressJson;
+  if (addressJson) {
     try {
-      address = JSON.parse(order.shippingAddressJson) as ShippingAddress;
+      address = JSON.parse(addressJson) as ShippingAddress;
     } catch {
       address = {};
     }
@@ -119,7 +125,10 @@ export function buildInvoiceDetailsFromOrder(
     date,
     time,
     orderNumber: order.orderNumber,
-    taxIDOrTRID: recipientTaxId?.trim() || config.defaultConsumerTaxId,
+    taxIDOrTRID: normalizeConsumerTaxId(
+      recipientTaxId?.trim() || order.billingTaxId,
+      config.defaultConsumerTaxId,
+    ),
     title: customer.title,
     name: customer.name,
     surname: customer.surname,
@@ -129,7 +138,7 @@ export function buildInvoiceDetailsFromOrder(
     zipCode: address.postalCode ?? "",
     phoneNumber: order.customerPhone ?? "",
     email: order.customerEmail ?? "",
-    taxOffice: "",
+    taxOffice: order.billingTaxOffice?.trim() || "",
     items,
     totalVAT,
     grandTotal,

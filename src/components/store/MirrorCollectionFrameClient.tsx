@@ -7,6 +7,7 @@ import type { MirrorFooterData } from "@/lib/mirror-footer-overlay";
 import type { MirrorNavItem } from "@/lib/mirror-nav-overlay";
 import {
   applyCollectionCategoryFiltersFromAdmin,
+  applyCollectionFacetFiltersFromAdmin,
   applyCollectionProductsFromAdmin,
   applyCollectionDetailFromAdmin,
   setCollectionProductsAwaiting,
@@ -14,6 +15,8 @@ import {
   type VitrinCollectionProductCard,
   type VitrinCollectionDetail,
 } from "@/lib/mirror-collections-sync";
+import type { ActiveCollectionFilters, CollectionFilterFacets } from "@/lib/collection-filter-facets";
+import type { CollectionFilterConfig } from "@/lib/collection-filter-settings";
 import { initProductCardGalleries } from "@/lib/mirror-product-card-gallery";
 import { useMirrorFrameRouteSync } from "@/hooks/use-mirror-frame-route-sync";
 import { useMirrorIframeAutoHeight } from "@/hooks/use-mirror-iframe-auto-height";
@@ -35,6 +38,9 @@ export function MirrorCollectionFrameClient({
   categoriesFromAdmin,
   activeCategorySlug,
   mirrorTexts,
+  filterFacets,
+  activeFilters,
+  filterConfig,
   currentPage = 1,
   paginationBasePath = "/collections/all",
   productsPrebuilt = false,
@@ -52,6 +58,9 @@ export function MirrorCollectionFrameClient({
   categoriesFromAdmin?: VitrinCollectionCategoryOption[];
   activeCategorySlug?: string;
   mirrorTexts?: ResolvedMirrorCollectionTexts;
+  filterFacets?: CollectionFilterFacets;
+  activeFilters?: ActiveCollectionFilters;
+  filterConfig?: CollectionFilterConfig;
   currentPage?: number;
   paginationBasePath?: string;
   /** Ürünler iframe HTML'inde sunucuda — istemci patch yok */
@@ -70,6 +79,9 @@ export function MirrorCollectionFrameClient({
     currentPage,
     paginationBasePath,
     mirrorTexts,
+    filterFacets,
+    activeFilters,
+    filterConfig,
     branding,
     nav,
     footer,
@@ -102,6 +114,9 @@ export function MirrorCollectionFrameClient({
     if (categoriesFromAdmin?.length) {
       applyCollectionCategoryFiltersFromAdmin(doc, categoriesFromAdmin, locale, activeCategorySlug, mirrorTexts);
     }
+    if (filterFacets && activeFilters && filterConfig) {
+      applyCollectionFacetFiltersFromAdmin(doc, filterFacets, activeFilters, filterConfig, locale);
+    }
     if (productsFromAdmin?.length) {
       applyCollectionProductsFromAdmin(doc, productsFromAdmin, locale, mirrorTexts, {
         currentPage,
@@ -130,6 +145,9 @@ export function MirrorCollectionFrameClient({
     footer,
     locale,
     mirrorTexts,
+    filterFacets,
+    activeFilters,
+    filterConfig,
     nav,
     productsFromAdmin,
     totalProductCount,

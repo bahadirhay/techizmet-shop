@@ -1,6 +1,6 @@
 /** Sunucu / prebuild — linkedom (client bundle'a import edilmez) */
 
-import { parseHTML } from "linkedom";
+import { parseHTML } from "@/lib/linkedom-server";
 import {
   applyCollectionsCardsFromAdmin,
   type VitrinCollectionCard,

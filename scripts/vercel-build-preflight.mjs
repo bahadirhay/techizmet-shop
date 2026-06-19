@@ -2,10 +2,14 @@
  * Vercel build basinda ortam kontrolu — logda net hata mesaji.
  * DATABASE_URL Vercel'de Production + Preview + BUILD ile tanimli olmali.
  */
+import { execSync } from "node:child_process";
+import { writeFileSync, unlinkSync } from "node:fs";
+
 const slug = process.env.STORE_SITE_SLUG?.trim() || "demo";
 const db = process.env.DATABASE_URL?.trim() || "";
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim() || "";
 const session = process.env.SESSION_SECRET?.trim() || "";
+const skipFlag = ".vercel-skip-mirror-prebuild";
 
 console.log(`[vercel:preflight] STORE_SITE_SLUG=${slug}`);
 console.log(`[vercel:preflight] DATABASE_URL=${db ? "ok" : "EKSIK"}`);
@@ -19,13 +23,33 @@ console.log(
 
 const errors = [];
 
+try {
+  unlinkSync(skipFlag);
+} catch {
+  /* yok */
+}
+
 if (!db) {
   console.warn(
     "[vercel:preflight] UYARI: DATABASE_URL build ortaminda yok — mirror prebuild atlanacak (mevcut statik dosyalar kullanilir).",
   );
-  process.env.SKIP_MIRROR_PREBUILD = "1";
-} else if (!db.includes("neon.tech") && !db.startsWith("postgresql://")) {
-  errors.push("DATABASE_URL gecersiz formatta gorunuyor.");
+  writeFileSync(skipFlag, "no-database-url");
+} else {
+  try {
+    execSync("node scripts/db-connect-probe.mjs", {
+      stdio: "inherit",
+      env: { ...process.env, DB_PROBE_TIMEOUT_MS: "8000" },
+      timeout: 12_000,
+    });
+  } catch {
+    console.warn(
+      "[vercel:preflight] UYARI: Veritabanina ulasilamadi — mirror prebuild atlanacak. Neon panelini kontrol edin.",
+    );
+    writeFileSync(skipFlag, "db-unreachable");
+  }
+  if (!db.includes("neon.tech") && !db.startsWith("postgresql://")) {
+    errors.push("DATABASE_URL gecersiz formatta gorunuyor.");
+  }
 }
 
 if (slug === "demo") {

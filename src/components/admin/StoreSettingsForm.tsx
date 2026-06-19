@@ -174,6 +174,27 @@ export function StoreSettingsForm({ initial }: { initial: SiteSettings }) {
     }));
   }
 
+  function updateCollectionFilterEnabled(
+    key: keyof NonNullable<StoreTextSettings["collectionFilters"]>,
+    enabled: boolean,
+  ) {
+    setS((prev) => ({
+      ...prev,
+      store: {
+        ...prev.store,
+        texts: {
+          ...prev.store?.texts,
+          collectionFilters: {
+            ...prev.store?.texts?.collectionFilters,
+            [key]: enabled,
+          },
+        },
+      },
+    }));
+  }
+
+  const collectionFilters = storeTexts.collectionFilters ?? {};
+
   function updateBlockText(key: keyof NonNullable<StoreTextSettings["blocks"]>, value: string) {
     setS((prev) => ({
       ...prev,
@@ -874,6 +895,100 @@ export function StoreSettingsForm({ initial }: { initial: SiteSettings }) {
               />
             </AdminField>
           </div>
+        </div>
+
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-zinc-800">Koleksiyon filtreleri (/collections/all)</h3>
+          <p className="text-sm text-zinc-600">
+            Filtre seçenekleri yayındaki ürünlerden otomatik üretilir: marka, hacim/ton (varyant veya gramaj),
+            adet (paket adedi), fiyat aralığı (TL), stok durumu.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {(
+              [
+                ["price", "Fiyat"],
+                ["brand", "Marka"],
+                ["tones", "Tonlar"],
+                ["volume", "Hacim"],
+                ["quantity", "Adet"],
+                ["stock", "Stok durumu"],
+              ] as const
+            ).map(([key, label]) => (
+              <label key={key} className="flex items-center gap-2 text-sm text-zinc-700">
+                <input
+                  type="checkbox"
+                  checked={collectionFilters[key] !== false}
+                  onChange={(e) => updateCollectionFilterEnabled(key, e.target.checked)}
+                />
+                {label} filtresini göster
+              </label>
+            ))}
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <AdminField label="Fiyat başlığı (TR)">
+              <input className={inputClass} value={storeTexts.mirrorPriceLabelTr ?? ""} onChange={(e) => updateStoreText("mirrorPriceLabelTr", e.target.value)} />
+            </AdminField>
+            <AdminField label="Price title (EN)">
+              <input className={inputClass} value={storeTexts.mirrorPriceLabelEn ?? ""} onChange={(e) => updateStoreText("mirrorPriceLabelEn", e.target.value)} />
+            </AdminField>
+            <AdminField label="Marka başlığı (TR)">
+              <input className={inputClass} value={storeTexts.mirrorBrandLabelTr ?? ""} onChange={(e) => updateStoreText("mirrorBrandLabelTr", e.target.value)} />
+            </AdminField>
+            <AdminField label="Brand title (EN)">
+              <input className={inputClass} value={storeTexts.mirrorBrandLabelEn ?? ""} onChange={(e) => updateStoreText("mirrorBrandLabelEn", e.target.value)} />
+            </AdminField>
+            <AdminField label="Tonlar başlığı (TR)">
+              <input className={inputClass} value={storeTexts.mirrorTonesLabelTr ?? ""} onChange={(e) => updateStoreText("mirrorTonesLabelTr", e.target.value)} />
+            </AdminField>
+            <AdminField label="Tones title (EN)">
+              <input className={inputClass} value={storeTexts.mirrorTonesLabelEn ?? ""} onChange={(e) => updateStoreText("mirrorTonesLabelEn", e.target.value)} />
+            </AdminField>
+            <AdminField label="Hacim başlığı (TR)">
+              <input className={inputClass} value={storeTexts.mirrorVolumeLabelTr ?? ""} onChange={(e) => updateStoreText("mirrorVolumeLabelTr", e.target.value)} />
+            </AdminField>
+            <AdminField label="Volume title (EN)">
+              <input className={inputClass} value={storeTexts.mirrorVolumeLabelEn ?? ""} onChange={(e) => updateStoreText("mirrorVolumeLabelEn", e.target.value)} />
+            </AdminField>
+            <AdminField label="Adet başlığı (TR)">
+              <input className={inputClass} value={storeTexts.mirrorQuantityLabelTr ?? ""} onChange={(e) => updateStoreText("mirrorQuantityLabelTr", e.target.value)} />
+            </AdminField>
+            <AdminField label="Quantity title (EN)">
+              <input className={inputClass} value={storeTexts.mirrorQuantityLabelEn ?? ""} onChange={(e) => updateStoreText("mirrorQuantityLabelEn", e.target.value)} />
+            </AdminField>
+            <AdminField label="Stok başlığı (TR)">
+              <input className={inputClass} value={storeTexts.mirrorStockLabelTr ?? ""} onChange={(e) => updateStoreText("mirrorStockLabelTr", e.target.value)} />
+            </AdminField>
+            <AdminField label="Stock title (EN)">
+              <input className={inputClass} value={storeTexts.mirrorStockLabelEn ?? ""} onChange={(e) => updateStoreText("mirrorStockLabelEn", e.target.value)} />
+            </AdminField>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-zinc-800">Ana sayfa ürün sıralaması</h3>
+          <p className="text-sm text-zinc-600">
+            Ana sayfadaki otomatik ürün listelerinin (swiper bölümleri) hangi sırayla doldurulacağını belirler.
+            Vitrin editöründeki manuel ürün seçimleri etkilenmez.
+          </p>
+          <AdminField label="Sıralama">
+            <select
+              className={inputClass}
+              value={storeTexts.homeListingSort ?? "title_asc"}
+              onChange={(e) =>
+                updateStoreText(
+                  "homeListingSort",
+                  e.target.value as NonNullable<StoreTextSettings["homeListingSort"]>,
+                )
+              }
+            >
+              <option value="title_asc">Ada göre (A→Z)</option>
+              <option value="title_desc">Ada göre (Z→A)</option>
+              <option value="newest">En yeni</option>
+              <option value="oldest">En eski</option>
+              <option value="price_asc">Fiyat (düşük→yüksek)</option>
+              <option value="price_desc">Fiyat (yüksek→düşük)</option>
+            </select>
+          </AdminField>
         </div>
       </section>
 

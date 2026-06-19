@@ -1,4 +1,4 @@
-import { parseHTML } from "linkedom";
+import { parseHTML } from "@/lib/linkedom-server";
 import type { ShopBlock } from "@/lib/blocks/schema";
 
 function escapeHtml(s: string) {

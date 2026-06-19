@@ -6,6 +6,7 @@ const SEGMENTS = [
   { id: "all", label: "Tümü" },
   { id: "members", label: "Üyeler (şifreli)" },
   { id: "guests", label: "Misafir alıcılar" },
+  { id: "b2b_pending", label: "B2B onay bekleyen" },
   { id: "vip", label: "Sık alışveriş (3+ sipariş)" },
   { id: "inactive", label: "Siparişi yok" },
 ] as const;
@@ -41,6 +42,8 @@ export default async function CustomersPage({
         return isMember;
       case "guests":
         return !isMember && orders > 0;
+      case "b2b_pending":
+        return c.b2bStatus === "pending";
       case "vip":
         return orders >= 3;
       case "inactive":
@@ -92,6 +95,7 @@ export default async function CustomersPage({
             <th>E-posta</th>
             <th>Üyelik</th>
             <th>Grup</th>
+            <th>B2B</th>
             <th>Sipariş</th>
           </tr>
         </thead>
@@ -107,6 +111,15 @@ export default async function CustomersPage({
               <td>{c.passwordHash ? "Üye" : "Misafir"}</td>
               <td>
                 {c.customerGroup ? `${c.customerGroup.name} (%${c.customerGroup.discountPercent})` : "—"}
+              </td>
+              <td>
+                {c.b2bStatus === "pending"
+                  ? "Onay bekliyor"
+                  : c.b2bStatus === "approved"
+                    ? "B2B"
+                    : c.b2bStatus === "rejected"
+                      ? "Red"
+                      : "—"}
               </td>
               <td>{c._count.orders}</td>
             </tr>

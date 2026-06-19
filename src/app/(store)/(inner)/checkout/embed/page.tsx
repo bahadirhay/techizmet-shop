@@ -5,7 +5,7 @@ import { getCartCustomerId } from "@/lib/cart/customer-id";
 import { buildCartView, getShippingOptions } from "@/lib/cart/service";
 import { getCartSession } from "@/lib/cart/session";
 import { getCheckoutPrefill } from "@/lib/checkout/prefill";
-import { getCheckoutPaymentFlags } from "@/lib/checkout/payment-options";
+import { getCheckoutPaymentContext } from "@/lib/checkout/payment-context";
 import { getSiteSettings } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
 import { prisma } from "@/lib/prisma";
@@ -25,7 +25,7 @@ export default async function CheckoutEmbedPage() {
     customerId,
   );
   const prefill = await getCheckoutPrefill(site.id);
-  const payment = getCheckoutPaymentFlags(settings);
+  const payment = await getCheckoutPaymentContext(settings, site.id, customerId);
   const locale = await getStoreLocale();
   const sellerProfile = resolveLegalSellerProfile(settings, site);
   const usdRate =

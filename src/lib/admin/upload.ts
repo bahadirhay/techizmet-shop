@@ -89,3 +89,14 @@ async function writeUpload(
     sizeBytes,
   };
 }
+
+/** Sunucu tarafı (AI görsel vb.) — buffer kaydı */
+export async function saveImageBuffer(
+  siteId: string,
+  buf: Buffer,
+  mime = "image/png",
+): Promise<SavedUpload> {
+  const ext =
+    mime === "image/webp" ? "webp" : mime === "image/jpeg" ? "jpg" : mime === "image/gif" ? "gif" : "png";
+  return writeUpload(siteId, buf, ext, mime, buf.length);
+}

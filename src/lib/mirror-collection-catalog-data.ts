@@ -4,6 +4,14 @@ import type { ShopLocale } from "@/lib/i18n/locale";
 import { prisma } from "@/lib/prisma";
 import { getSiteSettingsUncached } from "@/lib/site-settings-load";
 import { resolveMirrorCollectionTexts } from "@/lib/store-static-texts";
+import { resolveCollectionFilterConfig } from "@/lib/collection-filter-settings";
+import {
+  buildCollectionFilterFacets,
+  buildProductFilterWhere,
+  emptyActiveCollectionFilters,
+  filtersToSearchParams,
+  type ActiveCollectionFilters,
+} from "@/lib/collection-filter-facets";
 import { MIRROR_COLLECTION_PAGE_SIZE } from "@/lib/mirror-collections-sync";
 import { withProductDisplayTitle } from "@/lib/product-display-title";
 import { imageUrlsFromProductRow, primaryImageUrlFromProductRow } from "@/lib/mirror-product-card-images";
@@ -17,10 +25,12 @@ export async function loadCollectionCatalogCore(
   categorySlug?: string,
   page = 1,
   titleHint?: string,
+  activeFilters: ActiveCollectionFilters = emptyActiveCollectionFilters(),
 ): Promise<CollectionCatalogPayload> {
   const safePage = Math.max(1, page);
   const settings = await getSiteSettingsUncached(siteId);
   const mirrorTexts = resolveMirrorCollectionTexts(locale, settings.store?.texts);
+  const filterConfig = resolveCollectionFilterConfig(locale, settings.store?.texts);
 
   const [row, categories] = await Promise.all([
     categorySlug
@@ -40,7 +50,7 @@ export async function loadCollectionCatalogCore(
   ]);
 
   const categoryScopeIds = getCategoryScopeIds(categories, categorySlug);
-  const productWhere = {
+  const baseProductWhere = {
     siteId,
     published: true,
     ...(categorySlug
@@ -57,7 +67,20 @@ export async function loadCollectionCatalogCore(
         : { collection: { slug } }),
   };
 
-  const [totalProductCount, products] = await Promise.all([
+  const filterWhere = buildProductFilterWhere(activeFilters, filterConfig.enabled);
+  const productWhere = filterWhere ? { AND: [baseProductWhere, filterWhere] } : baseProductWhere;
+
+  const facetSelect = {
+    priceMinor: true,
+    stockQty: true,
+    weightGrams: true,
+    pieceCount: true,
+    variantOptionName: true,
+    brand: { select: { slug: true, name: true } },
+    variants: { select: { label: true, stockQty: true } },
+  } as const;
+
+  const [totalProductCount, products, facetProducts] = await Promise.all([
     prisma.storeProduct.count({ where: productWhere }),
     prisma.storeProduct.findMany({
       where: productWhere,
@@ -79,13 +102,22 @@ export async function loadCollectionCatalogCore(
         images: { orderBy: { sortOrder: "asc" }, select: { url: true } },
       },
     }),
+    prisma.storeProduct.findMany({
+      where: baseProductWhere,
+      select: facetSelect,
+    }),
   ]);
 
+  const filterFacets = buildCollectionFilterFacets(facetProducts);
+
+  const paginationParams = filtersToSearchParams(activeFilters);
+  if (categorySlug) paginationParams.set("category", categorySlug);
+  const paginationQuery = paginationParams.toString();
   const paginationBasePath = categorySlug
-    ? `/collections/all?category=${encodeURIComponent(categorySlug)}`
+    ? `/collections/all${paginationQuery ? `?${paginationQuery}` : ""}`
     : slug === "all"
-      ? "/collections/all"
-      : `/collections/${encodeURIComponent(slug)}`;
+      ? `/collections/all${paginationQuery ? `?${paginationQuery}` : ""}`
+      : `/collections/${encodeURIComponent(slug)}${paginationQuery ? `?${paginationQuery}` : ""}`;
 
   const collectionFromAdmin: VitrinCollectionDetail | null = row
     ? {
@@ -123,5 +155,8 @@ export async function loadCollectionCatalogCore(
     mirrorTexts,
     paginationBasePath,
     title: row?.title ?? titleHint ?? (slug === "all" ? "Tüm ürünler" : slug),
+    filterFacets,
+    activeFilters,
+    filterConfig,
   };
 }

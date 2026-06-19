@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { StoreEfaturaSettings } from "@/lib/site-settings";
+import { normalizeConsumerTaxId } from "@/lib/efatura/consumer-tax-id";
 import { getSiteSettings } from "@/lib/site-settings";
 
 export type ResolvedEfaturaConfig = {
@@ -27,7 +28,7 @@ export function parseEfaturaSettings(raw: StoreEfaturaSettings | undefined): Res
     sellerTaxOffice: e.sellerTaxOffice?.trim() ?? "",
     username: (e.username?.trim() || process.env.GIB_USERNAME?.trim() || ""),
     password: (process.env.GIB_PASSWORD?.trim() || e.password?.trim() || ""),
-    defaultConsumerTaxId: e.defaultConsumerTaxId?.trim() || "11111111111",
+    defaultConsumerTaxId: normalizeConsumerTaxId(e.defaultConsumerTaxId?.trim() || "11111111111"),
     defaultVatRate: typeof e.defaultVatRate === "number" && e.defaultVatRate >= 0 ? e.defaultVatRate : 20,
     autoSign: e.autoSign !== false,
     autoSendMarketplace: e.autoSendMarketplace !== false,

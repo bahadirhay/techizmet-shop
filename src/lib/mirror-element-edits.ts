@@ -153,6 +153,23 @@ function stampRevealingTextSection(section: Element, sectionKey: string): number
   return 1;
 }
 
+function stampCollapsibleSection(section: Element, sectionKey: string): number {
+  let n = 0;
+  section.querySelectorAll(".collapsible--text").forEach((el, idx) => {
+    if (el.hasAttribute("data-kn-edit")) return;
+    el.setAttribute("data-kn-edit", `${sectionKey}--collapsible-title--${idx}`);
+    el.setAttribute("data-kn-kind", "text");
+    n += 1;
+  });
+  section.querySelectorAll(".collapsible--content-body").forEach((el, idx) => {
+    if (el.hasAttribute("data-kn-edit")) return;
+    el.setAttribute("data-kn-edit", `${sectionKey}--collapsible-body--${idx}`);
+    el.setAttribute("data-kn-kind", inferKind(el));
+    n += 1;
+  });
+  return n;
+}
+
 function stampRichtextSection(section: Element, sectionKey: string): number {
   let n = 0;
   const content = section.querySelector(".richtext--content");
@@ -244,6 +261,12 @@ export function stampMirrorEditableElements(doc: Document): number {
   main.querySelectorAll("section.section-marquee, section[class*='section-marquee']").forEach((section) => {
     n += stampMarqueeSection(section, sectionKeyFromSection(section));
   });
+
+  main.querySelectorAll("section.section-collapsible-content, section[class*='collapsible-content']").forEach(
+    (section) => {
+      n += stampCollapsibleSection(section, sectionKeyFromSection(section));
+    },
+  );
 
   const selectors = [
     ".section--heading",
@@ -457,6 +480,30 @@ function findElementsForEditFallback(doc: Document, editId: string): Element[] {
     const section = doc.querySelector(`section[id$="__${sectionKey}"]`);
     if (!section) return [];
     return [...section.querySelectorAll(".marquee-text")];
+  }
+
+  const collapsibleTitle =
+    canonical.match(/^(.+)--collapsible-title--(\d+)$/) ??
+    editId.match(/^(.+)--collapsible-title--(\d+)$/);
+  if (collapsibleTitle) {
+    const [, sectionKey, idxStr] = collapsibleTitle;
+    const section = doc.querySelector(`section[id$="__${sectionKey}"]`);
+    if (!section) return [];
+    const nodes = section.querySelectorAll(".collapsible--text");
+    const el = nodes[Number(idxStr)];
+    return el ? [el] : [];
+  }
+
+  const collapsibleBody =
+    canonical.match(/^(.+)--collapsible-body--(\d+)$/) ??
+    editId.match(/^(.+)--collapsible-body--(\d+)$/);
+  if (collapsibleBody) {
+    const [, sectionKey, idxStr] = collapsibleBody;
+    const section = doc.querySelector(`section[id$="__${sectionKey}"]`);
+    if (!section) return [];
+    const nodes = section.querySelectorAll(".collapsible--content-body");
+    const el = nodes[Number(idxStr)];
+    return el ? [el] : [];
   }
 
   const img = parseImageEditId(canonical) ?? parseImageEditId(editId);

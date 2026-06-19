@@ -4,6 +4,10 @@ import { slugify } from "@/lib/admin/slug";
 import { requireStaffApi } from "@/lib/staff-auth";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
+import {
+  notifyPublishedCollection,
+  shouldReindexPublishedCollection,
+} from "@/lib/seo/publish-notify";
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const auth = await requireStaffApi("store.collections");
@@ -55,6 +59,18 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   const collection = await prisma.storeCollection.update({ where: { id }, data });
   revalidateCollectionPaths(existing.slug);
   if (nextSlug !== existing.slug) revalidateCollectionPaths(nextSlug);
+
+  const nextPublished = published ?? existing.published;
+  if (
+    shouldReindexPublishedCollection(
+      { published: existing.published, slug: existing.slug },
+      { published: nextPublished, slug: nextSlug },
+      body,
+    )
+  ) {
+    notifyPublishedCollection(nextSlug);
+  }
+
   return NextResponse.json({ collection });
 }
 

@@ -16,6 +16,7 @@ import {
   loadResolvedBundleComponents,
   buildComponentsSnapshot,
 } from "@/lib/product-bundle";
+import { loadProductBlogBody } from "@/lib/admin/blog-automation/product-blog-shared";
 import { prisma } from "@/lib/prisma";
 
 type DbProduct = {
@@ -124,9 +125,16 @@ export async function loadPublishedProductMirrorPatch(
     { skipSession: true },
   );
 
+  const productBlog = await loadProductBlogBody(siteId, slug);
+
   return {
     detail: vitrinProductDetailFromDb(product, bundleComponents),
-    overlay: productContentOverlayFromDb(product),
+    overlay: {
+      ...productContentOverlayFromDb(product),
+      productBlogHtml: productBlog?.bodyHtml ?? null,
+      productBlogTitle: productBlog?.title ?? null,
+      productBlogHref: productBlog?.href ?? null,
+    },
     commerce,
   };
 }

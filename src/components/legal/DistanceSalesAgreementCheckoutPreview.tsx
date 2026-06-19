@@ -31,6 +31,16 @@ export function DistanceSalesAgreementCheckoutPreview({
     neighborhood: string;
     line1: string;
     postalCode: string;
+    taxId?: string;
+    taxOffice?: string;
+    billingSameAsShipping?: boolean;
+    billingFirstName?: string;
+    billingLastName?: string;
+    billingCity?: string;
+    billingDistrict?: string;
+    billingNeighborhood?: string;
+    billingLine1?: string;
+    billingPostalCode?: string;
     paymentMethod: string;
   };
   cart: CartView;

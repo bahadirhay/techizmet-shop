@@ -1,6 +1,11 @@
 import "server-only";
 
 import { generateAiBlogCopy } from "@/lib/admin/blog-automation/ai-blog";
+import { loadBlogResearchContext } from "@/lib/admin/blog-automation/blog-research";
+import {
+  generateBlogCoverImage,
+  injectBlogHeroImage,
+} from "@/lib/admin/blog-automation/blog-image";
 import {
   getBlogAutomationConfig,
   isWithinAutomationDateRange,
@@ -15,6 +20,8 @@ import {
 import { slugify } from "@/lib/admin/slug";
 import { getSeoAiConfig } from "@/lib/admin/product-seo/ai-settings";
 import { revalidateBlogPaths } from "@/lib/blog/revalidate-blog";
+import { sanitizePublicHtml } from "@/lib/html-sanitize";
+import { notifySearchEnginesForBlogSlug } from "@/lib/seo/notify-search-engines";
 import { prisma } from "@/lib/prisma";
 
 export type BlogAutomationRunResult = {
@@ -69,14 +76,23 @@ export async function createBlogPostFromTopic(params: {
   forcePublish?: boolean;
 }): Promise<BlogAutomationRunResult> {
   const aiConfig = await getSeoAiConfig(params.siteId);
+  const research = await loadBlogResearchContext(params.siteId, params.topic.keyword);
+  const relatedProducts =
+    params.config.linkProducts && params.topic.relatedProducts.length
+      ? params.topic.relatedProducts
+      : params.config.linkProducts
+        ? research.products
+        : [];
   const copy = await generateAiBlogCopy(
     {
       keyword: params.topic.keyword,
       siteName: params.siteName,
       author: params.config.author || undefined,
-      relatedProducts: params.config.linkProducts ? params.topic.relatedProducts : [],
+      relatedProducts,
+      researchContext: research.contextText,
     },
     aiConfig,
+    { requireAi: true },
   );
 
   const slug = await uniqueSlug(params.siteId, params.topic.keyword);
@@ -89,8 +105,11 @@ export async function createBlogPostFromTopic(params: {
       siteId: params.siteId,
       slug,
       titleTr: copy.title,
+      titleEn: copy.titleEn || null,
       excerptTr: copy.excerpt,
+      excerptEn: copy.excerptEn || null,
       bodyTr: copy.bodyHtml,
+      bodyEn: copy.bodyHtmlEn || null,
       imageUrl,
       author: params.config.author || null,
       publishedAt: publish ? new Date() : null,
@@ -165,4 +184,102 @@ export async function runBlogAutomation(
   }
 
   return createBlogPostFromTopic({ siteId, siteName, topic, config });
+}
+
+export async function createBlogPostFromTitle(params: {
+  siteId: string;
+  siteName: string;
+  title: string;
+  config: ResolvedBlogAutomationConfig;
+  publish?: boolean;
+  generateImage?: boolean;
+  linkProducts?: boolean;
+}): Promise<BlogAutomationRunResult> {
+  const title = params.title.trim();
+  if (!title) {
+    return { ok: false, reason: "Başlık gerekli" };
+  }
+
+  const keyword = slugify(title).replace(/-/g, " ") || title.toLowerCase();
+  const research = await loadBlogResearchContext(params.siteId, title);
+  const relatedProducts =
+    params.linkProducts !== false && params.config.linkProducts ? research.products : [];
+
+  const aiConfig = await getSeoAiConfig(params.siteId);
+  const copy = await generateAiBlogCopy(
+    {
+      keyword,
+      siteName: params.siteName,
+      author: params.config.author || undefined,
+      relatedProducts,
+      fixedTitle: title,
+      researchContext: research.contextText,
+    },
+    aiConfig,
+    { requireAi: true },
+  );
+
+  const slug = await uniqueSlug(params.siteId, title);
+  const publish = params.publish ?? params.config.mode === "auto";
+
+  let imageUrl: string | null =
+    relatedProducts.find((p) => p.imageUrl)?.imageUrl ?? null;
+  let imageMessage = "";
+
+  if (params.generateImage !== false) {
+    const img = await generateBlogCoverImage({
+      siteId: params.siteId,
+      title: copy.title,
+      excerpt: copy.excerpt,
+      siteName: params.siteName,
+      aiConfig,
+    });
+    if (img.url) {
+      imageUrl = img.url;
+      imageMessage = img.message;
+    } else if (img.message) {
+      imageMessage = img.message;
+    }
+  }
+
+  let bodyTr = sanitizePublicHtml(copy.bodyHtml);
+  let bodyEn = copy.bodyHtmlEn ? sanitizePublicHtml(copy.bodyHtmlEn) : null;
+  if (imageUrl) {
+    bodyTr = injectBlogHeroImage(bodyTr, imageUrl, copy.title);
+    if (bodyEn) bodyEn = injectBlogHeroImage(bodyEn, imageUrl, copy.titleEn || copy.title);
+  }
+
+  const post = await prisma.storeBlogPost.create({
+    data: {
+      siteId: params.siteId,
+      slug,
+      titleTr: copy.title,
+      titleEn: copy.titleEn || null,
+      excerptTr: copy.excerpt,
+      excerptEn: copy.excerptEn || null,
+      bodyTr,
+      bodyEn,
+      imageUrl,
+      author: params.config.author || null,
+      publishedAt: publish ? new Date() : null,
+      published: publish,
+      featuredOnHome: params.config.featuredOnHome,
+      seoTitle: copy.seoTitle,
+      seoDescription: copy.seoDescription,
+    },
+  });
+
+  revalidateBlogPaths(post.slug, post.published);
+  if (post.published) notifySearchEnginesForBlogSlug(post.slug);
+
+  const aiMessage = [copy.message, imageMessage].filter(Boolean).join(" · ");
+
+  return {
+    ok: true,
+    topic: title,
+    postId: post.id,
+    slug: post.slug,
+    published: post.published,
+    aiMessage: aiMessage || undefined,
+  };
 }

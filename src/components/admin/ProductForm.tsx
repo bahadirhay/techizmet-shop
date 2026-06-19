@@ -293,6 +293,46 @@ export function ProductForm({
               Vitrini aç
             </Link>
           ) : null}
+          {form.id ? (
+            <button
+              type="button"
+              className={btnSecondary}
+              onClick={async () => {
+                const res = await fetch("/api/admin/blog-automation/generate-products", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ productId: form.id }),
+                });
+                const j = (await res.json()) as {
+                  ok?: boolean;
+                  skipped?: boolean;
+                  reason?: string;
+                  slug?: string;
+                  postId?: string;
+                  published?: boolean;
+                  aiMessage?: string;
+                  error?: string;
+                };
+                if (res.ok && j.ok && !j.skipped && j.postId) {
+                  router.push(`/admin/blog/${j.postId}/edit`);
+                  return;
+                }
+                if (res.ok && j.ok && !j.skipped) {
+                  alert(j.aiMessage ?? "Blog taslağı oluşturuldu");
+                } else if (j.skipped && j.postId) {
+                  if (confirm(`${j.reason ?? "Blog zaten var"}\n\nTaslağı düzenlemek ister misiniz?`)) {
+                    router.push(`/admin/blog/${j.postId}/edit`);
+                  }
+                } else if (j.skipped) {
+                  alert(j.reason ?? "Blog zaten var");
+                } else {
+                  alert(j.error ?? j.reason ?? "Blog oluşturulamadı");
+                }
+              }}
+            >
+              Ürün blogu oluştur (taslak)
+            </button>
+          ) : null}
           <button type="button" className={btnSecondary} onClick={() => router.back()}>
             Geri
           </button>

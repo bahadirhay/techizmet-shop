@@ -25,6 +25,17 @@ function mergeSmtpSettings(
   return next;
 }
 
+function mergeGeliverSettings(
+  current: SiteSettings["geliver"] | undefined,
+  patch: SiteSettings["geliver"] | undefined,
+) {
+  if (!patch) return current;
+  const next = { ...current, ...patch, parcel: patch.parcel ? { ...current?.parcel, ...patch.parcel } : current?.parcel };
+  if (!patch.apiToken?.trim()) next.apiToken = current?.apiToken;
+  if (!patch.webhookSecret?.trim()) next.webhookSecret = current?.webhookSecret;
+  return next;
+}
+
 /** PATCH gövdesi — iç içe theme/branding/seo kaybını önler */
 export function mergeSiteSettings(current: SiteSettings, patch: SiteSettings): SiteSettings {
   return {
@@ -131,9 +142,13 @@ export function mergeSiteSettings(current: SiteSettings, patch: SiteSettings): S
       ? { ...current.blogAutomation, ...patch.blogAutomation }
       : current.blogAutomation,
     gsc: patch.gsc ? { ...current.gsc, ...patch.gsc } : current.gsc,
+    googleMerchant: patch.googleMerchant
+      ? { ...current.googleMerchant, ...patch.googleMerchant }
+      : current.googleMerchant,
     whatsapp: patch.whatsapp ? { ...current.whatsapp, ...patch.whatsapp } : current.whatsapp,
     streetFoodFund: patch.streetFoodFund
       ? { ...current.streetFoodFund, ...patch.streetFoodFund }
       : current.streetFoodFund,
+    geliver: patch.geliver ? mergeGeliverSettings(current.geliver, patch.geliver) : current.geliver,
   };
 }

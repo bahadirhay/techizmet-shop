@@ -63,11 +63,6 @@ export function setBlogImageInHtmlChunk(chunk: string, url: string, alt: string)
   return out;
 }
 
-function slugFromBlogHref(href: string): string {
-  const m = href.match(/\/([^/]+?)(?:\.html)?$/i);
-  return m?.[1] ?? "";
-}
-
 function patchBlogItemChunk(
   chunk: string,
   post: {
@@ -119,18 +114,20 @@ export function applyBlogCardsToHtml(
     author?: string;
   }>,
 ) {
-  const bySlug = new Map(posts.map((p) => [p.slug, p]));
   const { prefix, items, suffix } = splitBlogItemHtmlParts(html);
   if (!items.length) return html;
 
-  const patched = items.map((chunk, index) => {
-    const href = chunk.match(/href="([^"]+)"/i)?.[1] ?? "";
-    const post = bySlug.get(slugFromBlogHref(href)) ?? posts[index];
-    if (!post) {
-      return chunk.replace(/^\s*/, ' style="display:none!important" ');
-    }
-    return patchBlogItemChunk(chunk, post);
-  });
+  const template = items[0]!;
+  const patched: string[] = [];
+
+  for (let i = 0; i < posts.length; i++) {
+    const chunk = items[i] ?? template;
+    patched.push(patchBlogItemChunk(chunk, posts[i]!));
+  }
+
+  for (let i = posts.length; i < items.length; i++) {
+    patched.push(items[i]!.replace(/^(<div class="blog--item)/i, '$1 style="display:none!important"'));
+  }
 
   return reassembleBlogItemHtml(prefix, patched, suffix);
 }

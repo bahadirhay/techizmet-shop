@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { buildCustomerCounterpartyPrefill } from "@/lib/finance/customer-counterparty-prefill";
 import { requireStaffApi } from "@/lib/staff-auth";
 import { prisma } from "@/lib/prisma";
 
@@ -33,6 +34,45 @@ export async function POST(req: Request) {
     notes?: string;
   };
   const type = body.type === "site_member" ? "site_member" : "external_manual";
+
+  if (type === "site_member") {
+    const customerId = body.customerId?.trim();
+    if (!customerId) {
+      return NextResponse.json({ error: "Site üyesi seçin." }, { status: 400 });
+    }
+    const existingCp = await prisma.financeCounterparty.findFirst({
+      where: { siteId: auth.siteId, customerId, active: true },
+      select: { id: true, title: true },
+    });
+    if (existingCp) {
+      return NextResponse.json(
+        { error: `Bu üye zaten cari olarak kayıtlı (${existingCp.title}).` },
+        { status: 400 },
+      );
+    }
+    const prefill = await buildCustomerCounterpartyPrefill(auth.siteId, customerId);
+    if (!prefill) {
+      return NextResponse.json({ error: "Üye bulunamadı." }, { status: 404 });
+    }
+    const row = await prisma.financeCounterparty.create({
+      data: {
+        siteId: auth.siteId,
+        type,
+        customerId,
+        title: body.title?.trim() || prefill.title,
+        email: body.email?.trim() || prefill.email,
+        phone: body.phone?.trim() || prefill.phone,
+        taxId: body.taxId?.trim() || prefill.taxId,
+        taxOffice: body.taxOffice?.trim() || prefill.taxOffice,
+        addressLine: body.addressLine?.trim() || prefill.addressLine,
+        city: body.city?.trim() || prefill.city,
+        district: body.district?.trim() || prefill.district,
+        notes: body.notes?.trim() || null,
+      },
+    });
+    return NextResponse.json({ counterparty: row });
+  }
+
   const title = body.title?.trim();
   if (!title) return NextResponse.json({ error: "Ünvan zorunlu." }, { status: 400 });
 
@@ -50,7 +90,7 @@ export async function POST(req: Request) {
     data: {
       siteId: auth.siteId,
       type,
-      customerId: type === "site_member" ? body.customerId || null : null,
+      customerId: null,
       title,
       email: body.email?.trim() || null,
       phone: body.phone?.trim() || null,

@@ -344,7 +344,8 @@ input[type="checkbox"]:not(.checkmark-input) {
 .kn-shipping-option input[type="radio"],
 .kn-payment-options input[type="radio"],
 .kn-checkout__terms input[type="checkbox"],
-.kn-checkout__account-toggle input[type="checkbox"] {
+.kn-checkout__account-toggle input[type="checkbox"],
+.kn-checkout__billing-same input[type="checkbox"] {
   margin-top: 0.2rem;
 }
 

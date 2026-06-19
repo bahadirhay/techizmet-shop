@@ -9,6 +9,8 @@ export type AiBlogCopyInput = {
   siteName: string;
   author?: string;
   relatedProducts: BlogTopicProduct[];
+  fixedTitle?: string;
+  researchContext?: string;
 };
 
 export type AiBlogCopyResult = {
@@ -18,11 +20,14 @@ export type AiBlogCopyResult = {
   title: string;
   excerpt: string;
   bodyHtml: string;
+  titleEn: string;
+  excerptEn: string;
+  bodyHtmlEn: string;
   seoTitle: string;
   seoDescription: string;
 };
 
-type AiBlogPayload = {
+type TrPayload = {
   title: string;
   excerpt: string;
   bodyHtml: string;
@@ -30,130 +35,184 @@ type AiBlogPayload = {
   seoDescription: string;
 };
 
-function parseAiJson(text: string): AiBlogPayload | null {
+type EnPayload = {
+  titleEn: string;
+  excerptEn: string;
+  bodyHtmlEn: string;
+};
+
+const MIN_TR_BODY = 700;
+const MIN_EN_BODY = 700;
+
+const CLAUDE_MODEL_ALIASES: Record<string, string> = {
+  "claude-3-5-haiku-latest": "claude-haiku-4-5-20251001",
+  "claude-3-5-sonnet-latest": "claude-sonnet-4-6",
+  "claude-sonnet-4-20250514": "claude-sonnet-4-6",
+  "claude-3-5-haiku-20241022": "claude-haiku-4-5-20251001",
+};
+
+function claudeModelCandidates(configured: string): string[] {
+  const trimmed = configured.trim();
+  const mapped = CLAUDE_MODEL_ALIASES[trimmed] || trimmed;
+  return [...new Set([mapped, "claude-sonnet-4-6", "claude-haiku-4-5-20251001"])];
+}
+
+function parseJsonObject(text: string): Record<string, unknown> | null {
   const trimmed = text.trim();
   const jsonMatch = trimmed.match(/\{[\s\S]*\}/);
   if (!jsonMatch) return null;
   try {
-    const o = JSON.parse(jsonMatch[0]) as Partial<AiBlogPayload>;
-    const title = String(o.title ?? "").trim();
-    const bodyHtml = String(o.bodyHtml ?? "").trim();
-    if (!title || !bodyHtml) return null;
-    return {
-      title: title.slice(0, 120),
-      excerpt: String(o.excerpt ?? "").trim().slice(0, 280),
-      bodyHtml,
-      seoTitle: String(o.seoTitle ?? title).trim().slice(0, 65),
-      seoDescription: String(o.seoDescription ?? o.excerpt ?? "").trim().slice(0, 165),
-    };
+    return JSON.parse(jsonMatch[0]) as Record<string, unknown>;
   } catch {
     return null;
   }
 }
 
-function buildPrompt(input: AiBlogCopyInput): string {
-  const products = input.relatedProducts
-    .map((p) => `- ${p.title} (/products/${p.slug})`)
-    .join("\n");
-
-  return `Sen Türkiye e-ticaret blog editörüsün. Evcil hayvan / pet shop bağlamında bilgilendirici, SEO uyumlu Türkçe blog yazısı üret. Yalnızca JSON döndür.
-
-Anahtar konu: ${input.keyword}
-Site: ${input.siteName}
-Yazar: ${input.author || "—"}
-İlgili ürünler:
-${products || "—"}
-
-JSON şeması:
-{
-  "title": "40-90 karakter çekici başlık",
-  "excerpt": "120-240 karakter özet",
-  "bodyHtml": "<p>...</p><h2>...</h2><ul><li>...</li></ul> — en az 4 paragraf, 2 alt başlık, kısa SSS",
-  "seoTitle": "25-65 karakter meta başlık",
-  "seoDescription": "70-165 karakter meta açıklama"
-}
-
-Kurallar:
-- Abartılı sağlık iddiası yok; veteriner tavsiyesi gerektiğinde belirt
-- Anahtar kelimeyi doğal kullan
-- Ürün linklerini metinde /products/slug formatında ver
-- HTML sade: p, h2, h3, ul, ol, li, strong, a`;
-}
-
-function templateCopy(input: AiBlogCopyInput): AiBlogPayload {
-  const title = `${input.keyword.charAt(0).toUpperCase()}${input.keyword.slice(1)} hakkında bilmeniz gerekenler`;
-  const productBlock = input.relatedProducts.length
-    ? `<h2>Öne çıkan ürünler</h2><ul>${input.relatedProducts
-        .map(
-          (p) =>
-            `<li><a href="/products/${p.slug}"><strong>${p.title}</strong></a> — ${input.siteName} mağazasında inceleyebilirsiniz.</li>`,
-        )
-        .join("")}</ul>`
-    : "";
-
-  const bodyHtml = [
-    `<p><strong>${input.keyword}</strong> araması mağazamızda sık görülüyor. Bu rehberde doğru ürün seçimi, kullanım ve dikkat edilmesi gerekenleri özetliyoruz.</p>`,
-    `<h2>${input.keyword} nedir?</h2>`,
-    `<p>Evcil hayvan sahipleri için ${input.keyword} konusunda bilinçli seçim yapmak hem bütçe hem de sağlık açısından önemlidir. Ürün etiketlerini, içerik listesini ve kullanım önerilerini karşılaştırarak ilerleyin.</p>`,
-    `<h2>Nasıl seçilir?</h2>`,
-    `<ul><li>Yaş, ırk ve aktivite seviyesine uygunluk</li><li>İçerik ve alerjen bilgisi</li><li>Günlük porsiyon / doz</li><li>Saklama koşulları</li></ul>`,
-    productBlock,
-    `<h2>Sık sorulan sorular</h2>`,
-    `<p><strong>Ne sıklıkla kullanılmalı?</strong> Ürün etiketindeki öneriye ve veteriner tavsiyesine göre ayarlayın.</p>`,
-    `<p><strong>Kimler için uygun değildir?</strong> Hassas dönemlerde (yavru, gebelik, kronik hastalık) mutlaka uzmana danışın.</p>`,
-    `<p>Daha fazla bilgi için <a href="/collections/all">${input.siteName}</a> kataloğuna göz atın.</p>`,
-  ]
-    .filter(Boolean)
-    .join("");
-
+function parseTurkishJson(text: string): TrPayload | null {
+  const o = parseJsonObject(text);
+  if (!o) return null;
+  const title = String(o.title ?? "").trim();
+  const bodyHtml = String(o.bodyHtml ?? "").trim();
+  if (!title || bodyHtml.length < MIN_TR_BODY) return null;
   return {
-    title,
-    excerpt: `${input.keyword} hakkında pratik rehber: seçim kriterleri, kullanım ipuçları ve mağazamızdaki ilgili ürünler.`,
+    title: title.slice(0, 120),
+    excerpt: String(o.excerpt ?? "").trim().slice(0, 280),
     bodyHtml,
-    seoTitle: `${input.keyword} rehberi | ${input.siteName}`.slice(0, 65),
-    seoDescription: `${input.keyword} için seçim, kullanım ve dikkat edilecekler. ${input.siteName} blog.`,
+    seoTitle: String(o.seoTitle ?? title).trim().slice(0, 65),
+    seoDescription: String(o.seoDescription ?? o.excerpt ?? "").trim().slice(0, 165),
   };
 }
 
-async function callGemini(prompt: string, apiKey: string, model: string): Promise<string | null> {
+function parseEnglishJson(text: string): EnPayload | null {
+  const o = parseJsonObject(text);
+  if (!o) return null;
+  const titleEn = String(o.titleEn ?? "").trim();
+  const bodyHtmlEn = String(o.bodyHtmlEn ?? "").trim();
+  if (!titleEn || bodyHtmlEn.length < MIN_EN_BODY) return null;
+  return {
+    titleEn: titleEn.slice(0, 120),
+    excerptEn: String(o.excerptEn ?? "").trim().slice(0, 280),
+    bodyHtmlEn,
+  };
+}
+
+function topicLine(input: AiBlogCopyInput): string {
+  return input.fixedTitle?.trim() || input.keyword;
+}
+
+function productLines(input: AiBlogCopyInput): string {
+  return (
+    input.relatedProducts.map((p) => `- ${p.title} (/products/${p.slug})`).join("\n") || "—"
+  );
+}
+
+function buildTurkishPrompt(input: AiBlogCopyInput): string {
+  const topic = topicLine(input);
+  return `Sen deneyimli Türk evcil hayvan beslenmesi editörüsün. ${input.siteName} blogu için KONUYA ÖZEL derinlemesine Türkçe rehber yaz. Yalnızca geçerli JSON döndür.
+
+KONU: ${topic}
+Anahtar kelime: ${input.keyword}
+
+MAĞAZA KAYNAK BİLGİSİ:
+${input.researchContext || "—"}
+
+Ürün linkleri:
+${productLines(input)}
+
+YASAK kalıplar: "araması mağazamızda sık görülüyor", "ürün etiketlerini karşılaştırarak ilerleyin", boş genel madde listeleri.
+
+ZORUNLU bodyHtml içeriği:
+- En az 650 kelime Türkçe
+- En az 4 h2, 2 h3
+- Konuyu somut anlat (nedir, nasıl üretilir, köpekler için faydalar, kimler için uygun/değil, porsiyon, karşılaştırma)
+- En az 4 soruluk SSS (her cevap 2+ cümle, konuya özel)
+- Ürün varsa /products/slug linki
+- Abartılı tedavi iddiası yok; veteriner uyarısı gerektiğinde belirt
+
+JSON (yalnızca bunu döndür):
+{
+  "title": ${input.fixedTitle?.trim() ? `"${input.fixedTitle.trim().replace(/"/g, '\\"')}"` : '"konuya uygun Türkçe başlık"'},
+  "excerpt": "120-240 karakter özet",
+  "bodyHtml": "<p>...</p><h2>...</h2>...",
+  "seoTitle": "25-60 karakter meta başlık",
+  "seoDescription": "120-160 karakter meta açıklama"
+}
+
+HTML: p, h2, h3, ul, ol, li, strong, a`;
+}
+
+function buildEnglishPrompt(input: AiBlogCopyInput, tr: TrPayload): string {
+  return `Translate and adapt this Turkish pet shop blog article into natural English for ${input.siteName}. Keep the same structure (headings, lists, links). Yalnızca geçerli JSON döndür.
+
+Turkish title: ${tr.title}
+Turkish excerpt: ${tr.excerpt}
+
+Turkish bodyHtml:
+${tr.bodyHtml.slice(0, 12000)}
+
+JSON:
+{
+  "titleEn": "natural English title",
+  "excerptEn": "120-240 character excerpt",
+  "bodyHtmlEn": "<p>...</p><h2>...</h2>... same sections in English"
+}`;
+}
+
+type LlmResult = { text: string | null; error: string | null };
+
+async function callGemini(prompt: string, apiKey: string, model: string): Promise<LlmResult> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    signal: AbortSignal.timeout(45000),
+    signal: AbortSignal.timeout(120_000),
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.4, maxOutputTokens: 4096 },
+      generationConfig: { temperature: 0.55, maxOutputTokens: 8192 },
     }),
   });
-  if (!res.ok) return null;
+  if (!res.ok) {
+    const err = await res.text().catch(() => "");
+    return { text: null, error: `Gemini HTTP ${res.status}: ${err.slice(0, 200)}` };
+  }
   const data = (await res.json()) as {
     candidates?: { content?: { parts?: { text?: string }[] } }[];
   };
-  return data.candidates?.[0]?.content?.parts?.[0]?.text ?? null;
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? null;
+  return text ? { text, error: null } : { text: null, error: "Gemini boş yanıt" };
 }
 
-async function callOpenAi(prompt: string, apiKey: string, model: string): Promise<string | null> {
+async function callOpenAi(prompt: string, apiKey: string, model: string): Promise<LlmResult> {
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
     },
-    signal: AbortSignal.timeout(45000),
+    signal: AbortSignal.timeout(120_000),
     body: JSON.stringify({
       model,
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.4,
-      max_tokens: 4096,
+      messages: [
+        {
+          role: "system",
+          content: "Expert pet writer. Return only valid JSON.",
+        },
+        { role: "user", content: prompt },
+      ],
+      temperature: 0.55,
+      max_tokens: 8192,
     }),
   });
-  if (!res.ok) return null;
+  if (!res.ok) {
+    const err = await res.text().catch(() => "");
+    return { text: null, error: `OpenAI HTTP ${res.status}: ${err.slice(0, 200)}` };
+  }
   const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-  return data.choices?.[0]?.message?.content ?? null;
+  const text = data.choices?.[0]?.message?.content ?? null;
+  return text ? { text, error: null } : { text: null, error: "OpenAI boş yanıt" };
 }
 
-async function callClaude(prompt: string, apiKey: string, model: string): Promise<string | null> {
+async function callClaude(prompt: string, apiKey: string, model: string): Promise<LlmResult> {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -161,64 +220,168 @@ async function callClaude(prompt: string, apiKey: string, model: string): Promis
       "x-api-key": apiKey,
       "anthropic-version": "2023-06-01",
     },
-    signal: AbortSignal.timeout(45000),
+    signal: AbortSignal.timeout(120_000),
     body: JSON.stringify({
       model,
-      max_tokens: 4096,
+      max_tokens: 8192,
+      system: "Expert Turkish pet nutrition writer. Return only valid JSON, no markdown fences.",
       messages: [{ role: "user", content: prompt }],
     }),
   });
-  if (!res.ok) return null;
+  if (!res.ok) {
+    const err = await res.text().catch(() => "");
+    return { text: null, error: `Claude HTTP ${res.status} (${model}): ${err.slice(0, 240)}` };
+  }
   const data = (await res.json()) as { content?: { type: string; text?: string }[] };
-  const block = data.content?.find((c) => c.type === "text");
-  return block?.text ?? null;
+  const text = data.content?.find((c) => c.type === "text")?.text ?? null;
+  return text ? { text, error: null } : { text: null, error: `Claude boş yanıt (${model})` };
 }
 
-async function tryProvider(
-  name: "gemini" | "openai" | "claude",
+async function llmText(
+  provider: "gemini" | "openai" | "claude",
   prompt: string,
   config: ResolvedSeoAiConfig,
-): Promise<AiBlogCopyResult | null> {
-  let raw: string | null = null;
-  if (name === "gemini" && config.geminiApiKey) {
-    raw = await callGemini(prompt, config.geminiApiKey, config.geminiModel);
-  } else if (name === "openai" && config.openaiApiKey) {
-    raw = await callOpenAi(prompt, config.openaiApiKey, config.openaiModel);
-  } else if (name === "claude" && config.claudeApiKey) {
-    raw = await callClaude(prompt, config.claudeApiKey, config.claudeModel);
+): Promise<LlmResult> {
+  if (provider === "gemini" && config.geminiApiKey) {
+    return callGemini(prompt, config.geminiApiKey, config.geminiModel);
   }
-  const parsed = raw ? parseAiJson(raw) : null;
-  if (!parsed) return null;
+  if (provider === "openai" && config.openaiApiKey) {
+    return callOpenAi(prompt, config.openaiApiKey, config.openaiModel);
+  }
+  if (provider === "claude" && config.claudeApiKey) {
+    const models = claudeModelCandidates(config.claudeModel);
+    const errors: string[] = [];
+    for (const model of models) {
+      const r = await callClaude(prompt, config.claudeApiKey, model);
+      if (r.text) return r;
+      if (r.error) errors.push(r.error);
+    }
+    return { text: null, error: errors.join(" | ") || "Claude yanıt vermedi" };
+  }
+  return { text: null, error: `${provider} anahtarı yok` };
+}
+
+async function tryProviderBlog(
+  name: "gemini" | "openai" | "claude",
+  input: AiBlogCopyInput,
+  config: ResolvedSeoAiConfig,
+): Promise<{ result: AiBlogCopyResult } | { error: string }> {
+  const trPrompt = buildTurkishPrompt(input);
+  const trRaw = await llmText(name, trPrompt, config);
+  if (!trRaw.text) {
+    return { error: trRaw.error || `${name}: Türkçe üretim başarısız` };
+  }
+  const tr = parseTurkishJson(trRaw.text);
+  if (!tr) {
+    return {
+      error: `${name}: Türkçe JSON geçersiz veya çok kısa (len=${trRaw.text.length}). Model uzun metin desteklemiyor olabilir.`,
+    };
+  }
+
+  const enPrompt = buildEnglishPrompt(input, tr);
+  const enRaw = await llmText(name, enPrompt, config);
+  if (!enRaw.text) {
+    return { error: enRaw.error || `${name}: İngilizce çeviri başarısız` };
+  }
+  const en = parseEnglishJson(enRaw.text);
+  if (!en) {
+    return {
+      error: `${name}: İngilizce JSON geçersiz veya çok kısa (len=${enRaw.text.length})`,
+    };
+  }
+
   const label = name === "gemini" ? "Google Gemini" : name === "openai" ? "OpenAI" : "Claude";
   return {
-    used: true,
-    provider: name,
-    message: `${label} ile üretildi`,
-    ...parsed,
+    result: {
+      used: true,
+      provider: name,
+      message: `${label} ile üretildi (2 adım)`,
+      title: tr.title,
+      excerpt: tr.excerpt,
+      bodyHtml: tr.bodyHtml,
+      titleEn: en.titleEn,
+      excerptEn: en.excerptEn,
+      bodyHtmlEn: en.bodyHtmlEn,
+      seoTitle: tr.seoTitle,
+      seoDescription: tr.seoDescription,
+    },
   };
+}
+
+export class BlogAiGenerationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "BlogAiGenerationError";
+  }
 }
 
 export async function generateAiBlogCopy(
   input: AiBlogCopyInput,
   config: ResolvedSeoAiConfig,
+  options?: { requireAi?: boolean },
 ): Promise<AiBlogCopyResult> {
-  const prompt = buildPrompt(input);
   const avail = seoAiAvailable(config);
 
   if (config.enabled && avail.any) {
+    const details: string[] = [];
     for (const p of providerOrder(config)) {
-      const result = await tryProvider(p, prompt, config);
-      if (result) return result;
+      const attempt = await tryProviderBlog(p, input, config);
+      if ("result" in attempt) return attempt.result;
+      details.push(attempt.error);
     }
+    const msg =
+      `AI içerik üretilemedi.\n` +
+      details.map((d) => `• ${d}`).join("\n") +
+      `\n\nAdmin → SEO AI: Claude model olarak claude-sonnet-4-6 yazın. Eski claude-3-5-* modelleri artık çalışmayabilir.`;
+    if (options?.requireAi) throw new BlogAiGenerationError(msg);
+    return {
+      used: false,
+      provider: "template",
+      message: msg,
+      title: input.fixedTitle?.trim() || input.keyword,
+      excerpt: "",
+      bodyHtml: "",
+      titleEn: "",
+      excerptEn: "",
+      bodyHtmlEn: "",
+      seoTitle: "",
+      seoDescription: "",
+    };
   }
 
-  const tpl = templateCopy(input);
+  const msg =
+    "AI kapalı veya anahtar tanımlı değil. Admin → SEO AI sayfasından Claude/Gemini/OpenAI anahtarı ekleyin.";
+  if (options?.requireAi) throw new BlogAiGenerationError(msg);
   return {
     used: false,
     provider: "template",
-    message: avail.any
-      ? "AI yanıt alınamadı — şablon kullanıldı"
-      : "AI kapalı — şablon kullanıldı. Ayarlar → SEO AI ile açabilirsiniz.",
-    ...tpl,
+    message: msg,
+    title: input.fixedTitle?.trim() || input.keyword,
+    excerpt: "",
+    bodyHtml: "",
+    titleEn: "",
+    excerptEn: "",
+    bodyHtmlEn: "",
+    seoTitle: "",
+    seoDescription: "",
   };
+}
+
+/** Admin panelinde bağlantı testi */
+export async function testBlogAiProvider(
+  config: ResolvedSeoAiConfig,
+  provider: "claude" | "gemini" | "openai",
+): Promise<{ ok: boolean; message: string }> {
+  const sample: AiBlogCopyInput = {
+    keyword: "köpek ödül maması",
+    siteName: "Test",
+    relatedProducts: [],
+    researchContext: "Test ürün: kurutulmuş tavuk ayağı",
+    fixedTitle: "Köpek ödül maması nasıl seçilir?",
+  };
+  const attempt = await tryProviderBlog(provider, sample, config);
+  if ("result" in attempt) {
+    return { ok: true, message: `${attempt.result.message} — ${attempt.result.title}` };
+  }
+  return { ok: false, message: attempt.error };
 }

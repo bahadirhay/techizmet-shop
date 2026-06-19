@@ -48,6 +48,9 @@ export function FinanceDashboardView({ summary }: { summary: FinanceSummary }) {
             Son {d} gün
           </Link>
         ))}
+        <Link href="/admin/finance/cari" className={btnSecondary}>
+          Cari & alacak/borç
+        </Link>
         <Link href="/admin/finance/payouts" className={btnSecondary}>
           Hakediş mutabakat
         </Link>

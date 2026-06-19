@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CustomerB2BPanel } from "@/components/admin/CustomerB2BPanel";
 import { CustomerDetailForm } from "@/components/admin/CustomerDetailForm";
 import { CustomerGrantPanelAccess } from "@/components/admin/CustomerGrantPanelAccess";
 import { CustomerGroupAssign } from "@/components/admin/CustomerGroupAssign";
@@ -17,7 +18,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
   const auth = await requireStaffPage();
   const { id } = await params;
 
-  const [customer, groups] = await Promise.all([
+  const [customer, groups, counterparty] = await Promise.all([
     prisma.storeCustomer.findFirst({
       where: { id, siteId: auth.siteId },
       include: {
@@ -30,7 +31,19 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
     prisma.customerGroup.findMany({
       where: { siteId: auth.siteId, active: true },
       orderBy: { name: "asc" },
-      select: { id: true, name: true, discountPercent: true },
+      select: {
+        id: true,
+        name: true,
+        discountPercent: true,
+        isB2b: true,
+        openAccountEnabled: true,
+        defaultPaymentTermDays: true,
+        defaultCreditLimitMinor: true,
+      },
+    }),
+    prisma.financeCounterparty.findFirst({
+      where: { siteId: auth.siteId, customerId: id, active: true },
+      select: { id: true },
     }),
   ]);
   if (!customer) notFound();
@@ -90,6 +103,18 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
         </div>
 
         <div className="space-y-6">
+          <CustomerB2BPanel
+            customerId={customer.id}
+            b2bStatus={customer.b2bStatus}
+            companyName={customer.companyName}
+            b2bAppliedAt={customer.b2bAppliedAt}
+            b2bApplicationNote={customer.b2bApplicationNote}
+            taxId={customer.taxId}
+            taxOffice={customer.taxOffice}
+            groups={groups}
+            currentGroupId={customer.customerGroupId}
+            counterpartyId={counterparty?.id ?? null}
+          />
           <CustomerGrantPanelAccess
             auth={auth}
             customer={{

@@ -5,6 +5,9 @@ import { MirrorCollectionFrame } from "@/components/store/MirrorCollectionFrame"
 import { JsonLdScript } from "@/components/store/JsonLdScript";
 import { ProductGridBlock } from "@/components/store/ProductGridBlock";
 import { getStoreLocale } from "@/lib/i18n/server";
+import {
+  parseCollectionFilterParams,
+} from "@/lib/collection-filter-facets";
 import { prisma } from "@/lib/prisma";
 import { loadCollectionSeo } from "@/lib/seo/collection-seo";
 import { buildCollectionPageJsonLd } from "@/lib/seo/collection-page-json-ld";
@@ -20,7 +23,7 @@ export async function generateMetadata({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ category?: string; page?: string }>;
+  searchParams: Promise<{ category?: string; page?: string; brand?: string; volume?: string; tone?: string; quantity?: string; stock?: string; price_min?: string; price_max?: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
   const { category } = await searchParams;
@@ -41,11 +44,13 @@ export default async function CollectionPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ category?: string; page?: string }>;
+  searchParams: Promise<{ category?: string; page?: string; brand?: string; volume?: string; tone?: string; quantity?: string; stock?: string; price_min?: string; price_max?: string }>;
 }) {
   const { slug } = await params;
-  const { category: categorySlug, page: pageParam } = await searchParams;
+  const sp = await searchParams;
+  const { category: categorySlug, page: pageParam } = sp;
   const page = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
+  const activeFilters = parseCollectionFilterParams(sp);
   const site = await getDefaultSite();
   const homepageMode = await getStoreHomepageMode(site.id);
   const locale = await getStoreLocale();
@@ -70,6 +75,7 @@ export default async function CollectionPage({
             locale={locale}
             title={title}
             page={page}
+            activeFilters={activeFilters}
           />
         </>
       );
@@ -93,7 +99,7 @@ export default async function CollectionPage({
     return (
       <>
         {jsonLdNode}
-        <MirrorCollectionFrame slug="all" locale={locale} page={page} />
+        <MirrorCollectionFrame slug="all" locale={locale} page={page} activeFilters={activeFilters} />
       </>
     );
   }
@@ -107,7 +113,7 @@ export default async function CollectionPage({
       return (
         <>
           {jsonLdNode}
-          <MirrorCollectionFrame slug={slug} locale={locale} page={page} />
+          <MirrorCollectionFrame slug={slug} locale={locale} page={page} activeFilters={activeFilters} />
         </>
       );
     }

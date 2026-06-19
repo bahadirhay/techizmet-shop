@@ -1,0 +1,14 @@
+const path = "/_mirror-prebuilt/theme/techizmet-shop/mirror/index-tr.html";
+const r = await fetch("https://shop.techizmet.com" + path, { cache: "no-store" });
+const html = await r.text();
+const hasUrunler = html.includes(">Ürünler<");
+const hasMagaza = html.includes(">Mağaza<");
+const hasKoleksiyonlar = html.includes(">Koleksiyonlar<");
+const hasCokSatanlar = html.includes(">Çok Satanlar<");
+const knServer = /data-kn-nav-server/i.test(html);
+console.log("status", r.status, "cache-control:", r.headers.get("cache-control"));
+console.log("kn-nav-server:", knServer);
+console.log("Ürünler (paw):", hasUrunler, "| Mağaza (demo):", hasMagaza);
+console.log("Koleksiyonlar:", hasKoleksiyonlar, "| Çok Satanlar:", hasCokSatanlar);
+const nav = html.match(/header--navigation-list[\s\S]*?<\/ul>/i)?.[0]?.slice(0, 600);
+console.log("nav html:", nav);

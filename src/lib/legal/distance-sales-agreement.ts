@@ -56,22 +56,44 @@ export function buildDistanceSalesBuyerContextFromCheckout(input: {
   neighborhood?: string;
   line1?: string;
   postalCode?: string;
+  taxId?: string;
+  taxOffice?: string;
+  billingSameAsShipping?: boolean;
+  billingFirstName?: string;
+  billingLastName?: string;
+  billingCity?: string;
+  billingDistrict?: string;
+  billingNeighborhood?: string;
+  billingLine1?: string;
+  billingPostalCode?: string;
   paymentMethod?: string;
   shippingLabel?: string;
 }): DistanceSalesBuyerContext {
   const fullName = [input.firstName, input.lastName].filter(Boolean).join(" ").trim();
   const street = formatCheckoutLine1(input.neighborhood ?? "", input.line1 ?? "") || input.line1?.trim();
-  const address = [street, input.district, input.city, input.postalCode].filter(Boolean).join(", ");
+  const shippingAddress = [street, input.district, input.city, input.postalCode].filter(Boolean).join(", ");
+
+  let billingAddressStr = shippingAddress;
+  if (input.billingSameAsShipping === false) {
+    const bStreet =
+      formatCheckoutLine1(input.billingNeighborhood ?? "", input.billingLine1 ?? "") ||
+      input.billingLine1?.trim();
+    billingAddressStr = [bStreet, input.billingDistrict, input.billingCity, input.billingPostalCode]
+      .filter(Boolean)
+      .join(", ");
+  }
 
   const paymentLabels: Record<string, string> = {
     cod: "Kapıda ödeme (nakit / kart)",
     bank_transfer: "Havale / EFT",
     card: "Kredi / banka kartı",
+    open_account: "Açık hesap (vadeli)",
   };
 
   return {
     fullName: fullName || undefined,
-    address: address || undefined,
+    taxId: input.taxId?.trim() || undefined,
+    address: billingAddressStr || shippingAddress || undefined,
     phone: input.phone?.trim() || undefined,
     email: input.email?.trim() || undefined,
     contractDate: formatDistanceSalesContractDate(),

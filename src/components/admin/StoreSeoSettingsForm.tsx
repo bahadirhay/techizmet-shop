@@ -193,13 +193,19 @@ export function StoreSeoSettingsForm({
 
       <section className="admin-card admin-card-pad space-y-4">
         <h2 className="text-lg font-semibold">İzleme & piksel</h2>
-        <AdminField label="Google Analytics (G-XXXXXXXX)">
+        <AdminField label="Google Analytics / Google etiketi (G-XXXXXXXX)">
           <input
             className={inputClass}
             value={seo.googleAnalyticsId}
-            onChange={(e) => setSeo((s) => ({ ...s, googleAnalyticsId: e.target.value }))}
+            onChange={(e) => setSeo((s) => ({ ...s, googleAnalyticsId: e.target.value.trim() }))}
+            placeholder="G-6KR5S6ZVKC"
           />
         </AdminField>
+        <p className="text-xs text-zinc-500">
+          Yalnızca kimliği girin (ör. <code>G-6KR5S6ZVKC</code>) — script kodunu yapıştırmayın. Etiket tüm
+          sayfalara otomatik eklenir. KVKK için varsayılan olarak çerez onayı beklenir; Google kurulum testi
+          etiketi yine de algılayabilir.
+        </p>
         <AdminField label="Facebook Pixel ID">
           <input
             className={inputClass}

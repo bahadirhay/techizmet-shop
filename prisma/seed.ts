@@ -393,9 +393,19 @@ async function main() {
       slug: "bayi",
       discountPercent: 15,
       active: true,
-      description: "Kayıtlı bayi müşterileri — satış fiyatı üzerinden %15 indirim",
+      isB2b: true,
+      openAccountEnabled: true,
+      defaultPaymentTermDays: 30,
+      defaultCreditLimitMinor: 100_000_00,
+      description: "Kayıtlı bayi müşterileri — admin onayı sonrası %15 indirim, açık hesap",
     },
-    update: { discountPercent: 15, active: true },
+    update: {
+      discountPercent: 15,
+      active: true,
+      isB2b: true,
+      openAccountEnabled: true,
+      defaultPaymentTermDays: 30,
+    },
   });
   console.log("[seed] Üye grubu:", bayiGroup.name, `%${bayiGroup.discountPercent} (admin → Müşteri kartından ata)`);
 

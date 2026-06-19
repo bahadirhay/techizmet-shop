@@ -4,6 +4,7 @@ import { parseBlocks, serializeBlocks } from "@/lib/blocks/schema";
 import { MIRROR_CONTENT_PAGE_SLUGS } from "@/lib/mirror-vitrin-pages";
 import { requireStaffApi } from "@/lib/staff-auth";
 import { prisma } from "@/lib/prisma";
+import { notifyPublishedCmsPage } from "@/lib/seo/publish-notify";
 
 export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const auth = await requireStaffApi("content.pages");
@@ -37,6 +38,10 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
 
   if (updated.slug === "home") revalidatePath("/");
   else revalidatePath(`/pages/${updated.slug}`);
+
+  if (updated.published && (body.published === true || blocks !== undefined)) {
+    notifyPublishedCmsPage(updated.slug);
+  }
 
   return NextResponse.json({ ok: true, page: updated });
 }

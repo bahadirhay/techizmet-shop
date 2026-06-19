@@ -36,6 +36,11 @@ export function BlogAutomationPanel({
   const [busy, setBusy] = useState(false);
   const [loadingTopics, setLoadingTopics] = useState(false);
   const [genResult, setGenResult] = useState<GenerateResult | null>(null);
+  const [publishProductBlogs, setPublishProductBlogs] = useState(false);
+  const [lastProductBlogEditId, setLastProductBlogEditId] = useState<string | null>(null);
+  const [titleInput, setTitleInput] = useState("");
+  const [publishFromTitle, setPublishFromTitle] = useState(false);
+  const [generateCoverImage, setGenerateCoverImage] = useState(true);
 
   const loadTopics = useCallback(async () => {
     setLoadingTopics(true);
@@ -93,9 +98,108 @@ export function BlogAutomationPanel({
     }
   }
 
+  async function generateFromTitle() {
+    const title = titleInput.trim();
+    if (!title) {
+      setMsg("Başlık girin");
+      return;
+    }
+    setBusy(true);
+    setGenResult(null);
+    setMsg(null);
+    const res = await fetch("/api/admin/blog-automation/generate-from-title", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title,
+        publish: publishFromTitle,
+        generateImage: generateCoverImage,
+        linkProducts: s.linkProducts,
+      }),
+    });
+    const j = (await res.json()) as GenerateResult;
+    setBusy(false);
+    setGenResult(j);
+    if (j.ok && !j.skipped) {
+      setMsg(
+        (j.published ? "Yazı yayınlandı" : "Taslak oluşturuldu") +
+          (j.aiMessage ? ` — ${j.aiMessage}` : ""),
+      );
+      void loadTopics();
+    } else {
+      setMsg(j.error ?? j.reason ?? "Üretim başarısız");
+    }
+  }
+
   return (
     <div className="space-y-6">
       <GscPanel initial={gscInitial} />
+
+      <section className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-6 space-y-4 max-w-3xl">
+        <h2 className="font-semibold">Başlıktan AI ile yazı üret</h2>
+        <p className="text-sm text-zinc-600">
+          Bir başlık girin; AI Türkçe/İngilizce içerik, SEO meta başlık/açıklama ve h2/h3 yapısı üretir.
+          Kapak görseli varsayılan olarak{" "}
+          <a href="https://fal.ai/dashboard/keys" target="_blank" rel="noreferrer" className="underline">
+            fal.ai
+          </a>{" "}
+          (FLUX) ile oluşturulur — Admin → SEO AI → fal.ai API anahtarı. OpenAI yalnızca yedek olarak
+          kullanılır.
+        </p>
+        <AdminField label="Blog başlığı">
+          <input
+            className={inputClass}
+            value={titleInput}
+            onChange={(e) => setTitleInput(e.target.value)}
+            placeholder="Örn: Köpekler için doğal ödül maması nasıl seçilir?"
+            disabled={busy}
+          />
+        </AdminField>
+        <div className="flex flex-wrap gap-4 text-sm">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={generateCoverImage}
+              onChange={(e) => setGenerateCoverImage(e.target.checked)}
+              disabled={busy}
+            />
+            AI kapak görseli üret
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={publishFromTitle}
+              onChange={(e) => setPublishFromTitle(e.target.checked)}
+              disabled={busy}
+            />
+            Doğrudan yayınla
+          </label>
+        </div>
+        <button
+          type="button"
+          className={btnPrimary}
+          disabled={busy || !titleInput.trim()}
+          onClick={() => void generateFromTitle()}
+        >
+          {busy ? "Üretiliyor…" : "Başlıktan üret"}
+        </button>
+        {genResult?.postId && titleInput.trim() ? (
+          <p className="text-sm">
+            <Link href={`/admin/blog/${genResult.postId}/edit`} className="font-medium underline">
+              Yazıyı düzenle
+            </Link>
+            {genResult.slug ? (
+              <>
+                {" "}
+                ·{" "}
+                <a href={`/blogs/news/${genResult.slug}`} className="underline" target="_blank" rel="noreferrer">
+                  Önizle
+                </a>
+              </>
+            ) : null}
+          </p>
+        ) : null}
+      </section>
 
       <section className="rounded-xl border bg-white p-6 space-y-4 max-w-3xl">
         <h2 className="font-semibold">Otomasyon ayarları</h2>
@@ -110,8 +214,8 @@ export function BlogAutomationPanel({
 
         {!aiAvailable ? (
           <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
-            AI anahtarı tanımlı değil — şablon metin kullanılır. SEO AI sayfasından Gemini/OpenAI/Claude
-            ekleyebilirsiniz.
+            AI anahtarı tanımlı değil — yazı üretilemez. SEO AI sayfasından Claude/Gemini/OpenAI
+            ekleyin. Blog için uzun metin üretiminde Claude Sonnet önerilir.
           </p>
         ) : null}
 
@@ -270,6 +374,87 @@ export function BlogAutomationPanel({
               </>
             ) : null}
             {genResult.aiMessage ? <> — {genResult.aiMessage}</> : null}
+          </p>
+        ) : null}
+      </section>
+
+      <section className="rounded-xl border bg-white p-6 space-y-4 max-w-3xl">
+        <h2 className="font-semibold">Ürün blogları</h2>
+        <p className="text-sm text-zinc-600">
+          Her ürün için ayrı blog yazısı oluşturur (<code>urun-ürün-slug</code>). Varsayılan olarak{" "}
+          <strong>taslak</strong> kaydedilir —{" "}
+          <Link href="/admin/blog" className="underline">
+            Blog yazıları
+          </Link>{" "}
+          listesinden düzenleyip yayınlayabilirsiniz. Her tıklamada en fazla 5 ürün işlenir.
+        </p>
+        <label className="flex items-center gap-2 text-sm text-zinc-700">
+          <input
+            type="checkbox"
+            checked={publishProductBlogs}
+            onChange={(e) => setPublishProductBlogs(e.target.checked)}
+          />
+          Oluştururken doğrudan yayınla (önerilmez)
+        </label>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            className={btnSecondary}
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              setMsg(null);
+              setGenResult(null);
+              setLastProductBlogEditId(null);
+              const res = await fetch("/api/admin/blog-automation/generate-products", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ limit: 5, publish: publishProductBlogs }),
+              });
+              const j = (await res.json()) as {
+                created?: number;
+                skipped?: number;
+                failed?: number;
+                published?: number;
+                pending?: number;
+                error?: string;
+                results?: {
+                  ok?: boolean;
+                  reason?: string;
+                  productSlug?: string;
+                  slug?: string;
+                  postId?: string;
+                  published?: boolean;
+                  aiMessage?: string;
+                }[];
+              };
+              setBusy(false);
+              if (res.ok) {
+                const err = j.results?.find((r) => !r.ok)?.reason;
+                const firstDraft = j.results?.find((r) => r.ok && r.postId && !r.published);
+                if (firstDraft?.postId) setLastProductBlogEditId(firstDraft.postId);
+                setMsg(
+                  `Ürün blogları: ${j.created ?? 0} taslak, ${j.published ?? 0} yayınlandı, ${j.skipped ?? 0} atlandı, ${j.failed ?? 0} hata` +
+                    (j.pending ? ` · ${j.pending} ürün kuyrukta` : "") +
+                    (err ? ` · ${err}` : ""),
+                );
+              } else {
+                setMsg(j.error ?? "Ürün blogları oluşturulamadı");
+              }
+            }}
+          >
+            Eksik ürün bloglarını oluştur (5’er)
+          </button>
+        </div>
+        {lastProductBlogEditId ? (
+          <p className="text-sm">
+            <Link href={`/admin/blog/${lastProductBlogEditId}/edit`} className="font-medium underline">
+              Son oluşturulan taslağı düzenle
+            </Link>
+            {" · "}
+            <Link href="/admin/blog" className="underline">
+              Tüm blog yazıları
+            </Link>
           </p>
         ) : null}
       </section>

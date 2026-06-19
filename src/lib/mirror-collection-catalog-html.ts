@@ -1,8 +1,9 @@
-import { parseHTML } from "linkedom";
+import { parseHTML } from "@/lib/linkedom-server";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import {
   applyCollectionCategoryFiltersFromAdmin,
   applyCollectionDetailFromAdmin,
+  applyCollectionFacetFiltersFromAdmin,
   applyCollectionProductsFromAdmin,
 } from "@/lib/mirror-collections-sync";
 import { loadCollectionCatalogCore } from "@/lib/mirror-collection-catalog-data";
@@ -36,6 +37,13 @@ export function applyCollectionCatalogToMirrorHtml(
       payload.mirrorTexts,
     );
   }
+  applyCollectionFacetFiltersFromAdmin(
+    document,
+    payload.filterFacets,
+    payload.activeFilters,
+    payload.filterConfig,
+    locale,
+  );
   applyCollectionProductsFromAdmin(
     document,
     payload.productsFromAdmin,

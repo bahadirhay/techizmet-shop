@@ -22,6 +22,14 @@ export default async function EditCustomerGroupPage({ params }: { params: Promis
             orderNumberPrefix: group.orderNumberPrefix ?? "",
             active: group.active,
             description: group.description ?? "",
+            isB2b: group.isB2b,
+            openAccountEnabled: group.openAccountEnabled,
+            defaultPaymentTermDays: group.defaultPaymentTermDays
+              ? String(group.defaultPaymentTermDays)
+              : "",
+            defaultCreditLimitTry: group.defaultCreditLimitMinor
+              ? String(group.defaultCreditLimitMinor / 100)
+              : "",
           }}
         />
       </div>
