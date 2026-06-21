@@ -6,6 +6,8 @@ const PAYMENT_LABELS: Record<string, string> = {
   cod: "Kapıda ödeme",
   bank: "Havale / EFT",
   card: "Kredi kartı",
+  open_account: "Açık hesap",
+  marketplace: "Pazaryeri",
 };
 
 async function sendTelegramMessage(
@@ -64,6 +66,8 @@ export async function notifyTelegramNewOrder(
     customerEmail?: string | null;
     customerPhone?: string | null;
     paymentMethod?: string | null;
+    /** Web sitesi, Trendyol, Hepsiburada vb. */
+    sourceLabel?: string;
     lines?: { title: string; qty: number }[];
   },
 ): Promise<{ ok: true } | { ok: false; error: string; skipped?: boolean }> {
@@ -77,6 +81,7 @@ export async function notifyTelegramNewOrder(
 
   const baseUrl = process.env.NEXT_PUBLIC_STORE_URL?.replace(/\/$/, "") ?? "";
   const adminUrl = baseUrl ? `${baseUrl}/admin/orders/${order.id}` : "";
+  const source = order.sourceLabel?.trim() || "Web sitesi";
   const pay = PAYMENT_LABELS[order.paymentMethod?.trim() ?? ""] ?? order.paymentMethod ?? "—";
   const lines =
     order.lines?.length ?
@@ -87,9 +92,10 @@ export async function notifyTelegramNewOrder(
     : null;
 
   const text = [
-    "Yeni sipariş",
+    source === "Web sitesi" ? "Yeni sipariş" : `Yeni sipariş — ${source}`,
     "",
     `Mağaza: ${siteName}`,
+    `Kaynak: ${source}`,
     `Sipariş: #${order.orderNumber}`,
     `Tutar: ${formatTry(order.totalMinor)}`,
     `Ödeme: ${pay}`,

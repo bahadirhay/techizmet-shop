@@ -41,6 +41,7 @@ const emptyCart: CartView = {
   couponCode: null,
   couponLabel: null,
   campaignId: null,
+  campaignIds: [],
   freeShipping: false,
   freeShippingThresholdMinor: 0,
   freeShippingRemainingMinor: 0,

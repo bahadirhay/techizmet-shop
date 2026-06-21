@@ -27,6 +27,8 @@ export function GoogleMerchantSettingsForm({
   const [s, setS] = useState(initial);
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [feedTest, setFeedTest] = useState<string | null>(null);
+  const [feedTestBusy, setFeedTestBusy] = useState(false);
 
   async function save() {
     setBusy(true);
@@ -57,9 +59,44 @@ export function GoogleMerchantSettingsForm({
     }
   }
 
+  const copyFeedUrl = s.feedToken.trim()
+    ? `${s.feedUrlPublic.split("?")[0]}?token=${encodeURIComponent(s.feedToken.trim())}`
+    : s.feedUrl;
   const displayFeedUrl = s.feedToken.trim()
     ? `${s.feedUrlPublic.split("?")[0]}?token=••••`
     : s.feedUrl;
+
+  async function copyFeedUrlToClipboard() {
+    try {
+      await navigator.clipboard.writeText(copyFeedUrl);
+      setMsg("Feed URL kopyalandı");
+    } catch {
+      setMsg("Kopyalama başarısız — URL'yi elle seçin");
+    }
+  }
+
+  async function testFeedUrl() {
+    setFeedTestBusy(true);
+    setFeedTest(null);
+    try {
+      const res = await fetch(copyFeedUrl, { cache: "no-store" });
+      const text = await res.text();
+      const itemCount = (text.match(/<item>/g) ?? []).length;
+      if (!res.ok) {
+        setFeedTest(`Hata ${res.status}: ${text.slice(0, 120)}`);
+        return;
+      }
+      if (!text.includes("<rss") || !text.includes("xmlns:g=")) {
+        setFeedTest("Yanıt XML feed değil — www ve token kontrol edin.");
+        return;
+      }
+      setFeedTest(`OK — ${itemCount} ürün, ${res.status} ${res.headers.get("content-type") ?? ""}`);
+    } catch (e) {
+      setFeedTest(e instanceof Error ? e.message : "Feed testi başarısız");
+    } finally {
+      setFeedTestBusy(false);
+    }
+  }
 
   return (
     <div className="admin-card admin-card-pad max-w-3xl space-y-6">
@@ -80,9 +117,42 @@ export function GoogleMerchantSettingsForm({
       <div className="rounded-lg border border-sky-200 bg-sky-50/80 p-4 text-sm text-zinc-700 space-y-2">
         <p className="font-semibold text-zinc-900">Feed URL (Merchant Center&apos;a yapıştırın)</p>
         <code className="block break-all rounded bg-white px-2 py-1 text-xs border">{displayFeedUrl}</code>
+        <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
+          <strong>Önemli:</strong> URL <code>https://www.</code> ile başlamalı.{" "}
+          <code>anatolianpaw.com</code> (www olmadan) yönlendirme döndürür; Google Merchant bunu feed
+          sanmaz ve &quot;Feed not found&quot; hatası verir.
+        </p>
         {s.hasFeedToken && !s.feedToken ? (
-          <p className="text-xs text-zinc-500">Token korumalı — tam URL kayıtlı ayarda.</p>
+          <p className="text-xs text-zinc-500">
+            Token korumalı — Merchant Center&apos;a tam URL için &quot;Kopyala&quot; kullanın (token dahil).
+          </p>
         ) : null}
+        <div className="flex flex-wrap gap-2 pt-1">
+          <button
+            type="button"
+            className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium hover:bg-zinc-50"
+            onClick={() => void copyFeedUrlToClipboard()}
+          >
+            URL&apos;yi kopyala
+          </button>
+          <button
+            type="button"
+            className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium hover:bg-zinc-50 disabled:opacity-50"
+            disabled={feedTestBusy}
+            onClick={() => void testFeedUrl()}
+          >
+            {feedTestBusy ? "Test ediliyor…" : "Feed&apos;i test et"}
+          </button>
+          <a
+            href={copyFeedUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium hover:bg-zinc-50"
+          >
+            Tarayıcıda aç
+          </a>
+        </div>
+        {feedTest ? <p className="text-xs text-zinc-600">{feedTest}</p> : null}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">

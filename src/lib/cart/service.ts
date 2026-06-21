@@ -1,5 +1,6 @@
 import { applyCatalogPrice, getCustomerGroupPricing } from "@/lib/customer-group-pricing";
 import {
+  applyAutoCampaignsToCart,
   applyCampaignToCart,
   cartLineKey,
   type CampaignRecord,
@@ -44,22 +45,69 @@ function campaignValid(c: CampaignRecord): boolean {
   return true;
 }
 
-async function resolveCampaign(
-  siteId: string,
-  couponCode: string | null,
-): Promise<CampaignRecord | null> {
-  if (couponCode?.trim()) {
-    const c = await prisma.storeCampaign.findFirst({
-      where: { siteId, code: couponCode.trim().toUpperCase(), active: true },
-    });
-    return c && campaignValid(c as CampaignRecord) ? (c as CampaignRecord) : null;
-  }
+function toCampaignRecord(c: {
+  id: string;
+  name: string;
+  code: string | null;
+  type: string;
+  percentOff: number | null;
+  amountOffMinor: number | null;
+  buyQuantity: number | null;
+  payQuantity: number | null;
+  scopeJson: string | null;
+  autoApply: boolean;
+  firstOrderOnly?: boolean;
+  minCartMinor: number | null;
+  freeShipping: boolean;
+  maxUses: number | null;
+  usedCount: number;
+  active: boolean;
+  startsAt: Date | null;
+  endsAt: Date | null;
+}): CampaignRecord {
+  return { ...c, firstOrderOnly: c.firstOrderOnly ?? false };
+}
 
-  const auto = await prisma.storeCampaign.findFirst({
+async function customerIsFirstOrder(
+  siteId: string,
+  customerId: string | null | undefined,
+  email?: string | null,
+): Promise<boolean> {
+  if (customerId) {
+    const count = await prisma.storeOrder.count({
+      where: { siteId, customerId, status: { notIn: ["cancelled"] } },
+    });
+    return count === 0;
+  }
+  const normalized = email?.trim().toLowerCase();
+  if (normalized) {
+    const count = await prisma.storeOrder.count({
+      where: { siteId, customerEmail: normalized, status: { notIn: ["cancelled"] } },
+    });
+    return count === 0;
+  }
+  return true;
+}
+
+function filterCampaignsForFirstOrder(
+  campaigns: CampaignRecord[],
+  isFirstOrder: boolean,
+): CampaignRecord[] {
+  return campaigns.filter((c) => !c.firstOrderOnly || isFirstOrder);
+}
+
+async function resolveAutoCampaigns(
+  siteId: string,
+  isFirstOrder: boolean,
+): Promise<CampaignRecord[]> {
+  const autos = await prisma.storeCampaign.findMany({
     where: { siteId, active: true, autoApply: true },
     orderBy: { createdAt: "desc" },
   });
-  return auto && campaignValid(auto as CampaignRecord) ? (auto as CampaignRecord) : null;
+  return filterCampaignsForFirstOrder(
+    autos.map(toCampaignRecord).filter(campaignValid),
+    isFirstOrder,
+  );
 }
 
 export async function applyCampaign(
@@ -67,8 +115,10 @@ export async function applyCampaign(
   subtotalMinor: number,
   couponCode: string | null,
   promoLines: PromoLineMeta[] = [],
+  options?: { customerId?: string | null; customerEmail?: string | null },
 ): Promise<{
   campaignId: string | null;
+  campaignIds: string[];
   discountMinor: number;
   freeShipping: boolean;
   label: string | null;
@@ -77,13 +127,21 @@ export async function applyCampaign(
 }> {
   const settings = await getSiteSettings(siteId);
   const threshold = settings.store?.freeShippingOverMinor;
+  const isFirstOrder = await customerIsFirstOrder(
+    siteId,
+    options?.customerId,
+    options?.customerEmail,
+  );
 
-  const campaign = await resolveCampaign(siteId, couponCode);
-
-  if (!campaign) {
-    if (couponCode?.trim()) {
+  if (couponCode?.trim()) {
+    const c = await prisma.storeCampaign.findFirst({
+      where: { siteId, code: couponCode.trim().toUpperCase(), active: true },
+    });
+    const record = c ? toCampaignRecord(c) : null;
+    if (!record || !campaignValid(record)) {
       return {
         campaignId: null,
+        campaignIds: [],
         discountMinor: 0,
         freeShipping: false,
         label: null,
@@ -91,39 +149,69 @@ export async function applyCampaign(
         lineDiscounts: new Map(),
       };
     }
-    if (threshold != null && subtotalMinor >= threshold) {
+    if (record.firstOrderOnly && !isFirstOrder) {
       return {
         campaignId: null,
+        campaignIds: [],
         discountMinor: 0,
-        freeShipping: true,
-        label: "Ücretsiz kargo",
-        error: null,
+        freeShipping: false,
+        label: null,
+        error: "Bu kupon yalnızca ilk siparişinizde geçerlidir",
         lineDiscounts: new Map(),
       };
     }
+    const result = applyCampaignToCart(record, promoLines, subtotalMinor);
+    const freeShipping =
+      result.freeShipping || (threshold != null && subtotalMinor >= threshold);
+    return {
+      campaignId: result.campaignId,
+      campaignIds: result.campaignIds,
+      discountMinor: result.error ? 0 : result.discountMinor,
+      freeShipping: Boolean(freeShipping),
+      label: result.error ? null : result.label,
+      error: result.error,
+      lineDiscounts: result.error ? new Map() : result.lineDiscounts,
+    };
+  }
+
+  const autoCampaigns = await resolveAutoCampaigns(siteId, isFirstOrder);
+  if (autoCampaigns.length > 0) {
+    const result = applyAutoCampaignsToCart(autoCampaigns, promoLines, subtotalMinor);
+    if (result.campaignIds.length) {
+      const freeShipping =
+        result.freeShipping || (threshold != null && subtotalMinor >= threshold);
+      return {
+        campaignId: result.campaignId,
+        campaignIds: result.campaignIds,
+        discountMinor: result.discountMinor,
+        freeShipping: Boolean(freeShipping),
+        label: result.label,
+        error: null,
+        lineDiscounts: result.lineDiscounts,
+      };
+    }
+  }
+
+  if (threshold != null && subtotalMinor >= threshold) {
     return {
       campaignId: null,
+      campaignIds: [],
       discountMinor: 0,
-      freeShipping: false,
-      label: null,
+      freeShipping: true,
+      label: "Ücretsiz kargo",
       error: null,
       lineDiscounts: new Map(),
     };
   }
 
-  const result = applyCampaignToCart(campaign, promoLines, subtotalMinor);
-
-  const freeShipping =
-    result.freeShipping ||
-    (threshold != null && subtotalMinor >= threshold);
-
   return {
-    campaignId: result.campaignId,
-    discountMinor: result.error ? 0 : result.discountMinor,
-    freeShipping: Boolean(freeShipping),
-    label: result.error ? null : result.label,
-    error: result.error,
-    lineDiscounts: result.error ? new Map() : result.lineDiscounts,
+    campaignId: null,
+    campaignIds: [],
+    discountMinor: 0,
+    freeShipping: false,
+    label: null,
+    error: null,
+    lineDiscounts: new Map(),
   };
 }
 
@@ -131,6 +219,7 @@ export async function buildCartView(
   session: CartSessionData,
   siteId?: string,
   customerId?: string | null,
+  customerEmail?: string | null,
 ): Promise<CartView> {
   const site = siteId ? await prisma.storeSite.findUnique({ where: { id: siteId } }) : await getDefaultSite();
   const sid = site!.id;
@@ -154,6 +243,7 @@ export async function buildCartView(
     couponCode: session.couponCode ?? null,
     couponLabel: null,
     campaignId: null,
+    campaignIds: [],
     freeShipping: false,
     freeShippingThresholdMinor: thresholdMinor,
     freeShippingRemainingMinor: thresholdMinor,
@@ -282,6 +372,7 @@ export async function buildCartView(
     subtotalMinor,
     session.couponCode ?? null,
     promoLines,
+    { customerId, customerEmail },
   );
   if (campaign.error) errors.push(campaign.error);
 
@@ -310,6 +401,7 @@ export async function buildCartView(
     couponCode: session.couponCode ?? null,
     couponLabel: campaign.label,
     campaignId: campaign.campaignId,
+    campaignIds: campaign.campaignIds,
     freeShipping: campaign.freeShipping,
     freeShippingThresholdMinor: thresholdMinor,
     freeShippingRemainingMinor,
@@ -490,7 +582,12 @@ export async function createOrderFromCart(params: {
     }
   }
 
-  const cart = await buildCartView(params.session, params.siteId, orderCustomerId);
+  const cart = await buildCartView(
+    params.session,
+    params.siteId,
+    orderCustomerId,
+    params.customer.email,
+  );
   if (cart.items.length === 0) throw new Error("Sepet boş");
   if (cart.errors.length) throw new Error(cart.errors[0]);
 
@@ -646,9 +743,14 @@ export async function createOrderFromCart(params: {
       await syncBundlesContainingProducts(tx, [...componentProductIdsForSync]);
     }
 
-    if (cart.campaignId) {
+    const campaignIds = cart.campaignIds?.length
+      ? cart.campaignIds
+      : cart.campaignId
+        ? [cart.campaignId]
+        : [];
+    for (const campaignId of campaignIds) {
       await tx.storeCampaign.update({
-        where: { id: cart.campaignId },
+        where: { id: campaignId },
         data: { usedCount: { increment: 1 } },
       });
     }

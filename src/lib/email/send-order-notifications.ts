@@ -7,8 +7,38 @@ import {
 } from "@/lib/notification-settings";
 import { renderSmsBody, sendSms } from "@/lib/sms/send-sms";
 import { sendOrderEmailForOrderId } from "@/lib/email/send-order-email";
+import { orderSourceLabel } from "@/lib/marketplace/order-source";
 import { notifyTelegramNewOrder } from "@/lib/telegram/order-telegram-notify";
 import type { SiteSettings } from "@/lib/site-settings";
+
+/** Yeni sipariş Telegram bildirimi — web checkout, PayTR ve pazaryeri import */
+export async function notifyTelegramForOrderId(orderId: string): Promise<void> {
+  const { prisma } = await import("@/lib/prisma");
+  const orderFull = await prisma.storeOrder.findUnique({
+    where: { id: orderId },
+    include: {
+      site: { select: { name: true, settingsJson: true } },
+      lines: { select: { title: true, qty: true } },
+    },
+  });
+  if (!orderFull) return;
+
+  const { parseSiteSettings } = await import("@/lib/site-settings");
+  const settings = parseSiteSettings(orderFull.site?.settingsJson ?? null);
+  const lines = orderFull.lines.map((l) => ({ title: l.title, qty: l.qty }));
+
+  await notifyTelegramNewOrder(settings, orderFull.site?.name ?? "Mağaza", {
+    id: orderFull.id,
+    orderNumber: orderFull.orderNumber,
+    totalMinor: orderFull.totalMinor,
+    customerName: orderFull.customerName,
+    customerEmail: orderFull.customerEmail,
+    customerPhone: orderFull.customerPhone,
+    paymentMethod: orderFull.paymentMethod,
+    sourceLabel: orderSourceLabel(orderFull),
+    lines,
+  }).catch((e) => console.error("[telegram]", e));
+}
 
 export async function notifyNewOrder(orderId: string, settings: SiteSettings, siteName: string) {
   const e = emailNotifications(settings);
@@ -97,7 +127,6 @@ export async function sendOrderConfirmationBundle(orderId: string) {
     where: { id: orderId },
     include: {
       site: { select: { name: true, settingsJson: true } },
-      lines: { select: { title: true, qty: true } },
     },
   });
   if (!orderFull) return;
@@ -110,15 +139,5 @@ export async function sendOrderConfirmationBundle(orderId: string) {
     console.error("[sms]", e),
   );
 
-  const lines = orderFull.lines?.map((l) => ({ title: l.title, qty: l.qty })) ?? [];
-  await notifyTelegramNewOrder(settings, orderFull.site?.name ?? "Mağaza", {
-    id: orderFull.id,
-    orderNumber: orderFull.orderNumber,
-    totalMinor: orderFull.totalMinor,
-    customerName: orderFull.customerName,
-    customerEmail: orderFull.customerEmail,
-    customerPhone: orderFull.customerPhone,
-    paymentMethod: orderFull.paymentMethod,
-    lines,
-  }).catch((e) => console.error("[telegram]", e));
+  await notifyTelegramForOrderId(orderId);
 }

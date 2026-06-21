@@ -1,0 +1,1 @@
+ALTER TABLE "shop"."campaign" ADD COLUMN IF NOT EXISTS "firstOrderOnly" BOOLEAN NOT NULL DEFAULT false;

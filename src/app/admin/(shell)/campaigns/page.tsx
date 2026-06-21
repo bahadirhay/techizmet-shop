@@ -1,18 +1,22 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatTry } from "@/lib/admin/money";
-import { campaignTypeLabel, parseCampaignScope, summarizeCampaignDetail } from "@/lib/campaign-engine";
+import { loadCartDiscountTiers } from "@/lib/admin/cart-discount-tiers";
+import { campaignTypeLabel, parseCampaignScope, prismaRowToCampaignRecord, summarizeCampaignDetail } from "@/lib/campaign-engine";
+import { CartDiscountTiersPanel } from "@/components/admin/CartDiscountTiersPanel";
 import { requireStaffPage } from "@/lib/staff-auth";
 
 export default async function CampaignsPage() {
   const auth = await requireStaffPage();
-  const campaigns =
+  const [campaigns, tierSettings] = await Promise.all([
     typeof prisma.storeCampaign?.findMany === "function"
-      ? await prisma.storeCampaign.findMany({
+      ? prisma.storeCampaign.findMany({
           where: { siteId: auth.siteId },
           orderBy: { createdAt: "desc" },
         })
-      : [];
+      : Promise.resolve([]),
+    loadCartDiscountTiers(auth.siteId),
+  ]);
 
   return (
     <div>
@@ -30,6 +34,7 @@ export default async function CampaignsPage() {
           + Yeni kampanya
         </Link>
       </div>
+      <CartDiscountTiersPanel initial={tierSettings} />
       <table className="mt-6 w-full text-left text-sm">
         <thead>
           <tr className="border-b text-zinc-500">
@@ -63,7 +68,10 @@ export default async function CampaignsPage() {
                 <td className="font-mono text-xs">{c.autoApply ? "—" : (c.code ?? "—")}</td>
                 <td>{campaignTypeLabel(c.type)}</td>
                 <td className="text-zinc-600">
-                  {summarizeCampaignDetail(c as Parameters<typeof summarizeCampaignDetail>[0])}
+                  {summarizeCampaignDetail(prismaRowToCampaignRecord(c))}
+                  {c.firstOrderOnly ?? (c as { firstOrderOnly?: boolean }).firstOrderOnly ? (
+                    <span className="ml-1 text-xs text-violet-700">· ilk sipariş</span>
+                  ) : null}
                   {c.minCartMinor ? ` · min ${formatTry(c.minCartMinor)}` : null}
                 </td>
                 <td className="text-zinc-500">{scopeParts.length ? scopeParts.join(", ") : "Tümü"}</td>

@@ -22,6 +22,8 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   const data = parseCampaignBody(body, true);
   const validation = validateCampaignData({
     type: data.type ?? existing.type,
+    percentOff:
+      data.percentOff !== undefined ? data.percentOff : existing.percentOff,
     buyQuantity: data.buyQuantity !== undefined ? data.buyQuantity : existing.buyQuantity,
     payQuantity: data.payQuantity !== undefined ? data.payQuantity : existing.payQuantity,
     autoApply: data.autoApply !== undefined ? data.autoApply : existing.autoApply,

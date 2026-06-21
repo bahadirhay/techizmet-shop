@@ -46,9 +46,9 @@ export function parseCampaignBody(body: Record<string, unknown>, partial = false
     code: body.code !== undefined ? String(body.code ?? "").trim().toUpperCase() || null : undefined,
     type,
     percentOff:
-      type === "percent_off" && body.percentOff != null
+      (type === "percent_off" || type === "second_item_percent_off") && body.percentOff != null
         ? parseInt(String(body.percentOff), 10) || null
-        : type !== undefined && type !== "percent_off"
+        : type !== undefined && type !== "percent_off" && type !== "second_item_percent_off"
           ? null
           : undefined,
     amountOffMinor:
@@ -62,6 +62,7 @@ export function parseCampaignBody(body: Record<string, unknown>, partial = false
     scopeJson:
       scope !== undefined ? serializeCampaignScope(scope) : body.scopeJson !== undefined ? null : undefined,
     autoApply: body.autoApply !== undefined ? Boolean(body.autoApply) : undefined,
+    firstOrderOnly: body.firstOrderOnly !== undefined ? Boolean(body.firstOrderOnly) : undefined,
     minCartMinor:
       body.minCart !== undefined ? (body.minCart ? tryToMinor(body.minCart as string) : null) : undefined,
     freeShipping:
@@ -84,6 +85,7 @@ export function parseCampaignBody(body: Record<string, unknown>, partial = false
 export function validateCampaignData(
   data: {
     type?: string | null;
+    percentOff?: number | null;
     buyQuantity?: number | null;
     payQuantity?: number | null;
     autoApply?: boolean;
@@ -95,6 +97,10 @@ export function validateCampaignData(
     if (data.buyQuantity < 2 || data.payQuantity < 1 || data.payQuantity >= data.buyQuantity) {
       return "Geçersiz X/Y değerleri (örn. 3 al 2 öde)";
     }
+  }
+  if (data.type === "second_item_percent_off") {
+    const pct = data.percentOff;
+    if (!pct || pct < 1 || pct > 100) return "2. ürün indirimi için %1–100 gerekli";
   }
   if (data.autoApply && data.code) {
     return "Otomatik kampanyada kupon kodu boş olmalı";
@@ -117,6 +123,7 @@ export function toCampaignCreateInput(
     payQuantity: data.payQuantity ?? null,
     scopeJson: data.scopeJson ?? null,
     autoApply: data.autoApply ?? false,
+    firstOrderOnly: data.firstOrderOnly ?? false,
     minCartMinor: data.minCartMinor ?? null,
     freeShipping: data.freeShipping ?? false,
     maxUses: data.maxUses ?? null,
@@ -124,5 +131,5 @@ export function toCampaignCreateInput(
     startsAt: data.startsAt ?? null,
     endsAt: data.endsAt ?? null,
     description: data.description ?? null,
-  };
+  } as Prisma.StoreCampaignUncheckedCreateInput;
 }

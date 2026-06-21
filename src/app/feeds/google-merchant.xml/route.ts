@@ -27,11 +27,7 @@ export async function GET(req: Request) {
     }
   }
 
-  const { xml, itemCount } = await buildGoogleMerchantFeedForSite(site.id, seo.siteTitle || site.name, gmc);
-
-  if (!itemCount) {
-    return new NextResponse("No products", { status: 404 });
-  }
+  const { xml } = await buildGoogleMerchantFeedForSite(site.id, seo.siteTitle || site.name, gmc);
 
   return new NextResponse(xml, {
     headers: {

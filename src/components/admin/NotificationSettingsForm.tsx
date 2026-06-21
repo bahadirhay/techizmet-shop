@@ -504,7 +504,8 @@ export function NotificationSettingsForm({ initial }: { initial: SiteSettings })
       <section id="telegram" className="scroll-mt-6 rounded-xl border bg-white p-6">
         <h2 className="text-lg font-semibold">Telegram bildirimleri</h2>
         <p className="mt-1 text-sm text-zinc-500">
-          Yeni sipariş geldiğinde Telegram grubuna veya kanala mesaj gider.{" "}
+          Web sitesi ve pazaryeri (Trendyol, Hepsiburada, Amazon) siparişlerinde Telegram grubuna
+          veya kanala mesaj gider.{" "}
           <a
             href="https://t.me/BotFather"
             target="_blank"

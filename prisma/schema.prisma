@@ -670,6 +670,8 @@ model StoreCampaign {
   scopeJson     String?
   /** Kodsuz otomatik uygulama */
   autoApply     Boolean   @default(false)
+  /** Yalnızca müşterinin ilk siparişinde (iptal hariç) */
+  firstOrderOnly Boolean  @default(false)
   minCartMinor  Int?
   freeShipping  Boolean   @default(false)
   maxUses       Int?

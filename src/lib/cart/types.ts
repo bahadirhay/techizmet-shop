@@ -44,6 +44,8 @@ export type CartView = {
   couponLabel: string | null;
   /** Uygulanan kampanya id (kupon veya otomatik) */
   campaignId: string | null;
+  /** Birleşik otomatik kampanyalar */
+  campaignIds: string[];
   freeShipping: boolean;
   /** Mağaza eşiği (kuruş); 0 = tanımsız */
   freeShippingThresholdMinor: number;

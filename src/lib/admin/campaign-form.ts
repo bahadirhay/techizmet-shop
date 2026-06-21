@@ -17,6 +17,7 @@ export type CampaignFormData = {
   minCart: string;
   freeShipping: boolean;
   autoApply: boolean;
+  firstOrderOnly: boolean;
   maxUses: string;
   active: boolean;
   startsAt: string;
@@ -35,6 +36,7 @@ export function campaignToForm(c: {
   payQuantity: number | null;
   scopeJson: string | null;
   autoApply: boolean;
+  firstOrderOnly?: boolean;
   minCartMinor: number | null;
   freeShipping: boolean;
   maxUses: number | null;
@@ -61,6 +63,7 @@ export function campaignToForm(c: {
     minCart: c.minCartMinor != null ? minorToTry(c.minCartMinor) : "",
     freeShipping: c.freeShipping,
     autoApply: c.autoApply ?? false,
+    firstOrderOnly: c.firstOrderOnly ?? false,
     maxUses: c.maxUses != null ? String(c.maxUses) : "",
     active: c.active,
     startsAt: dt(c.startsAt),
@@ -85,6 +88,7 @@ export function emptyCampaignForm(): CampaignFormData {
     minCart: "",
     freeShipping: false,
     autoApply: false,
+    firstOrderOnly: false,
     maxUses: "",
     active: true,
     startsAt: "",

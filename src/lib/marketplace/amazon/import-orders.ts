@@ -140,6 +140,9 @@ export async function importAmazonOrders(
       /* ignore */
     }
 
+    const { notifyTelegramForOrderId } = await import("@/lib/email/send-order-notifications");
+    await notifyTelegramForOrderId(createdOrder.id);
+
     imported++;
   }
 

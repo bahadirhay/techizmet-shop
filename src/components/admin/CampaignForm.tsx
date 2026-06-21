@@ -204,6 +204,15 @@ export function CampaignForm({
           </AdminField>
         ) : null}
 
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={form.firstOrderOnly}
+            onChange={(e) => set("firstOrderOnly", e.target.checked)}
+          />
+          Yalnızca ilk sipariş (daha önce sipariş vermemiş müşteri)
+        </label>
+
         <AdminField label="Tür *">
           <select className={inputClass} value={form.type} onChange={(e) => set("type", e.target.value)}>
             {CAMPAIGN_TYPES.map((t) => (
@@ -214,8 +223,8 @@ export function CampaignForm({
           </select>
         </AdminField>
 
-        {form.type === "percent_off" ? (
-          <AdminField label="İndirim oranı (%)">
+        {form.type === "percent_off" || form.type === "second_item_percent_off" ? (
+          <AdminField label={form.type === "second_item_percent_off" ? "2. ürün indirim oranı (%)" : "İndirim oranı (%)"}>
             <input
               type="number"
               min={1}

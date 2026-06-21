@@ -147,6 +147,9 @@ export async function importTrendyolPackages(
       /* snapshot hatası importu durdurmaz */
     }
 
+    const { notifyTelegramForOrderId } = await import("@/lib/email/send-order-notifications");
+    await notifyTelegramForOrderId(createdOrder.id);
+
     imported++;
   }
 

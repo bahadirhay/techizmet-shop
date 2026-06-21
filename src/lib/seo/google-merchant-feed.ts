@@ -244,11 +244,12 @@ export function buildGoogleMerchantFeedXml(params: {
   const itemBlocks = items.map((item) => itemXml(item, config)).join("\n");
 
   return `<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
+<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>${escapeXml(siteName)}</title>
     <link>${escapeXml(siteUrl)}</link>
     <description>${escapeXml(`${siteName} ürün kataloğu — Google Merchant Center`)}</description>
+    <atom:link href="${escapeXml(feedUrl)}" rel="self" type="application/xml" />
 ${itemBlocks}
   </channel>
 </rss>`;
