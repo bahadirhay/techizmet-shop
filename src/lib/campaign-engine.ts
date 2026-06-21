@@ -236,29 +236,6 @@ export function computeSecondItemPercentOff(
   return { discountMinor, lineDiscounts };
 }
 
-function mergeLineDiscounts(into: Map<string, number>, add: Map<string, number>) {
-  for (const [key, val] of add) {
-    if (val > 0) into.set(key, (into.get(key) ?? 0) + val);
-  }
-}
-
-function sumLineDiscounts(map: Map<string, number>): number {
-  let s = 0;
-  for (const v of map.values()) s += v;
-  return s;
-}
-
-function pickBestPercentCampaign(
-  campaigns: CampaignRecord[],
-  subtotalMinor: number,
-): CampaignRecord | null {
-  const qualifying = campaigns
-    .filter((c) => c.type === "percent_off" && c.percentOff)
-    .filter((c) => c.minCartMinor == null || subtotalMinor >= c.minCartMinor)
-    .sort((a, b) => (b.minCartMinor ?? 0) - (a.minCartMinor ?? 0));
-  return qualifying[0] ?? null;
-}
-
 export function applyCampaignToCart(
   campaign: CampaignRecord,
   lines: PromoLineMeta[],
@@ -345,7 +322,7 @@ export function applyCampaignToCart(
   };
 }
 
-/** Birden fazla otomatik kampanyayı birleştir (2. ürün + kademeli sepet % vb.) */
+/** Otomatik kampanyalardan yalnızca en yüksek indirimi vereni uygula (birbirini istiflemez) */
 export function applyAutoCampaignsToCart(
   campaigns: CampaignRecord[],
   lines: PromoLineMeta[],
@@ -353,100 +330,27 @@ export function applyAutoCampaignsToCart(
 ): CampaignApplyResult {
   if (!campaigns.length) return emptyResult();
 
-  const lineDiscounts = new Map<string, number>();
-  const appliedIds: string[] = [];
-  const labels: string[] = [];
-  let freeShipping = false;
-
-  for (const campaign of campaigns.filter((c) => c.type === "second_item_percent_off")) {
-    const scope = parseCampaignScope(campaign.scopeJson);
-    const result = computeSecondItemPercentOff(lines, campaign.percentOff ?? 0, scope);
-    if (result.discountMinor > 0) {
-      mergeLineDiscounts(lineDiscounts, result.lineDiscounts);
-      appliedIds.push(campaign.id);
-      labels.push(campaign.name);
-      if (campaign.freeShipping) freeShipping = true;
-    }
-  }
-
-  const lineDiscountTotal = sumLineDiscounts(lineDiscounts);
-  const percentBase = Math.max(0, subtotalMinor - lineDiscountTotal);
-  const percentCampaign = pickBestPercentCampaign(campaigns, subtotalMinor);
-
-  let cartDiscountMinor = lineDiscountTotal;
-
-  if (percentCampaign?.percentOff) {
-    const scope = parseCampaignScope(percentCampaign.scopeJson);
-    const eligible = lines.filter((l) => isLineEligible(l, scope));
-    const eligibleSubtotal = eligible.reduce((s, l) => s + l.lineMinor, 0);
-    const base = scope ? eligibleSubtotal - sumLineDiscounts(lineDiscounts) : percentBase;
-    if (base > 0) {
-      const pctDisc = Math.round((Math.max(0, base) * percentCampaign.percentOff) / 100);
-      if (pctDisc > 0) {
-        cartDiscountMinor += pctDisc;
-        const allocLines = (scope ? eligible : lines).map((l) => ({
-          lineKey: l.lineKey,
-          lineMinor: Math.max(0, l.lineMinor - (lineDiscounts.get(l.lineKey) ?? 0)),
-        }));
-        mergeLineDiscounts(lineDiscounts, allocateProportional(allocLines, pctDisc));
-        appliedIds.push(percentCampaign.id);
-        labels.push(percentCampaign.name);
-        if (percentCampaign.freeShipping) freeShipping = true;
-      }
-    }
-  }
+  let best: CampaignApplyResult | null = null;
 
   for (const campaign of campaigns) {
-    if (campaign.type === "fixed_off" && campaign.amountOffMinor) {
-      const scope = parseCampaignScope(campaign.scopeJson);
-      const eligible = lines.filter((l) => isLineEligible(l, scope));
-      const eligibleSubtotal = eligible.reduce((s, l) => s + l.lineMinor, 0);
-      const base = scope ? eligibleSubtotal : subtotalMinor;
-      const disc = Math.min(campaign.amountOffMinor, Math.max(0, base - sumLineDiscounts(lineDiscounts)));
-      if (disc > 0) {
-        cartDiscountMinor += disc;
-        const allocLines = (scope ? eligible : lines).map((l) => ({
-          lineKey: l.lineKey,
-          lineMinor: Math.max(0, l.lineMinor - (lineDiscounts.get(l.lineKey) ?? 0)),
-        }));
-        mergeLineDiscounts(lineDiscounts, allocateProportional(allocLines, disc));
-        appliedIds.push(campaign.id);
-        labels.push(campaign.name);
-        if (campaign.freeShipping) freeShipping = true;
-      }
-    }
+    const result = applyCampaignToCart(campaign, lines, subtotalMinor);
+    if (result.error) continue;
+    if (result.discountMinor <= 0 && !result.freeShipping) continue;
 
-    if (campaign.type === "buy_x_pay_y" && campaign.buyQuantity && campaign.payQuantity) {
-      const scope = parseCampaignScope(campaign.scopeJson);
-      const targetLines = scope ? lines.filter((l) => isLineEligible(l, scope)) : lines;
-      const result = computeBuyXPayYDiscount(targetLines, campaign.buyQuantity, campaign.payQuantity);
-      if (result.discountMinor > 0) {
-        cartDiscountMinor += result.discountMinor;
-        mergeLineDiscounts(lineDiscounts, result.lineDiscounts);
-        appliedIds.push(campaign.id);
-        labels.push(campaign.name);
-        if (campaign.freeShipping) freeShipping = true;
-      }
+    if (!best || result.discountMinor > best.discountMinor) {
+      best = result;
+      continue;
     }
-
-    if (campaign.type === "free_shipping") {
-      freeShipping = true;
-      appliedIds.push(campaign.id);
-      labels.push(campaign.name);
+    if (
+      result.discountMinor === best.discountMinor &&
+      result.freeShipping &&
+      !best.freeShipping
+    ) {
+      best = result;
     }
   }
 
-  if (!appliedIds.length) return emptyResult();
-
-  return {
-    campaignId: appliedIds[0]!,
-    campaignIds: appliedIds,
-    discountMinor: cartDiscountMinor,
-    freeShipping,
-    label: labels.join(" + "),
-    error: null,
-    lineDiscounts,
-  };
+  return best ?? emptyResult();
 }
 
 export function prismaRowToCampaignRecord(row: {
