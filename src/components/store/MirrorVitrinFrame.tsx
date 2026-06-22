@@ -14,6 +14,7 @@ import { loadMirrorNavItems } from "@/lib/mirror-nav-server";
 import { prisma } from "@/lib/prisma";
 import { getEffectiveUsdTryRate } from "@/lib/currency/exchange-rate";
 import { getStoreInstagramFeedPosts } from "@/lib/store-instagram-feed";
+import type { MirrorContactData } from "@/lib/mirror-contact-overlay";
 import { notFound } from "next/navigation";
 
 /** Koleksiyon kartları prebuild’de gömülür; yalnızca kategori filtresi sayfasında canlı DB */
@@ -45,7 +46,17 @@ export async function MirrorVitrinFrame({
       branding.logoUrlLight?.includes("/api/media/"),
   );
   const fileRel = vitrinMirrorFileRel(pageKey, locale);
-  const src = await resolveStoreMirrorIframeSrcForRequest(fileRel, pageKey, undefined, {
+  const contactSettings = pageKey === "contact" ? settings.pages?.contact : undefined;
+  const contact: MirrorContactData | undefined = contactSettings
+    ? {
+        mapEmbedUrl: contactSettings.mapEmbedUrl,
+        mapPosition: contactSettings.mapPosition,
+      }
+    : undefined;
+  const srcExtra = contactSettings?.mapEmbedUrl
+    ? { kn_map: contactSettings.mapEmbedUrl }
+    : undefined;
+  const src = await resolveStoreMirrorIframeSrcForRequest(fileRel, pageKey, srcExtra, {
     hasCustomBlocks: (pageConfig.customBlocks?.length ?? 0) > 0,
     hasMirrorEdits: shouldApplyMirrorPageOverlay(pageConfig),
     hasCustomBranding,
@@ -82,6 +93,7 @@ export async function MirrorVitrinFrame({
       categoriesFromAdmin={categoriesFromAdmin}
       instagramPosts={instagramPosts}
       instagramFeedTitle="Instagram"
+      contact={contact}
     />
   );
 }

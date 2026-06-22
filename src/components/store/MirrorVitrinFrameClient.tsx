@@ -56,6 +56,7 @@ import {
 import { initProductCardGalleries } from "@/lib/mirror-product-card-gallery";
 import { applyInstagramFeedToDoc } from "@/lib/mirror-instagram-feed";
 import type { InstagramFeedPostDTO } from "@/lib/instagram-feed-card";
+import type { MirrorContactData } from "@/lib/mirror-contact-overlay";
 
 function vitrinOverridesMarquee(config: MirrorPageConfig | undefined): boolean {
   if (!config) return false;
@@ -103,6 +104,7 @@ export function MirrorVitrinFrameClient({
   usdRate,
   instagramPosts,
   instagramFeedTitle,
+  contact,
 }: {
   src: string;
   title: string;
@@ -121,6 +123,7 @@ export function MirrorVitrinFrameClient({
   usdRate?: number;
   instagramPosts?: InstagramFeedPostDTO[];
   instagramFeedTitle?: string;
+  contact?: MirrorContactData;
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const baseSrcRef = useRef(src);
@@ -158,6 +161,7 @@ export function MirrorVitrinFrameClient({
     usdRate,
     instagramPosts,
     instagramFeedTitle,
+    contact,
   });
 
   useMirrorLocaleMessage();
@@ -391,6 +395,7 @@ export function MirrorVitrinFrameClient({
           footer,
           locale,
           accountDrawerForm,
+          contact,
         });
       }
 
@@ -562,6 +567,26 @@ export function MirrorVitrinFrameClient({
     return () => window.clearTimeout(t);
   }, [focusSectionKey, visualEditMode, frameReady]);
 
+  useEffect(() => {
+    const mapUrl = contact?.mapEmbedUrl;
+    if (!mapUrl) return;
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+    function sendMap() {
+      try {
+        iframe?.contentWindow?.postMessage({ type: "kn-map-url", url: mapUrl }, "*");
+      } catch {
+        /* cross-origin */
+      }
+    }
+    function onLoad() {
+      sendMap();
+    }
+    iframe.addEventListener("load", onLoad);
+    if (iframe.contentDocument?.readyState === "complete") sendMap();
+    return () => iframe.removeEventListener("load", onLoad);
+  }, [contact?.mapEmbedUrl, src]);
+
   return (
     <div className="kn-home-mirror relative h-screen w-full overflow-hidden">
       {visualEditMode && !frameReady ? (
@@ -576,6 +601,7 @@ export function MirrorVitrinFrameClient({
         loading="eager"
         sandbox={visualEditMode ? "allow-same-origin allow-scripts" : undefined}
         className="mirror-home-frame"
+        data-kn-map-url={contact?.mapEmbedUrl ?? ""}
       />
     </div>
   );

@@ -11,6 +11,7 @@ import type { ShopLocale } from "@/lib/i18n/locale";
 import type { MirrorFooterData } from "@/lib/mirror-footer-overlay";
 import type { MirrorNavItem } from "@/lib/mirror-nav-overlay";
 import type { InstagramFeedPostDTO } from "@/lib/instagram-feed-card";
+import type { MirrorContactData } from "@/lib/mirror-contact-overlay";
 
 function MirrorVitrinFrameInner({
   src,
@@ -23,6 +24,7 @@ function MirrorVitrinFrameInner({
   categoriesFromAdmin,
   instagramPosts,
   instagramFeedTitle,
+  contact,
 }: {
   src: string;
   title: string;
@@ -34,6 +36,7 @@ function MirrorVitrinFrameInner({
   categoriesFromAdmin?: VitrinCollectionCategoryOption[];
   instagramPosts?: InstagramFeedPostDTO[];
   instagramFeedTitle?: string;
+  contact?: MirrorContactData;
 }) {
   const hydration = useMirrorVitrinHydration();
   return (
@@ -52,6 +55,7 @@ function MirrorVitrinFrameInner({
       categoriesFromAdmin={categoriesFromAdmin}
       instagramPosts={instagramPosts}
       instagramFeedTitle={instagramFeedTitle}
+      contact={contact}
     />
   );
 }
@@ -68,6 +72,7 @@ export function MirrorVitrinFrameHost({
   categoriesFromAdmin,
   instagramPosts,
   instagramFeedTitle,
+  contact,
 }: {
   src: string;
   title: string;
@@ -80,6 +85,7 @@ export function MirrorVitrinFrameHost({
   categoriesFromAdmin?: VitrinCollectionCategoryOption[];
   instagramPosts?: InstagramFeedPostDTO[];
   instagramFeedTitle?: string;
+  contact?: MirrorContactData;
 }) {
   return (
     <MirrorVitrinHydrationProvider value={hydration}>
@@ -94,6 +100,7 @@ export function MirrorVitrinFrameHost({
         categoriesFromAdmin={categoriesFromAdmin}
         instagramPosts={instagramPosts}
         instagramFeedTitle={instagramFeedTitle}
+        contact={contact}
       />
     </MirrorVitrinHydrationProvider>
   );

@@ -1,15 +1,19 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { MirrorVitrinFrame } from "@/components/store/MirrorVitrinFrame";
 import { parseBlocks } from "@/lib/blocks/schema";
 import { getStoreMessages } from "@/lib/i18n/messages";
 import { getStoreLocale } from "@/lib/i18n/server";
 import { mirrorStaticPageHtmlExists } from "@/lib/mirror-html-path";
-import { isVitrinPageKey, type VitrinPageKey } from "@/lib/mirror-vitrin-pages";
+import {
+  MIRROR_CONTENT_PAGE_SLUGS,
+  isVitrinPageKey,
+  type VitrinPageKey,
+} from "@/lib/mirror-vitrin-pages";
 import { getHomepageMode, getSiteSettings } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
 import { getPageBySlug } from "@/lib/site";
 import { StorePublicBlocks } from "@/components/store/StorePublicBlocks";
+import { MirrorVitrinFrame } from "@/components/store/MirrorVitrinFrame";
 import { MirrorStaticPageFrame } from "@/components/store/MirrorStaticPageFrame";
 import { MirrorCmsPageFrame } from "@/components/store/MirrorCmsPageFrame";
 import { JsonLdScript } from "@/components/store/JsonLdScript";
@@ -19,6 +23,13 @@ import { resolveLegalSellerProfile } from "@/lib/legal/seller-profile";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { buildSiteMetadata } from "@/lib/site-metadata";
 import { resolveStoreBlockMessages } from "@/lib/store-static-texts";
+
+function isMirrorContentPageSlug(slug: string): slug is VitrinPageKey {
+  return (
+    isVitrinPageKey(slug) &&
+    (MIRROR_CONTENT_PAGE_SLUGS as readonly string[]).includes(slug)
+  );
+}
 
 export async function generateMetadata({
   params,
@@ -43,8 +54,8 @@ export default async function CmsPage({ params }: { params: Promise<{ slug: stri
   const settings = await getSiteSettings(site.id);
   const homepageMode = getHomepageMode(settings);
 
-  if (homepageMode === "mirror" && isVitrinPageKey(slug)) {
-    return <MirrorVitrinFrame pageKey={slug as VitrinPageKey} />;
+  if (homepageMode === "mirror" && isMirrorContentPageSlug(slug)) {
+    return <MirrorVitrinFrame pageKey={slug} />;
   }
 
   if (homepageMode === "mirror" && mirrorStaticPageHtmlExists(slug)) {
