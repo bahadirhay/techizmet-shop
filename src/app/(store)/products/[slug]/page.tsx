@@ -21,10 +21,9 @@ import { loadResolvedBundleComponents, buildComponentsSnapshot } from "@/lib/pro
 import { ProductGalleryMedia } from "@/components/store/ProductGalleryMedia";
 import { sanitizePublicHtml } from "@/lib/html-sanitize";
 import { getDefaultSite } from "@/lib/site";
-import { STORE_PUBLIC_REVALIDATE_SEC } from "@/lib/cache/store-cache";
 
 /** Ürün güncellemeleri revalidateStorePublicCache ile anında yansır */
-export const revalidate = STORE_PUBLIC_REVALIDATE_SEC;
+export const revalidate = 300;
 
 export async function generateStaticParams() {
   try {

@@ -6,8 +6,6 @@ import { parseSiteSettings } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
 import { prisma } from "@/lib/prisma";
 
-export const revalidate = 60;
-
 async function loadMaintenanceStatus(siteId: string) {
   const row = await prisma.storeSite.findUnique({
     where: { id: siteId },

@@ -18,8 +18,6 @@ import { WhatsappSiteWidgets } from "@/components/store/WhatsappSiteWidgets";
 import { getWhatsAppConfig } from "@/lib/whatsapp-settings";
 import "./globals.css";
 
-export const revalidate = 300;
-
 const poppins = Poppins({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
