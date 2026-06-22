@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { getCachedParsedSiteSettings } from "@/lib/cache/store-cache";
 import { getSiteBranding as getSiteBrandingCore } from "@/lib/site-settings-branding";
+import { getGoogleSwgSettings } from "@/lib/seo/google-swg-settings";
 import { prisma } from "@/lib/prisma";
 import { getDefaultSite } from "@/lib/site";
 import { getPaytrConfig } from "@/lib/payments/paytr";
@@ -367,12 +368,7 @@ export function getSiteSeo(settings: SiteSettings, siteName: string) {
     facebookPixelId: s.facebookPixelId?.trim() || "",
     robotsIndex: s.robotsIndex !== false,
     extraHeadHtml: s.extraHeadHtml?.trim() || "",
-    googleSwg: {
-      enabled: s.googleSwg?.enabled === true,
-      isPartOfProductId: s.googleSwg?.isPartOfProductId?.trim() || "",
-      theme: s.googleSwg?.theme === "dark" ? "dark" : "light",
-      lang: s.googleSwg?.lang?.trim() || "tr",
-    },
+    googleSwg: getGoogleSwgSettings(settings),
     staticPages: s.staticPages ?? {},
   };
 }
