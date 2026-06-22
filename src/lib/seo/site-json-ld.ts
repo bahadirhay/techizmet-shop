@@ -59,8 +59,10 @@ export function buildBlogPostingJsonLd(input: {
   path: string;
   imageUrl?: string | null;
   datePublished?: string | null;
+  dateModified?: string | null;
   author?: string | null;
   siteName: string;
+  articleSection?: string | null;
 }) {
   const origin = getPublicSiteUrl();
   const image = toAbsoluteMediaUrl(input.imageUrl, origin);
@@ -72,10 +74,59 @@ export function buildBlogPostingJsonLd(input: {
     ...(input.description?.trim() ? { description: input.description.trim().slice(0, 2000) } : {}),
     ...(image ? { image } : {}),
     ...(input.datePublished ? { datePublished: input.datePublished } : {}),
+    ...(input.dateModified ? { dateModified: input.dateModified } : {}),
+    ...(input.articleSection?.trim() ? { articleSection: input.articleSection.trim() } : {}),
     ...(input.author?.trim()
       ? { author: { "@type": "Person", name: input.author.trim() } }
       : { author: { "@type": "Organization", name: input.siteName } }),
     publisher: { "@type": "Organization", name: input.siteName, url: origin },
     mainEntityOfPage: toAbsoluteUrl(input.path, origin),
+  };
+}
+
+/** Google Haberler / SWG ile uyumlu haber şeması */
+export function buildNewsArticleJsonLd(input: {
+  headline: string;
+  description?: string | null;
+  path: string;
+  imageUrl?: string | null;
+  datePublished?: string | null;
+  dateModified?: string | null;
+  author?: string | null;
+  siteName: string;
+  settings: SiteSettings;
+  articleSection?: string | null;
+}) {
+  const origin = getPublicSiteUrl();
+  const seo = getSiteSeo(input.settings, input.siteName);
+  const branding = getSiteBranding(input.settings);
+  const image = toAbsoluteMediaUrl(input.imageUrl, origin);
+  const logo = toAbsoluteMediaUrl(branding.logoUrl, origin);
+  const publisherName = seo.organizationName?.trim() || input.siteName;
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "NewsArticle",
+    headline: input.headline,
+    url: toAbsoluteUrl(input.path, origin),
+    ...(input.description?.trim() ? { description: input.description.trim().slice(0, 2000) } : {}),
+    ...(image ? { image: [image] } : {}),
+    ...(input.datePublished ? { datePublished: input.datePublished } : {}),
+    ...(input.dateModified ? { dateModified: input.dateModified } : {}),
+    ...(input.articleSection?.trim() ? { articleSection: input.articleSection.trim() } : {}),
+    ...(input.author?.trim()
+      ? { author: { "@type": "Person", name: input.author.trim() } }
+      : { author: { "@type": "Organization", name: publisherName } }),
+    publisher: {
+      "@type": "Organization",
+      name: publisherName,
+      url: origin,
+      ...(logo ? { logo: { "@type": "ImageObject", url: logo } } : {}),
+    },
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": toAbsoluteUrl(input.path, origin),
+    },
+    isAccessibleForFree: true,
   };
 }

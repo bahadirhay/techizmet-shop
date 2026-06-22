@@ -12,6 +12,7 @@ export type BlogPostRecord = {
   imageUrl: string | null;
   author: string | null;
   publishedAt: Date | null;
+  updatedAt?: Date | null;
   published: boolean;
   featuredOnHome: boolean;
   sortOrder: number;

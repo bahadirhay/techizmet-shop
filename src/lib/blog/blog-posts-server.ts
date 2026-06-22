@@ -23,6 +23,7 @@ const select = {
   imageUrl: true,
   author: true,
   publishedAt: true,
+  updatedAt: true,
   published: true,
   featuredOnHome: true,
   sortOrder: true,
