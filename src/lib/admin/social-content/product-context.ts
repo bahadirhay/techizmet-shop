@@ -35,7 +35,7 @@ export async function loadSocialProductContext(
       imageUrl: true,
       images: { orderBy: { sortOrder: "asc" }, select: { url: true, mediaType: true } },
       category: { select: { title: true } },
-      brand: { select: { title: true } },
+      brand: { select: { name: true } },
     },
   });
   if (!product) return null;
@@ -62,7 +62,7 @@ export async function loadSocialProductContext(
     compareAtLabel: product.compareAtMinor ? formatTry(product.compareAtMinor) : null,
     imageUrls: media,
     categoryTitle: product.category?.title ?? null,
-    brandTitle: product.brand?.title ?? null,
+    brandTitle: product.brand?.name ?? null,
     campaignNote,
   };
 }
