@@ -110,6 +110,22 @@ async function tenantFromProxyHeaders(): Promise<StoreTenant | null> {
   const databaseUrlEnv = h.get("x-store-database-url-env")?.trim();
   if (!slug || !publicOrigin) return null;
 
+  // Proxy host eşlemesi güvenilir — her istekte DB doğrulaması yapma
+  if (databaseUrlEnv || slug === "anatolianpaw" || slug === "demo") {
+    return {
+      slug,
+      publicOrigin,
+      databaseUrl: databaseUrlFromEnv(
+        databaseUrlEnv ||
+          (slug === "anatolianpaw"
+            ? "DATABASE_URL_ANATOLIANPAW"
+            : slug === "demo"
+              ? "DATABASE_URL_DEMO"
+              : undefined),
+      ),
+    };
+  }
+
   if (slug === "demo") {
     const resolved = await tryResolveDemoTenant(publicOrigin);
     if (resolved) return resolved;

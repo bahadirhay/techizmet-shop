@@ -9,6 +9,10 @@ import { mirrorStaticRewrite } from "@/lib/mirror-static-rewrite";
 import { vitrinPageKeyFromMirrorFileRel } from "@/lib/mirror-vitrin-pages";
 import { isDemoShopHost, normalizeRequestHost, resolveStoreHostTenant } from "@/lib/store-tenant-hosts";
 
+/** Edge örneği başına — her istekte /api/site/maintenance çağrısını önler */
+let maintenanceCache: { at: number; enabled: boolean } | null = null;
+const MAINTENANCE_CACHE_MS = 60_000;
+
 function shopHostRequestHeaders(request: NextRequest): Headers {
   const host = normalizeRequestHost(request.headers.get("host") ?? "");
   const requestHeaders = new Headers(request.headers);
@@ -55,14 +59,20 @@ function attachLocaleOnNext(request: NextRequest, locale: ShopLocale, pathname: 
 
 async function isStoreInMaintenance(request: NextRequest): Promise<boolean> {
   if (process.env.NODE_ENV === "development") return false;
+  const now = Date.now();
+  if (maintenanceCache && now - maintenanceCache.at < MAINTENANCE_CACHE_MS) {
+    return maintenanceCache.enabled;
+  }
   try {
     const url = new URL("/api/site/maintenance", request.url);
-    const res = await fetch(url, { cache: "no-store" });
+    const res = await fetch(url, { next: { revalidate: 60 } });
     if (!res.ok) return false;
     const data = (await res.json()) as { enabled?: boolean };
-    return data.enabled === true;
+    const enabled = data.enabled === true;
+    maintenanceCache = { at: now, enabled };
+    return enabled;
   } catch {
-    return false;
+    return maintenanceCache?.enabled ?? false;
   }
 }
 

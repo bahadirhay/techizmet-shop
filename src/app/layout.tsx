@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { headers } from "next/headers";
 import { Poppins } from "next/font/google";
 import { CookieConsentBanner } from "@/components/store/CookieConsentBanner";
 import { ConsentAwareAnalytics } from "@/components/store/ConsentAwareAnalytics";
@@ -36,15 +37,19 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const gaId = safeGoogleAnalyticsId(seo.googleAnalyticsId);
   const wa = getWhatsAppConfig(settings);
   const siteJsonLd = [buildOrganizationJsonLd(settings, site.name), buildWebSiteJsonLd(settings, site.name)];
-  const mirrorHomePreload = await resolveStoreMirrorIframeSrcForRequest(
-    "theme/techizmet-shop/mirror/index-tr.html",
-    "home",
-  );
+  const pathname = (await headers()).get("x-pathname") ?? "/";
+  const isAdminOrApi = pathname.startsWith("/admin") || pathname.startsWith("/api");
+  const mirrorHomePreload = isAdminOrApi
+    ? null
+    : await resolveStoreMirrorIframeSrcForRequest(
+        "theme/techizmet-shop/mirror/index-tr.html",
+        "home",
+      );
 
   return (
     <html lang="tr">
       <head>
-        <link rel="preload" href={mirrorHomePreload} as="document" />
+        {mirrorHomePreload ? <link rel="preload" href={mirrorHomePreload} as="document" /> : null}
         {gaId ? (
           <>
             <script async src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} />

@@ -9,10 +9,10 @@ import { localeFromCookieValue } from "@/lib/i18n/locale";
 import { getStoreHomepageBlocks } from "@/lib/store-homepage-blocks";
 import { getHomepageMode, getSiteSeo } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
+import { STORE_PUBLIC_REVALIDATE_SEC } from "@/lib/cache/store-cache";
 import { resolveStoreBlockMessages } from "@/lib/store-static-texts";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const revalidate = STORE_PUBLIC_REVALIDATE_SEC;
 
 export async function generateMetadata(): Promise<Metadata> {
   const site = await getDefaultSite();

@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { useState } from "react";
 import { inputClass, AdminField, btnPrimary } from "@/components/admin/AdminForm";
+import { CounterpartyOcrScan } from "@/components/admin/CounterpartyOcrScan";
 import { SiteMemberSearchField } from "@/components/admin/SiteMemberSearchField";
 import type { CustomerCounterpartyPrefill } from "@/lib/finance/customer-counterparty-prefill";
+import type { CounterpartyOcrFields } from "@/lib/finance/parse-counterparty-ocr";
 
 type Counterparty = { id: string; type: string; title: string; taxId: string | null };
 type Category = { id: string; name: string; kind: string };
@@ -81,6 +83,32 @@ export function FinanceMasterDataManager({
       city: member.city ?? "",
       district: member.district ?? "",
     }));
+  }
+
+  function applyOcr(fields: CounterpartyOcrFields) {
+    setCpForm((f) => {
+      if (f.type === "site_member") {
+        return {
+          ...f,
+          taxId: fields.taxId ?? f.taxId,
+          taxOffice: fields.taxOffice ?? f.taxOffice,
+          addressLine: fields.addressLine ?? f.addressLine,
+          city: fields.city ?? f.city,
+          district: fields.district ?? f.district,
+        };
+      }
+      return {
+        ...f,
+        title: fields.title ?? f.title,
+        taxId: fields.taxId ?? f.taxId,
+        taxOffice: fields.taxOffice ?? f.taxOffice,
+        addressLine: fields.addressLine ?? f.addressLine,
+        city: fields.city ?? f.city,
+        district: fields.district ?? f.district,
+        email: fields.email ?? f.email,
+        phone: fields.phone ?? f.phone,
+      };
+    });
   }
   const [catForm, setCatForm] = useState({ name: "", kind: "expense" });
   const [accForm, setAccForm] = useState({ name: "", kind: "bank" });
@@ -177,6 +205,11 @@ export function FinanceMasterDataManager({
               </>
             ) : null}
 
+            <CounterpartyOcrScan
+              onResult={applyOcr}
+              disabled={cpForm.type === "site_member" && !selectedMember}
+            />
+
             <AdminField label="Ünvan / ad">
               <input
                 className={inputClass}
@@ -220,6 +253,34 @@ export function FinanceMasterDataManager({
                 />
               </AdminField>
             </div>
+            {cpForm.type === "external_manual" ? (
+              <>
+                <AdminField label="Adres">
+                  <input
+                    className={inputClass}
+                    value={cpForm.addressLine}
+                    onChange={(e) => setCpForm((f) => ({ ...f, addressLine: e.target.value }))}
+                    placeholder="Mahalle, cadde, bina no"
+                  />
+                </AdminField>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <AdminField label="İlçe">
+                    <input
+                      className={inputClass}
+                      value={cpForm.district}
+                      onChange={(e) => setCpForm((f) => ({ ...f, district: e.target.value }))}
+                    />
+                  </AdminField>
+                  <AdminField label="İl">
+                    <input
+                      className={inputClass}
+                      value={cpForm.city}
+                      onChange={(e) => setCpForm((f) => ({ ...f, city: e.target.value }))}
+                    />
+                  </AdminField>
+                </div>
+              </>
+            ) : null}
             {cpForm.type === "site_member" && selectedMember ? (
               <div className="rounded-lg border border-zinc-100 bg-zinc-50 p-3 text-sm text-zinc-600">
                 {cpForm.addressLine ? (

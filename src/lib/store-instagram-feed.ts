@@ -1,9 +1,11 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
 import type { InstagramFeedPostDTO } from "@/lib/instagram-feed-card";
+import { STORE_PUBLIC_REVALIDATE_SEC, storeMirrorTag } from "@/lib/cache/store-cache";
 import { prisma } from "@/lib/prisma";
 
-export async function getStoreInstagramFeedPosts(siteId: string): Promise<InstagramFeedPostDTO[]> {
+async function loadStoreInstagramFeedPosts(siteId: string): Promise<InstagramFeedPostDTO[]> {
   const rows = await prisma.storeInstagramPost.findMany({
     where: { siteId, published: true },
     orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
@@ -22,4 +24,12 @@ export async function getStoreInstagramFeedPosts(siteId: string): Promise<Instag
     },
   });
   return rows;
+}
+
+export function getStoreInstagramFeedPosts(siteId: string): Promise<InstagramFeedPostDTO[]> {
+  return unstable_cache(
+    () => loadStoreInstagramFeedPosts(siteId),
+    ["store-instagram-feed", siteId],
+    { revalidate: STORE_PUBLIC_REVALIDATE_SEC, tags: [storeMirrorTag(siteId)] },
+  )();
 }
