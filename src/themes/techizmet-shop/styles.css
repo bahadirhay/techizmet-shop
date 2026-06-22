@@ -2029,16 +2029,20 @@
   padding-top: 2rem;
   padding-bottom: 4rem;
 }
-.kn-blog-article__nav {
-  margin-bottom: 1.5rem;
-  font-size: 0.875rem;
+.kn-blog-article__crumb {
+  margin-bottom: 1.25rem;
+  font-size: 0.8125rem;
+  color: #666;
 }
-.kn-blog-article__nav a {
+.kn-blog-article__crumb a {
   color: var(--kn-brand, #6d28d9);
   text-decoration: none;
 }
-.kn-blog-article__nav a:hover {
+.kn-blog-article__crumb a:hover {
   text-decoration: underline;
+}
+.kn-blog-article__crumb [aria-current="page"] {
+  color: #333;
 }
 .kn-blog-article__title {
   font-size: clamp(1.75rem, 4vw, 2.25rem);

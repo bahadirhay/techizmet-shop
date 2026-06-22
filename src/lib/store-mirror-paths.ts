@@ -7,7 +7,6 @@ export function isMirrorShellPath(pathname: string): boolean {
     pathname.startsWith("/products/") ||
     pathname.startsWith("/pages/") ||
     pathname === "/blogs/news" ||
-    pathname.startsWith("/blogs/news/") ||
     pathname === "/account" ||
     pathname === "/account/login" ||
     pathname === "/account/register" ||

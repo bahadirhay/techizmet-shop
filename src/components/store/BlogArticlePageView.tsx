@@ -49,8 +49,12 @@ export function BlogArticlePageView({
 
   return (
     <article className="kn-section kn-blog-article" itemScope itemType="https://schema.org/NewsArticle">
-      <nav className="kn-blog-article__nav" aria-label="Blog">
-        <Link href="/blogs/news">← Blog</Link>
+      <nav className="kn-blog-article__crumb" aria-label="Konum">
+        <Link href="/">Ana sayfa</Link>
+        <span aria-hidden="true"> / </span>
+        <Link href="/blogs/news">Blog</Link>
+        <span aria-hidden="true"> / </span>
+        <span aria-current="page">{title}</span>
       </nav>
 
       <header className="kn-blog-article__header">

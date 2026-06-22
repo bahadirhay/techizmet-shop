@@ -43,16 +43,21 @@ export function splitBlogItemHtmlParts(html: string): BlogItemHtmlParts {
 }
 
 /** Yalnızca blog görsel / başlık linkleri — global href değiştirme footer’ı bozar */
-export function patchBlogLinksInChunk(chunk: string, href: string): string {
+export function patchBlogLinksInChunk(
+  chunk: string,
+  href: string,
+  openInNewTab = false,
+): string {
   const safe = href.replace(/"/g, "&quot;");
+  const tabAttrs = openInNewTab ? ` target="_blank" rel="noopener noreferrer"` : "";
   let out = chunk;
   out = out.replace(
     /(<a[^>]*class="[^"]*blog--(?:image|title)[^"]*"[^>]*href=")[^"]*(")/gi,
-    `$1${safe}$2`,
+    `$1${safe}$2${tabAttrs}`,
   );
   out = out.replace(
     /(<a[^>]*href=")[^"]*("[^>]*class="[^"]*blog--(?:image|title)[^"]*")/gi,
-    `$1${safe}$2`,
+    `$1${safe}$2${tabAttrs}`,
   );
   return out;
 }

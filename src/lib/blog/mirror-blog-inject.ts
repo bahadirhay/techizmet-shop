@@ -73,9 +73,10 @@ function patchBlogItemChunk(
     dateLabel?: string;
     author?: string;
   },
+  opts?: { openInNewTab?: boolean },
 ) {
   const href = blogPostHref(post.slug);
-  let out = patchBlogLinksInChunk(chunk, href);
+  let out = patchBlogLinksInChunk(chunk, href, opts?.openInNewTab === true);
   if (post.imageUrl?.trim()) out = setBlogImageInHtmlChunk(out, post.imageUrl.trim(), post.title);
   out = out.replace(
     /class="blog--title[^"]*"[^>]*>[\s\S]*?<\/a>/i,
@@ -122,7 +123,7 @@ export function applyBlogCardsToHtml(
 
   for (let i = 0; i < posts.length; i++) {
     const chunk = items[i] ?? template;
-    patched.push(patchBlogItemChunk(chunk, posts[i]!));
+    patched.push(patchBlogItemChunk(chunk, posts[i]!, { openInNewTab: true }));
   }
 
   for (let i = posts.length; i < items.length; i++) {
