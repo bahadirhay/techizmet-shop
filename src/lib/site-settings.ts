@@ -218,6 +218,8 @@ export type SiteSettings = {
     facebookPixelId?: string;
     robotsIndex?: boolean;
     extraHeadHtml?: string;
+    /** Google Haberler — Subscribe with Google Basic (blog sayfaları) */
+    googleSwg?: import("@/lib/seo/google-swg-settings").GoogleSwgSettings;
     /** Koleksiyon listesi, blog listesi vb. sabit sayfa meta */
     staticPages?: Record<
       string,
@@ -365,6 +367,12 @@ export function getSiteSeo(settings: SiteSettings, siteName: string) {
     facebookPixelId: s.facebookPixelId?.trim() || "",
     robotsIndex: s.robotsIndex !== false,
     extraHeadHtml: s.extraHeadHtml?.trim() || "",
+    googleSwg: {
+      enabled: s.googleSwg?.enabled === true,
+      isPartOfProductId: s.googleSwg?.isPartOfProductId?.trim() || "",
+      theme: s.googleSwg?.theme === "dark" ? "dark" : "light",
+      lang: s.googleSwg?.lang?.trim() || "tr",
+    },
     staticPages: s.staticPages ?? {},
   };
 }

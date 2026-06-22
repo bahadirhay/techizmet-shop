@@ -87,6 +87,10 @@ export function mergeSiteSettings(current: SiteSettings, patch: SiteSettings): S
             patch.seo.staticPages !== undefined
               ? { ...current.seo?.staticPages, ...patch.seo.staticPages }
               : current.seo?.staticPages,
+          googleSwg:
+            patch.seo.googleSwg !== undefined
+              ? { ...current.seo?.googleSwg, ...patch.seo.googleSwg }
+              : current.seo?.googleSwg,
         }
       : current.seo,
     payment: patch.payment

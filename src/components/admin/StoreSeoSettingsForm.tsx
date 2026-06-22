@@ -26,6 +26,12 @@ export function StoreSeoSettingsForm({
       facebookPixelId: string;
       robotsIndex: boolean;
       extraHeadHtml: string;
+      googleSwg: {
+        enabled: boolean;
+        isPartOfProductId: string;
+        theme: "light" | "dark";
+        lang: string;
+      };
     };
   };
   siteUrl: string;
@@ -192,6 +198,73 @@ export function StoreSeoSettingsForm({
       <SiteSeoAuditPanel />
 
       <section className="admin-card admin-card-pad space-y-4">
+        <h2 className="text-lg font-semibold">Google Haberler (blog)</h2>
+        <p className="text-sm text-zinc-600">
+          Subscribe with Google Basic etiketi yalnızca <strong>/blogs/news</strong> listesi ve blog yazı
+          sayfalarına eklenir. Publisher Center başvurusu için RSS beslemesi:{" "}
+          <a href="/blogs/news/feed.xml" target="_blank" rel="noreferrer" className="text-[var(--kn-brand)] underline">
+            /blogs/news/feed.xml
+          </a>
+        </p>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={seo.googleSwg.enabled}
+            onChange={(e) =>
+              setSeo((s) => ({
+                ...s,
+                googleSwg: { ...s.googleSwg, enabled: e.target.checked },
+              }))
+            }
+          />
+          SWG Basic etiketini blog sayfalarında etkinleştir
+        </label>
+        <AdminField label="isPartOfProductId (Publisher Center)">
+          <input
+            className={inputClass}
+            value={seo.googleSwg.isPartOfProductId}
+            onChange={(e) =>
+              setSeo((s) => ({
+                ...s,
+                googleSwg: { ...s.googleSwg, isPartOfProductId: e.target.value.trim() },
+              }))
+            }
+            placeholder="CAow6d_LDA:openaccess"
+          />
+        </AdminField>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <AdminField label="Tema">
+            <select
+              className={inputClass}
+              value={seo.googleSwg.theme}
+              onChange={(e) =>
+                setSeo((s) => ({
+                  ...s,
+                  googleSwg: { ...s.googleSwg, theme: e.target.value as "light" | "dark" },
+                }))
+              }
+            >
+              <option value="light">Açık</option>
+              <option value="dark">Koyu</option>
+            </select>
+          </AdminField>
+          <AdminField label="Dil">
+            <input
+              className={inputClass}
+              value={seo.googleSwg.lang}
+              onChange={(e) =>
+                setSeo((s) => ({
+                  ...s,
+                  googleSwg: { ...s.googleSwg, lang: e.target.value.trim() || "tr" },
+                }))
+              }
+              placeholder="tr"
+            />
+          </AdminField>
+        </div>
+      </section>
+
+      <section className="admin-card admin-card-pad space-y-4">
         <h2 className="text-lg font-semibold">İzleme & piksel</h2>
         <AdminField label="Google Analytics / Google etiketi (G-XXXXXXXX)">
           <input
@@ -221,6 +294,10 @@ export function StoreSeoSettingsForm({
             onChange={(e) => setSeo((s) => ({ ...s, extraHeadHtml: e.target.value }))}
           />
         </AdminField>
+        <p className="text-xs text-zinc-500">
+          Yalnızca <code>meta</code> ve <code>link</code> etiketleri (doğrulama vb.). Script kodları buraya
+          yapıştırılamaz; blog için Google Haberler bölümünü kullanın.
+        </p>
       </section>
 
       {msg ? <p className="text-sm text-zinc-600">{msg}</p> : null}
