@@ -13,6 +13,7 @@ export async function GET() {
     blogAutomation: cronJobStale(health.jobs.blogAutomation, 96),
     gscSync: cronJobStale(health.jobs.gscSync, 30),
     seoDistribution: cronJobStale(health.jobs.seoDistribution, 26),
+    socialPublish: cronJobStale(health.jobs.socialPublish, 1),
   };
 
   return NextResponse.json({ ...health, stale });

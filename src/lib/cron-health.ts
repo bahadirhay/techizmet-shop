@@ -9,7 +9,8 @@ export type CronJobId =
   | "marketplaceOrders"
   | "blogAutomation"
   | "gscSync"
-  | "seoDistribution";
+  | "seoDistribution"
+  | "socialPublish";
 
 export type CronRunRecord = {
   jobId: CronJobId;
@@ -36,6 +37,8 @@ const SCHEDULES: Record<CronJobId, string> = {
     "Harici zamanlayıcı — GET /api/cron/gsc/sync?secret=CRON_SECRET&days=7 (öneri: her gün 06:00)",
   seoDistribution:
     "Harici zamanlayıcı — GET /api/cron/seo/distribution?secret=CRON_SECRET (öneri: her gün 05:30)",
+  socialPublish:
+    "Harici zamanlayıcı — GET /api/cron/social/publish?secret=CRON_SECRET (öneri: her 15 dk)",
 };
 
 function getOps(settings: SiteSettings) {

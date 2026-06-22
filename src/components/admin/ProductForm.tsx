@@ -16,6 +16,7 @@ import { ProductExploreEditor } from "@/components/admin/ProductExploreEditor";
 import { ProductHighlightsEditor } from "@/components/admin/ProductHighlightsEditor";
 import { ProductSeoHealthPanel } from "@/components/admin/ProductSeoHealthPanel";
 import { ProductSeoOptimizer } from "@/components/admin/ProductSeoOptimizer";
+import { ProductSocialContentPanel } from "@/components/admin/ProductSocialContentPanel";
 import { ProductProfitEstimate } from "@/components/admin/ProductProfitEstimate";
 import { ProductCompetitorPrices } from "@/components/admin/ProductCompetitorPrices";
 import { VatRateSelect } from "@/components/admin/VatRateSelect";
@@ -908,6 +909,10 @@ export function ProductForm({
           Yayında
         </label>
       </div>
+
+      {form.id && form.published ? (
+        <ProductSocialContentPanel productId={form.id} productTitle={form.title || "Ürün"} />
+      ) : null}
 
       {err ? <p className="text-sm text-red-600">{err}</p> : null}
       <button type="button" className={btnPrimary} disabled={busy} onClick={save}>

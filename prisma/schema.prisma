@@ -61,6 +61,7 @@ model StoreSite {
   streetFoodCampaigns      StreetFoodCampaign[]
   streetFoodContributions  StreetFoodContribution[]
   streetFoodDonations      StreetFoodDonation[]
+  socialContentDrafts      SocialContentDraft[]
 
   @@map("site")
   @@schema("shop")
@@ -91,6 +92,39 @@ model StoreBlogPost {
   @@unique([siteId, slug])
   @@index([siteId, published, sortOrder])
   @@map("blog_post")
+  @@schema("shop")
+}
+
+model SocialContentDraft {
+  id            String    @id @default(cuid())
+  siteId        String
+  site          StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  productId     String
+  product       StoreProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  platform      String
+  format        String    @default("post")
+  status        String    @default("draft")
+  title         String?
+  caption       String?
+  hook          String?
+  script        String?
+  body          String?
+  hashtagsJson  String?
+  cta           String?
+  productUrl    String?
+  mediaUrlsJson String?
+  aiProvider    String?
+  publishedUrl  String?
+  publishedAt   DateTime?
+  publishError  String?
+  scheduledAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([siteId, productId, platform])
+  @@index([siteId, status])
+  @@index([siteId, productId])
+  @@map("social_content_draft")
   @@schema("shop")
 }
 
@@ -456,6 +490,7 @@ model StoreProduct {
   marketplaceListings MarketplaceProductListing[]
   bundleComponents   StoreBundleComponent[] @relation("BundleItems")
   bundleMemberships  StoreBundleComponent[] @relation("BundleComponentOf")
+  socialContentDrafts SocialContentDraft[]
 
   @@unique([siteId, slug])
   @@index([siteId, sku])

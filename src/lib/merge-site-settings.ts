@@ -36,6 +36,29 @@ function mergeGeliverSettings(
   return next;
 }
 
+function mergeSocialPublishSettings(
+  current: SiteSettings["socialPublish"] | undefined,
+  patch: SiteSettings["socialPublish"] | undefined,
+): SiteSettings["socialPublish"] | undefined {
+  if (!patch) return current;
+  const next = {
+    ...current,
+    ...patch,
+    meta: patch.meta ? { ...current?.meta, ...patch.meta } : current?.meta,
+    tiktok: patch.tiktok ? { ...current?.tiktok, ...patch.tiktok } : current?.tiktok,
+    youtube: patch.youtube ? { ...current?.youtube, ...patch.youtube } : current?.youtube,
+    linkedin: patch.linkedin ? { ...current?.linkedin, ...patch.linkedin } : current?.linkedin,
+  };
+  if (!patch.meta?.accessToken?.trim()) next.meta = { ...next.meta, accessToken: current?.meta?.accessToken };
+  if (!patch.tiktok?.accessToken?.trim()) next.tiktok = { ...next.tiktok, accessToken: current?.tiktok?.accessToken };
+  if (!patch.tiktok?.refreshToken?.trim()) next.tiktok = { ...next.tiktok, refreshToken: current?.tiktok?.refreshToken };
+  if (!patch.tiktok?.clientSecret?.trim()) next.tiktok = { ...next.tiktok, clientSecret: current?.tiktok?.clientSecret };
+  if (!patch.youtube?.refreshToken?.trim()) next.youtube = { ...next.youtube, refreshToken: current?.youtube?.refreshToken };
+  if (!patch.youtube?.clientSecret?.trim()) next.youtube = { ...next.youtube, clientSecret: current?.youtube?.clientSecret };
+  if (!patch.linkedin?.accessToken?.trim()) next.linkedin = { ...next.linkedin, accessToken: current?.linkedin?.accessToken };
+  return next;
+}
+
 /** PATCH gövdesi — iç içe theme/branding/seo kaybını önler */
 export function mergeSiteSettings(current: SiteSettings, patch: SiteSettings): SiteSettings {
   return {
@@ -150,5 +173,8 @@ export function mergeSiteSettings(current: SiteSettings, patch: SiteSettings): S
       ? { ...current.streetFoodFund, ...patch.streetFoodFund }
       : current.streetFoodFund,
     geliver: patch.geliver ? mergeGeliverSettings(current.geliver, patch.geliver) : current.geliver,
+    socialPublish: patch.socialPublish
+      ? mergeSocialPublishSettings(current.socialPublish, patch.socialPublish)
+      : current.socialPublish,
   };
 }

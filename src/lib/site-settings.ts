@@ -253,6 +253,42 @@ export type SiteSettings = {
   geliver?: import("@/lib/shipping/geliver/types").GeliverSiteSettings;
   /** Sokak dostları mama fonu */
   streetFoodFund?: import("@/lib/street-food-fund/types").StreetFoodFundSettings;
+  /** Sosyal medya otomatik yayın — Meta, TikTok, YouTube, LinkedIn */
+  socialPublish?: StoreSocialPublishSettings;
+};
+
+export type StoreSocialPublishSettings = {
+  meta?: {
+    enabled?: boolean;
+    /** Uzun ömürlü sayfa erişim jetonu */
+    accessToken?: string;
+    /** Facebook Sayfa ID */
+    pageId?: string;
+    /** Instagram Business hesap ID (IG User ID) */
+    instagramAccountId?: string;
+  };
+  tiktok?: {
+    enabled?: boolean;
+    clientKey?: string;
+    clientSecret?: string;
+    accessToken?: string;
+    refreshToken?: string;
+    openId?: string;
+  };
+  youtube?: {
+    enabled?: boolean;
+    clientId?: string;
+    clientSecret?: string;
+    refreshToken?: string;
+    /** OAuth ile alınan kanal ID */
+    channelId?: string;
+  };
+  linkedin?: {
+    enabled?: boolean;
+    accessToken?: string;
+    /** urn:li:organization:123 veya urn:li:person:123 */
+    authorUrn?: string;
+  };
 };
 
 export type SeoAiProvider = "auto" | "gemini" | "openai" | "claude";
