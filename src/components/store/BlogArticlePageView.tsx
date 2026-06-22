@@ -18,6 +18,13 @@ function blogHeroImage(post: BlogPostRecord): string | null {
   return toAbsoluteMediaUrl(normalized) ?? normalized;
 }
 
+/** Otomasyonun body'ye eklediği kapak — üstte ayrı gösterilince çift görsel olmasın */
+function stripBodyCoverFigure(html: string): string {
+  return html
+    .replace(/<figure[^>]*\bkn-blog-hero\b[^>]*>[\s\S]*?<\/figure>\s*/gi, "")
+    .trim();
+}
+
 /** Blog yazısı — doğrudan HTML (Google / Haberler için iframe yok) */
 export function BlogArticlePageView({
   post,
@@ -34,7 +41,11 @@ export function BlogArticlePageView({
   const dateLabel = formatBlogDateLabel(post.publishedAt, locale);
   const author = post.author?.trim() || siteName;
   const hero = blogHeroImage(post);
-  const safeBody = bodyHtml ? sanitizePublicHtml(bodyHtml) : "";
+  let bodyPrepared = bodyHtml;
+  if (hero && bodyPrepared) {
+    bodyPrepared = stripBodyCoverFigure(bodyPrepared);
+  }
+  const safeBody = bodyPrepared ? sanitizePublicHtml(bodyPrepared) : "";
 
   return (
     <article className="kn-section kn-blog-article" itemScope itemType="https://schema.org/NewsArticle">
