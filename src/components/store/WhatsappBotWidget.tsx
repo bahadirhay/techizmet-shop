@@ -48,11 +48,14 @@ export function WhatsappBotWidget() {
   const [pathLabels, setPathLabels] = useState<string[]>([]);
   const [options, setOptions] = useState<WhatsAppBotNodeTree[]>([]);
   const [orderForm, setOrderForm] = useState<OrderFormState | null>(null);
-  const [customerDetail, setCustomerDetail] = useState("");
+  const [orderNumber, setOrderNumber] = useState("");
+  const [orderEmail, setOrderEmail] = useState("");
+  const [orderLookupSummary, setOrderLookupSummary] = useState<string | null>(null);
   const [freeMessage, setFreeMessage] = useState("");
   const [detailError, setDetailError] = useState<string | null>(null);
   const [freeError, setFreeError] = useState<string | null>(null);
   const [opening, setOpening] = useState(false);
+  const [lookupBusy, setLookupBusy] = useState(false);
   const [statusText, setStatusText] = useState<string | null>(null);
 
   const loadConfig = useCallback(async () => {
@@ -73,7 +76,9 @@ export function WhatsappBotWidget() {
     setPathLabels([]);
     setOptions(cfg.tree ?? []);
     setOrderForm(null);
-    setCustomerDetail("");
+    setOrderNumber("");
+    setOrderEmail("");
+    setOrderLookupSummary(null);
     setFreeMessage("");
     setDetailError(null);
     setFreeError(null);
@@ -125,7 +130,9 @@ export function WhatsappBotWidget() {
   function enterOrderForm(path: string[], topics: WhatsAppBotNodeTree[], selected: WhatsAppBotNodeTree) {
     setPathLabels(path);
     setOrderForm({ path, topics, selected });
-    setCustomerDetail("");
+    setOrderNumber("");
+    setOrderEmail("");
+    setOrderLookupSummary(null);
     setFreeMessage("");
     setDetailError(null);
     setView("order");
@@ -180,20 +187,56 @@ export function WhatsappBotWidget() {
     void openWhatsApp(msg, nextPath);
   }
 
-  async function submitOrderForm() {
+  async function lookupOrder() {
     if (!orderForm) return;
-    const detail = customerDetail.trim();
-    if (!detail) {
-      setDetailError("Sipariş numarası veya e-posta gerekli.");
+    const num = orderNumber.trim();
+    const email = orderEmail.trim().toLowerCase();
+    if (!num) {
+      setDetailError("Sipariş numarası gerekli.");
+      return;
+    }
+    if (!email || !email.includes("@")) {
+      setDetailError("Geçerli bir e-posta adresi girin.");
+      return;
+    }
+
+    setLookupBusy(true);
+    setDetailError(null);
+    setOrderLookupSummary(null);
+    setStatusText(null);
+    try {
+      const res = await fetch("/api/whatsapp/order-lookup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderNumber: num, email }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { summary?: string; error?: string };
+      if (!res.ok) {
+        setDetailError(data.error ?? "Sipariş bulunamadı.");
+        return;
+      }
+      setOrderLookupSummary(data.summary?.trim() || "Sipariş bilgileri alındı.");
+    } finally {
+      setLookupBusy(false);
+    }
+  }
+
+  async function continueOrderToWhatsApp() {
+    if (!orderForm) return;
+    const num = orderNumber.trim();
+    const email = orderEmail.trim().toLowerCase();
+    if (!num || !email) {
+      setDetailError("Önce sipariş numarası ve e-posta ile sorgulayın.");
       return;
     }
 
     const template = resolveOrderTemplate(orderForm.selected);
     const extra = freeMessage.trim();
-    const message = appendCustomerDetailToMessage(
-      extra ? `${template}\n\n${extra}` : template,
-      detail,
-    );
+    const detailLine = `Sipariş no: ${num}\nE-posta: ${email}`;
+    const withLookup = orderLookupSummary
+      ? `${template}\n\n${orderLookupSummary}\n\n${detailLine}`
+      : appendCustomerDetailToMessage(template, `${num} / ${email}`);
+    const message = extra ? `${withLookup}\n\n${extra}` : withLookup;
     const leafPath =
       orderForm.topics.length > 1
         ? [...orderForm.path, orderForm.selected.label]
@@ -211,7 +254,9 @@ export function WhatsappBotWidget() {
     if (view === "order") {
       const parentPath = orderForm?.path.slice(0, -1) ?? [];
       setOrderForm(null);
-      setCustomerDetail("");
+      setOrderNumber("");
+      setOrderEmail("");
+      setOrderLookupSummary(null);
       setFreeMessage("");
       setPathLabels(parentPath);
       if (parentPath.length === 0) {
@@ -373,13 +418,7 @@ export function WhatsappBotWidget() {
             ) : null}
 
             {view === "order" && orderForm ? (
-              <form
-                className="space-y-4"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  void submitOrderForm();
-                }}
-              >
+              <div className="space-y-4">
                 <p className="text-sm leading-relaxed text-zinc-600">{ORDER_FORM_HINT}</p>
 
                 {orderForm.topics.length > 1 ? (
@@ -394,9 +433,10 @@ export function WhatsappBotWidget() {
                           <button
                             key={topic.id}
                             type="button"
-                            onClick={() =>
-                              setOrderForm((prev) => (prev ? { ...prev, selected: topic } : prev))
-                            }
+                            onClick={() => {
+                              setOrderForm((prev) => (prev ? { ...prev, selected: topic } : prev));
+                              setOrderLookupSummary(null);
+                            }}
                             className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
                               active
                                 ? "bg-emerald-600 text-white"
@@ -413,21 +453,62 @@ export function WhatsappBotWidget() {
 
                 <label className="block space-y-1.5">
                   <span className="text-sm font-medium text-zinc-900">
-                    Sipariş numarası veya e-posta <span className="text-red-500">*</span>
+                    Sipariş numarası <span className="text-red-500">*</span>
                   </span>
                   <input
                     type="text"
-                    value={customerDetail}
+                    value={orderNumber}
                     onChange={(e) => {
-                      setCustomerDetail(e.target.value);
+                      setOrderNumber(e.target.value);
+                      setOrderLookupSummary(null);
                       if (detailError) setDetailError(null);
                     }}
-                    placeholder="ör. AP-12345 veya ad@ornek.com"
+                    placeholder="ör. SHOP-20260521-AB12"
                     className="w-full rounded-xl border border-zinc-300 px-3 py-2.5 text-sm text-zinc-900 outline-none ring-emerald-500/30 focus:border-emerald-500 focus:ring-2"
-                    disabled={opening}
+                    disabled={lookupBusy || opening}
                     autoFocus
                   />
                 </label>
+
+                <label className="block space-y-1.5">
+                  <span className="text-sm font-medium text-zinc-900">
+                    E-posta <span className="text-red-500">*</span>
+                  </span>
+                  <input
+                    type="email"
+                    value={orderEmail}
+                    onChange={(e) => {
+                      setOrderEmail(e.target.value);
+                      setOrderLookupSummary(null);
+                      if (detailError) setDetailError(null);
+                    }}
+                    placeholder="checkout sırasında kullandığınız e-posta"
+                    className="w-full rounded-xl border border-zinc-300 px-3 py-2.5 text-sm text-zinc-900 outline-none ring-emerald-500/30 focus:border-emerald-500 focus:ring-2"
+                    disabled={lookupBusy || opening}
+                  />
+                </label>
+
+                {detailError ? <p className="text-xs text-red-600">{detailError}</p> : null}
+
+                <button
+                  type="button"
+                  disabled={lookupBusy || opening}
+                  onClick={() => void lookupOrder()}
+                  className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50"
+                >
+                  {lookupBusy ? "Sorgulanıyor…" : "Siparişi sorgula"}
+                </button>
+
+                {orderLookupSummary ? (
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">
+                      Otomatik yanıt
+                    </p>
+                    <pre className="mt-2 whitespace-pre-wrap font-sans text-sm leading-relaxed text-emerald-950">
+                      {orderLookupSummary}
+                    </pre>
+                  </div>
+                ) : null}
 
                 <label className="block space-y-1.5">
                   <span className="text-sm text-zinc-700">Ek not (isteğe bağlı)</span>
@@ -441,16 +522,20 @@ export function WhatsappBotWidget() {
                   />
                 </label>
 
-                {detailError ? <p className="text-xs text-red-600">{detailError}</p> : null}
-
                 <button
-                  type="submit"
-                  disabled={opening}
-                  className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50"
+                  type="button"
+                  disabled={opening || !orderLookupSummary}
+                  onClick={() => void continueOrderToWhatsApp()}
+                  className="w-full rounded-xl border border-emerald-600 bg-white px-4 py-3 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50 disabled:opacity-40"
                 >
-                  {opening ? "Açılıyor…" : "WhatsApp'a devam et"}
+                  {opening ? "Açılıyor…" : "WhatsApp'tan devam et"}
                 </button>
-              </form>
+                {!orderLookupSummary ? (
+                  <p className="text-center text-xs text-zinc-500">
+                    İnsan desteğe geçmek için önce siparişi sorgulayın.
+                  </p>
+                ) : null}
+              </div>
             ) : null}
 
             {view === "direct" ? (

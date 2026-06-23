@@ -94,7 +94,7 @@ export const DEFAULT_DIRECT_MESSAGE = "Merhaba, size ulaşmak istiyorum.";
 
 export const ORDER_FORM_TITLE = "Sipariş bilgileri";
 export const ORDER_FORM_HINT =
-  "Konunuzu seçin, sipariş numaranızı veya e-postanızı girin; mesajınız WhatsApp'ta hazır olacak.";
+  "Sipariş numaranızı ve e-postanızı girin; durum bilgisini anında gösterelim.";
 
 export const DETAIL_PROMPT =
   "Sipariş numaranız veya e-posta adresinizi yazın; ardından WhatsApp'a devam edin.";
