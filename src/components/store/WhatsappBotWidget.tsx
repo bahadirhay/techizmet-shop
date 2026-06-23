@@ -77,6 +77,34 @@ function pickDefaultOrderChild(node: WhatsAppBotNodeTree): WhatsAppBotNodeTree {
   return withTemplate ?? node.children[0] ?? node;
 }
 
+const WA_ICON_PATH =
+  "M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.435 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z";
+
+function botPanelHeader(
+  view: View,
+  config: BotConfig,
+  subtopicTitle: string,
+): { brand: string; title: string; hint?: string } {
+  const brand = config.title?.trim() || "Asistan";
+  if (view === "order") {
+    return { brand, title: ORDER_FORM_TITLE, hint: "Sipariş numarası ve e-posta ile sorgulayın" };
+  }
+  if (view === "recommend") {
+    return { brand, title: RECOMMEND_FORM_TITLE, hint: "Irk ve yaş bilgisiyle ürün önerisi" };
+  }
+  if (view === "direct") {
+    return { brand, title: "Doğrudan mesaj", hint: "Mesajınız WhatsApp'ta hazır olur" };
+  }
+  if (view === "subtopics") {
+    return { brand, title: subtopicTitle, hint: "Bir seçenek belirleyin" };
+  }
+  return {
+    brand,
+    title: "Size nasıl yardımcı olalım?",
+    hint: config.welcome?.trim() || undefined,
+  };
+}
+
 export function WhatsappBotWidget() {
   const [config, setConfig] = useState<BotConfig | null>(null);
   const [open, setOpen] = useState(false);
@@ -538,6 +566,7 @@ export function WhatsappBotWidget() {
   const subtopicTitle = pathLabels[pathLabels.length - 1];
   const recommendPetTypes = resolvePetTypes(config);
   const showPetTypeSelect = recommendPetTypes.length > 1;
+  const panelHeader = botPanelHeader(view, config, subtopicTitle);
 
   return (
     <>
@@ -549,7 +578,7 @@ export function WhatsappBotWidget() {
           aria-label="WhatsApp asistan"
         >
           <svg viewBox="0 0 24 24" className="h-7 w-7" fill="currentColor" aria-hidden>
-            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.435 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+            <path d={WA_ICON_PATH} />
           </svg>
         </button>
       ) : (
@@ -561,49 +590,59 @@ export function WhatsappBotWidget() {
             onClick={closePanel}
           />
           <div className="fixed bottom-4 left-3 right-3 z-[99999] mx-auto flex max-h-[min(88dvh,calc(100dvh-2rem))] max-w-[26rem] flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl sm:left-5 sm:right-auto sm:w-[26rem]">
-          <header className="flex shrink-0 items-start justify-between gap-2 bg-emerald-600 px-4 py-3 text-white">
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold">{config.title}</p>
-              <p className="mt-0.5 line-clamp-2 text-xs text-emerald-50/90">
-                {view === "order"
-                  ? ORDER_FORM_TITLE
-                  : view === "recommend"
-                    ? RECOMMEND_FORM_TITLE
-                    : view === "direct"
-                      ? "Doğrudan mesaj"
-                      : view === "subtopics"
-                        ? subtopicTitle
-                        : config.welcome}
-              </p>
+          <header className="relative shrink-0 overflow-hidden bg-gradient-to-br from-emerald-800 via-emerald-700 to-emerald-600 px-4 pb-4 pt-3.5 text-white shadow-[inset_0_-1px_0_rgba(255,255,255,0.12)]">
+            <div
+              className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.16),transparent_58%)]"
+              aria-hidden
+            />
+            <div className="relative flex items-start gap-3">
+              {showBack ? (
+                <button
+                  type="button"
+                  className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/12 text-base font-semibold ring-1 ring-white/20 transition hover:bg-white/20"
+                  aria-label="Geri"
+                  onClick={goBack}
+                >
+                  ←
+                </button>
+              ) : (
+                <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/14 ring-1 ring-white/25">
+                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" aria-hidden>
+                    <path d={WA_ICON_PATH} />
+                  </svg>
+                </span>
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/80">
+                  {panelHeader.brand}
+                </p>
+                <h2 className="mt-1 text-[1.125rem] font-bold leading-tight text-white">
+                  {panelHeader.title}
+                </h2>
+                {panelHeader.hint ? (
+                  <p className="mt-1.5 line-clamp-2 text-sm font-medium leading-snug text-white/95">
+                    {panelHeader.hint}
+                  </p>
+                ) : null}
+              </div>
+              <button
+                type="button"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/12 text-lg leading-none ring-1 ring-white/25 transition hover:bg-white/22"
+                aria-label="Kapat"
+                onClick={closePanel}
+              >
+                ✕
+              </button>
             </div>
-            <button
-              type="button"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-lg leading-none hover:bg-white/15"
-              aria-label="Kapat"
-              onClick={closePanel}
-            >
-              ✕
-            </button>
           </header>
 
           <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-contain px-4 py-4">
-            {showBack ? (
-              <button
-                type="button"
-                className="mb-3 self-start text-xs font-medium text-emerald-700 hover:text-emerald-900"
-                onClick={goBack}
-              >
-                ← Geri
-              </button>
-            ) : null}
-
             {statusText ? (
               <p className="mb-3 rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-900">{statusText}</p>
             ) : null}
 
             {view === "topics" ? (
               <div className="space-y-3">
-                <p className="text-sm text-zinc-600">Size nasıl yardımcı olalım?</p>
                 <div className="grid gap-2">
                   {options.map((node) => (
                     <button
@@ -635,7 +674,6 @@ export function WhatsappBotWidget() {
 
             {view === "subtopics" ? (
               <div className="space-y-3">
-                <p className="text-sm text-zinc-600">Lütfen bir seçenek belirleyin:</p>
                 <div className="grid gap-2">
                   {options.map((node) => (
                     <button
@@ -654,8 +692,6 @@ export function WhatsappBotWidget() {
 
             {view === "order" && orderForm ? (
               <div className="space-y-4">
-                <p className="text-sm leading-relaxed text-zinc-600">{ORDER_FORM_HINT}</p>
-
                 {orderForm.topics.length > 1 ? (
                   <fieldset className="space-y-2">
                     <legend className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
@@ -775,8 +811,6 @@ export function WhatsappBotWidget() {
 
             {view === "recommend" && recommendForm ? (
               <div className="space-y-4">
-                <p className="text-sm leading-relaxed text-zinc-600">{RECOMMEND_FORM_HINT}</p>
-
                 {showPetTypeSelect ? (
                   <label className="block space-y-1.5">
                     <span className="text-sm font-medium text-zinc-900">Tür</span>
