@@ -77,7 +77,13 @@ export async function POST(req: Request) {
   }
 
   return NextResponse.json({
-    products: hits,
+    products: hits.map(({ slug, title, priceLabel, url, reason }) => ({
+      slug,
+      title,
+      priceLabel,
+      url,
+      reason,
+    })),
     summary,
   });
 }

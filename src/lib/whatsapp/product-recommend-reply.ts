@@ -1,5 +1,10 @@
 import type { ProductRecommendHit } from "@/lib/whatsapp/product-recommend";
 
+export type ProductRecommendReplyItem = Pick<
+  ProductRecommendHit,
+  "slug" | "title" | "priceLabel" | "url" | "reason"
+>;
+
 function productPath(url: string): string {
   try {
     const path = new URL(url).pathname;
@@ -24,7 +29,7 @@ export function formatProductRecommendReply(input: {
   breed: string;
   age: string;
   petTypeLabel?: string;
-  hits: ProductRecommendHit[];
+  hits: ProductRecommendReplyItem[];
 }): string {
   const breed = input.breed.trim();
   const age = input.age.trim();

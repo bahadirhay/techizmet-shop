@@ -34,6 +34,13 @@ export async function PATCH(req: Request) {
         ? { botWelcome: body.botWelcome?.trim() || undefined }
         : {}),
       ...(body.floatingEnabled !== undefined ? { floatingEnabled: !!body.floatingEnabled } : {}),
+      ...(body.recommendPetTypes !== undefined
+        ? {
+            recommendPetTypes: body.recommendPetTypes.filter(
+              (t): t is "dog" | "cat" => t === "dog" || t === "cat",
+            ),
+          }
+        : {}),
     },
   });
 

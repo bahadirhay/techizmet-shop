@@ -6,7 +6,7 @@ import { useState } from "react";
 import { WhatsappBotFlowEditor } from "@/components/admin/WhatsappBotFlowEditor";
 import { WhatsappInboxClient } from "@/components/admin/WhatsappInboxClient";
 import { AssistantFoundationPanel } from "@/components/admin/AssistantFoundationPanel";
-import type { StoreWhatsAppSettings } from "@/lib/whatsapp-settings";
+import type { StoreWhatsAppSettings, RecommendPetType } from "@/lib/whatsapp-settings";
 import type { StoreAssistantSettings } from "@/lib/assistant/settings";
 
 type CountRow = { status: string; _count: { _all: number } };
@@ -35,6 +35,10 @@ export function WhatsappAdminClient({
   siteName: string;
 }) {
   const router = useRouter();
+  const initialPetTypes: RecommendPetType[] =
+    initialWhatsapp.recommendPetTypes?.filter(
+      (t): t is RecommendPetType => t === "dog" || t === "cat",
+    ) ?? ["dog"];
   const [row, setRow] = useState({
     number: initialWhatsapp.number ?? "",
     defaultMessage: initialWhatsapp.defaultMessage ?? "",
@@ -42,6 +46,7 @@ export function WhatsappAdminClient({
     botTitle: initialWhatsapp.botTitle ?? "",
     botWelcome: initialWhatsapp.botWelcome ?? "",
     floatingEnabled: initialWhatsapp.floatingEnabled !== false,
+    recommendPetTypes: initialPetTypes.length ? initialPetTypes : (["dog"] as RecommendPetType[]),
   });
   const [feedback, setFeedback] = useState<{ text: string; error: boolean } | null>(null);
   const [saving, setSaving] = useState(false);
@@ -50,6 +55,11 @@ export function WhatsappAdminClient({
     e.preventDefault();
     setSaving(true);
     setFeedback(null);
+    if (!row.recommendPetTypes.length) {
+      setFeedback({ text: "Ürün önerisi için en az bir hayvan türü seçin.", error: true });
+      setSaving(false);
+      return;
+    }
     const res = await fetch("/api/admin/whatsapp/settings", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -60,6 +70,7 @@ export function WhatsappAdminClient({
         botTitle: row.botTitle.trim() || undefined,
         botWelcome: row.botWelcome.trim() || undefined,
         floatingEnabled: row.floatingEnabled,
+        recommendPetTypes: row.recommendPetTypes,
       }),
     });
     if (!res.ok) {
@@ -166,6 +177,34 @@ export function WhatsappAdminClient({
                 placeholder="Bir konu seçin…"
               />
             </label>
+            <fieldset className="space-y-2 rounded-lg border border-zinc-200 p-3 text-sm">
+              <legend className="px-1 font-medium">Ürün önerisi — hayvan türleri</legend>
+              <p className="text-xs text-zinc-500">
+                Ziyaretçi formunda hangi türler listelensin. Kedi ürününüz yoksa yalnızca köpek bırakın.
+              </p>
+              {(
+                [
+                  { id: "dog" as const, label: "Köpek" },
+                  { id: "cat" as const, label: "Kedi" },
+                ] as const
+              ).map((opt) => (
+                <label key={opt.id} className="flex cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={row.recommendPetTypes.includes(opt.id)}
+                    onChange={(e) => {
+                      setRow((r) => {
+                        const next = e.target.checked
+                          ? [...new Set([...r.recommendPetTypes, opt.id])]
+                          : r.recommendPetTypes.filter((t) => t !== opt.id);
+                        return { ...r, recommendPetTypes: next };
+                      });
+                    }}
+                  />
+                  {opt.label}
+                </label>
+              ))}
+            </fieldset>
           </>
         ) : null}
 

@@ -33,6 +33,7 @@ export async function GET() {
     title: wa.botTitle || DEFAULT_BOT_TITLE,
     welcome: wa.botWelcome || DEFAULT_BOT_WELCOME,
     defaultMessage: wa.defaultMessage,
+    recommendPetTypes: wa.recommendPetTypes,
     tree: buildBotTree(rows),
   });
 }

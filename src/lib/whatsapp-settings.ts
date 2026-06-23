@@ -9,7 +9,11 @@ export type StoreWhatsAppSettings = {
   botWelcome?: string;
   /** Sol alt sabit balon (varsayılan: true, numara varsa) */
   floatingEnabled?: boolean;
+  /** Ürün önerisi formunda gösterilecek türler (varsayılan: yalnızca köpek) */
+  recommendPetTypes?: ("dog" | "cat")[];
 };
+
+export type RecommendPetType = "dog" | "cat";
 
 export type ResolvedWhatsAppConfig = {
   digits: string;
@@ -19,6 +23,7 @@ export type ResolvedWhatsAppConfig = {
   botTitle: string | null;
   botWelcome: string | null;
   floatingEnabled: boolean;
+  recommendPetTypes: RecommendPetType[];
 };
 
 function normalizeTurkishMobile(digits: string): string {
@@ -35,6 +40,13 @@ function fallbackPhone(settings: SiteSettings): string | null {
   );
 }
 
+function resolveRecommendPetTypes(w: StoreWhatsAppSettings): RecommendPetType[] {
+  const raw = w.recommendPetTypes;
+  if (!raw?.length) return ["dog"];
+  const types = raw.filter((t): t is RecommendPetType => t === "dog" || t === "cat");
+  return types.length ? types : ["dog"];
+}
+
 export function getWhatsAppConfig(settings: SiteSettings): ResolvedWhatsAppConfig {
   const w = settings.whatsapp ?? {};
   const rawNumber = w.number?.trim() || fallbackPhone(settings) || null;
@@ -47,5 +59,6 @@ export function getWhatsAppConfig(settings: SiteSettings): ResolvedWhatsAppConfi
     botTitle: w.botTitle?.trim() || null,
     botWelcome: w.botWelcome?.trim() || null,
     floatingEnabled: w.floatingEnabled !== false && !!digits,
+    recommendPetTypes: resolveRecommendPetTypes(w),
   };
 }

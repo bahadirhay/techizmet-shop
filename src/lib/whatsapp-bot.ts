@@ -50,17 +50,8 @@ export const DEFAULT_BOT_SEED: Array<{
   },
   {
     label: "Ürün önerisi",
-    botReply: "Hangi ürün grubu ile ilgileniyorsunuz?",
-    children: [
-      {
-        label: "Köpek ödül mamaları",
-        messageTemplate: "Merhaba, köpek ödül mamaları hakkında bilgi almak istiyorum.",
-      },
-      {
-        label: "Kedi ödül mamaları",
-        messageTemplate: "Merhaba, kedi ödül mamaları hakkında bilgi almak istiyorum.",
-      },
-    ],
+    botReply: "Dostunuzun ırkını ve yaşını yazın; size uygun ürünleri listeleyelim.",
+    messageTemplate: "Merhaba, köpeğim için ürün önerisi almak istiyorum.",
   },
   {
     label: "Kargo / teslimat",

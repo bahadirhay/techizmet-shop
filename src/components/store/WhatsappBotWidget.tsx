@@ -19,7 +19,9 @@ import {
 import {
   formatProductRecommendReply,
   formatRecommendHeadline,
+  type ProductRecommendReplyItem,
 } from "@/lib/whatsapp/product-recommend-reply";
+import type { RecommendPetType } from "@/lib/whatsapp-settings";
 import { useCallback, useEffect, useState } from "react";
 
 type BotConfig = {
@@ -27,6 +29,7 @@ type BotConfig = {
   title?: string;
   welcome?: string;
   defaultMessage?: string | null;
+  recommendPetTypes?: RecommendPetType[];
   tree?: WhatsAppBotNodeTree[];
 };
 
@@ -43,13 +46,24 @@ type RecommendFormState = {
   selected: WhatsAppBotNodeTree;
 };
 
-type RecommendProduct = {
-  slug: string;
-  title: string;
-  priceLabel: string;
-  url: string;
-  reason: string;
-};
+type RecommendProduct = ProductRecommendReplyItem;
+
+function resolvePetTypes(config: BotConfig | null): RecommendPetType[] {
+  const raw = config?.recommendPetTypes;
+  if (!raw?.length) return ["dog"];
+  const types = raw.filter((t): t is RecommendPetType => t === "dog" || t === "cat");
+  return types.length ? types : ["dog"];
+}
+
+function pickDefaultPetType(
+  available: RecommendPetType[],
+  path: string[],
+): "" | RecommendPetType {
+  const fromPath = petTypeFromBotPath(path);
+  if (fromPath && available.includes(fromPath)) return fromPath;
+  if (available.length === 1) return available[0]!;
+  return "";
+}
 
 function resolveOrderTemplate(node: WhatsAppBotNodeTree): string {
   const own = node.messageTemplate?.trim();
@@ -165,11 +179,12 @@ export function WhatsappBotWidget() {
   }
 
   function enterRecommendForm(path: string[], selected: WhatsAppBotNodeTree) {
+    const available = resolvePetTypes(config);
     setPathLabels(path);
     setRecommendForm({ path, selected });
     setPetBreed("");
     setPetAge("");
-    setPetType(petTypeFromBotPath(path) ?? "");
+    setPetType(pickDefaultPetType(available, path));
     setRecommendNote("");
     setRecommendSummary(null);
     setRecommendProducts([]);
@@ -258,12 +273,23 @@ export function WhatsappBotWidget() {
       setDetailError("Irk veya yaş bilgisi girin.");
       return;
     }
+    const available = resolvePetTypes(config);
+    if (available.length > 1 && petType !== "dog" && petType !== "cat") {
+      setDetailError("Lütfen hayvan türünü seçin.");
+      return;
+    }
 
     setRecommendBusy(true);
     setDetailError(null);
     setRecommendSummary(null);
     setRecommendProducts([]);
     setStatusText(null);
+    const resolvedPetType =
+      petType === "dog" || petType === "cat"
+        ? petType
+        : available.length === 1
+          ? available[0]!
+          : null;
     try {
       const res = await fetch("/api/whatsapp/product-recommend", {
         method: "POST",
@@ -271,7 +297,7 @@ export function WhatsappBotWidget() {
         body: JSON.stringify({
           breed,
           age,
-          petType: petType === "dog" || petType === "cat" ? petType : null,
+          petType: resolvedPetType,
           note: recommendNote.trim() || undefined,
         }),
       });
@@ -474,6 +500,8 @@ export function WhatsappBotWidget() {
 
   const showBack = view !== "topics";
   const subtopicTitle = pathLabels[pathLabels.length - 1];
+  const recommendPetTypes = resolvePetTypes(config);
+  const showPetTypeSelect = recommendPetTypes.length > 1;
 
   return (
     <>
@@ -706,23 +734,27 @@ export function WhatsappBotWidget() {
               <div className="space-y-4">
                 <p className="text-sm leading-relaxed text-zinc-600">{RECOMMEND_FORM_HINT}</p>
 
-                <label className="block space-y-1.5">
-                  <span className="text-sm font-medium text-zinc-900">Tür</span>
-                  <select
-                    value={petType}
-                    onChange={(e) => {
-                      setPetType(e.target.value as "" | "dog" | "cat");
-                      setRecommendSummary(null);
-                      setRecommendProducts([]);
-                    }}
-                    className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 outline-none ring-emerald-500/30 focus:border-emerald-500 focus:ring-2"
-                    disabled={recommendBusy || opening}
-                  >
-                    <option value="">Seçin (isteğe bağlı)</option>
-                    <option value="dog">Köpek</option>
-                    <option value="cat">Kedi</option>
-                  </select>
-                </label>
+                {showPetTypeSelect ? (
+                  <label className="block space-y-1.5">
+                    <span className="text-sm font-medium text-zinc-900">Tür</span>
+                    <select
+                      value={petType}
+                      onChange={(e) => {
+                        setPetType(e.target.value as "" | RecommendPetType);
+                        setRecommendSummary(null);
+                        setRecommendProducts([]);
+                      }}
+                      className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 outline-none ring-emerald-500/30 focus:border-emerald-500 focus:ring-2"
+                      disabled={recommendBusy || opening}
+                    >
+                      <option value="">Seçin</option>
+                      {recommendPetTypes.includes("dog") ? <option value="dog">Köpek</option> : null}
+                      {recommendPetTypes.includes("cat") ? <option value="cat">Kedi</option> : null}
+                    </select>
+                  </label>
+                ) : recommendPetTypes.includes("dog") ? (
+                  <p className="rounded-lg bg-zinc-50 px-3 py-2 text-xs text-zinc-600">Köpek ödül mamaları için öneri</p>
+                ) : null}
 
                 <label className="block space-y-1.5">
                   <span className="text-sm font-medium text-zinc-900">
