@@ -11,11 +11,13 @@ const DEFAULT_BOT_SEED = [
     ],
   },
   {
-    label: "Ürün bilgisi",
-    botReply: "Hangi ürün hakkında bilgi almak istersiniz?",
+    label: "Ürün önerisi",
+    botReply: "Dostunuzun ırkını ve yaşını yazın; size uygun ürünleri listeleyelim.",
     children: [
-      { label: "Stok / beden", messageTemplate: "Merhaba, ürün stok ve beden bilgisi almak istiyorum." },
-      { label: "Öneri istiyorum", messageTemplate: "Merhaba, ürün önerisi almak istiyorum." },
+      {
+        label: "Öneri istiyorum",
+        messageTemplate: "Merhaba, köpeğim için ürün önerisi almak istiyorum.",
+      },
     ],
   },
   {

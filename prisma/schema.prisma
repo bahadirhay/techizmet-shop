@@ -45,6 +45,8 @@ model StoreSite {
   cartAbandonments  CartAbandonment[]
   whatsappLeads     WhatsAppLead[]
   whatsappBotNodes  WhatsAppBotNode[]
+  assistantKnowledgeEntries AssistantKnowledgeEntry[]
+  assistantConversations    AssistantConversation[]
   instagramPosts    StoreInstagramPost[]
   navMenuItems      NavMenuItem[]
   blogPosts         StoreBlogPost[]
@@ -276,6 +278,71 @@ model WhatsAppBotNode {
 
   @@index([siteId, parentId, sortOrder])
   @@map("whatsapp_bot_node")
+  @@schema("shop")
+}
+
+/// İşletme asistanı bilgi tabanı — ürün, SSS, kılavuz, sayfa içeriği
+model AssistantKnowledgeEntry {
+  id           String    @id @default(cuid())
+  siteId       String
+  site         StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  /** * = tüm kanallar; whatsapp, trendyol, test, web */
+  channel      String    @default("*")
+  /** product, faq, manual, page, policy, custom */
+  entryType    String
+  title        String
+  body         String
+  keywords     String?
+  sourceRef    String?
+  imageUrl     String?
+  metadataJson String?
+  active       Boolean   @default(true)
+  sortOrder    Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([siteId, active, entryType])
+  @@index([siteId, channel])
+  @@index([siteId, sourceRef])
+  @@map("assistant_knowledge_entry")
+  @@schema("shop")
+}
+
+/// Asistan konuşma oturumu (WhatsApp, pazaryeri, test)
+model AssistantConversation {
+  id             String    @id @default(cuid())
+  siteId         String
+  site           StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  channel        String
+  externalUserId String
+  status         String    @default("bot")
+  customerId     String?
+  metadataJson   String?
+  lastMessageAt  DateTime  @default(now())
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  messages       AssistantMessage[]
+
+  @@unique([siteId, channel, externalUserId])
+  @@index([siteId, status, lastMessageAt])
+  @@map("assistant_conversation")
+  @@schema("shop")
+}
+
+model AssistantMessage {
+  id             String                @id @default(cuid())
+  conversationId String
+  conversation   AssistantConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String
+  body           String
+  layer          String?
+  confidence     Float?
+  metadataJson   String?
+  externalId     String?
+  createdAt      DateTime              @default(now())
+
+  @@index([conversationId, createdAt])
+  @@map("assistant_message")
   @@schema("shop")
 }
 

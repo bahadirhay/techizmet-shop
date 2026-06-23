@@ -4,12 +4,17 @@ import type { WhatsAppBotNodeTree } from "@/lib/whatsapp-bot";
 import {
   appendCustomerDetailToMessage,
   botPathFromLabels,
+  botPathIsProductRecommend,
   botPathRequiresCustomerDetail,
   DEFAULT_DIRECT_MESSAGE,
   DIRECT_WHATSAPP_LABEL,
   isOrderTopicLabel,
+  isProductRecommendTopicLabel,
   ORDER_FORM_HINT,
   ORDER_FORM_TITLE,
+  petTypeFromBotPath,
+  RECOMMEND_FORM_HINT,
+  RECOMMEND_FORM_TITLE,
 } from "@/lib/whatsapp-bot";
 import { useCallback, useEffect, useState } from "react";
 
@@ -21,12 +26,25 @@ type BotConfig = {
   tree?: WhatsAppBotNodeTree[];
 };
 
-type View = "topics" | "subtopics" | "order" | "direct";
+type View = "topics" | "subtopics" | "order" | "recommend" | "direct";
 
 type OrderFormState = {
   path: string[];
   topics: WhatsAppBotNodeTree[];
   selected: WhatsAppBotNodeTree;
+};
+
+type RecommendFormState = {
+  path: string[];
+  selected: WhatsAppBotNodeTree;
+};
+
+type RecommendProduct = {
+  slug: string;
+  title: string;
+  priceLabel: string;
+  url: string;
+  reason: string;
 };
 
 function resolveOrderTemplate(node: WhatsAppBotNodeTree): string {
@@ -48,6 +66,13 @@ export function WhatsappBotWidget() {
   const [pathLabels, setPathLabels] = useState<string[]>([]);
   const [options, setOptions] = useState<WhatsAppBotNodeTree[]>([]);
   const [orderForm, setOrderForm] = useState<OrderFormState | null>(null);
+  const [recommendForm, setRecommendForm] = useState<RecommendFormState | null>(null);
+  const [petBreed, setPetBreed] = useState("");
+  const [petAge, setPetAge] = useState("");
+  const [petType, setPetType] = useState<"dog" | "cat" | "">("");
+  const [recommendNote, setRecommendNote] = useState("");
+  const [recommendSummary, setRecommendSummary] = useState<string | null>(null);
+  const [recommendProducts, setRecommendProducts] = useState<RecommendProduct[]>([]);
   const [orderNumber, setOrderNumber] = useState("");
   const [orderEmail, setOrderEmail] = useState("");
   const [orderLookupSummary, setOrderLookupSummary] = useState<string | null>(null);
@@ -56,6 +81,7 @@ export function WhatsappBotWidget() {
   const [freeError, setFreeError] = useState<string | null>(null);
   const [opening, setOpening] = useState(false);
   const [lookupBusy, setLookupBusy] = useState(false);
+  const [recommendBusy, setRecommendBusy] = useState(false);
   const [statusText, setStatusText] = useState<string | null>(null);
 
   const loadConfig = useCallback(async () => {
@@ -76,6 +102,13 @@ export function WhatsappBotWidget() {
     setPathLabels([]);
     setOptions(cfg.tree ?? []);
     setOrderForm(null);
+    setRecommendForm(null);
+    setPetBreed("");
+    setPetAge("");
+    setPetType("");
+    setRecommendNote("");
+    setRecommendSummary(null);
+    setRecommendProducts([]);
     setOrderNumber("");
     setOrderEmail("");
     setOrderLookupSummary(null);
@@ -127,6 +160,22 @@ export function WhatsappBotWidget() {
     return config?.defaultMessage?.trim() || DEFAULT_DIRECT_MESSAGE;
   }
 
+  function enterRecommendForm(path: string[], selected: WhatsAppBotNodeTree) {
+    setPathLabels(path);
+    setRecommendForm({ path, selected });
+    setPetBreed("");
+    setPetAge("");
+    setPetType(petTypeFromBotPath(path) ?? "");
+    setRecommendNote("");
+    setRecommendSummary(null);
+    setRecommendProducts([]);
+    setFreeMessage("");
+    setDetailError(null);
+    setView("recommend");
+    setOptions([]);
+    setStatusText(null);
+  }
+
   function enterOrderForm(path: string[], topics: WhatsAppBotNodeTree[], selected: WhatsAppBotNodeTree) {
     setPathLabels(path);
     setOrderForm({ path, topics, selected });
@@ -163,6 +212,11 @@ export function WhatsappBotWidget() {
       return;
     }
 
+    if (node.children.length > 0 && isProductRecommendTopicLabel(node.label)) {
+      enterRecommendForm(nextPath, node);
+      return;
+    }
+
     if (node.children.length > 0) {
       setPathLabels(nextPath);
       setOptions(node.children);
@@ -176,6 +230,11 @@ export function WhatsappBotWidget() {
       return;
     }
 
+    if (isProductRecommendTopicLabel(node.label) || botPathIsProductRecommend(pathLabels)) {
+      enterRecommendForm(nextPath, node);
+      return;
+    }
+
     if (botPathRequiresCustomerDetail(nextPath)) {
       enterOrderForm(nextPath, [node], node);
       return;
@@ -185,6 +244,69 @@ export function WhatsappBotWidget() {
     setView("topics");
     setOptions([]);
     void openWhatsApp(msg, nextPath);
+  }
+
+  async function fetchRecommendations() {
+    if (!recommendForm) return;
+    const breed = petBreed.trim();
+    const age = petAge.trim();
+    if (!breed && !age) {
+      setDetailError("Irk veya yaş bilgisi girin.");
+      return;
+    }
+
+    setRecommendBusy(true);
+    setDetailError(null);
+    setRecommendSummary(null);
+    setRecommendProducts([]);
+    setStatusText(null);
+    try {
+      const res = await fetch("/api/whatsapp/product-recommend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          breed,
+          age,
+          petType: petType === "dog" || petType === "cat" ? petType : null,
+          note: recommendNote.trim() || undefined,
+        }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        summary?: string;
+        products?: RecommendProduct[];
+        error?: string;
+      };
+      if (!res.ok) {
+        setDetailError(data.error ?? "Öneri oluşturulamadı.");
+        return;
+      }
+      setRecommendSummary(data.summary?.trim() || "Öneriler hazır.");
+      setRecommendProducts(Array.isArray(data.products) ? data.products : []);
+    } finally {
+      setRecommendBusy(false);
+    }
+  }
+
+  async function continueRecommendToWhatsApp() {
+    if (!recommendForm || !recommendSummary) return;
+    const breed = petBreed.trim();
+    const age = petAge.trim();
+    const template =
+      recommendForm.selected.messageTemplate?.trim() ||
+      "Merhaba, köpeğim için ürün önerisi almak istiyorum.";
+    const context = [
+      petType === "dog" ? "Tür: Köpek" : petType === "cat" ? "Tür: Kedi" : "",
+      breed ? `Irk: ${breed}` : "",
+      age ? `Yaş: ${age}` : "",
+      recommendNote.trim() ? `Not: ${recommendNote.trim()}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+    const message = context
+      ? `${template}\n\n${context}\n\n${recommendSummary}`
+      : `${template}\n\n${recommendSummary}`;
+    const extra = freeMessage.trim();
+    await openWhatsApp(extra ? `${message}\n\n${extra}` : message, recommendForm.path);
   }
 
   async function lookupOrder() {
@@ -269,6 +391,27 @@ export function WhatsappBotWidget() {
       return;
     }
 
+    if (view === "recommend") {
+      const parentPath = recommendForm?.path.slice(0, -1) ?? [];
+      setRecommendForm(null);
+      setPetBreed("");
+      setPetAge("");
+      setPetType("");
+      setRecommendNote("");
+      setRecommendSummary(null);
+      setRecommendProducts([]);
+      setFreeMessage("");
+      setPathLabels(parentPath);
+      if (parentPath.length === 0) {
+        setView("topics");
+        setOptions(config.tree);
+      } else {
+        setView("subtopics");
+        restoreOptionsForPath(parentPath);
+      }
+      return;
+    }
+
     if (view === "direct") {
       setView("topics");
       setFreeMessage("");
@@ -334,11 +477,13 @@ export function WhatsappBotWidget() {
               <p className="mt-0.5 line-clamp-2 text-xs text-emerald-50/90">
                 {view === "order"
                   ? ORDER_FORM_TITLE
-                  : view === "direct"
-                    ? "Doğrudan mesaj"
-                    : view === "subtopics"
-                      ? subtopicTitle
-                      : config.welcome}
+                  : view === "recommend"
+                    ? RECOMMEND_FORM_TITLE
+                    : view === "direct"
+                      ? "Doğrudan mesaj"
+                      : view === "subtopics"
+                        ? subtopicTitle
+                        : config.welcome}
               </p>
             </div>
             <button
@@ -535,6 +680,151 @@ export function WhatsappBotWidget() {
                     İnsan desteğe geçmek için önce siparişi sorgulayın.
                   </p>
                 ) : null}
+              </div>
+            ) : null}
+
+            {view === "recommend" && recommendForm ? (
+              <div className="space-y-4">
+                <p className="text-sm leading-relaxed text-zinc-600">{RECOMMEND_FORM_HINT}</p>
+
+                <label className="block space-y-1.5">
+                  <span className="text-sm font-medium text-zinc-900">Tür</span>
+                  <select
+                    value={petType}
+                    onChange={(e) => {
+                      setPetType(e.target.value as "" | "dog" | "cat");
+                      setRecommendSummary(null);
+                      setRecommendProducts([]);
+                    }}
+                    className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 outline-none ring-emerald-500/30 focus:border-emerald-500 focus:ring-2"
+                    disabled={recommendBusy || opening}
+                  >
+                    <option value="">Seçin (isteğe bağlı)</option>
+                    <option value="dog">Köpek</option>
+                    <option value="cat">Kedi</option>
+                  </select>
+                </label>
+
+                <label className="block space-y-1.5">
+                  <span className="text-sm font-medium text-zinc-900">
+                    Irk <span className="text-red-500">*</span>
+                  </span>
+                  <input
+                    type="text"
+                    value={petBreed}
+                    onChange={(e) => {
+                      setPetBreed(e.target.value);
+                      setRecommendSummary(null);
+                      setRecommendProducts([]);
+                      if (detailError) setDetailError(null);
+                    }}
+                    placeholder="ör. Golden Retriever, Kangal"
+                    className="w-full rounded-xl border border-zinc-300 px-3 py-2.5 text-sm text-zinc-900 outline-none ring-emerald-500/30 focus:border-emerald-500 focus:ring-2"
+                    disabled={recommendBusy || opening}
+                    autoFocus
+                  />
+                </label>
+
+                <label className="block space-y-1.5">
+                  <span className="text-sm font-medium text-zinc-900">
+                    Yaş <span className="text-red-500">*</span>
+                  </span>
+                  <input
+                    type="text"
+                    value={petAge}
+                    onChange={(e) => {
+                      setPetAge(e.target.value);
+                      setRecommendSummary(null);
+                      setRecommendProducts([]);
+                      if (detailError) setDetailError(null);
+                    }}
+                    placeholder="ör. 2 yaşında, 8 ay, yavru"
+                    className="w-full rounded-xl border border-zinc-300 px-3 py-2.5 text-sm text-zinc-900 outline-none ring-emerald-500/30 focus:border-emerald-500 focus:ring-2"
+                    disabled={recommendBusy || opening}
+                  />
+                </label>
+
+                <label className="block space-y-1.5">
+                  <span className="text-sm text-zinc-700">Ek not (isteğe bağlı)</span>
+                  <textarea
+                    value={recommendNote}
+                    onChange={(e) => {
+                      setRecommendNote(e.target.value);
+                      setRecommendSummary(null);
+                      setRecommendProducts([]);
+                    }}
+                    rows={2}
+                    placeholder="Alerji, çiğneme alışkanlığı, hassasiyet vb."
+                    className="w-full resize-none rounded-xl border border-zinc-300 px-3 py-2.5 text-sm text-zinc-900 outline-none ring-emerald-500/30 focus:border-emerald-500 focus:ring-2"
+                    disabled={recommendBusy || opening}
+                  />
+                </label>
+
+                {detailError ? <p className="text-xs text-red-600">{detailError}</p> : null}
+
+                <button
+                  type="button"
+                  disabled={recommendBusy || opening}
+                  onClick={() => void fetchRecommendations()}
+                  className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50"
+                >
+                  {recommendBusy ? "Öneriler hazırlanıyor…" : "Ürün önerilerini göster"}
+                </button>
+
+                {recommendProducts.length > 0 ? (
+                  <div className="space-y-2">
+                    {recommendProducts.map((product) => (
+                      <a
+                        key={product.slug}
+                        href={product.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block rounded-xl border border-emerald-200 bg-emerald-50/60 px-3 py-3 transition hover:border-emerald-400 hover:bg-emerald-50"
+                      >
+                        <p className="text-sm font-semibold text-emerald-950">{product.title}</p>
+                        <p className="mt-0.5 text-xs font-medium text-emerald-800">{product.priceLabel}</p>
+                        {product.reason ? (
+                          <p className="mt-1 text-xs leading-relaxed text-emerald-900/90">{product.reason}</p>
+                        ) : null}
+                        <p className="mt-2 text-xs font-medium text-emerald-700 underline underline-offset-2">
+                          Ürünü görüntüle →
+                        </p>
+                      </a>
+                    ))}
+                  </div>
+                ) : null}
+
+                {recommendSummary ? (
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">
+                      Otomatik yanıt
+                    </p>
+                    <pre className="mt-2 whitespace-pre-wrap font-sans text-sm leading-relaxed text-emerald-950">
+                      {recommendSummary}
+                    </pre>
+                  </div>
+                ) : null}
+
+                <label className="block space-y-1.5">
+                  <span className="text-sm text-zinc-700">WhatsApp mesajına ek (isteğe bağlı)</span>
+                  <textarea
+                    value={freeMessage}
+                    onChange={(e) => setFreeMessage(e.target.value)}
+                    rows={2}
+                    placeholder="Eklemek istediğiniz detay"
+                    className="w-full resize-none rounded-xl border border-zinc-300 px-3 py-2.5 text-sm text-zinc-900 outline-none ring-emerald-500/30 focus:border-emerald-500 focus:ring-2"
+                    disabled={opening}
+                  />
+                </label>
+
+                <button
+                  type="button"
+                  disabled={opening || !recommendSummary}
+                  onClick={() => void continueRecommendToWhatsApp()}
+                  className="w-full rounded-xl border border-emerald-600 bg-white px-4 py-3 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50 disabled:opacity-40"
+                >
+                  {opening ? "Açılıyor…" : "WhatsApp'tan devam et"}
+                </button>
               </div>
             ) : null}
 

@@ -10,7 +10,7 @@ export default async function WhatsappAdminPage() {
   const settings = parseSiteSettings(site?.settingsJson ?? null);
   const wa = getWhatsAppConfig(settings);
 
-  const [initialLeads, initialCounts, initialBotNodes] = await Promise.all([
+  const [initialLeads, initialCounts, initialBotNodes, initialKnowledgeCount] = await Promise.all([
     prisma.whatsAppLead.findMany({
       where: { siteId: auth.siteId },
       orderBy: { createdAt: "desc" },
@@ -25,6 +25,9 @@ export default async function WhatsappAdminPage() {
       where: { siteId: auth.siteId },
       orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
     }),
+    prisma.assistantKnowledgeEntry
+      .count({ where: { siteId: auth.siteId, active: true } })
+      .catch(() => 0),
   ]);
 
   return (
@@ -42,6 +45,9 @@ export default async function WhatsappAdminPage() {
         initialLeads={initialLeads}
         initialCounts={initialCounts}
         initialBotNodes={initialBotNodes}
+        initialAssistant={settings.assistant ?? {}}
+        initialKnowledgeCount={initialKnowledgeCount}
+        siteName={site?.name ?? "Mağaza"}
       />
     </div>
   );

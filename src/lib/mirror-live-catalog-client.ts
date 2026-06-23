@@ -23,6 +23,14 @@ export type LiveStoreCatalogPayload = {
   texts: ResolvedMirrorCollectionTexts;
 };
 
+/** Sunucu / prebuild HTML zaten ürün listesi ve fiyatları içeriyorsa canlı fetch atlanır (flash önlenir). */
+export function mirrorCatalogAlreadyHydrated(doc: Document): boolean {
+  const root = doc.documentElement;
+  if (root.getAttribute("data-kn-home-products-injected") === "1") return true;
+  if (root.getAttribute("data-kn-catalog-live") === "1") return true;
+  return Boolean(doc.getElementById("kn-catalog-prices")?.textContent?.trim());
+}
+
 function catalogPriceMap(products: VitrinCollectionProductCard[]): CatalogPriceMap {
   const map: CatalogPriceMap = {};
   for (const p of products) {

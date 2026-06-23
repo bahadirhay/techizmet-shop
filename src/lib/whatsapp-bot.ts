@@ -89,12 +89,34 @@ export function isOrderTopicLabel(label: string): boolean {
   return /sipari[sş]|kargom|iptal/.test(label.toLocaleLowerCase("tr-TR"));
 }
 
+/** Ürün önerisi — ırk/yaş formu ile otomatik eşleştirme */
+export function isProductRecommendTopicLabel(label: string): boolean {
+  const l = label.toLocaleLowerCase("tr-TR");
+  return /ürün öner|öneri istiyorum|^öneri$/.test(l);
+}
+
+export function botPathIsProductRecommend(pathLabels: string[]): boolean {
+  const joined = pathLabels.join(" ").toLocaleLowerCase("tr-TR");
+  return /ürün öner|öneri istiyorum/.test(joined);
+}
+
+export function petTypeFromBotPath(pathLabels: string[]): "dog" | "cat" | null {
+  const joined = pathLabels.join(" ").toLocaleLowerCase("tr-TR");
+  if (/kedi|cat/.test(joined)) return "cat";
+  if (/köpek|dog/.test(joined)) return "dog";
+  return null;
+}
+
 export const DIRECT_WHATSAPP_LABEL = "Doğrudan WhatsApp'tan yaz";
 export const DEFAULT_DIRECT_MESSAGE = "Merhaba, size ulaşmak istiyorum.";
 
 export const ORDER_FORM_TITLE = "Sipariş bilgileri";
 export const ORDER_FORM_HINT =
   "Sipariş numaranızı ve e-postanızı girin; durum bilgisini anında gösterelim.";
+
+export const RECOMMEND_FORM_TITLE = "Ürün önerisi";
+export const RECOMMEND_FORM_HINT =
+  "Dostunuzun ırkını ve yaşını yazın; ürün içeriklerinden size uygun seçenekleri ve linkleri gösterelim.";
 
 export const DETAIL_PROMPT =
   "Sipariş numaranız veya e-posta adresinizi yazın; ardından WhatsApp'a devam edin.";

@@ -173,6 +173,15 @@ export function mergeSiteSettings(current: SiteSettings, patch: SiteSettings): S
       ? { ...current.googleMerchant, ...patch.googleMerchant }
       : current.googleMerchant,
     whatsapp: patch.whatsapp ? { ...current.whatsapp, ...patch.whatsapp } : current.whatsapp,
+    assistant: patch.assistant
+      ? {
+          ...current.assistant,
+          ...patch.assistant,
+          channels: patch.assistant.channels
+            ? { ...current.assistant?.channels, ...patch.assistant.channels }
+            : current.assistant?.channels,
+        }
+      : current.assistant,
     streetFoodFund: patch.streetFoodFund
       ? { ...current.streetFoodFund, ...patch.streetFoodFund }
       : current.streetFoodFund,

@@ -19,6 +19,9 @@ const REQUIRED_MARKERS = [
   "MarketplaceCategoryMapping: 'MarketplaceCategoryMapping'",
   "MarketplaceProductListing: 'MarketplaceProductListing'",
   "FinanceTransaction: 'FinanceTransaction'",
+  "AssistantKnowledgeEntry: 'AssistantKnowledgeEntry'",
+  "AssistantConversation: 'AssistantConversation'",
+  "AssistantMessage: 'AssistantMessage'",
 ];
 
 function clientLooksCurrent() {

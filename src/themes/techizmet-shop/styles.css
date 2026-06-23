@@ -215,6 +215,13 @@
   margin: 0;
   padding: 0;
 }
+.kn-home-mirror--boot .mirror-home-frame {
+  opacity: 0;
+}
+.kn-home-mirror--ready .mirror-home-frame {
+  opacity: 1;
+  transition: opacity 0.12s ease-out;
+}
 .kn-collection-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));

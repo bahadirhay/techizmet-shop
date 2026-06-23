@@ -52,6 +52,7 @@ import {
 import {
   applyLiveStoreCatalogToDocument,
   fetchLiveStoreCatalog,
+  mirrorCatalogAlreadyHydrated,
 } from "@/lib/mirror-live-catalog-client";
 import { initProductCardGalleries } from "@/lib/mirror-product-card-gallery";
 import { applyInstagramFeedToDoc } from "@/lib/mirror-instagram-feed";
@@ -172,11 +173,13 @@ export function MirrorVitrinFrameClient({
   useMirrorFrameRouteSync(iframeRef, src, syncParentRoute);
 
   const liveCatalogGenRef = useRef(0);
+  const patchesCompleteRef = useRef(false);
 
   useEffect(() => {
     baseSrcRef.current = src;
     setContentVisible(isPrebuiltMirrorSrc(src));
     liveCatalogGenRef.current += 1;
+    patchesCompleteRef.current = false;
   }, [src]);
 
   useEffect(() => {
@@ -189,6 +192,7 @@ export function MirrorVitrinFrameClient({
     const iframe = iframeRef.current;
     if (!iframe) return;
 
+    patchesCompleteRef.current = false;
     const config = pageConfig;
     const expectedPath = new URL(src, window.location.origin).pathname;
     let cancelBranding: (() => void) | undefined;
@@ -275,8 +279,9 @@ export function MirrorVitrinFrameClient({
 
     async function finishCatalogAndVisibility(doc: Document) {
       const catalogGen = liveCatalogGenRef.current;
+      const catalogHydrated = mirrorCatalogAlreadyHydrated(doc);
       try {
-        if (!visualEditMode && !isCartOrCheckoutShell) {
+        if (!visualEditMode && !isCartOrCheckoutShell && !catalogHydrated) {
           const payload = await fetchLiveStoreCatalog();
           if (disposed || catalogGen !== liveCatalogGenRef.current) return;
           if (payload) {
@@ -306,6 +311,21 @@ export function MirrorVitrinFrameClient({
       }
     }
 
+    function deferNonCriticalPatches(doc: Document) {
+      defer(() => {
+        if (disposed) return;
+        installMirrorStreetFoodBar(doc);
+        installMirrorStreetFoodFundPage(doc);
+        if (
+          instagramPosts?.length &&
+          pathname === "/" &&
+          !visualEditMode
+        ) {
+          applyInstagramFeedToDoc(doc, instagramPosts, instagramFeedTitle);
+        }
+      });
+    }
+
     function runPatches() {
       if (disposed) return;
       const frame = iframeRef.current;
@@ -321,20 +341,11 @@ export function MirrorVitrinFrameClient({
       revealMirrorImagesInDocument(doc);
       applyMirrorScrollStability(doc);
       applyMirrorIframeHeight(frame);
-      installMirrorStreetFoodBar(doc);
-      installMirrorStreetFoodFundPage(doc);
-      ensureMirrorLayoutStyles(doc);
-
-      if (branding?.logoUrl?.trim()) {
-        applyMirrorLogoUnify(doc, branding);
-      }
-
-      applyMirrorHeaderIconsFix(doc);
-      if (branding?.faviconUrl?.trim()) {
-        setMirrorFavicon(doc, branding.faviconUrl);
-      }
 
       const serverReady = isMirrorServerReady(doc);
+      const catalogHydrated = mirrorCatalogAlreadyHydrated(doc);
+      const navOnServer = doc.documentElement.getAttribute("data-kn-nav-server") === "1";
+      const footerOnServer = doc.documentElement.getAttribute("data-kn-footer-server") === "1";
       const serverOverlay = doc.documentElement.getAttribute("data-kn-overlay-server") === "1";
       const collectionsOnServer =
         doc.documentElement.getAttribute("data-kn-collections-server") === "1";
@@ -361,6 +372,23 @@ export function MirrorVitrinFrameClient({
           !categoriesFromAdmin?.length &&
           (!config || !shouldApplyMirrorPageOverlay(config) || serverOverlay));
 
+      if (serverReady && catalogHydrated) {
+        deferNonCriticalPatches(doc);
+      } else {
+        installMirrorStreetFoodBar(doc);
+        installMirrorStreetFoodFundPage(doc);
+      }
+      ensureMirrorLayoutStyles(doc);
+
+      if (branding?.logoUrl?.trim()) {
+        applyMirrorLogoUnify(doc, branding);
+      }
+
+      applyMirrorHeaderIconsFix(doc);
+      if (branding?.faviconUrl?.trim()) {
+        setMirrorFavicon(doc, branding.faviconUrl);
+      }
+
       applyMirrorAccountDrawerClient(doc, locale);
       if (pathname === "/account") {
         void hydrateMirrorAccountPanel(doc);
@@ -369,8 +397,8 @@ export function MirrorVitrinFrameClient({
       }
       if (accountDrawerForm) openAccountDrawer(doc, accountDrawerForm);
 
-      if (nav?.length) syncMirrorNavigation(doc, nav, locale ?? "tr");
-      if (footer) {
+      if (nav?.length && !navOnServer) syncMirrorNavigation(doc, nav, locale ?? "tr");
+      if (footer && !footerOnServer) {
         applyMirrorFooter(doc, footer);
         cancelFooter?.();
         cancelFooter = scheduleMirrorFooterPatch(
@@ -381,8 +409,19 @@ export function MirrorVitrinFrameClient({
 
       if (skipClientWork) {
         initProductCardGalleries(doc);
+        if (catalogHydrated) {
+          applyEmbeddedCatalogPrices(doc);
+          if (usdRate && usdRate > 0) applyMirrorUsdPrices(doc, usdRate);
+          setContentVisible(true);
+          patchesCompleteRef.current = true;
+          applyMirrorIframeHeight(frame);
+          return;
+        }
         void finishCatalogAndVisibility(doc).finally(() => {
-          if (!disposed) applyMirrorIframeHeight(frame);
+          if (!disposed) {
+            patchesCompleteRef.current = true;
+            applyMirrorIframeHeight(frame);
+          }
         });
         return;
       }
@@ -431,7 +470,8 @@ export function MirrorVitrinFrameClient({
       if (
         instagramPosts?.length &&
         pathname === "/" &&
-        !visualEditMode
+        !visualEditMode &&
+        !(serverReady && catalogHydrated)
       ) {
         applyInstagramFeedToDoc(doc, instagramPosts, instagramFeedTitle);
       }
@@ -450,17 +490,27 @@ export function MirrorVitrinFrameClient({
         }
       }
 
-      void finishCatalogAndVisibility(doc);
+      void finishCatalogAndVisibility(doc).finally(() => {
+        if (!disposed) patchesCompleteRef.current = true;
+      });
       applyMirrorIframeHeight(frame);
     }
 
     function schedulePatches() {
-      if (iframeRef.current?.contentDocument?.getElementById("MainContent")) {
-        void runPatches();
+      const doc = iframeRef.current?.contentDocument;
+      if (!doc?.getElementById("MainContent")) return;
+
+      const hydrated = mirrorCatalogAlreadyHydrated(doc);
+      const serverReady = isMirrorServerReady(doc);
+      if (patchesCompleteRef.current && hydrated && serverReady) return;
+
+      runPatches();
+
+      if (!serverReady || !hydrated) {
+        cancelIdle = defer(() => {
+          if (!disposed && !patchesCompleteRef.current) runPatches();
+        }) as number;
       }
-      cancelIdle = defer(() => {
-        if (!disposed) void runPatches();
-      }) as number;
     }
 
     function onLoad() {
@@ -588,7 +638,11 @@ export function MirrorVitrinFrameClient({
   }, [contact?.mapEmbedUrl, src]);
 
   return (
-    <div className="kn-home-mirror relative h-screen w-full overflow-hidden">
+    <div
+      className={`kn-home-mirror relative h-screen w-full overflow-hidden ${
+        contentVisible || visualEditMode ? "kn-home-mirror--ready" : "kn-home-mirror--boot"
+      }`}
+    >
       {visualEditMode && !frameReady ? (
         <p className="absolute right-2 top-2 z-10 rounded-md bg-zinc-800/95 px-2 py-1 text-xs text-zinc-400">
           Yükleniyor…

@@ -50,6 +50,10 @@ html.kn-mirror-embed .section-media-grid:first-of-type img.media_image {
 `;
 
 export function markMirrorEmbedRoot(doc: Document) {
+  if (doc.getElementById("kn-mirror-visible-fallback")) {
+    doc.documentElement.classList.add("kn-mirror-embed");
+    return;
+  }
   doc.documentElement.classList.add("kn-mirror-embed");
   if (!doc.getElementById("kn-mirror-embed-critical")) {
     const style = doc.createElement("style");
@@ -59,7 +63,20 @@ export function markMirrorEmbedRoot(doc: Document) {
   }
 }
 
+export function mirrorImagesAlreadyRevealed(doc: Document): boolean {
+  if (doc.querySelector("img.no-js-hidden, img.lazyload, img[lazyloading]")) return false;
+  return Boolean(
+    doc.getElementById("kn-mirror-visible-fallback") ||
+      doc.getElementById("kn-mirror-content-boot") ||
+      doc.documentElement.classList.contains("kn-mirror-embed"),
+  );
+}
+
 export function revealMirrorImagesInDocument(doc: Document) {
+  if (mirrorImagesAlreadyRevealed(doc)) {
+    doc.documentElement.classList.add("kn-mirror-embed");
+    return;
+  }
   markMirrorEmbedRoot(doc);
   doc.querySelectorAll('img.no-js-hidden, img.lazyload, img[lazyload], img.media_image').forEach((node) => {
     if (node instanceof HTMLImageElement) revealMirrorImageElement(node);

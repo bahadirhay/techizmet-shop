@@ -252,6 +252,8 @@ export type SiteSettings = {
   googleMerchant?: import("@/lib/seo/google-merchant-types").GoogleMerchantSettings;
   /** WhatsApp gelen kutusu, bot, takip */
   whatsapp?: import("@/lib/whatsapp-settings").StoreWhatsAppSettings;
+  /** AI işletme asistanı — bilgi tabanı, kanallar, handoff */
+  assistant?: import("@/lib/assistant/settings").StoreAssistantSettings;
   /** Geliver kargo pazaryeri */
   geliver?: import("@/lib/shipping/geliver/types").GeliverSiteSettings;
   /** Sokak dostları mama fonu */

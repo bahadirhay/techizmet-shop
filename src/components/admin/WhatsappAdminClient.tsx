@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { WhatsappBotFlowEditor } from "@/components/admin/WhatsappBotFlowEditor";
 import { WhatsappInboxClient } from "@/components/admin/WhatsappInboxClient";
+import { AssistantFoundationPanel } from "@/components/admin/AssistantFoundationPanel";
 import type { StoreWhatsAppSettings } from "@/lib/whatsapp-settings";
+import type { StoreAssistantSettings } from "@/lib/assistant/settings";
 
 type CountRow = { status: string; _count: { _all: number } };
 
@@ -19,12 +21,18 @@ export function WhatsappAdminClient({
   initialLeads,
   initialCounts,
   initialBotNodes,
+  initialAssistant,
+  initialKnowledgeCount,
+  siteName,
 }: {
   initialWhatsapp: StoreWhatsAppSettings;
   resolvedNumber: string | null;
   initialLeads: WhatsAppLead[];
   initialCounts: CountRow[];
   initialBotNodes: WhatsAppBotNode[];
+  initialAssistant: StoreAssistantSettings;
+  initialKnowledgeCount: number;
+  siteName: string;
 }) {
   const router = useRouter();
   const [row, setRow] = useState({
@@ -169,6 +177,12 @@ export function WhatsappAdminClient({
           {saving ? "Kaydediliyor…" : "Kaydet"}
         </button>
       </form>
+
+      <AssistantFoundationPanel
+        initialAssistant={initialAssistant}
+        initialKnowledgeCount={initialKnowledgeCount}
+        siteName={siteName}
+      />
 
       {row.botEnabled ? (
         <WhatsappBotFlowEditor
