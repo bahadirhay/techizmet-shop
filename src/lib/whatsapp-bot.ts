@@ -85,8 +85,16 @@ export function botPathRequiresCustomerDetail(pathLabels: string[]): boolean {
   return /sipari[sş]|kargom|iptal/.test(joined);
 }
 
+export function isOrderTopicLabel(label: string): boolean {
+  return /sipari[sş]|kargom|iptal/.test(label.toLocaleLowerCase("tr-TR"));
+}
+
 export const DIRECT_WHATSAPP_LABEL = "Doğrudan WhatsApp'tan yaz";
 export const DEFAULT_DIRECT_MESSAGE = "Merhaba, size ulaşmak istiyorum.";
+
+export const ORDER_FORM_TITLE = "Sipariş bilgileri";
+export const ORDER_FORM_HINT =
+  "Konunuzu seçin, sipariş numaranızı veya e-postanızı girin; mesajınız WhatsApp'ta hazır olacak.";
 
 export const DETAIL_PROMPT =
   "Sipariş numaranız veya e-posta adresinizi yazın; ardından WhatsApp'a devam edin.";
