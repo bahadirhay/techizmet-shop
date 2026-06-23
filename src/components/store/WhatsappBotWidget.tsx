@@ -5,7 +5,9 @@ import {
   appendCustomerDetailToMessage,
   botPathFromLabels,
   botPathRequiresCustomerDetail,
+  DEFAULT_DIRECT_MESSAGE,
   DETAIL_PROMPT,
+  DIRECT_WHATSAPP_LABEL,
 } from "@/lib/whatsapp-bot";
 import { useCallback, useEffect, useState } from "react";
 
@@ -15,6 +17,7 @@ type BotConfig = {
   enabled: boolean;
   title?: string;
   welcome?: string;
+  defaultMessage?: string | null;
   tree?: WhatsAppBotNodeTree[];
 };
 
@@ -31,7 +34,9 @@ export function WhatsappBotWidget() {
   const [options, setOptions] = useState<WhatsAppBotNodeTree[]>([]);
   const [pendingLeaf, setPendingLeaf] = useState<PendingLeaf | null>(null);
   const [customerDetail, setCustomerDetail] = useState("");
+  const [freeMessage, setFreeMessage] = useState("");
   const [detailError, setDetailError] = useState<string | null>(null);
+  const [freeError, setFreeError] = useState<string | null>(null);
   const [opening, setOpening] = useState(false);
 
   const loadConfig = useCallback(async () => {
@@ -53,7 +58,9 @@ export function WhatsappBotWidget() {
     setOptions(cfg.tree ?? []);
     setPendingLeaf(null);
     setCustomerDetail("");
+    setFreeMessage("");
     setDetailError(null);
+    setFreeError(null);
   }
 
   function openPanel() {
@@ -98,11 +105,35 @@ export function WhatsappBotWidget() {
     }
   }
 
+  function defaultDirectMessage() {
+    return config?.defaultMessage?.trim() || DEFAULT_DIRECT_MESSAGE;
+  }
+
+  async function sendDirectWhatsApp(message?: string, path?: string[]) {
+    const text = message?.trim() || defaultDirectMessage();
+    if (!text) {
+      setFreeError("Lütfen mesajınızı yazın.");
+      return;
+    }
+    setFreeError(null);
+    const waPath = path ?? (pathLabels.length > 0 ? pathLabels : [DIRECT_WHATSAPP_LABEL]);
+    setLines((prev) => [...prev, { from: "user", text: text.slice(0, 120) }]);
+    const ok = await openWhatsApp(text, waPath);
+    if (ok) {
+      setLines((prev) => [
+        ...prev,
+        { from: "bot", text: "WhatsApp açılıyor… Mesajınız hazır, göndermeniz yeterli." },
+      ]);
+      setFreeMessage("");
+    }
+  }
+
   function handlePick(node: WhatsAppBotNodeTree) {
     const nextPath = [...pathLabels, node.label];
     setPathLabels(nextPath);
     setLines((prev) => [...prev, { from: "user", text: node.label }]);
     setDetailError(null);
+    setFreeError(null);
 
     if (node.botReply?.trim()) {
       setLines((prev) => [...prev, { from: "bot", text: node.botReply!.trim() }]);
@@ -120,6 +151,7 @@ export function WhatsappBotWidget() {
       if (botPathRequiresCustomerDetail(nextPath)) {
         setPendingLeaf({ node, path: nextPath });
         setCustomerDetail("");
+        setFreeMessage("");
         setOptions([]);
         setLines((prev) => [...prev, { from: "bot", text: DETAIL_PROMPT }]);
         return;
@@ -143,7 +175,7 @@ export function WhatsappBotWidget() {
     ]);
   }
 
-  function confirmWhatsApp() {
+  async function confirmWhatsApp() {
     if (!pendingLeaf) return;
     const detail = customerDetail.trim();
     if (!detail) {
@@ -154,16 +186,21 @@ export function WhatsappBotWidget() {
     const template = pendingLeaf.node.messageTemplate?.trim();
     if (!template) return;
 
-    const message = appendCustomerDetailToMessage(template, detail);
-    void openWhatsApp(message, pendingLeaf.path).then((ok) => {
-      if (!ok) return;
-      setLines((prev) => [
-        ...prev,
-        { from: "bot", text: "WhatsApp açılıyor… Mesajınız hazır, göndermeniz yeterli." },
-      ]);
-    });
+    const extra = freeMessage.trim();
+    const message = appendCustomerDetailToMessage(
+      extra ? `${template}\n\n${extra}` : template,
+      detail,
+    );
+    const ok = await openWhatsApp(message, pendingLeaf.path);
+    if (!ok) return;
+
+    setLines((prev) => [
+      ...prev,
+      { from: "bot", text: "WhatsApp açılıyor… Mesajınız hazır, göndermeniz yeterli." },
+    ]);
     setPendingLeaf(null);
     setCustomerDetail("");
+    setFreeMessage("");
     setDetailError(null);
   }
 
@@ -174,9 +211,13 @@ export function WhatsappBotWidget() {
       const nextLabels = pendingLeaf.path.slice(0, -1);
       setPendingLeaf(null);
       setCustomerDetail("");
+      setFreeMessage("");
       setDetailError(null);
       setPathLabels(nextLabels);
-      setLines((prev) => prev.slice(0, Math.max(0, prev.length - 2)));
+      setLines((prev) => {
+        const drop = Math.min(prev.length, pendingLeaf.path.length * 2 + 1);
+        return prev.slice(0, Math.max(0, prev.length - drop));
+      });
       restoreOptionsForPath(nextLabels);
       return;
     }
@@ -212,6 +253,8 @@ export function WhatsappBotWidget() {
   if (!config?.enabled) return null;
 
   const showBack = pathLabels.length > 0 || pendingLeaf !== null;
+  const showMenu = !pendingLeaf && options.length > 0;
+  const showDirectComposer = !pendingLeaf;
 
   return (
     <>
@@ -227,8 +270,8 @@ export function WhatsappBotWidget() {
           </svg>
         </button>
       ) : (
-        <div className="fixed bottom-5 left-5 z-[99999] flex w-[min(100vw-2rem,22rem)] flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl">
-          <header className="flex items-start justify-between gap-2 bg-emerald-600 px-4 py-3 text-white">
+        <div className="fixed bottom-5 left-5 z-[99999] flex w-[min(100vw-2rem,22rem)] max-h-[min(85vh,32rem)] flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl">
+          <header className="flex shrink-0 items-start justify-between gap-2 bg-emerald-600 px-4 py-3 text-white">
             <div className="min-w-0">
               <p className="text-sm font-semibold">{config.title}</p>
               <p className="mt-0.5 text-xs text-emerald-50/90">{config.welcome}</p>
@@ -243,9 +286,9 @@ export function WhatsappBotWidget() {
             </button>
           </header>
 
-          <div className="max-h-64 space-y-2 overflow-y-auto px-3 py-3">
+          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 py-3">
             {lines.length === 0 ? (
-              <p className="text-xs text-zinc-500">Bir seçenek seçin:</p>
+              <p className="text-xs text-zinc-500">Bir konu seçin veya doğrudan mesaj yazın:</p>
             ) : (
               lines.map((line, i) => (
                 <div
@@ -266,7 +309,7 @@ export function WhatsappBotWidget() {
             )}
           </div>
 
-          <div className="border-t border-zinc-100 px-3 py-3">
+          <div className="shrink-0 border-t border-zinc-100 px-3 py-3">
             {showBack ? (
               <button
                 type="button"
@@ -282,11 +325,11 @@ export function WhatsappBotWidget() {
                 className="space-y-2"
                 onSubmit={(e) => {
                   e.preventDefault();
-                  confirmWhatsApp();
+                  void confirmWhatsApp();
                 }}
               >
-                <label className="block text-xs text-zinc-600">
-                  Sipariş numarası veya e-posta
+                <label className="block text-xs font-medium text-zinc-700">
+                  Sipariş numarası veya e-posta *
                   <input
                     type="text"
                     value={customerDetail}
@@ -296,6 +339,18 @@ export function WhatsappBotWidget() {
                     }}
                     placeholder="ör. AP-12345 veya ad@ornek.com"
                     className="mt-1 w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-800 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                    disabled={opening}
+                    autoFocus
+                  />
+                </label>
+                <label className="block text-xs text-zinc-600">
+                  Ek notunuz (isteğe bağlı)
+                  <textarea
+                    value={freeMessage}
+                    onChange={(e) => setFreeMessage(e.target.value)}
+                    rows={2}
+                    placeholder="Varsa eklemek istediğiniz detay"
+                    className="mt-1 w-full resize-none rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-800 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                     disabled={opening}
                   />
                 </label>
@@ -310,19 +365,49 @@ export function WhatsappBotWidget() {
               </form>
             ) : (
               <div className="flex flex-col gap-2">
-                {options.map((node) => (
-                  <button
-                    key={node.id}
-                    type="button"
-                    disabled={opening}
-                    onClick={() => handlePick(node)}
-                    className="rounded-xl border border-zinc-200 px-3 py-2 text-left text-sm font-medium text-zinc-800 transition hover:border-emerald-500 hover:bg-emerald-50 disabled:opacity-50"
-                  >
-                    {node.label}
-                  </button>
-                ))}
-                {options.length === 0 ? (
-                  <p className="text-xs text-zinc-500">Bu menüde seçenek yok.</p>
+                {showMenu
+                  ? options.map((node) => (
+                      <button
+                        key={node.id}
+                        type="button"
+                        disabled={opening}
+                        onClick={() => handlePick(node)}
+                        className="rounded-xl border border-zinc-200 px-3 py-2 text-left text-sm font-medium text-zinc-800 transition hover:border-emerald-500 hover:bg-emerald-50 disabled:opacity-50"
+                      >
+                        {node.label}
+                      </button>
+                    ))
+                  : null}
+
+                {showDirectComposer ? (
+                  <div className={showMenu ? "mt-1 space-y-2 border-t border-zinc-100 pt-3" : "space-y-2"}>
+                    {showMenu ? (
+                      <p className="text-xs text-zinc-500">veya doğrudan yazın</p>
+                    ) : null}
+                    <label className="block text-xs text-zinc-600">
+                      Mesajınız
+                      <textarea
+                        value={freeMessage}
+                        onChange={(e) => {
+                          setFreeMessage(e.target.value);
+                          if (freeError) setFreeError(null);
+                        }}
+                        rows={3}
+                        placeholder={defaultDirectMessage()}
+                        className="mt-1 w-full resize-none rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-800 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                        disabled={opening}
+                      />
+                    </label>
+                    {freeError ? <p className="text-xs text-red-600">{freeError}</p> : null}
+                    <button
+                      type="button"
+                      disabled={opening}
+                      onClick={() => void sendDirectWhatsApp(freeMessage)}
+                      className="w-full rounded-xl bg-emerald-600 px-3 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:opacity-50"
+                    >
+                      {opening ? "Açılıyor…" : DIRECT_WHATSAPP_LABEL}
+                    </button>
+                  </div>
                 ) : null}
               </div>
             )}

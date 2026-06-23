@@ -32,6 +32,7 @@ export async function GET() {
     enabled: true,
     title: wa.botTitle || DEFAULT_BOT_TITLE,
     welcome: wa.botWelcome || DEFAULT_BOT_WELCOME,
+    defaultMessage: wa.defaultMessage,
     tree: buildBotTree(rows),
   });
 }
