@@ -1,5 +1,11 @@
 /* Techizmet Shop — referans tema */
 
+html,
+body {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
 :root {
   --kn-brand: #2d4a6f;
   --kn-accent: #c9a87c;
@@ -191,6 +197,14 @@
   background: var(--kn-bg);
   overflow-x: clip;
   max-width: 100%;
+}
+html.kn-scroll-locked,
+html.kn-scroll-locked body {
+  overflow: hidden !important;
+  overscroll-behavior: none;
+}
+html.kn-scroll-locked body {
+  touch-action: none;
 }
 .kn-home-mirror {
   display: block;

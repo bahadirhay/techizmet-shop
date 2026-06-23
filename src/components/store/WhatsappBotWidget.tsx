@@ -22,6 +22,11 @@ import {
   type ProductRecommendReplyItem,
 } from "@/lib/whatsapp/product-recommend-reply";
 import type { RecommendPetType } from "@/lib/whatsapp-settings";
+import {
+  lockBodyScroll,
+  repairPageLayoutAfterOverlayClose,
+  unlockBodyScroll,
+} from "@/lib/body-scroll-lock";
 import { useCallback, useEffect, useState } from "react";
 
 type BotConfig = {
@@ -145,34 +150,11 @@ export function WhatsappBotWidget() {
 
   useEffect(() => {
     if (!open) return;
-    const html = document.documentElement;
-    const body = document.body;
-    const prevHtmlOverflow = html.style.overflow;
-    const prevHtmlOverflowX = html.style.overflowX;
-    const prevBodyOverflow = body.style.overflow;
-    const prevBodyOverflowX = body.style.overflowX;
-    const prevBodyPosition = body.style.position;
-    const prevBodyWidth = body.style.width;
-    const scrollY = window.scrollY;
-
-    html.style.overflowX = "hidden";
-    body.style.overflow = "hidden";
-    body.style.overflowX = "hidden";
-    body.style.position = "fixed";
-    body.style.width = "100%";
-    body.style.top = `-${scrollY}px`;
-
-    return () => {
-      html.style.overflow = prevHtmlOverflow;
-      html.style.overflowX = prevHtmlOverflowX;
-      body.style.overflow = prevBodyOverflow;
-      body.style.overflowX = prevBodyOverflowX;
-      body.style.position = prevBodyPosition;
-      body.style.width = prevBodyWidth;
-      body.style.top = "";
-      window.scrollTo(0, scrollY);
-    };
+    lockBodyScroll();
+    return () => unlockBodyScroll();
   }, [open]);
+
+  useEffect(() => () => repairPageLayoutAfterOverlayClose(), []);
 
   function resetChat(cfg: BotConfig) {
     setView("topics");
