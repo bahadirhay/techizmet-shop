@@ -16,6 +16,10 @@ import {
   RECOMMEND_FORM_HINT,
   RECOMMEND_FORM_TITLE,
 } from "@/lib/whatsapp-bot";
+import {
+  formatProductRecommendReply,
+  formatRecommendHeadline,
+} from "@/lib/whatsapp/product-recommend-reply";
 import { useCallback, useEffect, useState } from "react";
 
 type BotConfig = {
@@ -288,14 +292,29 @@ export function WhatsappBotWidget() {
   }
 
   async function continueRecommendToWhatsApp() {
-    if (!recommendForm || !recommendSummary) return;
+    if (!recommendForm) return;
     const breed = petBreed.trim();
     const age = petAge.trim();
+    const petLabel =
+      petType === "dog" ? "Köpek" : petType === "cat" ? "Kedi" : undefined;
     const template =
       recommendForm.selected.messageTemplate?.trim() ||
       "Merhaba, köpeğim için ürün önerisi almak istiyorum.";
+
+    const recommendText =
+      recommendProducts.length > 0
+        ? formatProductRecommendReply({
+            breed,
+            age,
+            petTypeLabel: petLabel,
+            hits: recommendProducts,
+          })
+        : recommendSummary;
+
+    if (!recommendText) return;
+
     const context = [
-      petType === "dog" ? "Tür: Köpek" : petType === "cat" ? "Tür: Kedi" : "",
+      petLabel ? `Tür: ${petLabel}` : "",
       breed ? `Irk: ${breed}` : "",
       age ? `Yaş: ${age}` : "",
       recommendNote.trim() ? `Not: ${recommendNote.trim()}` : "",
@@ -303,8 +322,8 @@ export function WhatsappBotWidget() {
       .filter(Boolean)
       .join("\n");
     const message = context
-      ? `${template}\n\n${context}\n\n${recommendSummary}`
-      : `${template}\n\n${recommendSummary}`;
+      ? `${template}\n\n${context}\n\n${recommendText}`
+      : `${template}\n\n${recommendText}`;
     const extra = freeMessage.trim();
     await openWhatsApp(extra ? `${message}\n\n${extra}` : message, recommendForm.path);
   }
@@ -470,7 +489,7 @@ export function WhatsappBotWidget() {
           </svg>
         </button>
       ) : (
-        <div className="fixed bottom-5 left-5 z-[99999] flex w-[min(100vw-2rem,24rem)] flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl">
+        <div className="fixed bottom-5 left-5 z-[99999] flex w-[min(100vw-2rem,26rem)] flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl">
           <header className="flex shrink-0 items-start justify-between gap-2 bg-emerald-600 px-4 py-3 text-white">
             <div className="min-w-0">
               <p className="text-sm font-semibold">{config.title}</p>
@@ -496,7 +515,7 @@ export function WhatsappBotWidget() {
             </button>
           </header>
 
-          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-4">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto px-4 py-4">
             {showBack ? (
               <button
                 type="button"
@@ -772,36 +791,60 @@ export function WhatsappBotWidget() {
                 </button>
 
                 {recommendProducts.length > 0 ? (
-                  <div className="space-y-2">
-                    {recommendProducts.map((product) => (
-                      <a
-                        key={product.slug}
-                        href={product.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block rounded-xl border border-emerald-200 bg-emerald-50/60 px-3 py-3 transition hover:border-emerald-400 hover:bg-emerald-50"
-                      >
-                        <p className="text-sm font-semibold text-emerald-950">{product.title}</p>
-                        <p className="mt-0.5 text-xs font-medium text-emerald-800">{product.priceLabel}</p>
-                        {product.reason ? (
-                          <p className="mt-1 text-xs leading-relaxed text-emerald-900/90">{product.reason}</p>
-                        ) : null}
-                        <p className="mt-2 text-xs font-medium text-emerald-700 underline underline-offset-2">
-                          Ürünü görüntüle →
-                        </p>
-                      </a>
-                    ))}
-                  </div>
-                ) : null}
-
-                {recommendSummary ? (
-                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">
-                      Otomatik yanıt
+                  <div className="min-w-0 space-y-2">
+                    <p className="text-sm font-semibold text-zinc-900">
+                      {formatRecommendHeadline({
+                        breed: petBreed,
+                        age: petAge,
+                        petTypeLabel:
+                          petType === "dog" ? "Köpek" : petType === "cat" ? "Kedi" : undefined,
+                        count: recommendProducts.length,
+                      })}
                     </p>
-                    <pre className="mt-2 whitespace-pre-wrap font-sans text-sm leading-relaxed text-emerald-950">
+                    <ul className="space-y-2">
+                      {recommendProducts.map((product, index) => (
+                        <li key={product.slug} className="min-w-0">
+                          <a
+                            href={product.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex min-w-0 items-start gap-2.5 rounded-xl border border-emerald-200 bg-white p-3 shadow-sm transition hover:border-emerald-400 hover:bg-emerald-50/40"
+                          >
+                            <span
+                              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-xs font-bold text-white"
+                              aria-hidden
+                            >
+                              {index + 1}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <p className="line-clamp-2 text-sm font-semibold leading-snug text-zinc-900">
+                                {product.title}
+                              </p>
+                              {product.reason ? (
+                                <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-zinc-600">
+                                  {product.reason}
+                                </p>
+                              ) : null}
+                              <span className="mt-2 inline-flex text-xs font-semibold text-emerald-700">
+                                Ürün sayfası →
+                              </span>
+                            </div>
+                            <p className="shrink-0 text-sm font-bold tabular-nums text-emerald-700">
+                              {product.priceLabel}
+                            </p>
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : recommendSummary ? (
+                  <div className="min-w-0 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">
+                      Yanıt
+                    </p>
+                    <p className="mt-2 break-words text-sm leading-relaxed text-emerald-950">
                       {recommendSummary}
-                    </pre>
+                    </p>
                   </div>
                 ) : null}
 
@@ -819,7 +862,7 @@ export function WhatsappBotWidget() {
 
                 <button
                   type="button"
-                  disabled={opening || !recommendSummary}
+                  disabled={opening || (recommendProducts.length === 0 && !recommendSummary)}
                   onClick={() => void continueRecommendToWhatsApp()}
                   className="w-full rounded-xl border border-emerald-600 bg-white px-4 py-3 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50 disabled:opacity-40"
                 >
