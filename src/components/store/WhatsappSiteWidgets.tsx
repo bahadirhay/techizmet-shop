@@ -31,7 +31,10 @@ export function WhatsappSiteWidgets({
   if (!digits || inIframe) return null;
 
   const widgets = (
-    <div className="kn-whatsapp-widgets" style={{ position: "relative", zIndex: 99999 }}>
+    <div
+      className="kn-whatsapp-widgets max-w-full overflow-x-hidden"
+      style={{ position: "relative", zIndex: 99999 }}
+    >
       {floatingEnabled && !botEnabled ? (
         <WhatsappFloatingButton phoneDigits={digits} defaultMessage={defaultMessage} />
       ) : null}

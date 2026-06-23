@@ -115,6 +115,37 @@ export function WhatsappBotWidget() {
     void loadConfig();
   }, [loadConfig]);
 
+  useEffect(() => {
+    if (!open) return;
+    const html = document.documentElement;
+    const body = document.body;
+    const prevHtmlOverflow = html.style.overflow;
+    const prevHtmlOverflowX = html.style.overflowX;
+    const prevBodyOverflow = body.style.overflow;
+    const prevBodyOverflowX = body.style.overflowX;
+    const prevBodyPosition = body.style.position;
+    const prevBodyWidth = body.style.width;
+    const scrollY = window.scrollY;
+
+    html.style.overflowX = "hidden";
+    body.style.overflow = "hidden";
+    body.style.overflowX = "hidden";
+    body.style.position = "fixed";
+    body.style.width = "100%";
+    body.style.top = `-${scrollY}px`;
+
+    return () => {
+      html.style.overflow = prevHtmlOverflow;
+      html.style.overflowX = prevHtmlOverflowX;
+      body.style.overflow = prevBodyOverflow;
+      body.style.overflowX = prevBodyOverflowX;
+      body.style.position = prevBodyPosition;
+      body.style.width = prevBodyWidth;
+      body.style.top = "";
+      window.scrollTo(0, scrollY);
+    };
+  }, [open]);
+
   function resetChat(cfg: BotConfig) {
     setView("topics");
     setPathLabels([]);
@@ -141,6 +172,11 @@ export function WhatsappBotWidget() {
     if (config?.enabled) resetChat(config);
   }
 
+  function closePanel() {
+    setOpen(false);
+    if (config?.enabled) resetChat(config);
+  }
+
   async function openWhatsApp(message: string, path: string[]) {
     setOpening(true);
     setStatusText(null);
@@ -162,7 +198,7 @@ export function WhatsappBotWidget() {
       const data = (await res.json().catch(() => ({}))) as { waUrl?: string; error?: string };
       if (data.waUrl) {
         window.open(data.waUrl, "_blank", "noopener,noreferrer");
-        setStatusText("WhatsApp açıldı. Mesajı göndermeniz yeterli.");
+        closePanel();
         return true;
       }
       setStatusText(
@@ -509,7 +545,7 @@ export function WhatsappBotWidget() {
         <button
           type="button"
           onClick={openPanel}
-          className="fixed bottom-5 left-5 z-[99999] flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg ring-4 ring-white/10 transition hover:scale-105 hover:bg-emerald-700 hover:shadow-xl"
+          className="fixed bottom-4 left-4 z-[99999] flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg ring-4 ring-white/10 transition hover:scale-105 hover:bg-emerald-700 hover:shadow-xl"
           aria-label="WhatsApp asistan"
         >
           <svg viewBox="0 0 24 24" className="h-7 w-7" fill="currentColor" aria-hidden>
@@ -517,9 +553,16 @@ export function WhatsappBotWidget() {
           </svg>
         </button>
       ) : (
-        <div className="fixed bottom-5 left-5 z-[99999] flex w-[min(100vw-2rem,26rem)] flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl">
+        <>
+          <button
+            type="button"
+            className="fixed inset-0 z-[99998] bg-black/25"
+            aria-label="Paneli kapat"
+            onClick={closePanel}
+          />
+          <div className="fixed bottom-4 left-3 right-3 z-[99999] mx-auto flex max-h-[min(88dvh,calc(100dvh-2rem))] max-w-[26rem] flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl sm:left-5 sm:right-auto sm:w-[26rem]">
           <header className="flex shrink-0 items-start justify-between gap-2 bg-emerald-600 px-4 py-3 text-white">
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold">{config.title}</p>
               <p className="mt-0.5 line-clamp-2 text-xs text-emerald-50/90">
                 {view === "order"
@@ -535,15 +578,15 @@ export function WhatsappBotWidget() {
             </div>
             <button
               type="button"
-              className="shrink-0 rounded p-1 hover:bg-white/10"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-lg leading-none hover:bg-white/15"
               aria-label="Kapat"
-              onClick={() => setOpen(false)}
+              onClick={closePanel}
             >
               ✕
             </button>
           </header>
 
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto px-4 py-4">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-contain px-4 py-4">
             {showBack ? (
               <button
                 type="button"
@@ -840,28 +883,30 @@ export function WhatsappBotWidget() {
                             href={product.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex min-w-0 items-start gap-2.5 rounded-xl border border-emerald-200 bg-white p-3 shadow-sm transition hover:border-emerald-400 hover:bg-emerald-50/40"
+                            className="flex min-w-0 flex-col gap-2 rounded-xl border border-emerald-200 bg-white p-3 shadow-sm transition hover:border-emerald-400 hover:bg-emerald-50/40 sm:flex-row sm:items-start"
                           >
-                            <span
-                              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-xs font-bold text-white"
-                              aria-hidden
-                            >
-                              {index + 1}
-                            </span>
-                            <div className="min-w-0 flex-1">
-                              <p className="line-clamp-2 text-sm font-semibold leading-snug text-zinc-900">
-                                {product.title}
-                              </p>
-                              {product.reason ? (
-                                <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-zinc-600">
-                                  {product.reason}
-                                </p>
-                              ) : null}
-                              <span className="mt-2 inline-flex text-xs font-semibold text-emerald-700">
-                                Ürün sayfası →
+                            <div className="flex min-w-0 items-start gap-2.5">
+                              <span
+                                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-xs font-bold text-white"
+                                aria-hidden
+                              >
+                                {index + 1}
                               </span>
+                              <div className="min-w-0 flex-1">
+                                <p className="line-clamp-2 text-sm font-semibold leading-snug text-zinc-900">
+                                  {product.title}
+                                </p>
+                                {product.reason ? (
+                                  <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-zinc-600">
+                                    {product.reason}
+                                  </p>
+                                ) : null}
+                                <span className="mt-2 inline-flex text-xs font-semibold text-emerald-700">
+                                  Ürün sayfası →
+                                </span>
+                              </div>
                             </div>
-                            <p className="shrink-0 text-sm font-bold tabular-nums text-emerald-700">
+                            <p className="shrink-0 self-end text-sm font-bold tabular-nums text-emerald-700 sm:self-start">
                               {product.priceLabel}
                             </p>
                           </a>
@@ -887,19 +932,10 @@ export function WhatsappBotWidget() {
                     onChange={(e) => setFreeMessage(e.target.value)}
                     rows={2}
                     placeholder="Eklemek istediğiniz detay"
-                    className="w-full resize-none rounded-xl border border-zinc-300 px-3 py-2.5 text-sm text-zinc-900 outline-none ring-emerald-500/30 focus:border-emerald-500 focus:ring-2"
+                    className="w-full max-w-full resize-none rounded-xl border border-zinc-300 px-3 py-2.5 text-sm text-zinc-900 outline-none ring-emerald-500/30 focus:border-emerald-500 focus:ring-2"
                     disabled={opening}
                   />
                 </label>
-
-                <button
-                  type="button"
-                  disabled={opening || (recommendProducts.length === 0 && !recommendSummary)}
-                  onClick={() => void continueRecommendToWhatsApp()}
-                  className="w-full rounded-xl border border-emerald-600 bg-white px-4 py-3 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50 disabled:opacity-40"
-                >
-                  {opening ? "Açılıyor…" : "WhatsApp'tan devam et"}
-                </button>
               </div>
             ) : null}
 
@@ -930,7 +966,28 @@ export function WhatsappBotWidget() {
               </div>
             ) : null}
           </div>
-        </div>
+
+          <footer className="shrink-0 space-y-2 border-t border-zinc-100 bg-white p-3">
+            {view === "recommend" && (recommendProducts.length > 0 || recommendSummary) ? (
+              <button
+                type="button"
+                disabled={opening}
+                onClick={() => void continueRecommendToWhatsApp()}
+                className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50"
+              >
+                {opening ? "Açılıyor…" : "WhatsApp'tan devam et"}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={closePanel}
+              className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50"
+            >
+              Kapat
+            </button>
+          </footer>
+          </div>
+        </>
       )}
     </>
   );
