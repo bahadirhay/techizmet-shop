@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "node scripts/prisma-generate-safe.mjs && next dev --webpack -p 5555",
-    "dev:paw": "node scripts/prisma-generate-safe.mjs && next dev --webpack -p 5556",
+    "dev:shop": "node scripts/prisma-generate-safe.mjs && node scripts/dev-with-env.mjs .env.shop 5555",
+    "dev:paw": "node scripts/prisma-generate-safe.mjs && node scripts/dev-with-env.mjs .env.anatolianpaw 5556",
     "dev:fast": "next dev --webpack -p 5555",
     "dev:sync": "npm run mirror:prebuild && npm run dev",
     "dev:live": "node scripts/prisma-generate-safe.mjs && node scripts/dev-mirror-live.mjs",

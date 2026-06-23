@@ -61,7 +61,7 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host ""
 Write-Host "=== Hazir ==="
-Write-Host "  npm run dev -- -p 5556"
+Write-Host "  npm run dev:paw"
 Write-Host "  Vitrin : http://localhost:5556"
 Write-Host "  Admin  : http://localhost:5556/admin  (admin / ADMIN_PASSWORD)"
 Write-Host ""

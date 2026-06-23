@@ -1,7 +1,12 @@
 "use client";
 
 import type { WhatsAppBotNodeTree } from "@/lib/whatsapp-bot";
-import { appendCustomerDetailToMessage, botPathFromLabels } from "@/lib/whatsapp-bot";
+import {
+  appendCustomerDetailToMessage,
+  botPathFromLabels,
+  botPathRequiresCustomerDetail,
+  DETAIL_PROMPT,
+} from "@/lib/whatsapp-bot";
 import { useCallback, useEffect, useState } from "react";
 
 type ChatLine = { from: "bot" | "user"; text: string };
@@ -17,9 +22,6 @@ type PendingLeaf = {
   node: WhatsAppBotNodeTree;
   path: string[];
 };
-
-const DETAIL_PROMPT =
-  "Sipariş numaranız veya e-posta adresinizi yazın; ardından WhatsApp'a devam edin.";
 
 export function WhatsappBotWidget() {
   const [config, setConfig] = useState<BotConfig | null>(null);
@@ -76,8 +78,21 @@ export function WhatsappBotWidget() {
           botPath: botPathFromLabels(path),
         }),
       });
-      const data = (await res.json().catch(() => ({}))) as { waUrl?: string };
-      if (data.waUrl) window.open(data.waUrl, "_blank", "noopener,noreferrer");
+      const data = (await res.json().catch(() => ({}))) as { waUrl?: string; error?: string };
+      if (data.waUrl) {
+        window.open(data.waUrl, "_blank", "noopener,noreferrer");
+        return true;
+      }
+      setLines((prev) => [
+        ...prev,
+        {
+          from: "bot",
+          text:
+            data.error?.trim() ||
+            "WhatsApp bağlantısı oluşturulamadı. Lütfen biraz sonra tekrar deneyin.",
+        },
+      ]);
+      return false;
     } finally {
       setOpening(false);
     }
@@ -102,10 +117,20 @@ export function WhatsappBotWidget() {
 
     const msg = node.messageTemplate?.trim();
     if (msg) {
-      setPendingLeaf({ node, path: nextPath });
-      setCustomerDetail("");
+      if (botPathRequiresCustomerDetail(nextPath)) {
+        setPendingLeaf({ node, path: nextPath });
+        setCustomerDetail("");
+        setOptions([]);
+        setLines((prev) => [...prev, { from: "bot", text: DETAIL_PROMPT }]);
+        return;
+      }
+
       setOptions([]);
-      setLines((prev) => [...prev, { from: "bot", text: DETAIL_PROMPT }]);
+      setLines((prev) => [
+        ...prev,
+        { from: "bot", text: "WhatsApp'a yönlendiriliyorsunuz… Mesajınız hazır, göndermeniz yeterli." },
+      ]);
+      void openWhatsApp(msg, nextPath);
       return;
     }
 
@@ -130,11 +155,13 @@ export function WhatsappBotWidget() {
     if (!template) return;
 
     const message = appendCustomerDetailToMessage(template, detail);
-    void openWhatsApp(message, pendingLeaf.path);
-    setLines((prev) => [
-      ...prev,
-      { from: "bot", text: "WhatsApp açılıyor… Mesajınız hazır, göndermeniz yeterli." },
-    ]);
+    void openWhatsApp(message, pendingLeaf.path).then((ok) => {
+      if (!ok) return;
+      setLines((prev) => [
+        ...prev,
+        { from: "bot", text: "WhatsApp açılıyor… Mesajınız hazır, göndermeniz yeterli." },
+      ]);
+    });
     setPendingLeaf(null);
     setCustomerDetail("");
     setDetailError(null);

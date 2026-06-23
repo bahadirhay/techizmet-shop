@@ -79,6 +79,15 @@ export function appendCustomerDetailToMessage(template: string, detail: string):
   return `${base}\n\nSipariş no / e-posta: ${extra}`;
 }
 
+/** Sipariş takibi / iptal gibi konularda müşteri bilgisi istenir; öneri ve genel bilgi için değil. */
+export function botPathRequiresCustomerDetail(pathLabels: string[]): boolean {
+  const joined = pathLabels.join(" ").toLocaleLowerCase("tr-TR");
+  return joined.includes("sipariş") || joined.includes("kargom");
+}
+
+export const DETAIL_PROMPT =
+  "Sipariş numaranız veya e-posta adresinizi yazın; ardından WhatsApp'a devam edin.";
+
 export const DEFAULT_BOT_TITLE = "Size nasıl yardımcı olabiliriz?";
 export const DEFAULT_BOT_WELCOME =
-  "Bir konu seçin; son adımda bilgilerinizi girip WhatsApp üzerinden bize ulaşın.";
+  "Bir konu seçin; seçiminize göre doğrudan WhatsApp'a yönlendirilirsiniz.";
