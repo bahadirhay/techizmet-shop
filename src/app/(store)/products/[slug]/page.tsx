@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { MirrorProductFrame } from "@/components/store/MirrorProductFrame";
 import { JsonLdScript } from "@/components/store/JsonLdScript";
 import { ProductSeoShell } from "@/components/store/ProductSeoShell";
 import { resolveMirrorProductTemplateSlug } from "@/lib/mirror-html-path";
 import { ProductPurchasePanel } from "@/components/store/ProductPurchasePanel";
-import { localeFromCookieValue } from "@/lib/i18n/locale";
+import { getStoreLocaleFromHeaders } from "@/lib/i18n/server";
 import { prisma } from "@/lib/prisma";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { breadcrumbItemsToNav, buildProductBreadcrumbItems } from "@/lib/seo/product-breadcrumbs";
@@ -24,19 +23,6 @@ import { getDefaultSite } from "@/lib/site";
 
 /** Ürün güncellemeleri revalidateStorePublicCache ile anında yansır */
 export const revalidate = 300;
-
-export async function generateStaticParams() {
-  try {
-    const site = await getDefaultSite();
-    const rows = await prisma.storeProduct.findMany({
-      where: { siteId: site.id, published: true },
-      select: { slug: true },
-    });
-    return rows.map(({ slug }) => ({ slug }));
-  } catch {
-    return [];
-  }
-}
 
 export async function generateMetadata({
   params,
@@ -58,8 +44,7 @@ export async function generateMetadata({
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const h = await headers();
-  const locale = localeFromCookieValue(h.get("x-shop-locale") ?? undefined) ?? "tr";
+  const locale = await getStoreLocaleFromHeaders();
   const site = await getDefaultSite();
   const settings = await getSiteSettings(site.id);
   const homepageMode = getHomepageMode(settings);
