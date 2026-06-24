@@ -1,14 +1,13 @@
-import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { recordCronRun } from "@/lib/cron-health";
 import { verifyCronRequest } from "@/lib/cron-auth";
 import { mergeSiteSettings } from "@/lib/merge-site-settings";
-import { runDistributionIndexPass } from "@/lib/seo/distribution-runner";
+import { revalidateSearchDiscoveryPaths, runDistributionIndexPass } from "@/lib/seo/distribution-runner";
 import { getSiteSettings } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
 import { prisma } from "@/lib/prisma";
 
-/** Tam site indeksleme — GET /api/cron/seo/distribution?secret=CRON_SECRET */
+/** Tam site indeksleme — Vercel cron veya Authorization: Bearer CRON_SECRET */
 export async function GET(req: Request) {
   const auth = verifyCronRequest(req);
   if (!auth.ok) {
@@ -34,9 +33,7 @@ export async function GET(req: Request) {
       data: { settingsJson: JSON.stringify(next) },
     });
 
-    revalidatePath("/sitemap.xml");
-    revalidatePath("/blogs/news/feed.xml");
-    revalidatePath("/indexnow-key.txt");
+    revalidateSearchDiscoveryPaths();
 
     await recordCronRun(site.id, "seoDistribution", {
       ok: result.ok,
@@ -44,6 +41,9 @@ export async function GET(req: Request) {
       summary: {
         indexNowSubmitted: result.indexNow?.submitted ?? 0,
         indexNowBatches: result.indexNow?.batches ?? 0,
+        discoveryFeeds: result.discoveryFeeds?.length ?? 0,
+        bingPing: result.sitemapPing?.bing?.ok ?? false,
+        yandexPing: result.sitemapPing?.yandex?.ok ?? false,
         errors: result.errors.length,
       },
       error: result.ok ? undefined : result.errors.join(" · ") || "İndeksleme başarısız",

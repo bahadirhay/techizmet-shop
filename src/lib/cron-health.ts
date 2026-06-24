@@ -36,7 +36,7 @@ const SCHEDULES: Record<CronJobId, string> = {
   gscSync:
     "Harici zamanlayıcı — GET /api/cron/gsc/sync?secret=CRON_SECRET&days=7 (öneri: her gün 06:00)",
   seoDistribution:
-    "Harici zamanlayıcı — GET /api/cron/seo/distribution?secret=CRON_SECRET (öneri: her gün 05:30)",
+    "Vercel cron (günlük 05:30 TR) veya GET /api/cron/seo/distribution — Authorization: Bearer CRON_SECRET",
   socialPublish:
     "Harici zamanlayıcı — GET /api/cron/social/publish?secret=CRON_SECRET (öneri: her 15 dk)",
 };

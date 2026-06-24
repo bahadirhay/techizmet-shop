@@ -2,8 +2,8 @@ import "server-only";
 
 import { blogPostHref } from "@/lib/blog/blog-post-types";
 import { notifyPublishedUrl } from "@/lib/seo/distribution-runner";
-import { ensureIndexNowKey } from "@/lib/seo/indexnow";
-import { submitIndexNowUrls, pingBingSitemap } from "@/lib/seo/indexnow";
+import { ensureIndexNowKey, submitIndexNowUrls } from "@/lib/seo/indexnow";
+import { collectDiscoveryFeedUrls, mergeIndexingUrls, pingAllSitemaps } from "@/lib/seo/search-engine-sync";
 import { getSiteDistribution } from "@/lib/seo/distribution-settings";
 import { getPublicSiteUrl } from "@/lib/seo/site-url";
 import { getSiteSettings } from "@/lib/site-settings";
@@ -36,8 +36,9 @@ export function notifySearchEnginesForPaths(paths: string[]): void {
 
       const distribution = getSiteDistribution(settings);
       const key = ensureIndexNowKey(distribution);
-      await submitIndexNowUrls(key, urls);
-      await pingBingSitemap();
+      const discoveryFeeds = collectDiscoveryFeedUrls(settings);
+      await submitIndexNowUrls(key, mergeIndexingUrls(urls, discoveryFeeds));
+      await pingAllSitemaps();
     } catch {
       /* indeksleme bildirimi kritik değil */
     }

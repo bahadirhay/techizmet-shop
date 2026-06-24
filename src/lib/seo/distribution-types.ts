@@ -33,14 +33,19 @@ export type DistributionRunResult = {
   ok: boolean;
   indexNowKey?: string;
   keyFileUrl?: string;
-  sitemapPing?: { bing?: { ok: boolean; status?: number; error?: string } };
+  sitemapPing?: {
+    bing?: { ok: boolean; status?: number; error?: string };
+    yandex?: { ok: boolean; status?: number; error?: string };
+  };
   indexNow?: {
     ok: boolean;
     submitted: number;
     batches: number;
     error?: string;
+    endpoints?: { endpoint: string; ok: boolean; status?: number; error?: string }[];
   };
   feedUrl?: string;
   sitemapUrl?: string;
+  discoveryFeeds?: string[];
   errors: string[];
 };

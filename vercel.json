@@ -1,5 +1,11 @@
 {
   "regions": ["fra1"],
+  "crons": [
+    {
+      "path": "/api/cron/seo/distribution",
+      "schedule": "30 2 * * *"
+    }
+  ],
   "build": {
     "env": {
       "GENERATE_SOURCEMAP": "false",

@@ -1,7 +1,6 @@
-import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { DISTRIBUTION_PLATFORMS, DISTRIBUTION_CATEGORY_LABELS } from "@/lib/seo/distribution-catalog";
-import { runDistributionIndexPass } from "@/lib/seo/distribution-runner";
+import { revalidateSearchDiscoveryPaths, runDistributionIndexPass } from "@/lib/seo/distribution-runner";
 import { getSiteDistribution, patchDistributionChecklistItem } from "@/lib/seo/distribution-settings";
 import { indexNowKeyFileUrl, ensureIndexNowKey } from "@/lib/seo/indexnow";
 import { aiProductsFeedUrl } from "@/lib/seo/ai-products-feed";
@@ -82,11 +81,7 @@ export async function POST(req: Request) {
     data: { settingsJson: JSON.stringify(next) },
   });
 
-  revalidatePath("/sitemap.xml");
-  revalidatePath("/blogs/news/feed.xml");
-  revalidatePath("/indexnow-key.txt");
-  revalidatePath("/llms.txt");
-  revalidatePath("/feeds/products.json");
+  revalidateSearchDiscoveryPaths();
 
   return NextResponse.json({
     ok: result.ok,

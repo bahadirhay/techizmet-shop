@@ -25,7 +25,8 @@ type RunResult = {
   keyFileUrl?: string;
   sitemapUrl?: string;
   feedUrl?: string;
-  sitemapPing?: { bing?: { ok: boolean; status?: number } };
+  discoveryFeeds?: string[];
+  sitemapPing?: { bing?: { ok: boolean }; yandex?: { ok: boolean } };
   indexNow?: { ok: boolean; submitted: number; batches: number; error?: string };
   errors?: string[];
 };
@@ -105,8 +106,9 @@ export function SiteDistributionPanel() {
         setData({ ...data, distribution: json.distribution });
       }
       if (json.ok) {
+        const yandex = json.result?.sitemapPing?.yandex?.ok ? "OK" : "hata";
         setMessage(
-          `IndexNow: ${json.result?.indexNow?.submitted ?? 0} URL gönderildi. Bing sitemap ping: ${json.result?.sitemapPing?.bing?.ok ? "OK" : "hata"}.`,
+          `IndexNow: ${json.result?.indexNow?.submitted ?? 0} URL. Bing ping: ${json.result?.sitemapPing?.bing?.ok ? "OK" : "hata"}. Yandex ping: ${yandex}.`,
         );
       } else {
         setMessage(json.result?.errors?.join(" · ") || "Bazı adımlar başarısız oldu.");
@@ -147,8 +149,9 @@ export function SiteDistributionPanel() {
         <div>
           <h2 className="text-lg font-semibold">Otomatik indeksleme</h2>
           <p className="text-sm text-[var(--kn-muted)] mt-1">
-            Bing sitemap ping, IndexNow (Bing + Yandex) ve RSS beslemesi. Manuel webmaster kayıtlarından
-            sonra bu adımı çalıştırın veya yeni içerik sonrası tekrarlayın.
+            Bing + Yandex sitemap ping, IndexNow (Bing/Yandex/Seznam), RSS, llms.txt ve JSON katalog.
+            Ürün/blog yayınında anlık IndexNow tetiklenir. Günlük tam tarama: Vercel cron (05:30 TR) veya
+            aşağıdaki buton.
           </p>
         </div>
         <dl className="grid gap-2 text-sm sm:grid-cols-2">

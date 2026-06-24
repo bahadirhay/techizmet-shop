@@ -1,10 +1,10 @@
 import "server-only";
 
+import { revalidatePath } from "next/cache";
 import { buildStoreSitemapEntries } from "@/lib/seo/sitemap-builder";
 import {
   ensureIndexNowKey,
   indexNowKeyFileUrl,
-  pingBingSitemap,
   submitIndexNowUrls,
 } from "@/lib/seo/indexnow";
 import { blogFeedUrl } from "@/lib/seo/rss-feed";
@@ -12,11 +12,26 @@ import { getPublicSiteUrl } from "@/lib/seo/site-url";
 import type { DistributionRunResult, SiteDistributionSettings } from "@/lib/seo/distribution-types";
 import type { SiteSettings } from "@/lib/site-settings";
 import { getSiteDistribution } from "@/lib/seo/distribution-settings";
+import {
+  collectDiscoveryFeedUrls,
+  mergeIndexingUrls,
+  pingAllSitemaps,
+} from "@/lib/seo/search-engine-sync";
 
 export async function collectPublicUrlsForIndexing(siteId: string): Promise<string[]> {
   const entries = await buildStoreSitemapEntries(siteId);
   const feed = blogFeedUrl();
   return [...new Set([...entries.map((e) => e.url), feed])];
+}
+
+export function revalidateSearchDiscoveryPaths(): void {
+  revalidatePath("/sitemap.xml");
+  revalidatePath("/robots.txt");
+  revalidatePath("/blogs/news/feed.xml");
+  revalidatePath("/indexnow-key.txt");
+  revalidatePath("/llms.txt");
+  revalidatePath("/feeds/products.json");
+  revalidatePath("/feeds/google-merchant.xml");
 }
 
 export async function runDistributionIndexPass(
@@ -32,20 +47,31 @@ export async function runDistributionIndexPass(
   const sitemapUrl = `${getPublicSiteUrl()}/sitemap.xml`;
   const feedUrl = blogFeedUrl();
   const keyFileUrl = indexNowKeyFileUrl(key);
+  const discoveryFeeds = collectDiscoveryFeedUrls(settings);
 
-  const sitemapPing = await pingBingSitemap(sitemapUrl);
-  if (!sitemapPing.ok) {
-    errors.push(`Bing sitemap ping başarısız${sitemapPing.error ? `: ${sitemapPing.error}` : ""}`);
+  revalidateSearchDiscoveryPaths();
+
+  const sitemapPingAll = await pingAllSitemaps(sitemapUrl);
+  if (!sitemapPingAll.bing.ok) {
+    errors.push(
+      `Bing sitemap ping başarısız${sitemapPingAll.bing.error ? `: ${sitemapPingAll.bing.error}` : ""}`,
+    );
+  }
+  if (!sitemapPingAll.yandex.ok) {
+    errors.push(
+      `Yandex sitemap ping başarısız${sitemapPingAll.yandex.error ? `: ${sitemapPingAll.yandex.error}` : ""}`,
+    );
   }
 
   let urlList: string[] = [];
   try {
-    urlList = await collectPublicUrlsForIndexing(siteId);
+    const pageUrls = await collectPublicUrlsForIndexing(siteId);
+    urlList = mergeIndexingUrls(pageUrls, discoveryFeeds);
   } catch (e) {
     errors.push(`URL listesi alınamadı: ${e instanceof Error ? e.message : String(e)}`);
   }
 
-  let indexNow: { ok: boolean; submitted: number; batches: number; error?: string } = {
+  let indexNow: DistributionRunResult["indexNow"] = {
     ok: false,
     submitted: 0,
     batches: 0,
@@ -58,28 +84,32 @@ export async function runDistributionIndexPass(
   }
 
   const now = new Date().toISOString();
-  if (sitemapPing.ok) distribution.lastSitemapPingAt = now;
+  const sitemapOk = sitemapPingAll.bing.ok || sitemapPingAll.yandex.ok;
+  if (sitemapOk) distribution.lastSitemapPingAt = now;
   if (indexNow.ok) distribution.lastIndexNowAt = now;
-  if (sitemapPing.ok && indexNow.ok) distribution.lastFullIndexAt = now;
+  if (sitemapOk && indexNow.ok) distribution.lastFullIndexAt = now;
 
   const checklist = { ...(distribution.checklist ?? {}) };
-  if (sitemapPing.ok) {
+  if (sitemapPingAll.bing.ok) {
     checklist["sitemap-ping"] = { status: "auto", doneAt: now };
   }
   if (indexNow.ok) {
-    checklist.indexnow = { status: "auto", doneAt: now };
+    checklist.indexnow = { status: "auto", doneAt: now, notes: `${indexNow.submitted} URL` };
   }
   checklist["rss-feed"] = { status: "auto", doneAt: now, notes: feedUrl };
+  checklist["llms-txt"] = { status: "auto", doneAt: now };
+  checklist["ai-products-json"] = { status: "auto", doneAt: now };
   distribution.checklist = checklist;
 
   return {
     ok: errors.length === 0,
     indexNowKey: key,
     keyFileUrl,
-    sitemapPing: { bing: sitemapPing },
+    sitemapPing: { bing: sitemapPingAll.bing, yandex: sitemapPingAll.yandex },
     indexNow,
     feedUrl,
     sitemapUrl,
+    discoveryFeeds,
     errors,
     distribution,
   };
@@ -92,5 +122,5 @@ export async function notifyPublishedUrl(
   const distribution = getSiteDistribution(settings);
   const key = ensureIndexNowKey(distribution);
   await submitIndexNowUrls(key, [absolutePageUrl]);
-  await pingBingSitemap();
+  await pingAllSitemaps();
 }
