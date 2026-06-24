@@ -1,3 +1,10 @@
 {
-  "regions": ["fra1"]
+  "regions": ["fra1"],
+  "build": {
+    "env": {
+      "GENERATE_SOURCEMAP": "false",
+      "NEXT_DISABLE_SOURCEMAPS": "1",
+      "MIRROR_PREBUILD_CATEGORY_BATCH": "1"
+    }
+  }
 }

@@ -270,7 +270,10 @@ async function main() {
     allBaseByLocale[locale] = await readFile(abs, "utf8");
   }
 
-  const categoryBatchSize = 4;
+  const categoryBatchSize = Math.max(
+    1,
+    Number(process.env.MIRROR_PREBUILD_CATEGORY_BATCH || (process.env.VERCEL ? "1" : "4")),
+  );
   console.log(
     `[mirror:prebuild] ${storeCategories.length} kategori × 2 dil (all.html tabanlı, batch=${categoryBatchSize})`,
   );
@@ -281,26 +284,23 @@ async function main() {
     }
     for (let i = 0; i < storeCategories.length; i += categoryBatchSize) {
       const batch = storeCategories.slice(i, i + categoryBatchSize);
-      await Promise.all(
-        batch.map(async (cat) => {
-          const outRel = categoryCollectionMirrorFileRel(cat.slug, locale);
-          const t0 = Date.now();
-          await prebuildOnce(outRel, () =>
-            buildCategoryCollectionHtmlForPrebuild(
-              site.id,
-              site.name,
-              locale,
-              cat.slug,
-              1,
-              base,
-            ),
-          );
-          console.log(
-            `[mirror:prebuild] ${outRel} (${Date.now() - t0}ms)`,
-          );
-        }),
-      );
+      for (const cat of batch) {
+        const outRel = categoryCollectionMirrorFileRel(cat.slug, locale);
+        const t0 = Date.now();
+        await prebuildOnce(outRel, () =>
+          buildCategoryCollectionHtmlForPrebuild(
+            site.id,
+            site.name,
+            locale,
+            cat.slug,
+            1,
+            base,
+          ),
+        );
+        console.log(`[mirror:prebuild] ${outRel} (${Date.now() - t0}ms)`);
+      }
     }
+    allBaseByLocale[locale] = undefined;
   }
 
   if (written.length < 10) {
