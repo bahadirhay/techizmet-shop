@@ -40,6 +40,53 @@ export const DISTRIBUTION_PLATFORMS: DistributionPlatform[] = [
     ],
   },
   {
+    id: "google-merchant-center",
+    category: "search",
+    label: "Google Merchant Center",
+    description: "Ürün feed'i — Google Alışveriş ve AI arama karuselleri için temel kaynak.",
+    actionUrl: "https://merchants.google.com",
+    steps: [
+      "Merchant Center hesabı aç",
+      "Feed URL: /feeds/google-merchant.xml (token varsa URL'ye ekleyin)",
+      "Ürünler onaylandıktan sonra Google Shopping görünürlüğü başlar",
+    ],
+  },
+  {
+    id: "chatgpt-merchants",
+    category: "search",
+    label: "ChatGPT Shopping (merchants)",
+    description: "OpenAI merchant programı — bölgesel kısıtlar olabilir.",
+    actionUrl: "https://chatgpt.com/merchants",
+    steps: [
+      "chatgpt.com/merchants üzerinden başvuru",
+      "Google Merchant veya uyumlu ürün feed'i hazır olmalı",
+      "Türkiye kapsamı sınırlı olabilir — başvuru sonucunu takip edin",
+    ],
+  },
+  {
+    id: "llms-txt",
+    category: "search",
+    label: "llms.txt (AI kürasyon)",
+    description: "AI sistemleri için öncelikli sayfa listesi — /llms.txt otomatik üretilir.",
+    automated: true,
+    steps: [
+      "Dosya: /llms.txt",
+      "robots.txt OAI-SearchBot ve PerplexityBot için beslemelere izin verir",
+      "llmstxt.org standardı — henüz tüm AI sağlayıcılar resmi olarak taahhüt etmemiş olabilir",
+    ],
+  },
+  {
+    id: "ai-products-json",
+    category: "search",
+    label: "JSON ürün kataloğu (AI)",
+    description: "Yapılandırılmış fiyat/stok/açıklama — /feeds/products.json",
+    automated: true,
+    steps: [
+      "Feed URL: /feeds/products.json",
+      "Ürün güncellemelerinde otomatik yenilenir (15 dk cache)",
+    ],
+  },
+  {
     id: "indexnow",
     category: "search",
     label: "IndexNow (Bing + Yandex + Seznam)",

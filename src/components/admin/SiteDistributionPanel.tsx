@@ -11,6 +11,8 @@ type DistributionPayload = {
   siteUrl: string;
   sitemapUrl: string;
   feedUrl: string;
+  llmsTxtUrl: string;
+  productsJsonUrl: string;
   indexNowKey: string;
   indexNowKeyFileUrl: string;
   distribution: SiteDistributionSettings;
@@ -171,6 +173,22 @@ export function SiteDistributionPanel() {
             <dd>
               <a href={data.feedUrl} className="underline" target="_blank" rel="noreferrer">
                 feed.xml
+              </a>
+            </dd>
+          </div>
+          <div>
+            <dt className="text-[var(--kn-muted)]">llms.txt</dt>
+            <dd>
+              <a href={data.llmsTxtUrl} className="underline" target="_blank" rel="noreferrer">
+                llms.txt
+              </a>
+            </dd>
+          </div>
+          <div>
+            <dt className="text-[var(--kn-muted)]">JSON katalog</dt>
+            <dd>
+              <a href={data.productsJsonUrl} className="underline" target="_blank" rel="noreferrer">
+                products.json
               </a>
             </dd>
           </div>

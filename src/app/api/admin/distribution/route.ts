@@ -4,6 +4,8 @@ import { DISTRIBUTION_PLATFORMS, DISTRIBUTION_CATEGORY_LABELS } from "@/lib/seo/
 import { runDistributionIndexPass } from "@/lib/seo/distribution-runner";
 import { getSiteDistribution, patchDistributionChecklistItem } from "@/lib/seo/distribution-settings";
 import { indexNowKeyFileUrl, ensureIndexNowKey } from "@/lib/seo/indexnow";
+import { aiProductsFeedUrl } from "@/lib/seo/ai-products-feed";
+import { llmsTxtUrl } from "@/lib/seo/llms-builder";
 import { blogFeedUrl } from "@/lib/seo/rss-feed";
 import { getPublicSiteUrl } from "@/lib/seo/site-url";
 import { mergeSiteSettings } from "@/lib/merge-site-settings";
@@ -26,6 +28,8 @@ export async function GET() {
     siteUrl: getPublicSiteUrl(),
     sitemapUrl: `${getPublicSiteUrl()}/sitemap.xml`,
     feedUrl: blogFeedUrl(),
+    llmsTxtUrl: llmsTxtUrl(),
+    productsJsonUrl: aiProductsFeedUrl(),
     indexNowKey: key,
     indexNowKeyFileUrl: indexNowKeyFileUrl(key),
     distribution,
@@ -81,6 +85,8 @@ export async function POST(req: Request) {
   revalidatePath("/sitemap.xml");
   revalidatePath("/blogs/news/feed.xml");
   revalidatePath("/indexnow-key.txt");
+  revalidatePath("/llms.txt");
+  revalidatePath("/feeds/products.json");
 
   return NextResponse.json({
     ok: result.ok,

@@ -12,6 +12,22 @@ const GOOGLE_CRAWL_ALLOW = ["/", "/products/", "/api/media/", "/uploads/", "/fee
 
 const GOOGLE_IMAGE_ALLOW = ["/", "/products/", "/api/media/", "/uploads/", "/_mirror-prebuilt/"];
 
+/** AI arama / alıntı botları — ürün sayfaları ve beslemeler */
+const AI_SEARCH_ALLOW = [
+  "/",
+  "/products/",
+  "/collections/",
+  "/blogs/",
+  "/feeds/",
+  "/llms.txt",
+  "/api/media/",
+  "/uploads/",
+  "/_mirror-prebuilt/",
+];
+
+/** Eğitim amaçlı tarama — opt-out (llms.txt bunu geçersiz kılmaz) */
+const AI_TRAINING_DISALLOW = ["/"];
+
 export function buildStoreRobots(settings: SiteSettings, siteName: string): MetadataRoute.Robots {
   const seo = getSiteSeo(settings, siteName);
   const sitemap = `${getPublicSiteUrl()}/sitemap.xml`;
@@ -31,6 +47,13 @@ export function buildStoreRobots(settings: SiteSettings, siteName: string): Meta
       { userAgent: "Bingbot", allow: "/", disallow: DISALLOW },
       { userAgent: "Yandex", allow: "/", disallow: DISALLOW },
       { userAgent: "DuckDuckBot", allow: "/", disallow: DISALLOW },
+      { userAgent: "OAI-SearchBot", allow: AI_SEARCH_ALLOW, disallow: DISALLOW },
+      { userAgent: "PerplexityBot", allow: AI_SEARCH_ALLOW, disallow: DISALLOW },
+      { userAgent: "ClaudeBot", allow: AI_SEARCH_ALLOW, disallow: DISALLOW },
+      { userAgent: "Google-Extended", allow: AI_SEARCH_ALLOW, disallow: DISALLOW },
+      { userAgent: "GPTBot", disallow: AI_TRAINING_DISALLOW },
+      { userAgent: "CCBot", disallow: AI_TRAINING_DISALLOW },
+      { userAgent: "anthropic-ai", disallow: AI_TRAINING_DISALLOW },
     ],
     sitemap,
     host: getPublicSiteHost(),
