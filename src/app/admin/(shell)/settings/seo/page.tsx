@@ -1,5 +1,6 @@
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { StoreSeoSettingsForm } from "@/components/admin/StoreSeoSettingsForm";
+import { ADMIN_SEO_BREADCRUMB } from "@/lib/admin/nav";
 import { getEditableBranding, getSiteSeo, parseSiteSettings } from "@/lib/site-settings";
 import { prisma } from "@/lib/prisma";
 import { requireStaffPage } from "@/lib/staff-auth";
@@ -16,10 +17,10 @@ export default async function SeoSettingsPage() {
     <div>
       <AdminPageHeader
         breadcrumb={[
-          { label: "Ayarlar & Sistem", href: "/admin/theme" },
-          { label: "Logo, favicon & SEO" },
+          ADMIN_SEO_BREADCRUMB,
+          { label: "Logo, Favicon & Meta" },
         ]}
-        title="Logo, Favicon & SEO"
+        title="Logo, Favicon & Meta"
         description="Vitrinde görünen logo ve SEO değerleri buradan yönetilir. Alanlar vitrindeki güncel görünümle doldurulur."
       />
       <StoreSeoSettingsForm

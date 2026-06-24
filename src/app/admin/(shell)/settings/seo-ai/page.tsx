@@ -1,5 +1,6 @@
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { SeoAiSettingsForm } from "@/components/admin/SeoAiSettingsForm";
+import { ADMIN_SEO_BREADCRUMB } from "@/lib/admin/nav";
 import { parseSeoAiSettings } from "@/lib/admin/product-seo/ai-settings";
 import { parseSiteSettings } from "@/lib/site-settings";
 import { requireStaffPage } from "@/lib/staff-auth";
@@ -14,10 +15,7 @@ export default async function SeoAiSettingsPage() {
   return (
     <div>
       <AdminPageHeader
-        breadcrumb={[
-          { label: "Ayarlar", href: "/admin/settings/seo" },
-          { label: "SEO AI" },
-        ]}
+        breadcrumb={[ADMIN_SEO_BREADCRUMB, { label: "SEO AI" }]}
         title="Ürün SEO — AI ayarları"
         description="Gemini, Claude veya OpenAI ile metin; fal.ai veya DALL·E ile blog görseli."
       />

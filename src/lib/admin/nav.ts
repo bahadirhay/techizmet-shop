@@ -22,6 +22,20 @@ export type AdminNavLink = {
   children?: AdminNavLink[];
 };
 
+/** SEO alt sayfaları — breadcrumb ve menü */
+export const ADMIN_SEO_HUB = "/admin/settings/seo-dashboard";
+
+export const ADMIN_SEO_BREADCRUMB = { label: "SEO", href: ADMIN_SEO_HUB } as const;
+
+export const ADMIN_SEO_NAV_ITEMS: AdminNavLink[] = [
+  { href: "/admin/settings/seo-dashboard", label: "Komuta Merkezi", perm: "site.settings" },
+  { href: "/admin/settings/seo", label: "Logo, Favicon & Meta", perm: "site.settings" },
+  { href: "/admin/settings/distribution", label: "İndeksleme & GEO", perm: "site.settings" },
+  { href: "/admin/settings/bing-webmaster", label: "Bing Webmaster", perm: "site.settings" },
+  { href: "/admin/settings/google-merchant", label: "Google Merchant", perm: "site.settings" },
+  { href: "/admin/settings/seo-ai", label: "SEO AI", perm: "site.settings" },
+];
+
 export type AdminNavGroup = {
   id: string;
   label: string;
@@ -258,6 +272,12 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     ],
   },
   {
+    id: "seo",
+    label: "SEO",
+    perm: "site.settings",
+    items: ADMIN_SEO_NAV_ITEMS,
+  },
+  {
     id: "settings",
     label: "Ayarlar & Sistem",
     perm: null,
@@ -268,12 +288,6 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
       { href: "/admin/settings/security", label: "Güvenlik & Şifre", perm: null },
       { href: "/admin/settings/menu", label: "Menü & Kategoriler", perm: "site.theme" },
       { href: "/admin/settings/navigation", label: "Footer & Çerez", perm: "site.theme" },
-      { href: "/admin/settings/seo", label: "Logo, Favicon & SEO", perm: "site.settings" },
-      { href: "/admin/settings/seo-dashboard", label: "SEO Komuta Merkezi", perm: "site.settings" },
-      { href: "/admin/settings/bing-webmaster", label: "Bing Webmaster", perm: "site.settings" },
-      { href: "/admin/settings/google-merchant", label: "Google Merchant", perm: "site.settings" },
-      { href: "/admin/settings/seo-ai", label: "SEO AI (Gemini / Claude)", perm: "site.settings" },
-      { href: "/admin/settings/distribution", label: "SEO Dağıtım & İndeksleme", perm: "site.settings" },
       { href: "/admin/settings/image-guide", label: "Görsel Boyutları", perm: null },
       { href: "/admin/settings/cookie-consents", label: "Çerez Onay Kayıtları", perm: "site.settings" },
       { href: "/admin/theme", label: "Tema & Vitrin Modu", perm: "site.theme" },
@@ -327,7 +341,7 @@ export const ADMIN_PAGE_TITLES: Record<string, string> = {
   "/admin/instagram": "Instagram vitrin",
   "/admin/settings/efatura": "GİB e-Arşiv Fatura",
   "/admin/settings/seo-ai": "SEO AI Ayarları",
-  "/admin/settings/distribution": "SEO Dağıtım & İndeksleme",
+  "/admin/settings/distribution": "İndeksleme & GEO",
   "/admin/settings/image-guide": "Görsel Boyutları",
   "/admin/products": "Ürün Yönetimi",
   "/admin/settings/product-explore": "Ürün Sayfası Altı",
@@ -362,7 +376,7 @@ export const ADMIN_PAGE_TITLES: Record<string, string> = {
   "/admin/settings/users": "Personel & Panel Yetkileri",
   "/admin/settings/store": "Mağaza Ayarları",
   "/admin/settings/security": "Güvenlik & Şifre",
-  "/admin/settings/seo": "Logo, Favicon & SEO",
+  "/admin/settings/seo": "Logo, Favicon & Meta",
   "/admin/settings/seo-dashboard": "SEO Komuta Merkezi",
   "/admin/settings/bing-webmaster": "Bing Webmaster",
   "/admin/settings/google-merchant": "Google Merchant Center",

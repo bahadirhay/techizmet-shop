@@ -1,5 +1,6 @@
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { GoogleMerchantSettingsForm } from "@/components/admin/GoogleMerchantSettingsForm";
+import { ADMIN_SEO_BREADCRUMB } from "@/lib/admin/nav";
 import { googleMerchantFeedUrl } from "@/lib/seo/google-merchant-feed";
 import { parseGoogleMerchantSettings } from "@/lib/seo/google-merchant-types";
 import { parseSiteSettings } from "@/lib/site-settings";
@@ -15,10 +16,7 @@ export default async function GoogleMerchantSettingsPage() {
   return (
     <div>
       <AdminPageHeader
-        breadcrumb={[
-          { label: "Ayarlar", href: "/admin/settings/seo" },
-          { label: "Google Merchant" },
-        ]}
+        breadcrumb={[ADMIN_SEO_BREADCRUMB, { label: "Google Merchant" }]}
         title="Google Merchant Center"
         description="Ürün feed XML — Google Alışveriş ve ücretsiz listelemeler için."
       />

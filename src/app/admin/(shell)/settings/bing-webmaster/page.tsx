@@ -1,5 +1,6 @@
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { BingWebmasterPanel } from "@/components/admin/BingWebmasterPanel";
+import { ADMIN_SEO_BREADCRUMB } from "@/lib/admin/nav";
 import { requireStaffPage } from "@/lib/staff-auth";
 
 export default async function BingWebmasterPage() {
@@ -8,10 +9,7 @@ export default async function BingWebmasterPage() {
   return (
     <div>
       <AdminPageHeader
-        breadcrumb={[
-          { label: "Ayarlar & Sistem", href: "/admin/theme" },
-          { label: "Bing Webmaster" },
-        ]}
+        breadcrumb={[ADMIN_SEO_BREADCRUMB, { label: "Bing Webmaster" }]}
         title="Bing Webmaster"
         description="Bing panelindeki önerileri (IndexNow, meta açıklama, site haritası) buradan yönetin."
       />
