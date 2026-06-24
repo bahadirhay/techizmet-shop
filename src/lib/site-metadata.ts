@@ -49,12 +49,22 @@ export async function buildSiteMetadata(): Promise<Metadata> {
       },
     },
     verification:
-      seo.googleSiteVerification || seo.yandexVerification || seo.bingVerification
+      seo.googleSiteVerification ||
+      seo.yandexVerification ||
+      seo.bingVerification ||
+      seo.pinterestDomainVerify
         ? {
             ...(seo.googleSiteVerification ? { google: seo.googleSiteVerification } : {}),
             ...(seo.yandexVerification ? { yandex: seo.yandexVerification } : {}),
-            ...(seo.bingVerification
-              ? { other: { "msvalidate.01": seo.bingVerification } }
+            ...(seo.bingVerification || seo.pinterestDomainVerify
+              ? {
+                  other: {
+                    ...(seo.bingVerification ? { "msvalidate.01": seo.bingVerification } : {}),
+                    ...(seo.pinterestDomainVerify
+                      ? { "p:domain_verify": seo.pinterestDomainVerify }
+                      : {}),
+                  },
+                }
               : {}),
           }
         : undefined,

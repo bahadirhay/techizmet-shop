@@ -21,6 +21,7 @@ export function StoreSeoSettingsForm({
       googleSiteVerification: string;
       yandexVerification: string;
       bingVerification: string;
+      pinterestDomainVerify: string;
       organizationName: string;
       googleAnalyticsId: string;
       facebookPixelId: string;
@@ -165,6 +166,14 @@ export function StoreSeoSettingsForm({
             className={inputClass}
             value={seo.bingVerification}
             onChange={(e) => setSeo((s) => ({ ...s, bingVerification: e.target.value }))}
+          />
+        </AdminField>
+        <AdminField label="Pinterest doğrulama kodu (p:domain_verify)">
+          <input
+            className={inputClass}
+            placeholder="df0ef7e09a6b04f7378c090f8adf4d33"
+            value={seo.pinterestDomainVerify}
+            onChange={(e) => setSeo((s) => ({ ...s, pinterestDomainVerify: e.target.value }))}
           />
         </AdminField>
         <AdminField label="Kuruluş adı (schema.org)">

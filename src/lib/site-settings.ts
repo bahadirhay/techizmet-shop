@@ -213,6 +213,8 @@ export type SiteSettings = {
     googleSiteVerification?: string;
     yandexVerification?: string;
     bingVerification?: string;
+    /** Pinterest işletme — p:domain_verify meta içeriği */
+    pinterestDomainVerify?: string;
     /** schema.org Organization adı */
     organizationName?: string;
     googleAnalyticsId?: string;
@@ -365,6 +367,7 @@ export function getSiteSeo(settings: SiteSettings, siteName: string) {
     googleSiteVerification: s.googleSiteVerification?.trim() || "",
     yandexVerification: s.yandexVerification?.trim() || "",
     bingVerification: s.bingVerification?.trim() || "",
+    pinterestDomainVerify: s.pinterestDomainVerify?.trim() || "",
     organizationName: s.organizationName?.trim() || "",
     googleAnalyticsId: s.googleAnalyticsId?.trim() || "",
     facebookPixelId: s.facebookPixelId?.trim() || "",
