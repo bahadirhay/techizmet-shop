@@ -139,27 +139,17 @@ function ensureLazyRevealObserver(doc: Document): IntersectionObserver | null {
   return observer;
 }
 
+/**
+ * Mobil hero kritik CSS — yalnızca görselleri grid hücrelerine sığdırır.
+ * Bölüm yüksekliğini KLAMPLAMAZ: tema kendi media-grid CSS'iyle (çok satırlı
+ * grid + --mobile_height) hero düzenini kurar. Eskiden tüm bölüm min(52vw,240px)
+ * yüksekliğe overflow:hidden ile sıkıştırılıyordu; bu, çok satırlı hero'yu tek
+ * şeride kırpıp görselleri "yarım" gösteriyordu.
+ */
 export const MIRROR_EMBED_HERO_CRITICAL_CSS = `
-:root { --kn-mobile-hero-h: min(52vw, 240px); }
 @media (max-width: 768px) {
-  #MainContent > .section-media-grid:first-of-type {
-    --mobile_height: var(--kn-mobile-hero-h) !important;
-    height: var(--kn-mobile-hero-h) !important;
-    min-height: var(--kn-mobile-hero-h) !important;
-    max-height: 50vh !important;
-    overflow: hidden !important;
-    contain: strict;
-  }
-  #MainContent > .section-media-grid:first-of-type .media-grid--wrapper {
-    height: 100% !important;
-    min-height: var(--kn-mobile-hero-h) !important;
-    max-height: 50vh !important;
-    position: relative !important;
-    overflow: hidden !important;
-  }
   #MainContent > .section-media-grid:first-of-type .media-grid--item {
     position: relative !important;
-    min-height: calc(var(--kn-mobile-hero-h) / 2) !important;
     overflow: hidden !important;
   }
   #MainContent > .section-media-grid:first-of-type .media-grid--image {
@@ -179,30 +169,10 @@ export const MIRROR_EMBED_HERO_CRITICAL_CSS = `
     inset: 0 !important;
     width: 100% !important;
     height: 100% !important;
-    max-width: 100% !important;
-    max-height: 100% !important;
     object-fit: cover !important;
   }
   #MainContent > .section-media-grid:first-of-type .media-content.large {
-    position: absolute !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
     z-index: 2 !important;
-    pointer-events: none !important;
-    max-height: 45% !important;
-    overflow: hidden !important;
-    padding: 8px 12px !important;
-  }
-  #MainContent > .section-media-grid:first-of-type .media-content-heading {
-    font-size: clamp(0.95rem, 4.2vw, 1.25rem) !important;
-    line-height: 1.2 !important;
-    margin: 0 !important;
-  }
-  #MainContent > .section-media-grid:first-of-type .media-content-description {
-    font-size: clamp(0.75rem, 3.2vw, 0.9rem) !important;
-    line-height: 1.3 !important;
-    margin: 4px 0 0 !important;
   }
 }
 `;
