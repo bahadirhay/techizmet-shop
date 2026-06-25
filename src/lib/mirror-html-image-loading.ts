@@ -21,7 +21,43 @@ function imageWidthForTag(attrs: string, isFirstHero: boolean): number | null {
     return isFirstHero ? MIRROR_MOBILE_LCP_WIDTH : MIRROR_HERO_TILE_WIDTH;
   }
   if (/\/uploads\//i.test(attrs)) return MIRROR_HERO_TILE_WIDTH;
+  if (/\/cdn\/shop\/(files|collections|articles)\/[^"']+\.(jpe?g|png|webp)/i.test(attrs)) {
+    return MIRROR_HERO_TILE_WIDTH;
+  }
   return null;
+}
+
+function patchImgTagAttrs(attrs: string, width: number, opts?: { isFirstHero?: boolean; lazyCard?: boolean }) {
+  let next = attrs;
+  for (const attr of ["src", "data-src"]) {
+    next = patchImgAttrUrl(next, attr, width);
+  }
+  const originalMatch = next.match(/data-original="([^"]+)"/i);
+  if (originalMatch) {
+    const raw = originalMatch[1].replace(/&amp;/g, "&");
+    if (isResizableMirrorImageUrl(raw)) {
+      next = next.replace(
+        /data-original="[^"]+"/i,
+        `data-original="${escapeHtmlAttr(raw.split("?")[0] ?? raw)}"`,
+      );
+    }
+  }
+  if (opts?.isFirstHero) {
+    next = next.replace(/\sloading=["']lazy["']/gi, "");
+    if (!/fetchpriority=/i.test(next)) next += ' fetchpriority="high"';
+    if (!/\sloading=/i.test(next)) next += ' loading="eager"';
+    if (!/elementtiming=/i.test(next)) next += ' elementtiming="kn-hero-lcp"';
+  } else if (opts?.lazyCard || /product--card-image|collections-tab--image/i.test(next)) {
+    if (!/\sloading=/i.test(next)) next += ' loading="lazy"';
+  } else if (/media_image/i.test(next) && !/\sloading=/i.test(next)) {
+    next += ' loading="lazy"';
+  }
+  next = next.replace(/\ssrcset="[^"]*"/gi, "");
+  if (!/\bdata-kn-sized=/i.test(next) || /src="[^"]*\/uploads\//i.test(next)) {
+    next = next.replace(/\sdata-kn-sized="[^"]*"/gi, "");
+    next += ' data-kn-sized="1"';
+  }
+  return next;
 }
 
 function patchImgAttrUrl(attrs: string, attr: string, width: number): string {
@@ -34,46 +70,33 @@ function patchImgAttrUrl(attrs: string, attr: string, width: number): string {
   return attrs.replace(re, `${attr}="${escapeHtmlAttr(sized)}"`);
 }
 
-/** Sunucu HTML — /uploads ve /api/media görsellerini küçült */
+/** Sunucu HTML — tema CDN, /uploads ve kart görsellerini küçült */
 export function patchMirrorResponsiveUploadImages(html: string): string {
   let firstHeroDone = false;
-  return html.replace(/<img\b([^>]*)>/gi, (full, attrs: string) => {
+  let out = html.replace(/<img\b([^>]*)>/gi, (full, attrs: string) => {
     const isFirstHero = !firstHeroDone && /media_image/i.test(attrs);
     const width = imageWidthForTag(attrs, isFirstHero);
     if (!width) return full;
     if (isFirstHero) firstHeroDone = true;
-
-    let next = attrs;
-    for (const attr of ["src", "data-src"]) {
-      next = patchImgAttrUrl(next, attr, width);
-    }
-    const originalMatch = next.match(/data-original="([^"]+)"/i);
-    if (originalMatch) {
-      const raw = originalMatch[1].replace(/&amp;/g, "&");
-      if (isResizableMirrorImageUrl(raw)) {
-        next = next.replace(
-          /data-original="[^"]+"/i,
-          `data-original="${escapeHtmlAttr(raw.split("?")[0] ?? raw)}"`,
-        );
-      }
-    }
-    if (isFirstHero) {
-      next = next.replace(/\sloading=["']lazy["']/gi, "");
-      if (!/fetchpriority=/i.test(next)) next += ' fetchpriority="high"';
-      if (!/\sloading=/i.test(next)) next += ' loading="eager"';
-      if (!/elementtiming=/i.test(next)) next += ' elementtiming="kn-hero-lcp"';
-    } else if (/product--card-image|collections-tab--image/i.test(next)) {
-      if (!/\sloading=/i.test(next)) next += ' loading="lazy"';
-    } else if (/media_image/i.test(next) && !/\sloading=/i.test(next)) {
-      next += ' loading="lazy"';
-    }
-    next = next.replace(/\ssrcset="[^"]*"/gi, "");
-    if (!/\bdata-kn-sized=/i.test(next) || /src="[^"]*\/uploads\//i.test(next)) {
-      next = next.replace(/\sdata-kn-sized="[^"]*"/gi, "");
-      next += ' data-kn-sized="1"';
-    }
+    const next = patchImgTagAttrs(attrs, width, {
+      isFirstHero,
+      lazyCard: /product--card-image|collections-tab--image/i.test(attrs),
+    });
     return `<img${next}>`;
   });
+
+  out = out.replace(/<noscript>([\s\S]*?)<\/noscript>/gi, (block, inner: string) => {
+    const patched = inner.replace(/<img\b([^>]*)>/gi, (full, attrs: string) => {
+      const urlMatch = attrs.match(/(?:src|data-src|data-original)="([^"]+)"/i);
+      const raw = urlMatch?.[1]?.replace(/&amp;/g, "&") ?? "";
+      if (!raw || !isResizableMirrorImageUrl(raw)) return full;
+      const width = imageWidthForTag(attrs, false) ?? MIRROR_HERO_TILE_WIDTH;
+      return `<img${patchImgTagAttrs(attrs, width)}>`;
+    });
+    return `<noscript>${patched}</noscript>`;
+  });
+
+  return out;
 }
 
 export function patchMirrorCriticalImageLoading(html: string): string {

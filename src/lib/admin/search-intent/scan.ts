@@ -82,12 +82,16 @@ export async function scanSearchIntents(siteId: string): Promise<{
   });
 
   const staticAll = seo.staticPages?.["/collections/all"];
+  const intentMetaById = settings.seo?.searchIntentMeta ?? {};
   const reports: SearchIntentReport[] = [];
 
   for (const intent of intents) {
     const checks: SearchIntentCheck[] = [];
-    const landingMetaTitle = staticAll?.seoTitle?.trim() || "";
-    const landingMetaDesc = staticAll?.seoDescription?.trim() || "";
+    const applied = intentMetaById[intent.id];
+    const landingMetaTitle =
+      applied?.seoTitle?.trim() || staticAll?.seoTitle?.trim() || "";
+    const landingMetaDesc =
+      applied?.seoDescription?.trim() || staticAll?.seoDescription?.trim() || "";
     const queryCoverage = queryCoverageInMeta(
       intent.query,
       landingMetaTitle,

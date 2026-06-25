@@ -228,6 +228,11 @@ export type SiteSettings = {
       string,
       { seoTitle?: string; seoDescription?: string; imageAlt?: string; imageUrl?: string }
     >;
+    /** Hedef Aramalar — intent başına uygulanan landing meta (tarama doğruluğu) */
+    searchIntentMeta?: Record<
+      string,
+      { seoTitle?: string; seoDescription?: string; appliedAt?: string }
+    >;
     /** Arama motoru / dizin dağıtım durumu */
     distribution?: import("@/lib/seo/distribution-types").SiteDistributionSettings;
   };

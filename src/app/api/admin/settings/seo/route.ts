@@ -31,6 +31,9 @@ export async function PATCH(req: Request) {
   if (seoPatch && !("staticPages" in (body.seo ?? {}))) {
     delete seoPatch.staticPages;
   }
+  if (seoPatch && !("searchIntentMeta" in (body.seo ?? {}))) {
+    delete seoPatch.searchIntentMeta;
+  }
   const next = mergeSiteSettings(current, {
     branding: body.branding,
     seo: seoPatch,

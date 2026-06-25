@@ -119,6 +119,24 @@ export async function optimizeSiteSeo(siteId: string): Promise<SiteSeoOptimizeRe
   > = { ...(settings.seo?.staticPages ?? {}) };
 
   for (const page of pages) {
+    const existingStatic = settings.seo?.staticPages?.[page.path];
+    const hasSearchIntentLanding = Object.keys(settings.seo?.searchIntentMeta ?? {}).length > 0;
+    if (
+      page.path === "/collections/all" &&
+      (hasSearchIntentLanding || (existingStatic?.seoDescription?.trim().length ?? 0) >= 70)
+    ) {
+      const seoTitle = existingStatic?.seoTitle?.trim() || page.seoTitle;
+      const seoDescription = existingStatic?.seoDescription?.trim() || page.seoDescription;
+      staticPages[page.path] = {
+        seoTitle,
+        seoDescription,
+        imageAlt: existingStatic?.imageAlt,
+        imageUrl: existingStatic?.imageUrl,
+      };
+      results.push({ path: page.path, seoTitle, seoDescription, imageAlt: existingStatic?.imageAlt ?? null });
+      continue;
+    }
+
     const { seoTitle, seoDescription, imageAlt, imageUrl } = buildOptimized(
       page,
       site.name,

@@ -12,9 +12,10 @@ import { buildSiteMetadata } from "@/lib/site-metadata";
 import { buildOrganizationJsonLd, buildWebSiteJsonLd } from "@/lib/seo/site-json-ld";
 import { safeGoogleAnalyticsId } from "@/lib/seo/google-analytics-id";
 import { getCachedParsedSiteSettings } from "@/lib/cache/store-cache";
+import { getMirrorHomeHeroPreloadHref } from "@/lib/mirror-home-hero-preload";
 import { resolveStoreMirrorIframeSrcForRequest } from "@/lib/mirror-prebuilt-resolve-server";
 import { getDefaultSite } from "@/lib/site";
-import { getSiteSeo } from "@/lib/site-settings";
+import { getHomepageMode, getSiteSeo } from "@/lib/site-settings";
 import { WhatsappSiteWidgets } from "@/components/store/WhatsappSiteWidgets";
 import { getWhatsAppConfig } from "@/lib/whatsapp-settings";
 import "./globals.css";
@@ -44,10 +45,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         "theme/techizmet-shop/mirror/index-tr.html",
         "home",
       );
+  const isMirrorHome =
+    !isAdminOrApi && pathname === "/" && getHomepageMode(settings) === "mirror";
+  const mirrorHeroPreload = isMirrorHome ? await getMirrorHomeHeroPreloadHref(site.id, "tr") : null;
 
   return (
     <html lang="tr">
       <head>
+        {mirrorHeroPreload ? (
+          <link rel="preload" href={mirrorHeroPreload} as="image" fetchPriority="high" />
+        ) : null}
         {mirrorHomePreload ? <link rel="preload" href={mirrorHomePreload} as="document" /> : null}
       </head>
       <body className={`${poppins.variable} antialiased`}>

@@ -2,6 +2,7 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { runSeoDashboardFix } from "@/lib/admin/seo-dashboard/fix";
 import { scanSearchIntents } from "@/lib/admin/search-intent/scan";
+import { revalidateStorePublicCache } from "@/lib/cache/revalidate-store-public";
 import { mergeSiteSettings } from "@/lib/merge-site-settings";
 import { revalidateSearchDiscoveryPaths, runDistributionIndexPass } from "@/lib/seo/distribution-runner";
 import { getSearchIntents } from "@/lib/seo/search-intent";
@@ -38,13 +39,24 @@ export async function POST(req: Request) {
         seoDescription: intent.description,
       };
     }
+    const searchIntentMeta = { ...(settings.seo?.searchIntentMeta ?? {}) };
+    searchIntentMeta[intent.id] = {
+      seoTitle: intent.title,
+      seoDescription: intent.description,
+      appliedAt: new Date().toISOString(),
+    };
     const next = mergeSiteSettings(settings, {
-      seo: { ...settings.seo, staticPages },
+      seo: { ...settings.seo, staticPages, searchIntentMeta },
     });
     await prisma.storeSite.update({
       where: { id: auth.siteId },
       data: { settingsJson: JSON.stringify(next) },
     });
+    try {
+      revalidateStorePublicCache(auth.siteId);
+    } catch {
+      // revalidateTag yalnızca Next istek bağlamında çalışır
+    }
     revalidatePath("/collections/all");
     revalidatePath("/collections/[slug]", "page");
     notifySearchEnginesForPath(intent.landingPath);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { btnPrimary, btnSecondary } from "@/components/admin/AdminForm";
 import type { SearchIntentReport } from "@/lib/admin/search-intent/scan";
@@ -23,19 +23,23 @@ export function SearchIntentPanel() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const loadSeq = useRef(0);
 
   const load = useCallback(async () => {
+    const seq = ++loadSeq.current;
     setLoading(true);
     try {
       const res = await fetch("/api/admin/search-intent");
       if (!res.ok) throw new Error("Yüklenemedi");
       const data = (await res.json()) as { reports: SearchIntentReport[]; aiEnabled: boolean };
+      if (seq !== loadSeq.current) return;
       setReports(data.reports);
       setAiEnabled(data.aiEnabled);
     } catch {
+      if (seq !== loadSeq.current) return;
       setMsg("Hedef arama raporu alınamadı.");
     } finally {
-      setLoading(false);
+      if (seq === loadSeq.current) setLoading(false);
     }
   }, []);
 
@@ -59,7 +63,10 @@ export function SearchIntentPanel() {
         fix?: { succeeded?: number };
       };
       if (!res.ok) throw new Error(json.error ?? "İşlem başarısız");
-      if (json.scan?.reports) setReports(json.scan.reports);
+      if (json.scan?.reports) {
+        loadSeq.current += 1;
+        setReports(json.scan.reports);
+      }
       if (action === "apply-meta") setMsg("Landing meta uygulandı ve IndexNow tetiklendi.");
       else if (action === "fix-products") setMsg(`Ürün SEO güncellendi (${json.fix?.succeeded ?? 0} başarılı).`);
       else setMsg("Tam site indeksleme çalıştırıldı.");

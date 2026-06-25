@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { NextRequest, NextResponse } from "next/server";
 import { resizeImageBuffer } from "@/lib/image-resize";
+import { normalizeMirrorResizeSrc } from "@/lib/mirror-resize-src";
 
 export const dynamic = "force-dynamic";
 
@@ -12,14 +13,13 @@ function parseWidth(req: NextRequest): number {
   return Math.min(2000, Math.max(48, Math.round(n)));
 }
 
-/** /uploads/... görselleri — mobil LCP için boyutlandırılmış çıktı */
+/** /uploads ve tema CDN raster görselleri — boyutlandırılmış WebP/PNG çıktı */
 export async function GET(req: NextRequest) {
   const src = req.nextUrl.searchParams.get("src")?.trim();
-  if (!src?.startsWith("/uploads/")) {
+  const pathOnly = src ? normalizeMirrorResizeSrc(src) : null;
+  if (!pathOnly) {
     return NextResponse.json({ error: "Geçersiz kaynak" }, { status: 400 });
   }
-
-  const pathOnly = src.split("?")[0]!;
   const width = parseWidth(req);
 
   let body: Buffer;
