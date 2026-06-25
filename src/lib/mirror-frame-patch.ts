@@ -2,6 +2,7 @@ import { applyMirrorLogoUnify } from "@/lib/mirror-logo-unify";
 import {
   applyMirrorBranding,
   installMirrorBrandingGuard,
+  installMirrorFaviconGuard,
   setMirrorFavicon,
   type MirrorBranding,
 } from "@/lib/mirror-branding-overlay";
@@ -63,7 +64,9 @@ export function applyMirrorFramePatches(doc: Document, opts: MirrorFramePatchOpt
     applyMirrorLogoUnify(doc, opts.branding);
   }
   if (opts.branding?.faviconUrl?.trim()) {
+    doc.getElementById("kn-branding-bootstrap")?.remove();
     setMirrorFavicon(doc, opts.branding.faviconUrl);
+    installMirrorFaviconGuard(doc, opts.branding.faviconUrl);
   }
   if (!serverReady) {
     if (opts.branding) {

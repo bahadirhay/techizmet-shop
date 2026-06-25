@@ -16,7 +16,7 @@ import {
   type AccountDrawerForm,
 } from "@/lib/mirror-account-drawer-client";
 import { applyMirrorLogoUnify } from "@/lib/mirror-logo-unify";
-import { setMirrorFavicon } from "@/lib/mirror-branding-overlay";
+import { installMirrorFaviconGuard, setMirrorFavicon } from "@/lib/mirror-branding-overlay";
 import { scheduleMirrorFramePatches, isMirrorServerReady } from "@/lib/mirror-frame-patch";
 import { applyMirrorHeaderIconsFix } from "@/lib/mirror-header-overlay";
 import { applyMirrorStoreUiFixToDocument } from "@/lib/mirror-store-ui-fix";
@@ -368,7 +368,9 @@ export function MirrorVitrinFrameClient({
 
       applyMirrorHeaderIconsFix(doc);
       if (branding?.faviconUrl?.trim()) {
+        doc.getElementById("kn-branding-bootstrap")?.remove();
         setMirrorFavicon(doc, branding.faviconUrl);
+        installMirrorFaviconGuard(doc, branding.faviconUrl);
       }
 
       applyMirrorAccountDrawerClient(doc, locale);

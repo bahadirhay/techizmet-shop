@@ -1,5 +1,7 @@
 /** Mirror iframe — admin logo / favicon (tema JS üzerine yazsa bile korunur) */
 
+import { withBrandAssetVersion } from "@/lib/site-settings-branding";
+
 export type MirrorBranding = {
   logoUrl: string;
   logoUrlLight: string;
@@ -10,9 +12,7 @@ const FALLBACK_DARK = "/theme/techizmet-shop/cdn/shop/files/noor-dark-logo34d3.s
 const FALLBACK_LIGHT = "/theme/techizmet-shop/cdn/shop/files/noor-white-logo34d3.svg";
 
 function bust(url: string): string {
-  const u = url.trim();
-  if (!u || u.includes("kn=")) return u;
-  return u.includes("?") ? `${u}&kn=1` : `${u}?kn=1`;
+  return withBrandAssetVersion(url);
 }
 
 function pathOf(url: string) {
@@ -85,6 +85,16 @@ export function applyMirrorBranding(doc: Document, branding: MirrorBranding) {
   if (favicon) setMirrorFavicon(doc, favicon);
 }
 
+export function installMirrorFaviconGuard(doc: Document, faviconUrl: string) {
+  const id = "kn-favicon-guard-script";
+  if (doc.getElementById(id)) return;
+  const href = bust(faviconUrl);
+  const script = doc.createElement("script");
+  script.id = id;
+  script.textContent = `(function(){var U=${JSON.stringify(href)};function apply(){["icon","shortcut icon","apple-touch-icon"].forEach(function(rel){var link=document.querySelector('link[rel="'+rel+'"]');if(!link){link=document.createElement("link");link.rel=rel;document.head.appendChild(link);}if(link.href.indexOf(U.split("?")[0])<0)link.href=U;});}apply();var t=0;new MutationObserver(function(){if(Date.now()-t<80)return;t=Date.now();apply();}).observe(document.documentElement,{subtree:true,attributes:true,attributeFilter:["href"]});})();`;
+  (doc.body ?? doc.head).appendChild(script);
+}
+
 const GUARD_SCRIPT_ID = "kn-branding-guard-script";
 
 /** Tema scriptleri src’yi geri alırsa yeniden uygular */
@@ -104,7 +114,7 @@ export function installMirrorBrandingGuard(doc: Document, branding: MirrorBrandi
   script.id = GUARD_SCRIPT_ID;
   script.textContent = `(function(){
   var P=${payload};
-  function bust(u){if(!u)return u;return u+(u.indexOf("?")>=0?"&":"?")+"kn=1";}
+  function bust(u){if(!u)return u;var p=(u.split("?")[0]||"").replace(/[^\\w-]/g,"").slice(-32)||"1";var s=u.replace(/([?&])(v|kn)=[^&]*/g,"").replace(/[?&]$/,"");return s+(s.indexOf("?")>=0?"&":"?")+"v="+p;}
   function pathOf(u){return (u||"").split("?")[0];}
   function setImg(img,url,fallback){
     if(!url||!img)return;

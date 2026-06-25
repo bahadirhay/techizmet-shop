@@ -3,6 +3,7 @@ import { getCachedParsedSiteSettings } from "@/lib/cache/store-cache";
 import { getPublicSiteUrl } from "@/lib/seo/site-url";
 import { getDefaultSite } from "@/lib/site";
 import { getSiteBranding, getSiteSeo } from "@/lib/site-settings";
+import { withBrandAssetVersion } from "@/lib/site-settings-branding";
 import { ensureStoreTenant } from "@/lib/store-tenant";
 import { blogFeedPath } from "@/lib/seo/rss-feed";
 
@@ -26,7 +27,7 @@ export async function buildSiteMetadata(): Promise<Metadata> {
   const pageTitle = homeMeta?.seoTitle?.trim() || seo.siteTitle;
   const pageDescription = homeMeta?.seoDescription?.trim() || seo.metaDescription;
   const ogImage = homeMeta?.imageUrl?.trim() || seo.ogImageUrl?.trim() || branding.logoUrl?.trim();
-  const favicon = branding.faviconUrl;
+  const favicon = withBrandAssetVersion(branding.faviconUrl);
   const iconType = faviconMime(favicon);
 
   return {

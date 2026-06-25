@@ -43,7 +43,9 @@ export async function MirrorVitrinFrame({
     branding.logoUrl?.includes("/uploads/") ||
       branding.logoUrl?.includes("/api/media/") ||
       branding.logoUrlLight?.includes("/uploads/") ||
-      branding.logoUrlLight?.includes("/api/media/"),
+      branding.logoUrlLight?.includes("/api/media/") ||
+      branding.faviconUrl?.includes("/uploads/") ||
+      branding.faviconUrl?.includes("/api/media/"),
   );
   const fileRel = vitrinMirrorFileRel(pageKey, locale);
   const contactSettings = pageKey === "contact" ? settings.pages?.contact : undefined;
