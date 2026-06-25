@@ -1,0 +1,41 @@
+/* Vitrin iframe kabuğu — tam tema CSS'i olmadan (LCP / render-blocking azaltır) */
+
+html.kn-scroll-locked,
+html.kn-scroll-locked body {
+  overflow: hidden !important;
+  overscroll-behavior: none;
+}
+html.kn-scroll-locked body {
+  touch-action: none;
+}
+
+.kn-home-mirror {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: 100vh;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  background: #fff;
+  overflow: hidden;
+  overflow-x: clip;
+  overflow-anchor: none;
+}
+
+.kn-home-mirror .mirror-home-frame {
+  display: block;
+  width: 100%;
+  height: 100vh;
+  min-height: 100vh;
+  max-height: 100vh;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  opacity: 1;
+}
+
+.kn-home-mirror--boot .mirror-home-frame,
+.kn-home-mirror--ready .mirror-home-frame {
+  opacity: 1;
+}

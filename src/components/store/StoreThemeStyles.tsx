@@ -1,6 +1,8 @@
 /**
  * Techizmet Shop mirror CSS — ürün / CMS sayfaları için.
  */
+import "@/app/store-theme.css";
+
 const BASE = "/theme/techizmet-shop/cdn/shop/t/5/assets";
 const V = "?v=1";
 

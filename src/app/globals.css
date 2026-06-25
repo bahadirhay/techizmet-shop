@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@import "../themes/techizmet-shop/styles.css";
+@import "./mirror-shell.css";
 
 :root {
   --background: #faf9f7;

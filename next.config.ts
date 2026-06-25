@@ -26,11 +26,16 @@ const nextConfig: NextConfig = {
       "scripts/diag-*.mjs",
     ],
   },
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
     config.resolve.alias = {
       ...config.resolve.alias,
       canvas: false,
     };
+    // Modern tarayıcı hedefi — Next dahili polyfill modülü (~12 KiB) gereksiz
+    if (!isServer) {
+      config.resolve.alias["../build/polyfills/polyfill-module"] = false;
+      config.resolve.alias["next/dist/build/polyfills/polyfill-module"] = false;
+    }
     return config;
   },
   async redirects() {

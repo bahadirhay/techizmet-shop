@@ -16,6 +16,7 @@ import { getMirrorHomeHeroPreloadHref } from "@/lib/mirror-home-hero-preload";
 import { resolveStoreMirrorIframeSrcForRequest } from "@/lib/mirror-prebuilt-resolve-server";
 import { getDefaultSite } from "@/lib/site";
 import { getHomepageMode, getSiteSeo } from "@/lib/site-settings";
+import { isMirrorShellPath } from "@/lib/store-mirror-paths";
 import { WhatsappSiteWidgets } from "@/components/store/WhatsappSiteWidgets";
 import { getWhatsAppConfig } from "@/lib/whatsapp-settings";
 import "./globals.css";
@@ -24,6 +25,9 @@ const poppins = Poppins({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-poppins",
+  display: "swap",
+  preload: true,
+  adjustFontFallback: true,
 });
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -48,6 +52,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const isMirrorHome =
     !isAdminOrApi && pathname === "/" && getHomepageMode(settings) === "mirror";
   const mirrorHeroPreload = isMirrorHome ? await getMirrorHomeHeroPreloadHref(site.id, "tr") : null;
+  const mirrorShell =
+    !isAdminOrApi && getHomepageMode(settings) === "mirror" && isMirrorShellPath(pathname);
 
   return (
     <html lang="tr">
@@ -57,7 +63,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         ) : null}
         {mirrorHomePreload ? <link rel="preload" href={mirrorHomePreload} as="document" /> : null}
       </head>
-      <body className={`${poppins.variable} antialiased`}>
+      <body className={mirrorShell ? "antialiased" : `${poppins.variable} antialiased`}>
         {gaId ? (
           <>
             <Script src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} strategy="lazyOnload" />

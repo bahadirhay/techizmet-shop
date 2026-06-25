@@ -1,4 +1,5 @@
 import "@/app/globals.css";
+import "@/app/store-theme.css";
 
 /** Admin sayfa editörü — vitrin teması ile tam genişlik önizleme */
 export default function PreviewLayout({ children }: { children: React.ReactNode }) {
