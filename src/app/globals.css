@@ -4,6 +4,10 @@
 :root {
   --background: #faf9f7;
   --foreground: #1a1a1a;
+  /* Marka renkleri — admin panelinde tam tema CSS'i yüklenmediğinde
+     bg-[var(--kn-brand)] gibi buton/link stilleri görünmez kalmasın */
+  --kn-brand: #2d4a6f;
+  --kn-accent: #c9a87c;
 }
 
 @theme inline {
