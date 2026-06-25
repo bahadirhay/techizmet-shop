@@ -3,11 +3,11 @@
 import {
   MIRROR_CARD_IMAGE_WIDTH,
   MIRROR_HERO_TILE_WIDTH,
-  MIRROR_LCP_IMAGE_WIDTH,
   MIRROR_MOBILE_LCP_WIDTH,
   isResizableMirrorImageUrl,
   mirrorCdnImageUrl,
 } from "@/lib/mirror-cdn-image";
+import { MIRROR_EMBED_HERO_CRITICAL_CSS } from "@/lib/mirror-image-reveal";
 
 function escapeHtmlAttr(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
@@ -61,6 +61,7 @@ export function patchMirrorResponsiveUploadImages(html: string): string {
       next = next.replace(/\sloading=["']lazy["']/gi, "");
       if (!/fetchpriority=/i.test(next)) next += ' fetchpriority="high"';
       if (!/\sloading=/i.test(next)) next += ' loading="eager"';
+      if (!/elementtiming=/i.test(next)) next += ' elementtiming="kn-hero-lcp"';
     } else if (/product--card-image|collections-tab--image/i.test(next)) {
       if (!/\sloading=/i.test(next)) next += ' loading="lazy"';
     } else if (/media_image/i.test(next) && !/\sloading=/i.test(next)) {
@@ -76,7 +77,15 @@ export function patchMirrorResponsiveUploadImages(html: string): string {
 }
 
 export function patchMirrorCriticalImageLoading(html: string): string {
-  let out = patchMirrorResponsiveUploadImages(html);
+  let out = html;
+  if (!out.includes('id="kn-mirror-embed-critical"')) {
+    out = out.replace(
+      /<head(\b[^>]*)>/i,
+      `<head$1>\n<style id="kn-mirror-embed-critical">${MIRROR_EMBED_HERO_CRITICAL_CSS}</style>`,
+    );
+  }
+
+  out = patchMirrorResponsiveUploadImages(out);
 
   const marker = 'class="lazyload no-js-hidden media_image"';
   const idx = out.indexOf(marker);

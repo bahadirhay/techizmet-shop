@@ -180,30 +180,10 @@ function escapeMirrorSectionKeyCss(key: string) {
   return key.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
-/** CSS flex order — DOM sırası tema JS tarafından bozulsa bile görsel sıra korunur */
+/** CSS flex order — yalnızca stylesheet; inline style CLS yapar */
 export function applyMirrorSectionOrderStyles(main: Element, order: string[]) {
   if (!order.length) return;
-
-  const host = main as HTMLElement;
-  host.style.setProperty("display", "flex", "important");
-  host.style.setProperty("flex-direction", "column", "important");
-  host.setAttribute("data-kn-section-order", order.join(","));
-
-  const rank = new Map(order.map((key, index) => [key, index]));
-  let fallback = order.length;
-
-  for (const el of mirrorSectionChildren(main)) {
-    const key = mirrorSectionKeyFromElement(el);
-    const idx = key != null ? rank.get(key) : undefined;
-    const orderVal = String(idx ?? fallback++);
-    (el as HTMLElement).style.setProperty("order", orderVal, "important");
-  }
-
-  for (const el of [...main.children]) {
-    if (el.classList.contains("kn-custom-block-root")) {
-      (el as HTMLElement).style.setProperty("order", String(fallback++), "important");
-    }
-  }
+  (main as HTMLElement).setAttribute("data-kn-section-order", order.join(","));
 }
 
 /** Kalıcı stylesheet — tema inline style sıfırlasa bile sıra korunur */
@@ -240,9 +220,9 @@ export function injectMirrorSectionOrderStylesheet(doc: Document, order: string[
 export function applyMirrorSectionOrderToDocument(doc: Document, order: string[]) {
   const main = doc.getElementById("MainContent");
   if (!main || !order.length) return;
-  reorderMirrorSectionsInMain(main, order);
-  applyMirrorSectionOrderStyles(main, order);
   injectMirrorSectionOrderStylesheet(doc, order);
+  applyMirrorSectionOrderStyles(main, order);
+  reorderMirrorSectionsInMain(main, order);
 }
 
 /** Admin önizleme URL'sinden gelen sıra — kayıtlı config ile birleştir */

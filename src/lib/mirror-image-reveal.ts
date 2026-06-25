@@ -64,6 +64,7 @@ function applySizedMirrorImage(
 
   if (opts?.highPriority) {
     img.setAttribute("fetchpriority", "high");
+    img.setAttribute("elementtiming", "kn-hero-lcp");
     img.removeAttribute("loading");
   } else {
     img.setAttribute("loading", "lazy");
@@ -74,20 +75,6 @@ function applySizedMirrorImage(
   img.setAttribute("data-src", sized);
   img.setAttribute("data-original", base);
   img.setAttribute("data-kn-sized", "1");
-}
-
-function bindMirrorHeroPaintedClass(doc: Document) {
-  const first = doc.querySelector(
-    ".section-media-grid:first-of-type img.media_image, .section-media-grid:first-of-type img",
-  );
-  const mark = () => doc.documentElement.classList.add("kn-mirror-hero-painted");
-  if (!(first instanceof HTMLImageElement)) {
-    mark();
-    return;
-  }
-  if (first.complete && first.naturalWidth > 0) mark();
-  else first.addEventListener("load", mark, { once: true });
-  window.setTimeout(mark, 2500);
 }
 
 /** Prebuild veya overlay sonrası tam boy görselleri zorla küçült */
@@ -115,8 +102,6 @@ export function forceMirrorResponsiveImagesInDocument(doc: Document) {
     }
     applySizedMirrorImage(node, MIRROR_HERO_TILE_WIDTH, { keepLazy: true });
   }
-
-  bindMirrorHeroPaintedClass(doc);
 }
 
 function revealDeferredListingImage(img: HTMLImageElement) {
@@ -154,32 +139,41 @@ function ensureLazyRevealObserver(doc: Document): IntersectionObserver | null {
 }
 
 export const MIRROR_EMBED_HERO_CRITICAL_CSS = `
-html.kn-mirror-embed #MainContent > .section-media-grid:first-of-type {
+:root { --kn-mobile-hero-h: min(52vw, 240px); }
+#MainContent > .section-media-grid:first-of-type {
   --desktop_height: 280px !important;
-  --mobile_height: min(52vw, 240px) !important;
-  min-height: min(52vw, 240px);
-  contain: layout;
+  --mobile_height: var(--kn-mobile-hero-h) !important;
+  height: var(--kn-mobile-hero-h) !important;
+  min-height: var(--kn-mobile-hero-h) !important;
+  max-height: 50vh !important;
+  overflow: hidden !important;
+  contain: strict;
 }
-html.kn-mirror-embed .section-media-grid:first-of-type .media-grid--wrapper {
-  min-height: min(52vw, 240px);
-  position: relative;
+#MainContent > .section-media-grid:first-of-type .media-grid--wrapper {
+  height: 100% !important;
+  min-height: var(--kn-mobile-hero-h) !important;
+  max-height: 50vh !important;
+  position: relative !important;
+  overflow: hidden !important;
 }
-html.kn-mirror-embed .section-media-grid:first-of-type .media-grid--item {
-  min-height: min(26vw, 120px);
+#MainContent > .section-media-grid:first-of-type .media-grid--item {
+  position: relative !important;
+  min-height: calc(var(--kn-mobile-hero-h) / 2) !important;
+  overflow: hidden !important;
 }
-html.kn-mirror-embed .section-media-grid:first-of-type .media-grid--image {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
+#MainContent > .section-media-grid:first-of-type .media-grid--image {
+  position: absolute !important;
+  inset: 0 !important;
+  overflow: hidden !important;
 }
-html.kn-mirror-embed .section-media-grid:first-of-type .media-grid--image .media,
-html.kn-mirror-embed .section-media-grid:first-of-type .media-grid--image .media-fixed {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+#MainContent > .section-media-grid:first-of-type .media-grid--image .media,
+#MainContent > .section-media-grid:first-of-type .media-grid--image .media-fixed {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
 }
-html.kn-mirror-embed .section-media-grid:first-of-type img.media_image {
+#MainContent > .section-media-grid:first-of-type img.media_image {
   position: absolute !important;
   inset: 0 !important;
   width: 100% !important;
@@ -188,24 +182,27 @@ html.kn-mirror-embed .section-media-grid:first-of-type img.media_image {
   max-height: 100% !important;
   object-fit: cover !important;
 }
-html.kn-mirror-embed .section-media-grid .media-content.large {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 2;
-  pointer-events: none;
-}
-html.kn-mirror-embed:not(.kn-mirror-hero-painted) .section-media-grid:first-of-type .media-content {
-  visibility: hidden;
-}
-html.kn-mirror-embed.kn-mirror-hero-painted .section-media-grid:first-of-type .media-content {
-  visibility: visible;
+#MainContent > .section-media-grid:first-of-type .media-content.large {
+  position: absolute !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  z-index: 2 !important;
+  pointer-events: none !important;
+  max-height: 45% !important;
+  overflow: hidden !important;
+  padding: 8px 12px !important;
 }
 @media (max-width: 768px) {
-  html.kn-mirror-embed .section-media-grid .media-content-heading {
-    font-size: clamp(1rem, 4.5vw, 1.35rem);
-    line-height: 1.2;
+  #MainContent > .section-media-grid:first-of-type .media-content-heading {
+    font-size: clamp(0.95rem, 4.2vw, 1.25rem) !important;
+    line-height: 1.2 !important;
+    margin: 0 !important;
+  }
+  #MainContent > .section-media-grid:first-of-type .media-content-description {
+    font-size: clamp(0.75rem, 3.2vw, 0.9rem) !important;
+    line-height: 1.3 !important;
+    margin: 4px 0 0 !important;
   }
 }
 `;
