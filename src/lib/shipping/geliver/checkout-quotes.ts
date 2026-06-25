@@ -326,7 +326,7 @@ export async function syncGeliverCheckoutQuotes(
     } else {
       await prisma.shippingCarrier.update({
         where: { id: carrier.id },
-        data: { name: q.providerName, active: true, configJson, sortOrder: i },
+        data: { name: q.providerName, configJson, sortOrder: i },
       });
     }
 

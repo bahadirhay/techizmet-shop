@@ -16,6 +16,7 @@ export default async function NewShippingPage({
           code: preset.code,
           name: preset.name,
           trackingUrlTemplate: preset.trackingUrlTemplate,
+          provider: preset.code === "hepsijet" ? "hepsijet" : "manual",
         }
       : undefined,
   );

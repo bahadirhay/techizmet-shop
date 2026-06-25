@@ -22,12 +22,24 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   if (!existing) return NextResponse.json({ error: "Bulunamadı" }, { status: 404 });
 
   const body = (await req.json()) as Record<string, unknown>;
-  const config =
-    body.config !== undefined
-      ? body.config && typeof body.config === "object"
-        ? JSON.stringify(body.config)
-        : null
-      : undefined;
+  let config: string | null | undefined;
+  if (body.config !== undefined) {
+    if (body.config && typeof body.config === "object") {
+      const incoming = body.config as Record<string, unknown>;
+      let merged = incoming;
+      if (existing.configJson && !incoming.apiPassword) {
+        try {
+          const prev = JSON.parse(existing.configJson) as Record<string, unknown>;
+          if (prev.apiPassword) merged = { ...incoming, apiPassword: prev.apiPassword };
+        } catch {
+          /* */
+        }
+      }
+      config = JSON.stringify(merged);
+    } else {
+      config = null;
+    }
+  }
 
   const carrier = await prisma.shippingCarrier.update({
     where: { id },

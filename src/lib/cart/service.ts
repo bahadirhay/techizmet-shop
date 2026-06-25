@@ -434,7 +434,6 @@ export async function getShippingOptions(
   });
 
   const options: ShippingOption[] = [];
-  let geliverCheapest: ShippingOption | null = null;
 
   for (const c of carriers) {
     if (geliverEnabled && c.code === LEGACY_GELIVER_CARRIER_CODE) continue;
@@ -443,24 +442,15 @@ export async function getShippingOptions(
       if (r.maxDesi != null && totalDesi > r.maxDesi) continue;
       let price = r.priceMinor;
       if (r.freeOverMinor != null && subtotalMinor >= r.freeOverMinor) price = 0;
-      const option: ShippingOption = {
+      options.push({
         carrierId: c.id,
         carrierName: c.name,
         rateId: r.id,
         rateName: r.name,
         priceMinor: price,
-      };
-      if (geliverEnabled && c.code.startsWith("geliver:")) {
-        if (!geliverCheapest || option.priceMinor < geliverCheapest.priceMinor) {
-          geliverCheapest = option;
-        }
-        continue;
-      }
-      options.push(option);
+      });
     }
   }
-
-  if (geliverCheapest) options.unshift(geliverCheapest);
 
   return options.sort((a, b) => a.priceMinor - b.priceMinor);
 }

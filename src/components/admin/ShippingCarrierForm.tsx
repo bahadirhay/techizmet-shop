@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AdminField, btnPrimary, btnSecondary, inputClass } from "@/components/admin/AdminForm";
-import { minorToTry } from "@/lib/admin/money";
+import { buildCarrierConfigPayload } from "@/lib/admin/shipping-form";
+import type { ShippingProvider } from "@/lib/shipping/carrier-config";
 
 export type CarrierFormData = {
   id?: string;
@@ -13,10 +15,20 @@ export type CarrierFormData = {
   trackingUrlTemplate: string;
   customerServicePhone: string;
   notes: string;
+  provider: ShippingProvider;
   apiUsername: string;
   apiPassword: string;
   apiCustomerCode: string;
+  abbreviationCode: string;
+  companyName: string;
+  companyAddressId: string;
+  currentXDockCode: string;
   contractNo: string;
+  testMode: boolean;
+  productCode: string;
+  deliveryType: string;
+  autoMarkShipped: boolean;
+  passwordConfigured: boolean;
   sortOrder: string;
 };
 
@@ -40,17 +52,17 @@ export function ShippingCarrierForm({
   const [form, setForm] = useState(initial);
   const [rates, setRates] = useState(initialRates);
   const [busy, setBusy] = useState(false);
+  const [testMsg, setTestMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [passwordDirty, setPasswordDirty] = useState(false);
 
-  async function saveCarrier() {
+  async function saveCarrier(): Promise<string | null> {
     setBusy(true);
     setErr(null);
-    const config = {
-      apiUsername: form.apiUsername,
-      apiPassword: form.apiPassword,
-      apiCustomerCode: form.apiCustomerCode,
-      contractNo: form.contractNo,
-    };
+    const config = buildCarrierConfigPayload({
+      ...form,
+      apiPassword: passwordDirty || !form.passwordConfigured ? form.apiPassword : "",
+    });
     const payload = {
       code: form.code,
       name: form.name,
@@ -70,12 +82,12 @@ export function ShippingCarrierForm({
       body: JSON.stringify(payload),
     });
     const json = (await res.json()) as { error?: string; carrier?: { id: string } };
+    setBusy(false);
     if (!res.ok) {
-      setBusy(false);
       setErr(json.error ?? "Kayıt başarısız");
-      return;
+      return null;
     }
-    const carrierId = form.id ?? json.carrier?.id;
+    const carrierId = form.id ?? json.carrier?.id ?? null;
     if (carrierId && rates.length) {
       for (const r of rates.filter((x) => !x.id && x.name.trim())) {
         await fetch(`/api/admin/shipping/carriers/${carrierId}/rates`, {
@@ -85,17 +97,70 @@ export function ShippingCarrierForm({
         });
       }
     }
-    setBusy(false);
+    return carrierId;
+  }
+
+  async function testHepsijet() {
+    setTestMsg(null);
+    const carrierId = await saveCarrier();
+    if (!carrierId) return;
+    const res = await fetch(`/api/admin/shipping/carriers/${carrierId}/test`, { method: "POST" });
+    const j = (await res.json()) as { message?: string; error?: string };
+    setTestMsg(res.ok ? (j.message ?? "Bağlantı başarılı") : (j.error ?? "Bağlantı hatası"));
+    if (!form.id) {
+      setForm({ ...form, id: carrierId });
+    }
+  }
+
+  async function onSave() {
+    const id = await saveCarrier();
+    if (!id) return;
     router.push("/admin/shipping");
     router.refresh();
   }
 
+  const isHepsijet = form.provider === "hepsijet";
+
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <h1 className="text-2xl font-semibold">{form.id ? "Kargo firması" : "Yeni kargo firması"}</h1>
+
+      {isHepsijet ? (
+        <div className="rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-950">
+          <p className="font-medium">HepsiJet doğrudan API</p>
+          <p className="mt-1">
+            HepsiJet&apos;ten aldığınız kullanıcı adı, şifre, kısaltma kodu ve gönderici adres ID buraya girilir.
+            Geliver kullanmıyorsanız{" "}
+            <Link href="/admin/integrations/shipping" className="underline">
+              Geliver sayfasını
+            </Link>{" "}
+            kapalı bırakabilirsiniz.
+          </p>
+        </div>
+      ) : (
+        <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-700">
+          Manuel kargo: sabit ücret + elle takip no. Otomatik etiket için entegrasyon türünü HepsiJet API seçin veya{" "}
+          <Link href="/admin/integrations/shipping" className="underline">
+            Geliver
+          </Link>{" "}
+          kullanın.
+        </div>
+      )}
+
       <div className="space-y-4 rounded-xl border bg-white p-6">
+        <AdminField label="Entegrasyon türü">
+          <select
+            className={inputClass}
+            value={form.provider}
+            onChange={(e) => setForm({ ...form, provider: e.target.value as ShippingProvider })}
+          >
+            <option value="manual">Manuel (sabit ücret)</option>
+            <option value="hepsijet">HepsiJet API (doğrudan)</option>
+          </select>
+        </AdminField>
+
         <div className="grid gap-4 sm:grid-cols-2">
-          <AdminField label="Kod *" hint="yurtici, aras, mng">
+          <AdminField label="Kod *" hint="hepsijet, yurtici, aras">
             <input
               className={inputClass}
               value={form.code}
@@ -124,38 +189,131 @@ export function ShippingCarrierForm({
             onChange={(e) => setForm({ ...form, customerServicePhone: e.target.value })}
           />
         </AdminField>
-        <h2 className="text-sm font-semibold text-zinc-800">API / sözleşme bilgileri</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <AdminField label="API kullanıcı adı">
-            <input
-              className={inputClass}
-              value={form.apiUsername}
-              onChange={(e) => setForm({ ...form, apiUsername: e.target.value })}
-            />
-          </AdminField>
-          <AdminField label="API şifre / anahtar">
-            <input
-              className={inputClass}
-              type="password"
-              value={form.apiPassword}
-              onChange={(e) => setForm({ ...form, apiPassword: e.target.value })}
-            />
-          </AdminField>
-          <AdminField label="Müşteri / gönderici kodu">
-            <input
-              className={inputClass}
-              value={form.apiCustomerCode}
-              onChange={(e) => setForm({ ...form, apiCustomerCode: e.target.value })}
-            />
-          </AdminField>
-          <AdminField label="Sözleşme no">
-            <input
-              className={inputClass}
-              value={form.contractNo}
-              onChange={(e) => setForm({ ...form, contractNo: e.target.value })}
-            />
-          </AdminField>
-        </div>
+
+        {isHepsijet ? (
+          <>
+            <h2 className="text-sm font-semibold text-zinc-800">HepsiJet API bilgileri</h2>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={form.testMode}
+                onChange={(e) => setForm({ ...form, testMode: e.target.checked })}
+              />
+              Test ortamı (integration-apitest.hepsijet.com)
+            </label>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <AdminField label="API kullanıcı adı *">
+                <input
+                  className={inputClass}
+                  value={form.apiUsername}
+                  onChange={(e) => setForm({ ...form, apiUsername: e.target.value })}
+                />
+              </AdminField>
+              <AdminField label="API şifre *">
+                <input
+                  className={inputClass}
+                  type="password"
+                  placeholder={form.passwordConfigured && !passwordDirty ? "Kayıtlı — değiştirmek için yazın" : ""}
+                  value={form.apiPassword}
+                  onChange={(e) => {
+                    setPasswordDirty(true);
+                    setForm({ ...form, apiPassword: e.target.value });
+                  }}
+                />
+              </AdminField>
+              <AdminField label="Kısaltma kodu *" hint="Takip no öneki — HepsiJet'ten verilir">
+                <input
+                  className={inputClass}
+                  value={form.abbreviationCode}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      abbreviationCode: e.target.value.toUpperCase(),
+                      apiCustomerCode: e.target.value.toUpperCase(),
+                    })
+                  }
+                />
+              </AdminField>
+              <AdminField label="Firma adı (HepsiJet) *">
+                <input
+                  className={inputClass}
+                  value={form.companyName}
+                  onChange={(e) => setForm({ ...form, companyName: e.target.value })}
+                />
+              </AdminField>
+              <AdminField label="Gönderici adres ID *">
+                <input
+                  className={inputClass}
+                  value={form.companyAddressId}
+                  onChange={(e) => setForm({ ...form, companyAddressId: e.target.value })}
+                />
+              </AdminField>
+              <AdminField label="Aktarma merkezi kodu *">
+                <input
+                  className={inputClass}
+                  value={form.currentXDockCode}
+                  onChange={(e) => setForm({ ...form, currentXDockCode: e.target.value })}
+                />
+              </AdminField>
+              <AdminField label="Ürün kodu">
+                <select
+                  className={inputClass}
+                  value={form.productCode}
+                  onChange={(e) => setForm({ ...form, productCode: e.target.value })}
+                >
+                  <option value="HX_STD">HX_STD — Standart</option>
+                  <option value="HX_SD">HX_SD — Aynı gün</option>
+                  <option value="HX_ND">HX_ND — Ertesi gün</option>
+                  <option value="HX_EX">HX_EX — Express</option>
+                </select>
+              </AdminField>
+              <AdminField label="Teslimat tipi">
+                <select
+                  className={inputClass}
+                  value={form.deliveryType}
+                  onChange={(e) => setForm({ ...form, deliveryType: e.target.value })}
+                >
+                  <option value="RETAIL">RETAIL</option>
+                  <option value="MARKET_PLACE">MARKET_PLACE</option>
+                  <option value="EXPRESS">EXPRESS</option>
+                </select>
+              </AdminField>
+            </div>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={form.autoMarkShipped}
+                onChange={(e) => setForm({ ...form, autoMarkShipped: e.target.checked })}
+              />
+              Etiket sonrası siparişi «Kargoda» yap ve müşteriye bildir
+            </label>
+            <button type="button" className={btnSecondary} disabled={busy} onClick={() => void testHepsijet()}>
+              Bağlantıyı test et
+            </button>
+            {testMsg ? <p className="text-sm text-zinc-700">{testMsg}</p> : null}
+          </>
+        ) : (
+          <>
+            <h2 className="text-sm font-semibold text-zinc-800">Opsiyonel sözleşme bilgileri</h2>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <AdminField label="Müşteri / gönderici kodu">
+                <input
+                  className={inputClass}
+                  value={form.apiCustomerCode}
+                  onChange={(e) => setForm({ ...form, apiCustomerCode: e.target.value })}
+                />
+              </AdminField>
+              <AdminField label="Sözleşme no">
+                <input
+                  className={inputClass}
+                  value={form.contractNo}
+                  onChange={(e) => setForm({ ...form, contractNo: e.target.value })}
+                />
+              </AdminField>
+            </div>
+          </>
+        )}
+
         <AdminField label="Notlar">
           <textarea
             className={inputClass}
@@ -170,10 +328,13 @@ export function ShippingCarrierForm({
             checked={form.active}
             onChange={(e) => setForm({ ...form, active: e.target.checked })}
           />
-          Aktif
+          Aktif — ödeme sayfasında müşteriye göster
         </label>
 
         <h2 className="pt-4 text-sm font-semibold text-zinc-800">Kargo tarifeleri</h2>
+        <p className="text-xs text-zinc-500">
+          HepsiJet API ile canlı fiyat gelmez; müşteriye gösterilecek sabit ücreti buradan girin.
+        </p>
         {rates.map((r, i) => (
           <div key={i} className="grid gap-2 rounded-lg border border-zinc-100 p-3 sm:grid-cols-4">
             <input
@@ -228,7 +389,7 @@ export function ShippingCarrierForm({
       </div>
       {err ? <p className="text-sm text-red-600">{err}</p> : null}
       <div className="flex gap-2">
-        <button type="button" className={btnPrimary} disabled={busy} onClick={saveCarrier}>
+        <button type="button" className={btnPrimary} disabled={busy} onClick={() => void onSave()}>
           Kaydet
         </button>
         <button type="button" className={btnSecondary} onClick={() => router.back()}>
@@ -237,50 +398,4 @@ export function ShippingCarrierForm({
       </div>
     </div>
   );
-}
-
-export function carrierToForm(
-  c: {
-    id: string;
-    code: string;
-    name: string;
-    active: boolean;
-    trackingUrlTemplate: string | null;
-    customerServicePhone: string | null;
-    notes: string | null;
-    configJson: string | null;
-    sortOrder: number;
-  },
-  rates: { id: string; name: string; priceMinor: number; freeOverMinor: number | null; minDesi: number | null; maxDesi: number | null }[],
-): { form: CarrierFormData; rates: RateRow[] } {
-  let cfg: Record<string, string> = {};
-  try {
-    if (c.configJson) cfg = JSON.parse(c.configJson) as Record<string, string>;
-  } catch {
-    /* */
-  }
-  return {
-    form: {
-      id: c.id,
-      code: c.code,
-      name: c.name,
-      active: c.active,
-      trackingUrlTemplate: c.trackingUrlTemplate ?? "",
-      customerServicePhone: c.customerServicePhone ?? "",
-      notes: c.notes ?? "",
-      apiUsername: cfg.apiUsername ?? "",
-      apiPassword: cfg.apiPassword ?? "",
-      apiCustomerCode: cfg.apiCustomerCode ?? "",
-      contractNo: cfg.contractNo ?? "",
-      sortOrder: String(c.sortOrder),
-    },
-    rates: rates.map((r) => ({
-      id: r.id,
-      name: r.name,
-      price: minorToTry(r.priceMinor),
-      freeOver: r.freeOverMinor ? minorToTry(r.freeOverMinor) : "",
-      minDesi: r.minDesi != null ? String(r.minDesi) : "",
-      maxDesi: r.maxDesi != null ? String(r.maxDesi) : "",
-    })),
-  };
 }

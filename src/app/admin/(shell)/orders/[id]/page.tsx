@@ -5,6 +5,7 @@ import { OrderLinesPanel } from "@/components/admin/OrderLinesPanel";
 import { OrderFinancePanel } from "@/components/admin/OrderFinancePanel";
 import { OrderDetailForm } from "@/components/admin/OrderDetailForm";
 import { GeliverOrderPanel } from "@/components/admin/GeliverOrderPanel";
+import { HepsijetOrderPanel } from "@/components/admin/HepsijetOrderPanel";
 import { MarketplaceOrderPanel } from "@/components/admin/MarketplaceOrderPanel";
 import { OrderInvoicePanel } from "@/components/admin/OrderInvoicePanel";
 import { isOrderInvoiceComplete } from "@/lib/admin/order-invoice-workflow";
@@ -14,6 +15,7 @@ import { parseOrderFinanceSnapshot } from "@/lib/finance/order-economics";
 import { formatTry } from "@/lib/admin/money";
 import { ORDER_STATUSES } from "@/lib/admin/marketplace-platforms";
 import { prisma } from "@/lib/prisma";
+import { parseCarrierConfig } from "@/lib/shipping/carrier-config";
 import { requireStaffPage } from "@/lib/staff-auth";
 
 function statusLabel(id: string) {
@@ -70,6 +72,9 @@ export default async function OrderDetailPage({
       issueDate: true,
     },
   });
+
+  const carrierProvider = order.carrier ? parseCarrierConfig(order.carrier.configJson).provider : null;
+  const showHepsijet = carrierProvider === "hepsijet" || order.carrier?.code === "hepsijet";
 
   return (
     <div>
@@ -165,7 +170,17 @@ export default async function OrderDetailPage({
           metaJson={order.marketplaceMetaJson}
         />
       ) : (
-        <GeliverOrderPanel orderId={order.id} marketplacePlatform={order.marketplacePlatform} />
+        <>
+          {showHepsijet ? (
+            <HepsijetOrderPanel
+              orderId={order.id}
+              marketplacePlatform={order.marketplacePlatform}
+              showHepsijet={showHepsijet}
+            />
+          ) : (
+            <GeliverOrderPanel orderId={order.id} marketplacePlatform={order.marketplacePlatform} />
+          )}
+        </>
       )}
     </div>
   );

@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { ShippingCarriersList } from "@/components/admin/ShippingCarriersList";
+import { parseCarrierConfig } from "@/lib/shipping/carrier-config";
 import { prisma } from "@/lib/prisma";
 import { requireStaffPage } from "@/lib/staff-auth";
 
@@ -10,19 +12,34 @@ export default async function ShippingPage() {
     include: { _count: { select: { rates: true } } },
   });
 
+  const rows = carriers.map((c) => ({
+    id: c.id,
+    code: c.code,
+    name: c.name,
+    active: c.active,
+    provider: parseCarrierConfig(c.configJson).provider,
+    rateCount: c._count.rates,
+  }));
+
   return (
     <div>
       <div className="mb-6 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-950">
-        Otomatik kargo (Geliver) için{" "}
-        <Link href="/admin/integrations/shipping" className="font-medium underline">
-          Geliver Entegrasyonu
+        <strong>HepsiJet doğrudan API:</strong>{" "}
+        <Link href="/admin/shipping/new?preset=hepsijet" className="font-medium underline">
+          HepsiJet ekle
         </Link>{" "}
-        sayfasına gidin — yalnızca API token yeterli. Bu listedeki firmalar manuel takip içindir.
+        — API bilgilerini girin, aktif/pasif ve tarifeyi buradan yönetin.{" "}
+        <Link href="/admin/integrations/shipping" className="underline">
+          Geliver
+        </Link>{" "}
+        isteğe bağlı (çoklu firma pazaryeri).
       </div>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">Kargo firmaları</h1>
-          <p className="mt-1 text-sm text-zinc-500">API bilgileri, takip şablonu ve fiyat tarifeleri</p>
+          <p className="mt-1 text-sm text-zinc-500">
+            Aktif firmalar ödeme sayfasında listelenir. HepsiJet API ile otomatik etiket ve takip.
+          </p>
         </div>
         <Link
           href="/admin/shipping/new"
@@ -31,28 +48,9 @@ export default async function ShippingPage() {
           + Yeni firma
         </Link>
       </div>
-      <ul className="mt-6 divide-y rounded-xl border bg-white">
-        {carriers.map((c) => (
-          <li key={c.id} className="flex items-center justify-between px-4 py-3">
-            <div>
-              <p className="font-medium">
-                {c.name}{" "}
-                <span className="text-xs font-normal text-zinc-500">({c.code})</span>
-              </p>
-              <p className="text-sm text-zinc-500">
-                {c._count.rates} tarife · {c.active ? "Aktif" : "Pasif"}
-              </p>
-            </div>
-            <Link href={`/admin/shipping/${c.id}`} className="text-sm text-[var(--kn-brand)]">
-              Düzenle
-            </Link>
-          </li>
-        ))}
-      </ul>
+      <ShippingCarriersList carriers={rows} />
       {carriers.length === 0 ? (
-        <p className="mt-8 text-zinc-500">
-          Henüz kargo firması yok. Seed çalıştırdıysanız veya yeni firma ekleyin.
-        </p>
+        <p className="mt-8 text-zinc-500">Henüz kargo firması yok. HepsiJet veya manuel firma ekleyin.</p>
       ) : null}
     </div>
   );
