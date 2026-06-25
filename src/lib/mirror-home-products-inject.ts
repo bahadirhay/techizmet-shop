@@ -7,6 +7,7 @@ import {
   type VitrinCollectionProductCard,
 } from "@/lib/mirror-collections-sync";
 import { buildProductCardGalleryMarkup, initProductCardGalleries, stripProductCardGalleryBoundFlags } from "@/lib/mirror-product-card-gallery";
+import { MIRROR_CARD_IMAGE_WIDTH, mirrorCdnImageUrl } from "@/lib/mirror-cdn-image";
 import type { resolveMirrorCollectionTexts } from "@/lib/store-static-texts";
 
 function isDomElement(node: unknown): node is Element {
@@ -92,14 +93,16 @@ function patchProductCardMedia(card: Element, product: VitrinCollectionProductCa
     product.imageUrls?.filter((u) => u.trim()).slice(0, 8) ?? (image ? [image] : []);
 
   if (galleryUrls.length) {
-    const primary = galleryUrls[0]!;
+    const primaryOriginal = galleryUrls[0]!;
+    const primary = mirrorCdnImageUrl(primaryOriginal, MIRROR_CARD_IMAGE_WIDTH);
     card.querySelectorAll("img").forEach((img) => {
       const el = img as HTMLImageElement;
       el.src = primary;
       el.setAttribute("data-src", primary);
-      el.setAttribute("data-original", primary);
+      el.setAttribute("data-original", primaryOriginal);
       el.alt = product.title;
       el.removeAttribute("srcset");
+      el.setAttribute("loading", "lazy");
     });
 
     const media = card.querySelector("[data-product-media], .media");

@@ -3,7 +3,7 @@ import "server-only";
 import { htmlToPlainText } from "@/lib/html-plain-text";
 import { getSeoAiConfig, seoAiAvailable } from "@/lib/admin/product-seo/ai-settings";
 import type { SearchIntentTarget } from "@/lib/seo/search-intent";
-import { getSearchIntents } from "@/lib/seo/search-intent";
+import { getSearchIntents, queryCoverageInMeta } from "@/lib/seo/search-intent";
 import { getSiteSeo, parseSiteSettings } from "@/lib/site-settings";
 import { prisma } from "@/lib/prisma";
 
@@ -88,23 +88,25 @@ export async function scanSearchIntents(siteId: string): Promise<{
     const checks: SearchIntentCheck[] = [];
     const landingMetaTitle = staticAll?.seoTitle?.trim() || "";
     const landingMetaDesc = staticAll?.seoDescription?.trim() || "";
-    const queryInTitle = landingMetaTitle.toLocaleLowerCase("tr-TR").includes(
-      intent.query.split(" ")[0]?.toLocaleLowerCase("tr-TR") ?? "",
+    const queryCoverage = queryCoverageInMeta(
+      intent.query,
+      landingMetaTitle,
+      landingMetaDesc,
     );
 
     checks.push({
       id: "landing-meta",
       label: "Landing meta (hedef sorgu)",
       status:
-        landingMetaDesc.length >= 120 && queryInTitle
+        landingMetaDesc.length >= 120 && queryCoverage >= 0.6
           ? "pass"
-          : landingMetaDesc.length >= 70
+          : landingMetaDesc.length >= 70 && queryCoverage >= 0.35
             ? "warn"
             : "fail",
       detail:
-        landingMetaDesc.length >= 120
-          ? `Açıklama ${landingMetaDesc.length} karakter`
-          : `Uygula ile ${intent.query} için meta atanmalı (${landingMetaDesc.length || 0} kr.)`,
+        queryCoverage >= 0.6 && landingMetaDesc.length >= 120
+          ? `Sorgu eşleşmesi %${Math.round(queryCoverage * 100)}, ${landingMetaDesc.length} kr.`
+          : `“Landing meta uygula” ile ${intent.query} için özel meta (${landingMetaDesc.length || 0} kr., eşleşme %${Math.round(queryCoverage * 100)})`,
     });
 
     checks.push({

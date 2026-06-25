@@ -83,10 +83,6 @@ function defer(fn: () => void) {
   return window.setTimeout(fn, 50);
 }
 
-function isPrebuiltMirrorSrc(src: string): boolean {
-  return src.includes("/_mirror-prebuilt/");
-}
-
 export function MirrorVitrinFrameClient({
   src,
   title,
@@ -130,7 +126,6 @@ export function MirrorVitrinFrameClient({
   const baseSrcRef = useRef(src);
   const overlayKeyRef = useRef("");
   const [frameReady, setFrameReady] = useState(false);
-  const [contentVisible, setContentVisible] = useState(() => isPrebuiltMirrorSrc(src));
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const accountRaw = searchParams.get("account");
@@ -177,16 +172,9 @@ export function MirrorVitrinFrameClient({
 
   useEffect(() => {
     baseSrcRef.current = src;
-    setContentVisible(isPrebuiltMirrorSrc(src));
     liveCatalogGenRef.current += 1;
     patchesCompleteRef.current = false;
   }, [src]);
-
-  useEffect(() => {
-    if (contentVisible || visualEditMode) return;
-    const t = window.setTimeout(() => setContentVisible(true), 2000);
-    return () => window.clearTimeout(t);
-  }, [contentVisible, visualEditMode, src]);
 
   useEffect(() => {
     const iframe = iframeRef.current;
@@ -306,7 +294,6 @@ export function MirrorVitrinFrameClient({
         if (!disposed && catalogGen === liveCatalogGenRef.current) {
           initProductCardGalleries(doc);
           applyMirrorIframeHeight(iframeRef.current);
-          setContentVisible(true);
         }
       }
     }
@@ -372,12 +359,7 @@ export function MirrorVitrinFrameClient({
           !categoriesFromAdmin?.length &&
           (!config || !shouldApplyMirrorPageOverlay(config) || serverOverlay));
 
-      if (serverReady && catalogHydrated) {
-        deferNonCriticalPatches(doc);
-      } else {
-        installMirrorStreetFoodBar(doc);
-        installMirrorStreetFoodFundPage(doc);
-      }
+      deferNonCriticalPatches(doc);
       ensureMirrorLayoutStyles(doc);
 
       if (branding?.logoUrl?.trim()) {
@@ -412,7 +394,6 @@ export function MirrorVitrinFrameClient({
         if (catalogHydrated) {
           applyEmbeddedCatalogPrices(doc);
           if (usdRate && usdRate > 0) applyMirrorUsdPrices(doc, usdRate);
-          setContentVisible(true);
           patchesCompleteRef.current = true;
           applyMirrorIframeHeight(frame);
           return;
@@ -638,11 +619,7 @@ export function MirrorVitrinFrameClient({
   }, [contact?.mapEmbedUrl, src]);
 
   return (
-    <div
-      className={`kn-home-mirror relative h-screen w-full overflow-hidden ${
-        contentVisible || visualEditMode ? "kn-home-mirror--ready" : "kn-home-mirror--boot"
-      }`}
-    >
+    <div className="kn-home-mirror kn-home-mirror--ready relative h-screen w-full overflow-hidden">
       {visualEditMode && !frameReady ? (
         <p className="absolute right-2 top-2 z-10 rounded-md bg-zinc-800/95 px-2 py-1 text-xs text-zinc-400">
           Yükleniyor…

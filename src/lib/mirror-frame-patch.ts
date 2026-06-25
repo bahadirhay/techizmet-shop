@@ -93,7 +93,7 @@ export function applyMirrorFramePatches(doc: Document, opts: MirrorFramePatchOpt
     installMirrorSwiperQuiet(doc);
   }
 
-  installMirrorStreetFoodBar(doc);
+  deferMirrorFrameWork(() => installMirrorStreetFoodBar(doc));
   revealMirrorImagesInDocument(doc);
   applyMirrorScrollStability(doc);
   const frame = doc.defaultView?.frameElement as HTMLIFrameElement | null | undefined;

@@ -229,12 +229,12 @@ html.kn-scroll-locked body {
   margin: 0;
   padding: 0;
 }
-.kn-home-mirror--boot .mirror-home-frame {
-  opacity: 0;
+.kn-home-mirror .mirror-home-frame {
+  opacity: 1;
 }
+.kn-home-mirror--boot .mirror-home-frame,
 .kn-home-mirror--ready .mirror-home-frame {
   opacity: 1;
-  transition: opacity 0.12s ease-out;
 }
 .kn-collection-grid {
   display: grid;

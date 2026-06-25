@@ -1,5 +1,12 @@
 /** Mirror iframe — no-js-hidden / lazyload görselleri görünür yap (Shopify JS yok) */
 
+import {
+  MIRROR_CARD_IMAGE_WIDTH,
+  MIRROR_HERO_TILE_WIDTH,
+  MIRROR_LCP_IMAGE_WIDTH,
+  mirrorCdnImageUrl,
+} from "@/lib/mirror-cdn-image";
+
 export function resolveMirrorImageUrl(img: HTMLImageElement): string | null {
   for (const raw of [img.getAttribute("data-original"), img.getAttribute("data-src"), img.src]) {
     const url = raw?.trim();
@@ -9,16 +16,91 @@ export function resolveMirrorImageUrl(img: HTMLImageElement): string | null {
   return null;
 }
 
-export function revealMirrorImageElement(img: HTMLImageElement) {
-  const url = resolveMirrorImageUrl(img);
+function isProductOrListingCard(img: HTMLImageElement): boolean {
+  if (img.classList.contains("product--card-image") || img.classList.contains("collection--card-image")) {
+    return true;
+  }
+  return Boolean(img.closest(".main-collection--products-list, .product--card, .collections-tab--products"));
+}
+
+function isFirstHeroLcpImage(img: HTMLImageElement, doc: Document): boolean {
+  const firstSection = doc.querySelector("#MainContent > .section-media-grid:first-of-type, .section-media-grid:first-of-type");
+  if (!firstSection?.contains(img)) return false;
+  const firstImg = firstSection.querySelector("img.media_image, img");
+  return img === firstImg;
+}
+
+export type RevealMirrorImageOpts = {
+  width?: number;
+  highPriority?: boolean;
+  keepLazy?: boolean;
+};
+
+export function revealMirrorImageElement(img: HTMLImageElement, opts?: RevealMirrorImageOpts) {
+  const rawUrl = resolveMirrorImageUrl(img);
+  const width = opts?.width ?? MIRROR_HERO_TILE_WIDTH;
+  const sizedUrl = rawUrl ? mirrorCdnImageUrl(rawUrl, width) : null;
+
   img.classList.remove("no-js-hidden", "lazyload", "lazyloading");
   img.classList.add("lazyloaded");
-  img.removeAttribute("loading");
-  if (url) {
-    img.src = url;
-    img.setAttribute("data-src", url);
-    img.setAttribute("data-original", url);
+
+  if (opts?.highPriority) {
+    img.setAttribute("fetchpriority", "high");
+    img.removeAttribute("loading");
+  } else if (opts?.keepLazy) {
+    img.setAttribute("loading", "lazy");
+    img.removeAttribute("fetchpriority");
+  } else {
+    img.removeAttribute("loading");
   }
+
+  if (sizedUrl) {
+    img.src = sizedUrl;
+    img.setAttribute("data-src", sizedUrl);
+    if (rawUrl) img.setAttribute("data-original", rawUrl);
+  }
+}
+
+function revealDeferredListingImage(img: HTMLImageElement) {
+  const rawUrl = resolveMirrorImageUrl(img);
+  img.classList.remove("no-js-hidden", "lazyload", "lazyloading");
+  img.classList.add("lazyloaded");
+  if (!img.getAttribute("loading")) img.setAttribute("loading", "lazy");
+  img.removeAttribute("fetchpriority");
+
+  if (!rawUrl) return;
+  const sized = mirrorCdnImageUrl(rawUrl, MIRROR_CARD_IMAGE_WIDTH);
+  img.setAttribute("data-src", sized);
+  img.setAttribute("data-original", rawUrl);
+  const current = img.src?.trim() ?? "";
+  if (!current || current.includes("width=250") || current === rawUrl) {
+    img.src = sized;
+  }
+}
+
+const LAZY_REVEAL_OBSERVER_KEY = "__knMirrorLazyRevealObserver";
+
+function ensureLazyRevealObserver(doc: Document): IntersectionObserver | null {
+  const win = doc.defaultView;
+  if (!win || typeof win.IntersectionObserver !== "function") return null;
+
+  const store = win as unknown as Record<string, IntersectionObserver | undefined>;
+  if (store[LAZY_REVEAL_OBSERVER_KEY]) return store[LAZY_REVEAL_OBSERVER_KEY]!;
+
+  const observer = new win.IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        const img = entry.target;
+        if (!(img instanceof HTMLImageElement)) continue;
+        revealMirrorImageElement(img, { width: MIRROR_HERO_TILE_WIDTH, keepLazy: true });
+        observer.unobserve(img);
+      }
+    },
+    { rootMargin: "200px 0px", threshold: 0.01 },
+  );
+  store[LAZY_REVEAL_OBSERVER_KEY] = observer;
+  return observer;
 }
 
 export const MIRROR_EMBED_HERO_CRITICAL_CSS = `
@@ -78,9 +160,36 @@ export function revealMirrorImagesInDocument(doc: Document) {
     return;
   }
   markMirrorEmbedRoot(doc);
-  doc.querySelectorAll('img.no-js-hidden, img.lazyload, img[lazyload], img.media_image').forEach((node) => {
-    if (node instanceof HTMLImageElement) revealMirrorImageElement(node);
-  });
+
+  const lazyObserver = ensureLazyRevealObserver(doc);
+  const candidates = doc.querySelectorAll(
+    "img.no-js-hidden, img.lazyload, img[lazyload], img.media_image",
+  );
+
+  for (const node of candidates) {
+    if (!(node instanceof HTMLImageElement)) continue;
+
+    if (isProductOrListingCard(node)) {
+      revealDeferredListingImage(node);
+      continue;
+    }
+
+    if (isFirstHeroLcpImage(node, doc)) {
+      revealMirrorImageElement(node, { width: MIRROR_LCP_IMAGE_WIDTH, highPriority: true });
+      continue;
+    }
+
+    if (node.closest(".section-media-grid, .page--banner")) {
+      if (lazyObserver) {
+        lazyObserver.observe(node);
+      } else {
+        revealMirrorImageElement(node, { width: MIRROR_HERO_TILE_WIDTH, keepLazy: true });
+      }
+      continue;
+    }
+
+    revealMirrorImageElement(node, { width: MIRROR_HERO_TILE_WIDTH, keepLazy: true });
+  }
 }
 
 /** Sunucu / prebuild — img class listesinden no-js-hidden kaldır */

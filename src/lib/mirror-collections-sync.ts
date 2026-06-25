@@ -15,6 +15,7 @@ import { formatPercentOffBadge, percentOffFromPrices } from "@/lib/product-disco
 import { badgePreset, parseProductBadges } from "@/lib/product-badges";
 import type { ResolvedMirrorCollectionTexts } from "@/lib/store-static-texts";
 import { buildProductCardGalleryMarkup, initProductCardGalleries } from "@/lib/mirror-product-card-gallery";
+import { MIRROR_CARD_IMAGE_WIDTH, mirrorCdnImageUrl } from "@/lib/mirror-cdn-image";
 
 /** Admin → Koleksiyonlar verisini mirror /collections kartlarına yazar */
 
@@ -242,7 +243,11 @@ function productCardHtml(
   const galleryUrls =
     product.imageUrls?.filter((u) => u.trim()).slice(0, 8) ??
     (product.imageUrl?.trim() ? [product.imageUrl.trim()] : []);
-  const image = galleryUrls[0]?.trim() || product.imageUrl?.trim() || EMPTY_IMAGE;
+  const imageOriginal = galleryUrls[0]?.trim() || product.imageUrl?.trim() || EMPTY_IMAGE;
+  const image =
+    imageOriginal === EMPTY_IMAGE
+      ? EMPTY_IMAGE
+      : mirrorCdnImageUrl(imageOriginal, MIRROR_CARD_IMAGE_WIDTH);
   const { galleryAttr, indicatorHtml } = buildProductCardGalleryMarkup(galleryUrls);
   const price = escText(formatTry(product.priceMinor));
   const compare = product.compareAtMinor && product.compareAtMinor > product.priceMinor
@@ -268,7 +273,7 @@ function productCardHtml(
             class="product--card-image"
             data-src="${escAttr(image)}"
             src="${escAttr(image)}"
-            data-original="${escAttr(image)}"
+            data-original="${escAttr(imageOriginal)}"
             alt="${title}"
             width="${PRODUCT_IMAGE_WIDTH}"
             height="${PRODUCT_IMAGE_HEIGHT}"

@@ -8,7 +8,7 @@ import {
   buildItemListJsonLd,
 } from "@/lib/seo/json-ld";
 import { loadCollectionSeo } from "@/lib/seo/collection-seo";
-import { findIntentForPath } from "@/lib/seo/search-intent";
+import { findIntentForPath, mergeFaqsForPath } from "@/lib/seo/search-intent";
 import { prisma } from "@/lib/prisma";
 
 async function loadListingProducts(siteId: string, limit = 24) {
@@ -53,8 +53,9 @@ export async function buildCollectionPageJsonLd(slug: string, categorySlug?: str
   ];
 
   const intent = findIntentForPath(ctx.canonicalPath);
-  if (intent?.faqs.length) {
-    blocks.push(buildFaqPageJsonLd(intent.faqs, ctx.canonicalPath));
+  const faqs = mergeFaqsForPath(ctx.canonicalPath);
+  if (faqs.length) {
+    blocks.push(buildFaqPageJsonLd(faqs, ctx.canonicalPath));
   }
 
   const products = await loadListingProducts(site.id);

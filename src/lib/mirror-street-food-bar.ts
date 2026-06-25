@@ -297,8 +297,14 @@ export function installMirrorStreetFoodBar(doc: Document) {
     syncHeroUnderHeader(doc);
   };
 
-  void refresh();
+  const run = () => void refresh();
   const win = doc.defaultView;
+  if (win && typeof win.requestIdleCallback === "function") {
+    win.requestIdleCallback(run, { timeout: 2500 });
+  } else {
+    win?.setTimeout(run, 200);
+  }
+
   if (!win) return;
   const key = "__knStreetFoodBarTimer";
   const existing = (win as unknown as Record<string, number | undefined>)[key];
