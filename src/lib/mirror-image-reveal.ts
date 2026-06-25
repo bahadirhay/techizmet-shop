@@ -83,6 +83,7 @@ export function forceMirrorResponsiveImagesInDocument(doc: Document) {
 
   for (const node of doc.querySelectorAll("img")) {
     if (!(node instanceof HTMLImageElement)) continue;
+    if (node.closest(".discover-look-wrapper")) continue;
     if (!mirrorImageNeedsResize(node) && node.getAttribute("data-kn-sized") === "1") continue;
 
     const raw = resolveMirrorImageUrl(node);
@@ -140,60 +141,59 @@ function ensureLazyRevealObserver(doc: Document): IntersectionObserver | null {
 
 export const MIRROR_EMBED_HERO_CRITICAL_CSS = `
 :root { --kn-mobile-hero-h: min(52vw, 240px); }
-#MainContent > .section-media-grid:first-of-type {
-  --desktop_height: 280px !important;
-  --mobile_height: var(--kn-mobile-hero-h) !important;
-  height: var(--kn-mobile-hero-h) !important;
-  min-height: var(--kn-mobile-hero-h) !important;
-  max-height: 50vh !important;
-  overflow: hidden !important;
-  contain: strict;
-}
-#MainContent > .section-media-grid:first-of-type .media-grid--wrapper {
-  height: 100% !important;
-  min-height: var(--kn-mobile-hero-h) !important;
-  max-height: 50vh !important;
-  position: relative !important;
-  overflow: hidden !important;
-}
-#MainContent > .section-media-grid:first-of-type .media-grid--item {
-  position: relative !important;
-  min-height: calc(var(--kn-mobile-hero-h) / 2) !important;
-  overflow: hidden !important;
-}
-#MainContent > .section-media-grid:first-of-type .media-grid--image {
-  position: absolute !important;
-  inset: 0 !important;
-  overflow: hidden !important;
-}
-#MainContent > .section-media-grid:first-of-type .media-grid--image .media,
-#MainContent > .section-media-grid:first-of-type .media-grid--image .media-fixed {
-  position: absolute !important;
-  inset: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-}
-#MainContent > .section-media-grid:first-of-type img.media_image {
-  position: absolute !important;
-  inset: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  max-width: 100% !important;
-  max-height: 100% !important;
-  object-fit: cover !important;
-}
-#MainContent > .section-media-grid:first-of-type .media-content.large {
-  position: absolute !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  z-index: 2 !important;
-  pointer-events: none !important;
-  max-height: 45% !important;
-  overflow: hidden !important;
-  padding: 8px 12px !important;
-}
 @media (max-width: 768px) {
+  #MainContent > .section-media-grid:first-of-type {
+    --mobile_height: var(--kn-mobile-hero-h) !important;
+    height: var(--kn-mobile-hero-h) !important;
+    min-height: var(--kn-mobile-hero-h) !important;
+    max-height: 50vh !important;
+    overflow: hidden !important;
+    contain: strict;
+  }
+  #MainContent > .section-media-grid:first-of-type .media-grid--wrapper {
+    height: 100% !important;
+    min-height: var(--kn-mobile-hero-h) !important;
+    max-height: 50vh !important;
+    position: relative !important;
+    overflow: hidden !important;
+  }
+  #MainContent > .section-media-grid:first-of-type .media-grid--item {
+    position: relative !important;
+    min-height: calc(var(--kn-mobile-hero-h) / 2) !important;
+    overflow: hidden !important;
+  }
+  #MainContent > .section-media-grid:first-of-type .media-grid--image {
+    position: absolute !important;
+    inset: 0 !important;
+    overflow: hidden !important;
+  }
+  #MainContent > .section-media-grid:first-of-type .media-grid--image .media,
+  #MainContent > .section-media-grid:first-of-type .media-grid--image .media-fixed {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+  #MainContent > .section-media-grid:first-of-type img.media_image {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    object-fit: cover !important;
+  }
+  #MainContent > .section-media-grid:first-of-type .media-content.large {
+    position: absolute !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    z-index: 2 !important;
+    pointer-events: none !important;
+    max-height: 45% !important;
+    overflow: hidden !important;
+    padding: 8px 12px !important;
+  }
   #MainContent > .section-media-grid:first-of-type .media-content-heading {
     font-size: clamp(0.95rem, 4.2vw, 1.25rem) !important;
     line-height: 1.2 !important;

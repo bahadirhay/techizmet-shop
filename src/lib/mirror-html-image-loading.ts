@@ -21,9 +21,6 @@ function imageWidthForTag(attrs: string, isFirstHero: boolean): number | null {
     return isFirstHero ? MIRROR_MOBILE_LCP_WIDTH : MIRROR_HERO_TILE_WIDTH;
   }
   if (/\/uploads\//i.test(attrs)) return MIRROR_HERO_TILE_WIDTH;
-  if (/\/cdn\/shop\/(files|collections|articles)\/[^"']+\.(jpe?g|png|webp)/i.test(attrs)) {
-    return MIRROR_HERO_TILE_WIDTH;
-  }
   return null;
 }
 
@@ -87,10 +84,11 @@ export function patchMirrorResponsiveUploadImages(html: string): string {
 
   out = out.replace(/<noscript>([\s\S]*?)<\/noscript>/gi, (block, inner: string) => {
     const patched = inner.replace(/<img\b([^>]*)>/gi, (full, attrs: string) => {
+      const width = imageWidthForTag(attrs, false);
+      if (!width) return full;
       const urlMatch = attrs.match(/(?:src|data-src|data-original)="([^"]+)"/i);
       const raw = urlMatch?.[1]?.replace(/&amp;/g, "&") ?? "";
       if (!raw || !isResizableMirrorImageUrl(raw)) return full;
-      const width = imageWidthForTag(attrs, false) ?? MIRROR_HERO_TILE_WIDTH;
       return `<img${patchImgTagAttrs(attrs, width)}>`;
     });
     return `<noscript>${patched}</noscript>`;

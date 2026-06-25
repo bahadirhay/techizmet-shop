@@ -1,7 +1,6 @@
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import { NextRequest, NextResponse } from "next/server";
 import { resizeImageBuffer } from "@/lib/image-resize";
+import { loadMirrorResizeSourceBytes } from "@/lib/mirror-resize-load";
 import { normalizeMirrorResizeSrc } from "@/lib/mirror-resize-src";
 
 export const dynamic = "force-dynamic";
@@ -22,10 +21,8 @@ export async function GET(req: NextRequest) {
   }
   const width = parseWidth(req);
 
-  let body: Buffer;
-  try {
-    body = await readFile(join(process.cwd(), "public", pathOnly.replace(/^\//, "")));
-  } catch {
+  const body = await loadMirrorResizeSourceBytes(pathOnly, req);
+  if (!body?.length) {
     return NextResponse.json({ error: "Dosya bulunamadı" }, { status: 404 });
   }
 
