@@ -3,6 +3,7 @@ import "server-only";
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { getDefaultSite } from "@/lib/site";
+import { findIntentForPath } from "@/lib/seo/search-intent";
 import { getSiteBranding, getSiteSettings, getSiteSeo } from "@/lib/site-settings";
 
 export type CollectionSeoContext =
@@ -73,16 +74,24 @@ export const loadCollectionSeo = cache(
 
     if (slug === "all") {
       const staticMeta = seo.staticPages?.["/collections/all"];
+      const intent = findIntentForPath("/collections/all");
+      const intentTitle = intent?.title;
+      const intentDesc = intent?.description;
       return {
         kind: "all",
-        metaTitle: staticMeta?.seoTitle?.trim() || `Tüm ürünler | ${site.name}`,
+        metaTitle:
+          staticMeta?.seoTitle?.trim() ||
+          intentTitle ||
+          `Tüm ürünler | ${site.name}`,
         metaDescription:
-          staticMeta?.seoDescription?.trim() || "Mağazadaki tüm ürünleri keşfedin.",
+          staticMeta?.seoDescription?.trim() ||
+          intentDesc ||
+          "Mağazadaki tüm ürünleri keşfedin.",
         imageUrl: staticMeta?.imageUrl?.trim() || defaultOg,
         canonicalPath: "/collections/all",
-        breadcrumbLabel: "Tüm ürünler",
-        collectionName: "Tüm ürünler",
-        collectionDescription: staticMeta?.seoDescription ?? null,
+        breadcrumbLabel: intent?.h1 ?? "Tüm ürünler",
+        collectionName: intent?.h1 ?? "Tüm ürünler",
+        collectionDescription: staticMeta?.seoDescription?.trim() || intentDesc || null,
       };
     }
 

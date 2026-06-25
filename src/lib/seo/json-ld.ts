@@ -53,6 +53,7 @@ export function buildProductJsonLd(input: ProductJsonLdInput, siteOrigin?: strin
       url: toAbsoluteUrl(input.productPath, origin),
       priceCurrency: input.currency,
       price: (input.priceMinor / 100).toFixed(2),
+      itemCondition: "https://schema.org/NewCondition",
       availability: input.inStock
         ? "https://schema.org/InStock"
         : "https://schema.org/OutOfStock",
@@ -83,5 +84,68 @@ export function buildCollectionPageJsonLd(input: CollectionJsonLdInput, siteOrig
       name: input.siteName,
       url: origin,
     },
+  };
+}
+
+export type FaqJsonLdItem = { question: string; answer: string };
+
+export function buildFaqPageJsonLd(
+  items: FaqJsonLdItem[],
+  pageUrl: string,
+  siteOrigin?: string,
+) {
+  const origin = siteOrigin ?? getPublicSiteUrl();
+  const url = toAbsoluteUrl(pageUrl, origin);
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: items.map((item) => ({
+      "@type": "Question",
+      name: item.question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: item.answer,
+      },
+    })),
+    url,
+  };
+}
+
+export type ItemListProductJsonLd = {
+  name: string;
+  url: string;
+  image?: string;
+  priceMinor: number;
+  currency: string;
+};
+
+export function buildItemListJsonLd(
+  items: ItemListProductJsonLd[],
+  listName: string,
+  pageUrl: string,
+  siteOrigin?: string,
+) {
+  const origin = siteOrigin ?? getPublicSiteUrl();
+  return {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: listName,
+    url: toAbsoluteUrl(pageUrl, origin),
+    numberOfItems: items.length,
+    itemListElement: items.map((item, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      item: {
+        "@type": "Product",
+        name: item.name,
+        url: toAbsoluteUrl(item.url, origin),
+        ...(item.image ? { image: toAbsoluteMediaUrl(item.image, origin) } : {}),
+        offers: {
+          "@type": "Offer",
+          price: (item.priceMinor / 100).toFixed(2),
+          priceCurrency: item.currency,
+        },
+      },
+    })),
   };
 }
