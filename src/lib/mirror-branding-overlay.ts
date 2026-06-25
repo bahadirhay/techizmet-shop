@@ -1,6 +1,6 @@
 /** Mirror iframe — admin logo / favicon (tema JS üzerine yazsa bile korunur) */
 
-import { withBrandAssetVersion } from "@/lib/site-settings-branding";
+import { withBrandAssetVersion } from "@/lib/branding-asset-url";
 
 export type MirrorBranding = {
   logoUrl: string;

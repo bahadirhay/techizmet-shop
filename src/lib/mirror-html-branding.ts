@@ -1,5 +1,5 @@
 import type { MirrorBranding } from "@/lib/mirror-branding-overlay";
-import { withBrandAssetVersion } from "@/lib/site-settings-branding";
+import { withBrandAssetVersion } from "@/lib/branding-asset-url";
 export { toBrandedMirrorSrc } from "@/lib/mirror-iframe-src";
 
 const NOOR_DARK = /\/theme\/techizmet-shop\/cdn\/shop\/files\/noor-dark-logo[^"'\s]*/gi;

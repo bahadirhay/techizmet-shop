@@ -3,7 +3,7 @@ import { getCachedParsedSiteSettings } from "@/lib/cache/store-cache";
 import { getPublicSiteUrl } from "@/lib/seo/site-url";
 import { getDefaultSite } from "@/lib/site";
 import { getSiteBranding, getSiteSeo } from "@/lib/site-settings";
-import { withBrandAssetVersion } from "@/lib/site-settings-branding";
+import { withBrandAssetVersion } from "@/lib/branding-asset-url";
 import { ensureStoreTenant } from "@/lib/store-tenant";
 import { blogFeedPath } from "@/lib/seo/rss-feed";
 
