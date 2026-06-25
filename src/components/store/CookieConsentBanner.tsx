@@ -145,6 +145,7 @@ export function CookieConsentBanner({ rawConfig }: { rawConfig: string | null | 
 
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [readyToPrompt, setReadyToPrompt] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -152,6 +153,34 @@ export function CookieConsentBanner({ rawConfig }: { rawConfig: string | null | 
 
   useEffect(() => {
     if (cfg.enabled === false) {
+      setReadyToPrompt(false);
+      return;
+    }
+    try {
+      if (window.localStorage.getItem(STORAGE_KEY)) return;
+    } catch {
+      /* ignore */
+    }
+
+    const mobile = window.matchMedia("(max-width: 768px)").matches;
+    const delayMs = mobile ? 6000 : 2000;
+    let timer = 0;
+
+    const arm = () => {
+      timer = window.setTimeout(() => setReadyToPrompt(true), delayMs);
+    };
+
+    if (document.readyState === "complete") arm();
+    else window.addEventListener("load", arm, { once: true });
+
+    return () => {
+      window.removeEventListener("load", arm);
+      if (timer) window.clearTimeout(timer);
+    };
+  }, [cfg.enabled]);
+
+  useEffect(() => {
+    if (!readyToPrompt || cfg.enabled === false) {
       setOpen(false);
       return;
     }
@@ -160,7 +189,7 @@ export function CookieConsentBanner({ rawConfig }: { rawConfig: string | null | 
     } catch {
       setOpen(true);
     }
-  }, [cfg.enabled]);
+  }, [readyToPrompt, cfg.enabled]);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [prefs, setPrefs] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};

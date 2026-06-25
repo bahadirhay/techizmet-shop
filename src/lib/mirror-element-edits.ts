@@ -6,6 +6,12 @@ import {
   applyElementTypography,
   type MirrorElementTypography,
 } from "@/lib/mirror-element-typography";
+import {
+  MIRROR_CARD_IMAGE_WIDTH,
+  MIRROR_HERO_TILE_WIDTH,
+  MIRROR_MOBILE_LCP_WIDTH,
+  mirrorCdnImageUrl,
+} from "@/lib/mirror-cdn-image";
 
 export type { MirrorElementTypography } from "@/lib/mirror-element-typography";
 
@@ -542,18 +548,33 @@ export function readElementValue(el: Element, kind: MirrorElementKind): string {
 
 function applyUserImage(el: HTMLImageElement, url: string) {
   const base = url.split("?")[0] ?? url;
-  const bust = base.includes("?") ? `${base}&kn=1` : `${base}?kn=1`;
+  const isHero = el.classList.contains("media_image");
+  const isCard =
+    el.classList.contains("product--card-image") || el.classList.contains("collections-tab--image");
+  const width = isCard
+    ? MIRROR_CARD_IMAGE_WIDTH
+    : isHero
+      ? MIRROR_MOBILE_LCP_WIDTH
+      : MIRROR_HERO_TILE_WIDTH;
+  const sized = mirrorCdnImageUrl(base, width);
   el.classList.remove("lazyload", "lazyloading");
   el.classList.add("lazyloaded");
   el.removeAttribute("loading");
   el.removeAttribute("data-widths");
   el.removeAttribute("data-sizes");
   el.removeAttribute("data-aspectratio");
-  el.src = bust;
-  el.setAttribute("data-src", base);
-  el.setAttribute("data-original", base);
-  el.setAttribute("srcset", `${bust} 1x, ${bust} 2x`);
+  el.removeAttribute("srcset");
   el.removeAttribute("data-srcset");
+  if (isHero && !isCard) {
+    el.setAttribute("fetchpriority", "high");
+  } else {
+    el.setAttribute("loading", "lazy");
+    el.removeAttribute("fetchpriority");
+  }
+  el.src = sized;
+  el.setAttribute("data-src", sized);
+  el.setAttribute("data-original", base);
+  el.setAttribute("data-kn-sized", "1");
   el.setAttribute("data-kn-user-applied", "1");
   const noscript = el.parentElement?.querySelector("noscript img");
   if (noscript && isImageNode(noscript)) {
