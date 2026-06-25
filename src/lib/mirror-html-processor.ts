@@ -311,5 +311,6 @@ export async function buildMirrorHtmlCore(params: MirrorHtmlBuildParams): Promis
   }
 
   localized = await syncMirrorListingPricesInHtml(localized, siteId);
+  localized = patchMirrorCriticalImageLoading(localized);
   return rewriteLegacyThemePaths(localized);
 }

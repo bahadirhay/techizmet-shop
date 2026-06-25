@@ -67,7 +67,10 @@ export function patchMirrorResponsiveUploadImages(html: string): string {
       next += ' loading="lazy"';
     }
     next = next.replace(/\ssrcset="[^"]*"/gi, "");
-    if (!/\bdata-kn-sized=/i.test(next)) next += ' data-kn-sized="1"';
+    if (!/\bdata-kn-sized=/i.test(next) || /src="[^"]*\/uploads\//i.test(next)) {
+      next = next.replace(/\sdata-kn-sized="[^"]*"/gi, "");
+      next += ' data-kn-sized="1"';
+    }
     return `<img${next}>`;
   });
 }

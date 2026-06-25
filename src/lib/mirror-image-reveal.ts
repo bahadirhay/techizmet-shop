@@ -3,11 +3,10 @@
 import {
   MIRROR_CARD_IMAGE_WIDTH,
   MIRROR_HERO_TILE_WIDTH,
-  MIRROR_LCP_IMAGE_WIDTH,
   MIRROR_MOBILE_LCP_WIDTH,
   isResizableMirrorImageUrl,
   mirrorCdnImageUrl,
-  mirrorMobileImageUrl,
+  mirrorImageNeedsResize,
 } from "@/lib/mirror-cdn-image";
 
 export function resolveMirrorImageUrl(img: HTMLImageElement): string | null {
@@ -48,74 +47,85 @@ function isHeroGridImage(img: HTMLImageElement): boolean {
   return Boolean(img.closest(".section-media-grid") && img.classList.contains("media_image"));
 }
 
-export type RevealMirrorImageOpts = {
-  width?: number;
-  highPriority?: boolean;
-  keepLazy?: boolean;
-};
-
-export function revealMirrorImageElement(img: HTMLImageElement, opts?: RevealMirrorImageOpts) {
+function applySizedMirrorImage(
+  img: HTMLImageElement,
+  width: number,
+  opts?: { highPriority?: boolean; keepLazy?: boolean },
+) {
   const rawUrl = resolveMirrorImageUrl(img);
-  const width = opts?.width ?? MIRROR_HERO_TILE_WIDTH;
-  const sizedUrl = rawUrl && isResizableMirrorImageUrl(rawUrl) ? mirrorCdnImageUrl(rawUrl, width) : rawUrl;
+  if (!rawUrl) return;
+  const base = rawUrl.split("?")[0] ?? rawUrl;
+  const sized = isResizableMirrorImageUrl(base) ? mirrorCdnImageUrl(base, width) : rawUrl;
 
   img.classList.remove("no-js-hidden", "lazyload", "lazyloading");
   img.classList.add("lazyloaded");
+  img.removeAttribute("srcset");
+  img.removeAttribute("data-srcset");
 
   if (opts?.highPriority) {
     img.setAttribute("fetchpriority", "high");
     img.removeAttribute("loading");
-  } else if (opts?.keepLazy) {
-    img.setAttribute("loading", "lazy");
-    img.removeAttribute("fetchpriority");
   } else {
     img.setAttribute("loading", "lazy");
     img.removeAttribute("fetchpriority");
   }
 
-  if (sizedUrl) {
-    img.src = sizedUrl;
-    img.setAttribute("data-src", sizedUrl);
-    if (rawUrl) img.setAttribute("data-original", rawUrl.split("?")[0] ?? rawUrl);
-    img.setAttribute("data-kn-sized", "1");
-    img.removeAttribute("srcset");
+  img.src = sized;
+  img.setAttribute("data-src", sized);
+  img.setAttribute("data-original", base);
+  img.setAttribute("data-kn-sized", "1");
+}
+
+function bindMirrorHeroPaintedClass(doc: Document) {
+  const first = doc.querySelector(
+    ".section-media-grid:first-of-type img.media_image, .section-media-grid:first-of-type img",
+  );
+  const mark = () => doc.documentElement.classList.add("kn-mirror-hero-painted");
+  if (!(first instanceof HTMLImageElement)) {
+    mark();
+    return;
   }
+  if (first.complete && first.naturalWidth > 0) mark();
+  else first.addEventListener("load", mark, { once: true });
+  window.setTimeout(mark, 2500);
+}
+
+/** Prebuild veya overlay sonrası tam boy görselleri zorla küçült */
+export function forceMirrorResponsiveImagesInDocument(doc: Document) {
+  markMirrorEmbedRoot(doc);
+
+  for (const node of doc.querySelectorAll("img")) {
+    if (!(node instanceof HTMLImageElement)) continue;
+    if (!mirrorImageNeedsResize(node) && node.getAttribute("data-kn-sized") === "1") continue;
+
+    const raw = resolveMirrorImageUrl(node);
+    if (!raw || !isResizableMirrorImageUrl(raw)) continue;
+
+    if (isProductOrListingCard(node)) {
+      applySizedMirrorImage(node, MIRROR_CARD_IMAGE_WIDTH, { keepLazy: true });
+      continue;
+    }
+    if (isFirstHeroLcpImage(node, doc)) {
+      applySizedMirrorImage(node, MIRROR_MOBILE_LCP_WIDTH, { highPriority: true });
+      continue;
+    }
+    if (isHeroGridImage(node) || node.closest(".section-media-grid, .page--banner")) {
+      applySizedMirrorImage(node, MIRROR_HERO_TILE_WIDTH, { keepLazy: true });
+      continue;
+    }
+    applySizedMirrorImage(node, MIRROR_HERO_TILE_WIDTH, { keepLazy: true });
+  }
+
+  bindMirrorHeroPaintedClass(doc);
 }
 
 function revealDeferredListingImage(img: HTMLImageElement) {
-  const rawUrl = resolveMirrorImageUrl(img);
-  img.classList.remove("no-js-hidden", "lazyload", "lazyloading");
-  if (!img.getAttribute("loading")) img.setAttribute("loading", "lazy");
-  img.removeAttribute("fetchpriority");
-  img.removeAttribute("srcset");
-
-  if (!rawUrl) return;
-  const sized = isResizableMirrorImageUrl(rawUrl)
-    ? mirrorCdnImageUrl(rawUrl, MIRROR_CARD_IMAGE_WIDTH)
-    : rawUrl;
-  img.setAttribute("data-src", sized);
-  img.setAttribute("data-original", rawUrl.split("?")[0] ?? rawUrl);
-  img.setAttribute("data-kn-sized", "1");
-  const currentPath = (img.src?.split("?")[0] ?? "").trim();
-  const rawPath = rawUrl.split("?")[0] ?? "";
-  if (!currentPath || currentPath === rawPath || img.getAttribute("data-kn-sized") !== "1") {
-    img.src = sized;
-  }
-  img.classList.add("lazyloaded");
+  applySizedMirrorImage(img, MIRROR_CARD_IMAGE_WIDTH, { keepLazy: true });
 }
 
 function downgradeOversizedMirrorImage(img: HTMLImageElement, width: number, keepLazy = true) {
-  if (img.getAttribute("data-kn-sized") === "1") return;
-  const rawUrl = resolveMirrorImageUrl(img);
-  if (!rawUrl || !isResizableMirrorImageUrl(rawUrl)) return;
-  const sized = mirrorCdnImageUrl(rawUrl, width);
-  img.src = sized;
-  img.setAttribute("data-src", sized);
-  img.setAttribute("data-original", rawUrl.split("?")[0] ?? rawUrl);
-  img.setAttribute("data-kn-sized", "1");
-  img.removeAttribute("srcset");
-  if (keepLazy) img.setAttribute("loading", "lazy");
-  img.classList.add("lazyloaded");
+  if (!mirrorImageNeedsResize(img) && img.getAttribute("data-kn-sized") === "1") return;
+  applySizedMirrorImage(img, width, { keepLazy });
 }
 
 const LAZY_REVEAL_OBSERVER_KEY = "__knMirrorLazyRevealObserver";
@@ -186,6 +196,12 @@ html.kn-mirror-embed .section-media-grid .media-content.large {
   z-index: 2;
   pointer-events: none;
 }
+html.kn-mirror-embed:not(.kn-mirror-hero-painted) .section-media-grid:first-of-type .media-content {
+  visibility: hidden;
+}
+html.kn-mirror-embed.kn-mirror-hero-painted .section-media-grid:first-of-type .media-content {
+  visibility: visible;
+}
 @media (max-width: 768px) {
   html.kn-mirror-embed .section-media-grid .media-content-heading {
     font-size: clamp(1rem, 4.5vw, 1.35rem);
@@ -209,7 +225,7 @@ export function mirrorImagesAlreadyRevealed(doc: Document): boolean {
 }
 
 export function revealMirrorImagesInDocument(doc: Document) {
-  markMirrorEmbedRoot(doc);
+  forceMirrorResponsiveImagesInDocument(doc);
 
   const lazyObserver = ensureLazyRevealObserver(doc);
   const candidates = doc.querySelectorAll("img.no-js-hidden, img.lazyload, img[lazyloading]");
@@ -223,7 +239,7 @@ export function revealMirrorImagesInDocument(doc: Document) {
     }
 
     if (isFirstHeroLcpImage(node, doc)) {
-      revealMirrorImageElement(node, { width: MIRROR_MOBILE_LCP_WIDTH, highPriority: true });
+      applySizedMirrorImage(node, MIRROR_MOBILE_LCP_WIDTH, { highPriority: true });
       continue;
     }
 
@@ -240,14 +256,14 @@ export function revealMirrorImagesInDocument(doc: Document) {
   for (const node of doc.querySelectorAll(".section-media-grid img.media_image")) {
     if (!(node instanceof HTMLImageElement)) continue;
     if (isFirstHeroLcpImage(node, doc)) continue;
-    if (node.getAttribute("data-kn-sized") === "1") continue;
+    if (!mirrorImageNeedsResize(node) && node.getAttribute("data-kn-sized") === "1") continue;
     if (lazyObserver) lazyObserver.observe(node);
     else downgradeOversizedMirrorImage(node, MIRROR_HERO_TILE_WIDTH, true);
   }
 
   for (const node of doc.querySelectorAll("img.product--card-image, img.collections-tab--image")) {
     if (!(node instanceof HTMLImageElement)) continue;
-    if (node.getAttribute("data-kn-sized") === "1") continue;
+    if (!mirrorImageNeedsResize(node) && node.getAttribute("data-kn-sized") === "1") continue;
     revealDeferredListingImage(node);
   }
 
@@ -266,8 +282,6 @@ export function patchMirrorNoJsHiddenImagesHtml(html: string): string {
     return `${pre}${next}${post}`;
   });
 }
-
-export { mirrorMobileImageUrl };
 
 export const MIRROR_IMAGE_REVEAL_CSS = `
 img.no-js-hidden,

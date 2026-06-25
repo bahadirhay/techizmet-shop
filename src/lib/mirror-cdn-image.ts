@@ -44,3 +44,14 @@ export function mirrorMobileImageUrl(url: string, kind: "lcp" | "hero" | "card")
     kind === "lcp" ? MIRROR_MOBILE_LCP_WIDTH : kind === "card" ? MIRROR_CARD_IMAGE_WIDTH : MIRROR_HERO_TILE_WIDTH;
   return mirrorCdnImageUrl(url, width);
 }
+
+/** Tam boy /uploads veya width'siz /api/media — resize gerekli mi */
+export function mirrorImageNeedsResize(img: Pick<HTMLImageElement, "src" | "getAttribute">): boolean {
+  const src = img.src?.trim() ?? "";
+  if (!src || src.startsWith("data:")) return false;
+  if (src.includes("/api/resize-image")) return false;
+  const path = src.split("?")[0] ?? "";
+  if (path.startsWith("/uploads/")) return true;
+  if (/^\/api\/media\/[^/]+$/i.test(path) && !/[?&]width=\d+/i.test(src)) return true;
+  return false;
+}

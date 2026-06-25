@@ -75,12 +75,12 @@ export function resolveStoreMirrorIframeSrc(
     return mirrorVitrinApiSrc(path, pageKey, extra);
   }
 
-  if (preferPrebuiltWhenAvailable(path)) {
-    return prebuiltMirrorPublicUrl(path);
-  }
-
   if (mirrorIframePrefersLiveApi(opts)) {
     return mirrorVitrinApiSrc(path, pageKey, extra);
+  }
+
+  if (preferPrebuiltWhenAvailable(path)) {
+    return prebuiltMirrorPublicUrl(path);
   }
 
   if (isFastStaticMirrorShell(path)) {
