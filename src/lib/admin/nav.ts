@@ -29,6 +29,7 @@ export const ADMIN_SEO_BREADCRUMB = { label: "SEO", href: ADMIN_SEO_HUB } as con
 
 export const ADMIN_SEO_NAV_ITEMS: AdminNavLink[] = [
   { href: "/admin/settings/seo-dashboard", label: "Komuta Merkezi", perm: "site.settings" },
+  { href: "/admin/settings/performance", label: "Site Performansı", perm: "site.settings" },
   { href: "/admin/settings/search-intent", label: "Hedef Aramalar", perm: "site.settings" },
   { href: "/admin/settings/seo", label: "Logo, Favicon & Meta", perm: "site.settings" },
   { href: "/admin/settings/distribution", label: "İndeksleme & GEO", perm: "site.settings" },
@@ -379,6 +380,7 @@ export const ADMIN_PAGE_TITLES: Record<string, string> = {
   "/admin/settings/security": "Güvenlik & Şifre",
   "/admin/settings/seo": "Logo, Favicon & Meta",
   "/admin/settings/seo-dashboard": "SEO Komuta Merkezi",
+  "/admin/settings/performance": "Site Performansı",
   "/admin/settings/search-intent": "Hedef Aramalar",
   "/admin/settings/bing-webmaster": "Bing Webmaster",
   "/admin/settings/google-merchant": "Google Merchant Center",
