@@ -309,10 +309,12 @@ export function StoreSeoSettingsForm({
         </p>
       </section>
 
-      {msg ? <p className="text-sm text-zinc-600">{msg}</p> : null}
-      <button type="button" className={btnPrimary} disabled={busy} onClick={() => void save()}>
-        {busy ? "Kaydediliyor…" : "Kaydet"}
-      </button>
+      <div className="sticky bottom-0 -mx-4 flex items-center justify-between gap-3 border-t border-zinc-200 bg-white/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-xl sm:border sm:px-4">
+        <p className="text-sm text-zinc-600">{msg ?? "Değişiklikleri kaydetmeyi unutmayın."}</p>
+        <button type="button" className={btnPrimary} disabled={busy} onClick={() => void save()}>
+          {busy ? "Kaydediliyor…" : "Kaydet"}
+        </button>
+      </div>
     </div>
   );
 }
