@@ -22,29 +22,9 @@ export function collectDiscoveryFeedUrls(settings: SiteSettings): string[] {
   return [...new Set(urls.filter((u) => u.startsWith("http")))];
 }
 
-export type SitemapPingResult = { ok: boolean; status?: number; error?: string };
-
-export async function pingYandexSitemap(sitemapUrl?: string): Promise<SitemapPingResult> {
-  const url = sitemapUrl ?? `${getPublicSiteUrl()}/sitemap.xml`;
-  const pingUrl = `https://webmaster.yandex.com/ping?sitemap=${encodeURIComponent(url)}`;
-  try {
-    const res = await fetch(pingUrl, { method: "GET", cache: "no-store" });
-    return { ok: res.ok || res.status === 204, status: res.status };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
-  }
-}
-
-export async function pingAllSitemaps(sitemapUrl?: string): Promise<{
-  bing: SitemapPingResult;
-  yandex: SitemapPingResult;
-  sitemapUrl: string;
-}> {
-  const { pingBingSitemap } = await import("@/lib/seo/indexnow");
-  const url = sitemapUrl ?? `${getPublicSiteUrl()}/sitemap.xml`;
-  const [bing, yandex] = await Promise.all([pingBingSitemap(url), pingYandexSitemap(url)]);
-  return { bing, yandex, sitemapUrl: url };
-}
+/* Not: Bing/Google/Yandex anonim "sitemap ping" (GET /ping?sitemap=) protokolünü
+   kullanımdan kaldırdı. Sitemap artık IndexNow ile (discovery feed'leri) ve
+   robots.txt'deki Sitemap satırıyla bildiriliyor. */
 
 /** Tam URL listesi: sayfalar + keşif feed'leri */
 export function mergeIndexingUrls(pageUrls: string[], discoveryUrls: string[]): string[] {

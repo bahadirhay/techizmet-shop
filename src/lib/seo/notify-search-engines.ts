@@ -3,7 +3,7 @@ import "server-only";
 import { blogPostHref } from "@/lib/blog/blog-post-types";
 import { notifyPublishedUrl } from "@/lib/seo/distribution-runner";
 import { ensureIndexNowKey, submitIndexNowUrls } from "@/lib/seo/indexnow";
-import { collectDiscoveryFeedUrls, mergeIndexingUrls, pingAllSitemaps } from "@/lib/seo/search-engine-sync";
+import { collectDiscoveryFeedUrls, mergeIndexingUrls } from "@/lib/seo/search-engine-sync";
 import { getSiteDistribution } from "@/lib/seo/distribution-settings";
 import { getPublicSiteUrl } from "@/lib/seo/site-url";
 import { getSiteSettings } from "@/lib/site-settings";
@@ -18,7 +18,7 @@ export function notifySearchEnginesForPath(path: string): void {
   notifySearchEnginesForPaths([path]);
 }
 
-/** Toplu URL bildirimi — IndexNow batch + Bing sitemap ping */
+/** Toplu URL bildirimi — IndexNow batch (sitemap dahil discovery feed'leri) */
 export function notifySearchEnginesForPaths(paths: string[]): void {
   const uniquePaths = [...new Set(paths.filter((p) => p?.trim()))];
   if (!uniquePaths.length) return;
@@ -38,7 +38,6 @@ export function notifySearchEnginesForPaths(paths: string[]): void {
       const key = ensureIndexNowKey(distribution);
       const discoveryFeeds = collectDiscoveryFeedUrls(settings);
       await submitIndexNowUrls(key, mergeIndexingUrls(urls, discoveryFeeds));
-      await pingAllSitemaps();
     } catch {
       /* indeksleme bildirimi kritik değil */
     }

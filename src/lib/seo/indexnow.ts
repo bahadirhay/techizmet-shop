@@ -31,17 +31,6 @@ export function indexNowKeyFileUrl(_key: string): string {
   return `${getPublicSiteUrl()}/indexnow-key.txt`;
 }
 
-export async function pingBingSitemap(sitemapUrl?: string): Promise<{ ok: boolean; status?: number; error?: string }> {
-  const url = sitemapUrl ?? `${getPublicSiteUrl()}/sitemap.xml`;
-  const pingUrl = `https://www.bing.com/ping?sitemap=${encodeURIComponent(url)}`;
-  try {
-    const res = await fetch(pingUrl, { method: "GET", cache: "no-store" });
-    return { ok: res.ok, status: res.status };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
-  }
-}
-
 export async function submitIndexNowUrls(
   key: string,
   urlList: string[],

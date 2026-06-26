@@ -106,9 +106,8 @@ export function SiteDistributionPanel() {
         setData({ ...data, distribution: json.distribution });
       }
       if (json.ok) {
-        const yandex = json.result?.sitemapPing?.yandex?.ok ? "OK" : "hata";
         setMessage(
-          `IndexNow: ${json.result?.indexNow?.submitted ?? 0} URL. Bing ping: ${json.result?.sitemapPing?.bing?.ok ? "OK" : "hata"}. Yandex ping: ${yandex}.`,
+          `IndexNow: ${json.result?.indexNow?.submitted ?? 0} URL gönderildi (Bing + Yandex). Sitemap IndexNow ile bildirildi.`,
         );
       } else {
         setMessage(json.result?.errors?.join(" · ") || "Bazı adımlar başarısız oldu.");
@@ -149,7 +148,7 @@ export function SiteDistributionPanel() {
         <div>
           <h2 className="text-lg font-semibold">Otomatik indeksleme</h2>
           <p className="text-sm text-[var(--kn-muted)] mt-1">
-            Bing + Yandex sitemap ping, IndexNow (Bing/Yandex/Seznam), RSS, llms.txt ve JSON katalog.
+            IndexNow (Bing/Yandex/Seznam) ile anlık bildirim; sitemap, RSS, llms.txt ve JSON katalog.
             Ürün/blog yayınında anlık IndexNow tetiklenir. Günlük tam tarama: Vercel cron (05:30 TR) veya
             aşağıdaki buton.
           </p>

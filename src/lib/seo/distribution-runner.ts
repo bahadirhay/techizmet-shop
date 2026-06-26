@@ -15,7 +15,6 @@ import { getSiteDistribution } from "@/lib/seo/distribution-settings";
 import {
   collectDiscoveryFeedUrls,
   mergeIndexingUrls,
-  pingAllSitemaps,
 } from "@/lib/seo/search-engine-sync";
 
 export async function collectPublicUrlsForIndexing(siteId: string): Promise<string[]> {
@@ -51,17 +50,10 @@ export async function runDistributionIndexPass(
 
   revalidateSearchDiscoveryPaths();
 
-  const sitemapPingAll = await pingAllSitemaps(sitemapUrl);
-  if (!sitemapPingAll.bing.ok) {
-    errors.push(
-      `Bing sitemap ping başarısız${sitemapPingAll.bing.error ? `: ${sitemapPingAll.bing.error}` : ""}`,
-    );
-  }
-  if (!sitemapPingAll.yandex.ok) {
-    errors.push(
-      `Yandex sitemap ping başarısız${sitemapPingAll.yandex.error ? `: ${sitemapPingAll.yandex.error}` : ""}`,
-    );
-  }
+  // Not: Bing ve Google, anonim "sitemap ping" (GET /ping?sitemap=) protokolünü
+  // 2023'te kullanımdan kaldırdı; bu uçlar artık hata döndürüyor. Sitemap artık
+  // IndexNow ile (discoveryFeeds içindeki sitemap.xml) ve robots.txt'deki Sitemap
+  // satırıyla bildiriliyor.
 
   let urlList: string[] = [];
   try {
@@ -84,14 +76,19 @@ export async function runDistributionIndexPass(
   }
 
   const now = new Date().toISOString();
-  const sitemapOk = sitemapPingAll.bing.ok || sitemapPingAll.yandex.ok;
+  // Sitemap, IndexNow gönderimiyle (discoveryFeeds → sitemap.xml) duyuruluyor.
+  const sitemapOk = indexNow.ok;
   if (sitemapOk) distribution.lastSitemapPingAt = now;
   if (indexNow.ok) distribution.lastIndexNowAt = now;
-  if (sitemapOk && indexNow.ok) distribution.lastFullIndexAt = now;
+  if (indexNow.ok) distribution.lastFullIndexAt = now;
 
   const checklist = { ...(distribution.checklist ?? {}) };
-  if (sitemapPingAll.bing.ok) {
-    checklist["sitemap-ping"] = { status: "auto", doneAt: now };
+  if (sitemapOk) {
+    checklist["sitemap-ping"] = {
+      status: "auto",
+      doneAt: now,
+      notes: "IndexNow ile bildirildi",
+    };
   }
   if (indexNow.ok) {
     checklist.indexnow = { status: "auto", doneAt: now, notes: `${indexNow.submitted} URL` };
@@ -105,7 +102,7 @@ export async function runDistributionIndexPass(
     ok: errors.length === 0,
     indexNowKey: key,
     keyFileUrl,
-    sitemapPing: { bing: sitemapPingAll.bing, yandex: sitemapPingAll.yandex },
+    sitemapPing: { bing: { ok: sitemapOk }, yandex: { ok: sitemapOk } },
     indexNow,
     feedUrl,
     sitemapUrl,
@@ -122,5 +119,4 @@ export async function notifyPublishedUrl(
   const distribution = getSiteDistribution(settings);
   const key = ensureIndexNowKey(distribution);
   await submitIndexNowUrls(key, [absolutePageUrl]);
-  await pingAllSitemaps();
 }
