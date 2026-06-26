@@ -1,6 +1,7 @@
 import type { ShopLocale } from "@/lib/i18n/locale";
 import type { MirrorFooterData } from "@/lib/mirror-footer-overlay";
 import { getSiteSettingsUncached } from "@/lib/site-settings-load";
+import { detectSocialLinks } from "@/lib/social-links";
 import {
   DEFAULT_FOOTER_BOTTOM_LINKS,
   DEFAULT_STORE_FOOTER,
@@ -46,5 +47,6 @@ export async function loadMirrorFooterDataUncached(
     columns: allCols.map((col) => colToMirror(col, locale)),
     bottomLinks,
     paymentIcons: config.paymentIcons ?? [...PAYMENT_ICON_IDS],
+    socialLinks: detectSocialLinks(settings.seo?.organizationSameAs),
   };
 }

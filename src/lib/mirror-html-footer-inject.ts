@@ -1,4 +1,5 @@
 import type { MirrorFooterData } from "@/lib/mirror-footer-overlay";
+import { socialLinksRowHtml } from "@/lib/social-links";
 
 function escHtml(s: string) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
@@ -78,6 +79,14 @@ export function injectFooterIntoMirrorHtml(html: string, footer: MirrorFooterDat
     out = out.replace(
       /(<ul class="footer-quick-links[^"]*"[^>]*>)[\s\S]*?(<\/ul>)/i,
       `$1${items}$2`,
+    );
+  }
+
+  if (footer.socialLinks?.length) {
+    const row = socialLinksRowHtml(footer.socialLinks);
+    out = out.replace(
+      /(<div class="footer--social-links"[^>]*>)[\s\S]*?(<\/div>)/i,
+      `$1${row}$2`,
     );
   }
 

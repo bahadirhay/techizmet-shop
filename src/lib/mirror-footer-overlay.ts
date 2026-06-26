@@ -1,5 +1,8 @@
 /** Mirror iframe — admin footer ayarları */
 
+import type { SocialLink } from "@/lib/social-links";
+import { socialLinksRowHtml } from "@/lib/social-links";
+
 export type MirrorFooterColumn = {
   title: string;
   links: { href: string; label: string }[];
@@ -12,6 +15,8 @@ export type MirrorFooterData = {
   bottomLinks?: { href: string; label: string }[];
   /** Undefined veya boş = hepsi görünür */
   paymentIcons?: string[];
+  /** Resmi sosyal/profil bağlantıları (sameAs ile aynı kaynak) */
+  socialLinks?: SocialLink[];
 };
 
 function footerLinkHtml(href: string, label: string): string {
@@ -71,6 +76,13 @@ export function applyMirrorFooter(doc: Document, footer: MirrorFooterData) {
             `<li><a href="${l.href.replace(/"/g, "&quot;")}" class="footer-quick-links-link text-small">${l.label.replace(/</g, "&lt;")}</a></li>`,
         )
         .join("");
+    });
+  }
+
+  if (footer.socialLinks?.length) {
+    const html = socialLinksRowHtml(footer.socialLinks);
+    doc.querySelectorAll(".footer--social-links").forEach((el) => {
+      el.innerHTML = html;
     });
   }
 
