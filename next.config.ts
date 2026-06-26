@@ -72,6 +72,15 @@ const nextConfig: NextConfig = {
     const prebuiltHtmlNoStore = [
       { key: "Cache-Control", value: "private, no-store, max-age=0, must-revalidate" },
     ] as const;
+    /**
+     * SEO tarama dosyaları — dinamik route handler'ları varsayılan no-store
+     * veriyor; Next 16 ayrıca s-maxage'i strip ediyor. Config seviyesinde set
+     * edilen Cache-Control strip edilmez ve Vercel CDN edge'de cache'ler.
+     * Böylece mobil Lighthouse robots.txt'i hızlı/zaman aşımısız indirebilir.
+     */
+    const seoCrawlCache = [
+      { key: "Cache-Control", value: "public, max-age=0, s-maxage=86400, stale-while-revalidate=604800" },
+    ] as const;
     const securityHeaders = [
       { key: "X-Content-Type-Options", value: "nosniff" },
       { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
@@ -90,6 +99,9 @@ const nextConfig: NextConfig = {
       value: adminContentSecurityPolicy(),
     } as const;
     return [
+      { source: "/robots.txt", headers: [...seoCrawlCache] },
+      { source: "/sitemap.xml", headers: [...seoCrawlCache] },
+      { source: "/llms.txt", headers: [...seoCrawlCache] },
       { source: "/admin/:path*", headers: [...noStore, adminCsp, ...securityHeaders] },
       {
         source: "/((?!admin|api).*)",

@@ -25,10 +25,8 @@ export async function GET() {
     body = serializeRobots(buildStoreRobots(settings, site.name));
   }
 
+  // Cache-Control next.config headers() ile veriliyor (s-maxage strip edilmesin).
   return new Response(body, {
-    headers: {
-      "Content-Type": "text/plain; charset=utf-8",
-      "Cache-Control": "public, max-age=0, s-maxage=86400, stale-while-revalidate=604800",
-    },
+    headers: { "Content-Type": "text/plain; charset=utf-8" },
   });
 }

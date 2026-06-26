@@ -11,10 +11,8 @@ export async function GET() {
   const settings = await getSiteSettings(site.id);
   const body = await buildLlmsTxt(site.id, settings, site.name);
 
+  // Cache-Control next.config headers() ile veriliyor (s-maxage strip edilmesin).
   return new NextResponse(body, {
-    headers: {
-      "Content-Type": "text/markdown; charset=utf-8",
-      "Cache-Control": "public, max-age=900, s-maxage=900",
-    },
+    headers: { "Content-Type": "text/markdown; charset=utf-8" },
   });
 }
