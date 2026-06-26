@@ -1,6 +1,14 @@
 @import "tailwindcss";
 @import "./mirror-shell.css";
 
+/* Tailwind v4 tüm projeyi tarar; UI olmayan kaynaklarda (npm script adları,
+   script log etiketleri, prisma) `migrate:x`, `seo:distribution`, [vercel:next-build]
+   gibi token'lar yanlışlıkla "sınıf" sanılıp boş CSS kuralları üretiliyordu.
+   Bu dizinlerde gerçek arayüz sınıfı yok; taramadan çıkarmak tasarımı etkilemez. */
+@source not "../../scripts";
+@source not "../../package.json";
+@source not "../../prisma";
+
 :root {
   --background: #faf9f7;
   --foreground: #1a1a1a;

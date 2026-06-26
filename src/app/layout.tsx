@@ -22,7 +22,7 @@ import { getWhatsAppConfig } from "@/lib/whatsapp-settings";
 import "./globals.css";
 
 const poppins = Poppins({
-  subsets: ["latin"],
+  subsets: ["latin", "latin-ext"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-poppins",
   display: "swap",

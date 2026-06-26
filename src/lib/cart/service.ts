@@ -837,7 +837,7 @@ export async function createOrderFromCart(params: {
         billingAddress: params.customer.billingAddress ?? params.customer.address,
       });
     } catch (e) {
-      console.error("[counterparty:auto]", e);
+      console.error("[counterparty.auto]", e);
     }
   }
 
@@ -848,7 +848,7 @@ export async function createOrderFromCart(params: {
       );
       await createOpenAccountFinanceInvoice(params.siteId, order.id);
     } catch (e) {
-      console.error("[finance:open-account-invoice]", e);
+      console.error("[finance.open-account-invoice]", e);
     }
   }
 
