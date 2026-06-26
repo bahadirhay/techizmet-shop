@@ -156,6 +156,15 @@ export type SiteSettings = {
     webShippingCostMinor?: number;
     /** Sipariş başı paketleme / malzeme gideri (kuruş) */
     packagingCostMinor?: number;
+    /** Vergi / beyanname yapılandırması (şahıs şirketi) */
+    tax?: {
+      /** Gelir vergisi dilimleri — artan oranlı tarife (GVK 103) */
+      incomeBrackets?: { upTo: number | null; rate: number }[];
+      /** Beyanname başına damga vergisi (TL) */
+      stampDuty?: { kdv?: number; muhtasar?: number; gecici?: number; yillikGelir?: number };
+      /** Muhtasar dönemi: aylık (12) veya 3 aylık (4) */
+      muhtasarPeriod?: "monthly" | "quarterly";
+    };
   };
   payment?: {
     paytr?: { merchantId?: string; merchantKey?: string; merchantSalt?: string; testMode?: boolean };

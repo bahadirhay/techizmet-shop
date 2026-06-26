@@ -23,6 +23,7 @@ const REQUIRED_MARKERS = [
   "AssistantConversation: 'AssistantConversation'",
   "AssistantMessage: 'AssistantMessage'",
   "StoreProductReview: 'StoreProductReview'",
+  "TaxObligation: 'TaxObligation'",
 ];
 
 function clientLooksCurrent() {

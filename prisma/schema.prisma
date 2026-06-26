@@ -60,6 +60,7 @@ model StoreSite {
   financeInvoiceApprovalLogs FinanceInvoiceApprovalLog[]
   financePostingTemplates FinancePostingTemplate[]
   financeInvoicePostJobs   FinanceInvoicePostJob[]
+  taxObligations           TaxObligation[]
   streetFoodCampaigns      StreetFoodCampaign[]
   streetFoodContributions  StreetFoodContribution[]
   streetFoodDonations      StreetFoodDonation[]
@@ -1360,6 +1361,44 @@ model FinanceInvoicePostJob {
   @@index([siteId, status, nextRetryAt])
   @@index([siteId, invoiceId])
   @@map("finance_invoice_post_job")
+  @@schema("shop")
+}
+
+model TaxObligation {
+  id              String   @id @default(cuid())
+  siteId          String
+  site            StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  year            Int
+  /** kdv | muhtasar | gecici | yillik_gelir */
+  type            String
+  /** Tekil dönem anahtarı — idempotent üretim için: ör. kdv-2026-01 */
+  periodKey       String
+  periodLabel     String
+  periodStart     DateTime
+  periodEnd       DateTime
+  dueDate         DateTime
+  /** bekliyor | beyan_edildi | odendi */
+  status          String   @default("bekliyor")
+  /** Matrah (kuruş) — gelir/geçici vergi için */
+  baseMinor       Int      @default(0)
+  /** Hesaplanan vergi (kuruş) */
+  taxMinor        Int      @default(0)
+  /** Damga vergisi (kuruş) */
+  stampDutyMinor  Int      @default(0)
+  /** Ödenen toplam (kuruş) */
+  paidMinor       Int      @default(0)
+  /** Hesaplama girdileri anlık görüntüsü (JSON) */
+  calcJson        String?
+  notes           String?
+  declaredAt      DateTime?
+  paidAt          DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([siteId, periodKey])
+  @@index([siteId, year])
+  @@index([siteId, status, dueDate])
+  @@map("tax_obligation")
   @@schema("shop")
 }
 

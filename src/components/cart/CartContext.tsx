@@ -139,6 +139,18 @@ export function CartProvider({
     }
   }, []);
 
+  const openCart = useCallback(() => setIsOpen(true), []);
+  const closeCart = useCallback(() => setIsOpen(false), []);
+
+  useEffect(() => {
+    (window as unknown as Record<string, unknown>).__knOpenCart = openCart;
+    (window as unknown as Record<string, unknown>).__knRefreshCart = refresh;
+    return () => {
+      delete (window as unknown as Record<string, unknown>).__knOpenCart;
+      delete (window as unknown as Record<string, unknown>).__knRefreshCart;
+    };
+  }, [openCart, refresh]);
+
   const value = useMemo(
     () => ({
       cart,
@@ -149,11 +161,11 @@ export function CartProvider({
       removeItem,
       applyCoupon,
       removeCoupon,
-      openCart: () => setIsOpen(true),
-      closeCart: () => setIsOpen(false),
+      openCart,
+      closeCart,
       isOpen,
     }),
-    [cart, loading, refresh, addItem, setQty, removeItem, applyCoupon, removeCoupon, isOpen],
+    [cart, loading, refresh, addItem, setQty, removeItem, applyCoupon, removeCoupon, openCart, closeCart, isOpen],
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

@@ -1,0 +1,49 @@
+import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { BeyannameManager } from "@/components/admin/BeyannameManager";
+import { getTaxConfig, type TaxObligationType } from "@/lib/finance/tax";
+import { prisma } from "@/lib/prisma";
+import { parseSiteSettings } from "@/lib/site-settings";
+import { requireStaffPage } from "@/lib/staff-auth";
+
+export const dynamic = "force-dynamic";
+
+export default async function FinanceBeyannamePage() {
+  const auth = await requireStaffPage();
+  const year = new Date().getUTCFullYear();
+
+  const [site, obligations] = await Promise.all([
+    prisma.storeSite.findUnique({ where: { id: auth.siteId } }),
+    prisma.taxObligation.findMany({
+      where: { siteId: auth.siteId, year },
+      orderBy: { dueDate: "asc" },
+    }),
+  ]);
+
+  const settings = parseSiteSettings(site?.settingsJson ?? null);
+  const config = getTaxConfig(settings);
+
+  // Date alanlarını client'a JSON güvenli (ISO) geçir
+  const initialObligations = obligations.map((o) => ({
+    ...o,
+    type: o.type as TaxObligationType,
+    status: o.status as "bekliyor" | "beyan_edildi" | "odendi",
+    periodStart: o.periodStart.toISOString(),
+    periodEnd: o.periodEnd.toISOString(),
+    dueDate: o.dueDate.toISOString(),
+    declaredAt: o.declaredAt ? o.declaredAt.toISOString() : null,
+    paidAt: o.paidAt ? o.paidAt.toISOString() : null,
+    createdAt: o.createdAt.toISOString(),
+    updatedAt: o.updatedAt.toISOString(),
+  }));
+
+  return (
+    <div>
+      <AdminPageHeader
+        breadcrumb={[{ label: "Ön muhasebe", href: "/admin/finance" }, { label: "Beyanname Takibi" }]}
+        title="Beyanname & Vergi Takibi"
+        description="Şahıs şirketi vergi yükümlülükleri: KDV, muhtasar, geçici vergi ve yıllık gelir vergisi beyannamelerini son tarih, tutar ve durumlarıyla takip edin. Gelir vergisi dilimlerine göre hesaplama yapın."
+      />
+      <BeyannameManager initialYear={year} initialObligations={initialObligations} initialConfig={config} />
+    </div>
+  );
+}
