@@ -5,6 +5,7 @@ import { useState } from "react";
 import { AdminField, btnPrimary, inputClass } from "@/components/admin/AdminForm";
 import { ImageUploadField } from "@/components/admin/ImageUploadField";
 import { SiteSeoAuditPanel } from "@/components/admin/SiteSeoAuditPanel";
+import { extractUrls } from "@/lib/social-links";
 
 export function StoreSeoSettingsForm({
   initial,
@@ -52,9 +53,7 @@ export function StoreSeoSettingsForm({
     const { staticPages: _ignored, ...seoFields } = seo as typeof seo & {
       staticPages?: Record<string, unknown>;
     };
-    seoFields.organizationSameAs = seoFields.organizationSameAs
-      .map((u) => u.trim())
-      .filter((u) => /^https?:\/\//i.test(u));
+    seoFields.organizationSameAs = extractUrls(seoFields.organizationSameAs);
     const res = await fetch("/api/admin/settings/seo", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },

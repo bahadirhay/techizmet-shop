@@ -5,6 +5,7 @@ import { getGoogleSwgSettings } from "@/lib/seo/google-swg-settings";
 import { prisma } from "@/lib/prisma";
 import { getDefaultSite } from "@/lib/site";
 import { getPaytrConfig } from "@/lib/payments/paytr";
+import { extractUrls } from "@/lib/social-links";
 import {
   DEFAULT_STORE_FOOTER,
   getStoreFooterConfig,
@@ -376,9 +377,7 @@ export function getSiteSeo(settings: SiteSettings, siteName: string) {
     bingVerification: s.bingVerification?.trim() || "",
     pinterestDomainVerify: s.pinterestDomainVerify?.trim() || "",
     organizationName: s.organizationName?.trim() || "",
-    organizationSameAs: Array.isArray(s.organizationSameAs)
-      ? s.organizationSameAs.map((u) => u.trim()).filter((u) => /^https?:\/\//i.test(u))
-      : [],
+    organizationSameAs: extractUrls(s.organizationSameAs),
     googleAnalyticsId: s.googleAnalyticsId?.trim() || "",
     facebookPixelId: s.facebookPixelId?.trim() || "",
     robotsIndex: s.robotsIndex !== false,

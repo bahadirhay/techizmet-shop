@@ -44,16 +44,33 @@ function hostOf(url: string): string {
   }
 }
 
+/**
+ * Satırlardan http(s) URL'lerini ayıklar. "Instagram: https://..." gibi
+ * etiketli girişleri de tolere eder; sondaki noktalama temizlenir.
+ */
+export function extractUrls(lines: string[] | null | undefined): string[] {
+  if (!Array.isArray(lines)) return [];
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of lines) {
+    const text = (raw ?? "").trim();
+    if (!text) continue;
+    const match = text.match(/https?:\/\/[^\s]+/i);
+    if (!match) continue;
+    const url = match[0].replace(/[)\]>,.;'"]+$/, "");
+    if (!/^https?:\/\//i.test(url)) continue;
+    const key = url.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(url);
+  }
+  return out;
+}
+
 /** URL listesinden algılanmış, tekrarsız sosyal bağlantılar üretir. */
 export function detectSocialLinks(urls: string[] | null | undefined): SocialLink[] {
-  if (!Array.isArray(urls)) return [];
   const out: SocialLink[] = [];
-  const seen = new Set<string>();
-  for (const raw of urls) {
-    const url = (raw ?? "").trim();
-    if (!/^https?:\/\//i.test(url)) continue;
-    if (seen.has(url.toLowerCase())) continue;
-    seen.add(url.toLowerCase());
+  for (const url of extractUrls(urls)) {
     const host = hostOf(url);
     const match = MATCHERS.find((m) => m.test.test(host));
     out.push({
