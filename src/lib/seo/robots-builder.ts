@@ -28,6 +28,34 @@ const AI_SEARCH_ALLOW = [
 /** Eğitim amaçlı tarama — opt-out (llms.txt bunu geçersiz kılmaz) */
 const AI_TRAINING_DISALLOW = ["/"];
 
+function toArray(value: string | string[] | undefined): string[] {
+  if (!value) return [];
+  return Array.isArray(value) ? value : [value];
+}
+
+/** MetadataRoute.Robots → robots.txt metni (Next'in çıktısıyla aynı biçim) */
+export function serializeRobots(robots: MetadataRoute.Robots): string {
+  const rules = Array.isArray(robots.rules) ? robots.rules : robots.rules ? [robots.rules] : [];
+  const blocks: string[] = [];
+
+  for (const rule of rules) {
+    const lines: string[] = [];
+    const agents = toArray(rule.userAgent);
+    for (const agent of agents.length ? agents : ["*"]) lines.push(`User-Agent: ${agent}`);
+    for (const path of toArray(rule.allow)) lines.push(`Allow: ${path}`);
+    for (const path of toArray(rule.disallow)) lines.push(`Disallow: ${path}`);
+    if (typeof rule.crawlDelay === "number") lines.push(`Crawl-delay: ${rule.crawlDelay}`);
+    blocks.push(lines.join("\n"));
+  }
+
+  const tail: string[] = [];
+  if (robots.host) tail.push(`Host: ${robots.host}`);
+  for (const sitemap of toArray(robots.sitemap)) tail.push(`Sitemap: ${sitemap}`);
+  if (tail.length) blocks.push(tail.join("\n"));
+
+  return `${blocks.join("\n\n")}\n`;
+}
+
 export function buildStoreRobots(settings: SiteSettings, siteName: string): MetadataRoute.Robots {
   const seo = getSiteSeo(settings, siteName);
   const sitemap = `${getPublicSiteUrl()}/sitemap.xml`;
