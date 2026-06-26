@@ -558,10 +558,40 @@ model StoreProduct {
   bundleComponents   StoreBundleComponent[] @relation("BundleItems")
   bundleMemberships  StoreBundleComponent[] @relation("BundleComponentOf")
   socialContentDrafts SocialContentDraft[]
+  reviews            StoreProductReview[]
 
   @@unique([siteId, slug])
   @@index([siteId, sku])
   @@map("product")
+  @@schema("shop")
+}
+
+/// Ürün yorumları — müşteri gönderir, admin onaylar/düzenler/manuel ekler
+model StoreProductReview {
+  id                 String   @id @default(cuid())
+  siteId             String
+  productId          String
+  product            StoreProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  authorName         String
+  authorEmail        String?
+  /** 1–5 yıldız */
+  rating             Int
+  title              String?
+  body               String
+  /** pending | approved | rejected */
+  status             String   @default("pending")
+  /** customer | admin */
+  source             String   @default("customer")
+  isVerifiedPurchase Boolean  @default(false)
+  /** Spam kontrolü için hash'lenmiş IP */
+  ipHash             String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  approvedAt         DateTime?
+
+  @@index([siteId, status, createdAt])
+  @@index([productId, status])
+  @@map("product_review")
   @@schema("shop")
 }
 

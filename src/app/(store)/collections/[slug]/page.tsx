@@ -4,12 +4,15 @@ import { notFound } from "next/navigation";
 import { MirrorCollectionFrame } from "@/components/store/MirrorCollectionFrame";
 import { JsonLdScript } from "@/components/store/JsonLdScript";
 import { ProductGridBlock } from "@/components/store/ProductGridBlock";
+import { CollectionSeoContent } from "@/components/store/CollectionSeoContent";
 import { getStoreLocale } from "@/lib/i18n/server";
 import {
   parseCollectionFilterParams,
 } from "@/lib/collection-filter-facets";
 import { prisma } from "@/lib/prisma";
 import { loadCollectionSeo } from "@/lib/seo/collection-seo";
+import { loadCollectionSeoContent } from "@/lib/seo/collection-seo-content";
+import { findLandingIntentBySlug } from "@/lib/seo/search-intent";
 import { buildCollectionPageJsonLd } from "@/lib/seo/collection-page-json-ld";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { buildSiteMetadata } from "@/lib/site-metadata";
@@ -58,6 +61,36 @@ export default async function CollectionPage({
 
   const jsonLdNode = jsonLd ? <JsonLdScript data={jsonLd} /> : null;
 
+  // Head terimler için adanmış, içerik-öncelikli (tamamen taranabilir) landing sayfaları
+  const landingIntent = findLandingIntentBySlug(slug);
+  if (landingIntent) {
+    const canonicalPath = `/collections/${slug}`;
+    const content = await loadCollectionSeoContent(canonicalPath, { includeProducts: false });
+    return (
+      <>
+        {jsonLdNode}
+        <div className="kn-section kn-landing">
+          {content ? (
+            <CollectionSeoContent
+              heading={content.heading}
+              intro={content.intro}
+              criteria={content.criteria}
+              faqs={content.faqs}
+              relatedLinks={content.relatedLinks}
+            />
+          ) : (
+            <h1 className="kn-section__title">{landingIntent.h1 ?? landingIntent.query}</h1>
+          )}
+          <h2 className="kn-seo-content__subtitle">Ürünler</h2>
+          <ProductGridBlock limit={48} />
+          <p className="mt-8 text-center">
+            <Link href="/collections/all">← Tüm ürünler</Link>
+          </p>
+        </div>
+      </>
+    );
+  }
+
   if (categorySlug?.trim()) {
     const cat = await prisma.storeCategory.findFirst({
       where: { siteId: site.id, slug: categorySlug.trim(), active: true },
@@ -96,10 +129,24 @@ export default async function CollectionPage({
   }
 
   if (homepageMode === "mirror" && slug === "all") {
+    const content =
+      page === 1
+        ? await loadCollectionSeoContent("/collections/all", { includeProducts: true })
+        : null;
     return (
       <>
         {jsonLdNode}
         <MirrorCollectionFrame slug="all" locale={locale} page={page} activeFilters={activeFilters} />
+        {content ? (
+          <CollectionSeoContent
+            heading={content.heading}
+            intro={content.intro}
+            criteria={content.criteria}
+            products={content.products}
+            faqs={content.faqs}
+            relatedLinks={content.relatedLinks}
+          />
+        ) : null}
       </>
     );
   }

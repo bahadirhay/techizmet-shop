@@ -88,10 +88,16 @@ export async function scanSearchIntents(siteId: string): Promise<{
   for (const intent of intents) {
     const checks: SearchIntentCheck[] = [];
     const applied = intentMetaById[intent.id];
+    // collection-kind hedefler kendi landing sayfasında intent.title/description'ı kullanır;
+    // staticAll yalnızca /collections/all için geçerlidir.
+    const sharedStatic = intent.landingKind === "collection" ? undefined : staticAll;
     const landingMetaTitle =
-      applied?.seoTitle?.trim() || staticAll?.seoTitle?.trim() || "";
+      applied?.seoTitle?.trim() || sharedStatic?.seoTitle?.trim() || intent.title?.trim() || "";
     const landingMetaDesc =
-      applied?.seoDescription?.trim() || staticAll?.seoDescription?.trim() || "";
+      applied?.seoDescription?.trim() ||
+      sharedStatic?.seoDescription?.trim() ||
+      intent.description?.trim() ||
+      "";
     const queryCoverage = queryCoverageInMeta(
       intent.query,
       landingMetaTitle,

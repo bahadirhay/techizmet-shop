@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { MirrorProductFrame } from "@/components/store/MirrorProductFrame";
 import { JsonLdScript } from "@/components/store/JsonLdScript";
 import { ProductSeoShell } from "@/components/store/ProductSeoShell";
+import { ProductReviews } from "@/components/store/ProductReviews";
 import { resolveMirrorProductTemplateSlug } from "@/lib/mirror-html-path";
 import { ProductPurchasePanel } from "@/components/store/ProductPurchasePanel";
 import { getStoreLocaleFromHeaders } from "@/lib/i18n/server";
@@ -67,6 +68,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           title={seoCtx.visibleTitle}
           breadcrumbs={breadcrumbs}
         />
+        <ProductReviews productId={seoCtx.product.id} productName={seoCtx.visibleTitle} />
       </>
     );
   }
@@ -181,6 +183,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           </div>
         </div>
       </div>
+      <ProductReviews productId={product.id} productName={displayTitle} />
     </>
   );
 }

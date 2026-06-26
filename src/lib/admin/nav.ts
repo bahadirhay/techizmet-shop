@@ -111,6 +111,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
       { href: "/admin/categories", label: "Kategoriler", perm: "store.products" },
       { href: "/admin/brands", label: "Markalar", perm: "store.products" },
       { href: "/admin/collections", label: "Koleksiyonlar", perm: "store.collections" },
+      { href: "/admin/reviews", label: "Ürün Yorumları", perm: "store.products" },
     ],
   },
   {
@@ -356,6 +357,7 @@ export const ADMIN_PAGE_TITLES: Record<string, string> = {
   "/admin/brands/new": "Yeni Marka",
   "/admin/collections": "Koleksiyonlar",
   "/admin/collections/new": "Yeni Koleksiyon",
+  "/admin/reviews": "Ürün Yorumları",
   "/admin/orders": "Siparişler",
   "/admin/campaigns": "Kampanyalar",
   "/admin/marketing/social": "Sosyal içerik stüdyosu",

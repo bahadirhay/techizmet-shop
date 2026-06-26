@@ -28,6 +28,9 @@ export type SearchIntentTarget = {
 };
 
 const LANDING_ALL = "/collections/all";
+/** Head terimler için adanmış landing sayfaları (kendi URL + H1 + içerik) */
+const LANDING_KOPEK_ODUL_MAMASI = "/collections/kopek-odul-mamasi";
+const LANDING_DOGAL_KOPEK_ODUL_MAMASI = "/collections/dogal-kopek-odul-mamasi";
 
 /** anatolianpaw.com — organik + AI arama hedefleri */
 export const DEFAULT_SEARCH_INTENTS: SearchIntentTarget[] = [
@@ -71,9 +74,9 @@ export const DEFAULT_SEARCH_INTENTS: SearchIntentTarget[] = [
     id: "dog-treat-food",
     query: "köpek ödül maması",
     priority: 2,
-    landingPath: LANDING_ALL,
-    landingKind: "staticPage",
-    staticPageKey: LANDING_ALL,
+    landingPath: LANDING_KOPEK_ODUL_MAMASI,
+    landingKind: "collection",
+    collectionSlug: "kopek-odul-mamasi",
     title: "Köpek Ödül Maması | Doğal ve Tahılsız | Anatolian Paw",
     description:
       "Köpek ödül maması çeşitleri — kurutulmuş organ etleri, çiğneme kemikleri ve eğitim ödülleri. Tahılsız, katkısız, Türkiye üretimi. Online sipariş, hızlı kargo ve güncel stok.",
@@ -100,6 +103,42 @@ export const DEFAULT_SEARCH_INTENTS: SearchIntentTarget[] = [
         question: "Hangi köpek ödül maması daha sağlıklı?",
         answer:
           "Tek proteinli, tahılsız ve katkısız kurutulmuş organ ödülleri (dana ciğer, akciğer gibi) içerik listesi kısa olan ürünler genelde daha sağlıklı kabul edilir.",
+      },
+    ],
+  },
+  {
+    id: "natural-dog-treat-food",
+    query: "doğal köpek ödül maması",
+    priority: 2,
+    landingPath: LANDING_DOGAL_KOPEK_ODUL_MAMASI,
+    landingKind: "collection",
+    collectionSlug: "dogal-kopek-odul-mamasi",
+    title: "Doğal Köpek Ödül Maması | Tahılsız & Katkısız | Anatolian Paw",
+    description:
+      "Doğal köpek ödül maması — kurutulmuş dana ciğer, akciğer ve organ etlerinden tahılsız, katkısız ödüller. Tek protein kaynağı, Türkiye üretimi; eğitim ve günlük ödül için ideal. Hızlı kargo, güncel stok.",
+    h1: "Doğal Köpek Ödül Maması",
+    productKeywords: ["doğal", "köpek", "ödül", "mama", "kurutulmuş", "tahılsız", "ciğer", "akciğer"],
+    suggestedBlogTitle: "Doğal Köpek Ödül Maması Rehberi: İçerik, Fayda ve Seçim",
+    faqs: [
+      {
+        question: "Doğal köpek ödül maması nedir?",
+        answer:
+          "Doğal köpek ödül maması; yapay renklendirici, tahıl ve koruyucu içermeyen, tek protein kaynaklı (dana ciğer, akciğer gibi) kurutulmuş veya minimal işlem görmüş ödül ürünleridir. Eğitim ve pozitif pekiştirmede kullanılır.",
+      },
+      {
+        question: "Doğal köpek ödül maması ile işlenmiş ödül arasındaki fark nedir?",
+        answer:
+          "Doğal ödüller kısa içerik listesine sahiptir ve katkı maddesi içermez; işlenmiş ödüllerde ise nişasta, şeker, renklendirici ve koruyucu bulunabilir. Doğal ödüller hassas sindirim için daha güvenli kabul edilir.",
+      },
+      {
+        question: "Doğal köpek ödül maması fiyatları ne kadar?",
+        answer:
+          "Anatolian Paw doğal ödülleri genelde 150–250 TL aralığındadır. Protein türü, gramaj ve kurutma yöntemine göre değişir; güncel fiyatlar ürün sayfalarında listelenir.",
+      },
+      {
+        question: "Hangi köpekler için uygundur?",
+        answer:
+          "Yetişkin ve uygun yaştaki yavru köpekler için kullanılabilir. Tek proteinli ve tahılsız olması, alerji ve hassasiyet riski düşük beslenme arayanlar için idealdir; özel diyette veterinere danışın.",
       },
     ],
   },
@@ -479,6 +518,20 @@ function intentPriority(intent: SearchIntentTarget): number {
 
 export function getSearchIntents(_settings?: SiteSettings): SearchIntentTarget[] {
   return DEFAULT_SEARCH_INTENTS;
+}
+
+/** Adanmış landing sayfası olan (collection-kind) hedeflerin slug'larını döner */
+export const LANDING_COLLECTION_SLUGS: string[] = DEFAULT_SEARCH_INTENTS.filter(
+  (i) => i.landingKind === "collection" && Boolean(i.collectionSlug),
+).map((i) => i.collectionSlug as string);
+
+/** /collections/<slug> için adanmış landing intent'ini bulur */
+export function findLandingIntentBySlug(slug: string): SearchIntentTarget | undefined {
+  const clean = slug.trim().toLowerCase();
+  if (!clean) return undefined;
+  return DEFAULT_SEARCH_INTENTS.find(
+    (i) => i.landingKind === "collection" && i.collectionSlug === clean,
+  );
 }
 
 export function findIntentsForPath(path: string): SearchIntentTarget[] {

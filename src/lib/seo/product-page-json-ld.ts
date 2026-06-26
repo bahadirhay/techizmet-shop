@@ -6,6 +6,7 @@ import {
   buildProductJsonLd,
 } from "@/lib/seo/json-ld";
 import { loadPublishedProductSeo } from "@/lib/seo/product-seo";
+import { getApprovedReviews, getReviewStats } from "@/lib/reviews/service";
 
 export async function buildProductPageJsonLd(slug: string) {
   const ctx = await loadPublishedProductSeo(slug);
@@ -25,6 +26,12 @@ export async function buildProductPageJsonLd(slug: string) {
   const productPath = `/products/${product.slug}`;
   const breadcrumbs = buildProductBreadcrumbItems(product);
 
+  // Yıldız/zengin sonuç yalnızca gerçek onaylı yorumlardan
+  const [stats, reviews] = await Promise.all([
+    getReviewStats(product.id),
+    getApprovedReviews(product.id, 10),
+  ]);
+
   return [
     buildProductJsonLd({
       name: visibleTitle,
@@ -38,6 +45,15 @@ export async function buildProductPageJsonLd(slug: string) {
       inStock,
       productPath,
       siteName: site.name,
+      aggregateRating:
+        stats.count > 0 ? { ratingValue: stats.average, reviewCount: stats.count } : null,
+      reviews: reviews.map((r) => ({
+        author: r.authorName,
+        rating: r.rating,
+        body: r.body,
+        title: r.title,
+        datePublished: r.createdAt,
+      })),
     }),
     buildBreadcrumbListJsonLd(breadcrumbs),
   ];

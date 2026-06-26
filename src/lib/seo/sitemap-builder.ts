@@ -3,6 +3,7 @@ import "server-only";
 import { MIRROR_CONTENT_PAGE_SLUGS } from "@/lib/mirror-vitrin-pages";
 import type { MetadataRoute } from "next";
 import { getPublicSiteUrl } from "@/lib/seo/site-url";
+import { LANDING_COLLECTION_SLUGS } from "@/lib/seo/search-intent";
 import { prisma } from "@/lib/prisma";
 
 export async function buildStoreSitemapEntries(siteId: string): Promise<MetadataRoute.Sitemap> {
@@ -36,6 +37,12 @@ export async function buildStoreSitemapEntries(siteId: string): Promise<Metadata
     { url: root, lastModified: now, changeFrequency: "daily", priority: 1 },
     { url: `${root}/collections`, lastModified: now, changeFrequency: "weekly", priority: 0.9 },
     { url: `${root}/collections/all`, lastModified: now, changeFrequency: "daily", priority: 0.9 },
+    ...LANDING_COLLECTION_SLUGS.map((slug) => ({
+      url: `${root}/collections/${slug}`,
+      lastModified: now,
+      changeFrequency: "weekly" as const,
+      priority: 0.9,
+    })),
   ];
 
   if (blogPosts.length) {

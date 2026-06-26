@@ -217,6 +217,8 @@ export type SiteSettings = {
     pinterestDomainVerify?: string;
     /** schema.org Organization adı */
     organizationName?: string;
+    /** schema.org Organization sameAs — resmi sosyal/profil URL'leri (varlık otoritesi, GEO) */
+    organizationSameAs?: string[];
     googleAnalyticsId?: string;
     facebookPixelId?: string;
     robotsIndex?: boolean;
@@ -374,6 +376,9 @@ export function getSiteSeo(settings: SiteSettings, siteName: string) {
     bingVerification: s.bingVerification?.trim() || "",
     pinterestDomainVerify: s.pinterestDomainVerify?.trim() || "",
     organizationName: s.organizationName?.trim() || "",
+    organizationSameAs: Array.isArray(s.organizationSameAs)
+      ? s.organizationSameAs.map((u) => u.trim()).filter((u) => /^https?:\/\//i.test(u))
+      : [],
     googleAnalyticsId: s.googleAnalyticsId?.trim() || "",
     facebookPixelId: s.facebookPixelId?.trim() || "",
     robotsIndex: s.robotsIndex !== false,

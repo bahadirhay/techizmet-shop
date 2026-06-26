@@ -7,6 +7,7 @@ export function buildOrganizationJsonLd(settings: SiteSettings, siteName: string
   const seo = getSiteSeo(settings, siteName);
   const branding = getSiteBranding(settings);
   const logo = toAbsoluteMediaUrl(branding.logoUrl, origin);
+  const sameAs = (seo.organizationSameAs ?? []).filter((u) => /^https?:\/\//i.test(u));
 
   return {
     "@context": "https://schema.org",
@@ -15,6 +16,7 @@ export function buildOrganizationJsonLd(settings: SiteSettings, siteName: string
     url: origin,
     ...(logo ? { logo } : {}),
     ...(seo.metaDescription?.trim() ? { description: seo.metaDescription.trim() } : {}),
+    ...(sameAs.length ? { sameAs } : {}),
   };
 }
 

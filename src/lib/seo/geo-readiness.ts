@@ -6,6 +6,7 @@ import { llmsTxtUrl } from "@/lib/seo/llms-builder";
 import { getPublicSiteUrl } from "@/lib/seo/site-url";
 import type { SiteSettings } from "@/lib/site-settings";
 import { getSiteSeo } from "@/lib/site-settings";
+import { getApprovedReviewCountsBySite } from "@/lib/reviews/service";
 import { prisma } from "@/lib/prisma";
 
 export type GeoCheckStatus = "pass" | "warn" | "fail";
@@ -80,7 +81,7 @@ function auditProduct(row: {
   brand: { name: string } | null;
   category: { title: string } | null;
   images: { url: string }[];
-}): GeoProductRow {
+}, approvedReviewCount = 0): GeoProductRow {
   const issues: GeoProductIssue[] = [];
   const plain =
     row.description?.trim() ||
@@ -150,6 +151,15 @@ function auditProduct(row: {
     });
   }
 
+  if (approvedReviewCount <= 0) {
+    issues.push({
+      id: `${row.id}-reviews`,
+      code: "reviews_missing",
+      label: "Onaylı yorum yok (yıldız/AggregateRating çıkmaz)",
+      status: "warn",
+    });
+  }
+
   return {
     id: row.id,
     slug: row.slug,
@@ -160,7 +170,12 @@ function auditProduct(row: {
   };
 }
 
-function auditSite(settings: SiteSettings, siteName: string, publishedWithImage: number): GeoSiteCheck[] {
+function auditSite(
+  settings: SiteSettings,
+  siteName: string,
+  publishedWithImage: number,
+  reviews: { withReviews: number; published: number },
+): GeoSiteCheck[] {
   const seo = getSiteSeo(settings, siteName);
   const origin = getPublicSiteUrl();
   const checks: GeoSiteCheck[] = [];
@@ -179,6 +194,17 @@ function auditSite(settings: SiteSettings, siteName: string, publishedWithImage:
     detail: seo.metaDescription?.trim()
       ? "Ana site açıklaması tanımlı"
       : "Logo & SEO ayarlarında meta açıklama ekleyin",
+  });
+
+  const sameAsCount = (seo.organizationSameAs ?? []).length;
+  checks.push({
+    id: "organization_sameas",
+    label: "Marka varlık otoritesi (Organization sameAs)",
+    status: sameAsCount >= 2 ? "pass" : "warn",
+    detail:
+      sameAsCount > 0
+        ? `${sameAsCount} resmi profil bağlandı — Google/AI markanızı tek varlık olarak tanır`
+        : "Resmi sosyal/profil bağlantısı yok — Logo & SEO ayarlarında 'Resmi sosyal/profil bağlantıları' ekleyin (E-E-A-T)",
   });
 
   checks.push({
@@ -203,6 +229,24 @@ function auditSite(settings: SiteSettings, siteName: string, publishedWithImage:
       settings.googleMerchant?.enabled !== false
         ? "Feed aktif — Merchant Center'a bağlayın"
         : "Feed kapalı — Admin → Google Merchant",
+  });
+
+  const reviewHalf = Math.ceil(reviews.published * 0.5);
+  checks.push({
+    id: "product_reviews",
+    label: "Ürün yorumları & yıldız (AggregateRating)",
+    status:
+      reviews.published === 0
+        ? "warn"
+        : reviews.withReviews === 0
+          ? "fail"
+          : reviews.withReviews >= reviewHalf
+            ? "pass"
+            : "warn",
+    detail:
+      reviews.published === 0
+        ? "Yayında ürün yok"
+        : `${reviews.withReviews}/${reviews.published} üründe onaylı yorum var — yıldızlar Google CTR'sini artırır (Admin → Ürün Yorumları)`,
   });
 
   checks.push({
@@ -256,8 +300,12 @@ export async function buildGeoReadinessReport(siteId: string, settings: SiteSett
     },
   });
 
+  const reviewCounts = await getApprovedReviewCountsBySite(siteId);
   const published = rows.filter((r) => r.published);
-  const productRows = published.map((r) => auditProduct(r));
+  const productRows = published.map((r) => auditProduct(r, reviewCounts.get(r.id)?.count ?? 0));
+  const productsWithReviews = published.filter(
+    (r) => (reviewCounts.get(r.id)?.count ?? 0) > 0,
+  ).length;
   const averageScore =
     productRows.length > 0
       ? Math.round(productRows.reduce((sum, p) => sum + p.score, 0) / productRows.length)
@@ -266,7 +314,10 @@ export async function buildGeoReadinessReport(siteId: string, settings: SiteSett
   const needsWork = productRows.filter((p) => p.score < 80);
 
   const publishedWithImage = published.filter((p) => p.imageUrl || p.images.length).length;
-  const siteChecks = auditSite(settings, siteName, publishedWithImage);
+  const siteChecks = auditSite(settings, siteName, publishedWithImage, {
+    withReviews: productsWithReviews,
+    published: published.length,
+  });
   const origin = getPublicSiteUrl();
   const gmcToken = settings.googleMerchant?.feedToken?.trim();
   const merchantPath = gmcToken

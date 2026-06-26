@@ -6,6 +6,7 @@ import { getSiteBranding, getSiteSeo } from "@/lib/site-settings";
 import { withBrandAssetVersion } from "@/lib/branding-asset-url";
 import { ensureStoreTenant } from "@/lib/store-tenant";
 import { blogFeedPath } from "@/lib/seo/rss-feed";
+import { getSearchIntents } from "@/lib/seo/search-intent";
 
 function faviconMime(url: string): string {
   const path = url.split("?")[0]?.toLowerCase() ?? "";
@@ -24,8 +25,26 @@ export async function buildSiteMetadata(): Promise<Metadata> {
   const seo = getSiteSeo(settings, site.name);
   const branding = getSiteBranding(settings);
   const homeMeta = seo.staticPages?.["/"];
-  const pageTitle = homeMeta?.seoTitle?.trim() || seo.siteTitle;
-  const pageDescription = homeMeta?.seoDescription?.trim() || seo.metaDescription;
+
+  // Ana sayfa için özel SEO başlığı/açıklaması yoksa hedef aramalardan anahtar
+  // kelimeli varsayılan üret (marka-only başlık organik aramada zayıf kalır).
+  const topIntents = getSearchIntents(settings)
+    .slice()
+    .sort((a, b) => (a.priority ?? 100) - (b.priority ?? 100));
+  const keywordTitle = topIntents
+    .slice(0, 2)
+    .map((i) => i.h1 ?? i.query)
+    .join(" & ");
+  const defaultHomeTitle = keywordTitle
+    ? `${keywordTitle} | ${seo.siteTitle}`
+    : seo.siteTitle;
+
+  const pageTitle = homeMeta?.seoTitle?.trim() || defaultHomeTitle;
+  const pageDescription =
+    homeMeta?.seoDescription?.trim() ||
+    settings.seo?.metaDescription?.trim() ||
+    topIntents[0]?.description ||
+    seo.metaDescription;
   const ogImage = homeMeta?.imageUrl?.trim() || seo.ogImageUrl?.trim() || branding.logoUrl?.trim();
   const favicon = withBrandAssetVersion(branding.faviconUrl);
   const iconType = faviconMime(favicon);

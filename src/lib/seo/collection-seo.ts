@@ -3,7 +3,7 @@ import "server-only";
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { getDefaultSite } from "@/lib/site";
-import { findIntentForPath } from "@/lib/seo/search-intent";
+import { findIntentForPath, findLandingIntentBySlug } from "@/lib/seo/search-intent";
 import { getSiteBranding, getSiteSettings, getSiteSeo } from "@/lib/site-settings";
 
 export type CollectionSeoContext =
@@ -69,6 +69,22 @@ export const loadCollectionSeo = cache(
         breadcrumbLabel: cat.title,
         collectionName: cat.title,
         collectionDescription: cat.description,
+      };
+    }
+
+    const landingIntent = findLandingIntentBySlug(slug);
+    if (landingIntent) {
+      const canonicalPath = `/collections/${slug}`;
+      const staticMeta = seo.staticPages?.[canonicalPath];
+      return {
+        kind: "all",
+        metaTitle: staticMeta?.seoTitle?.trim() || landingIntent.title,
+        metaDescription: staticMeta?.seoDescription?.trim() || landingIntent.description,
+        imageUrl: staticMeta?.imageUrl?.trim() || defaultOg,
+        canonicalPath,
+        breadcrumbLabel: landingIntent.h1 ?? landingIntent.query,
+        collectionName: landingIntent.h1 ?? landingIntent.query,
+        collectionDescription: landingIntent.description,
       };
     }
 

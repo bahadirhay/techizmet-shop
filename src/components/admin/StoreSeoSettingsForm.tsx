@@ -23,6 +23,7 @@ export function StoreSeoSettingsForm({
       bingVerification: string;
       pinterestDomainVerify: string;
       organizationName: string;
+      organizationSameAs: string[];
       googleAnalyticsId: string;
       facebookPixelId: string;
       robotsIndex: boolean;
@@ -51,6 +52,9 @@ export function StoreSeoSettingsForm({
     const { staticPages: _ignored, ...seoFields } = seo as typeof seo & {
       staticPages?: Record<string, unknown>;
     };
+    seoFields.organizationSameAs = seoFields.organizationSameAs
+      .map((u) => u.trim())
+      .filter((u) => /^https?:\/\//i.test(u));
     const res = await fetch("/api/admin/settings/seo", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -184,6 +188,21 @@ export function StoreSeoSettingsForm({
             placeholder={siteName}
           />
         </AdminField>
+        <AdminField label="Resmi sosyal/profil bağlantıları (her satıra bir URL)">
+          <textarea
+            className={inputClass}
+            rows={4}
+            value={seo.organizationSameAs.join("\n")}
+            onChange={(e) =>
+              setSeo((s) => ({ ...s, organizationSameAs: e.target.value.split("\n") }))
+            }
+            placeholder={"https://www.instagram.com/markaniz\nhttps://www.facebook.com/markaniz\nhttps://www.youtube.com/@markaniz"}
+          />
+        </AdminField>
+        <p className="text-xs text-zinc-500">
+          Markanızın doğrulanmış sosyal medya/profil adresleri (schema.org <code>sameAs</code>). Google ve
+          yapay zekâ aramalarında markanızı tek bir varlık olarak tanır; otorite (E-E-A-T) sinyalini güçlendirir.
+        </p>
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"

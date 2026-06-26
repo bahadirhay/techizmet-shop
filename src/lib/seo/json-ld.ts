@@ -16,6 +16,14 @@ export function buildBreadcrumbListJsonLd(items: BreadcrumbItem[], siteOrigin?: 
   };
 }
 
+export type ProductReviewJsonLd = {
+  author: string;
+  rating: number;
+  body: string;
+  title?: string | null;
+  datePublished: string;
+};
+
 export type ProductJsonLdInput = {
   name: string;
   description?: string | null;
@@ -28,6 +36,9 @@ export type ProductJsonLdInput = {
   inStock: boolean;
   productPath: string;
   siteName: string;
+  /** Yalnızca gerçek, onaylı yorumlardan üretilmeli (uydurma puan = Google cezası) */
+  aggregateRating?: { ratingValue: number; reviewCount: number } | null;
+  reviews?: ProductReviewJsonLd[];
 };
 
 export function buildProductJsonLd(input: ProductJsonLdInput, siteOrigin?: string) {
@@ -60,6 +71,32 @@ export function buildProductJsonLd(input: ProductJsonLdInput, siteOrigin?: strin
       seller: { "@type": "Organization", name: input.siteName },
     },
   };
+
+  if (input.aggregateRating && input.aggregateRating.reviewCount > 0) {
+    schema.aggregateRating = {
+      "@type": "AggregateRating",
+      ratingValue: input.aggregateRating.ratingValue.toFixed(1),
+      reviewCount: input.aggregateRating.reviewCount,
+      bestRating: "5",
+      worstRating: "1",
+    };
+  }
+
+  if (input.reviews?.length) {
+    schema.review = input.reviews.slice(0, 20).map((r) => ({
+      "@type": "Review",
+      reviewRating: {
+        "@type": "Rating",
+        ratingValue: String(r.rating),
+        bestRating: "5",
+        worstRating: "1",
+      },
+      author: { "@type": "Person", name: r.author },
+      ...(r.title?.trim() ? { name: r.title.trim() } : {}),
+      reviewBody: r.body,
+      datePublished: r.datePublished.slice(0, 10),
+    }));
+  }
 
   return schema;
 }
