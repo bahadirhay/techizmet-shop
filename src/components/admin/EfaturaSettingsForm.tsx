@@ -3,7 +3,16 @@
 import { useState } from "react";
 import { AdminField, btnPrimary, inputClass } from "@/components/admin/AdminForm";
 
-type TestResult = { ok: boolean; message: string; debug?: { hasUsername: boolean; hasPasswordFromEnv: boolean; hasPasswordFromDb: boolean } };
+type TestResult = {
+  ok: boolean;
+  message: string;
+  debug?: {
+    hasUsername: boolean;
+    hasPasswordFromEnv: boolean;
+    hasPasswordFromDb: boolean;
+    hasPasswordFromForm: boolean;
+  };
+};
 
 type EfaturaFormState = {
   enabled: boolean;
@@ -32,7 +41,12 @@ export function EfaturaSettingsForm({ initial }: { initial: EfaturaFormState }) 
     setTesting(true);
     setTestResult(null);
     try {
-      const res = await fetch("/api/admin/settings/efatura/test", { method: "POST" });
+      const res = await fetch("/api/admin/settings/efatura/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // Formdaki şifreyi gönder — DB'ye kaydedilmemiş olsa bile test çalışır
+        body: JSON.stringify({ password: s.password || undefined }),
+      });
       const j = (await res.json()) as TestResult;
       setTestResult(j);
     } catch {
@@ -69,14 +83,17 @@ export function EfaturaSettingsForm({ initial }: { initial: EfaturaFormState }) 
     setBusy(false);
     if (res.ok && j.efatura) {
       setS({ ...s, ...j.efatura, password: "" });
-      setMsg("Kaydedildi");
+      setMsg("Kaydedildi ✓");
     } else {
       setMsg(j.error ?? "Kayıt başarısız");
     }
   }
 
+  const canTest = !testing && Boolean(s.username) && (Boolean(s.password) || s.hasPassword);
+
   return (
-    <div className="admin-card admin-card-pad max-w-2xl">
+    // form etiketi — browser "password not in form" uyarısını giderir
+    <form className="admin-card admin-card-pad max-w-2xl" onSubmit={(e) => e.preventDefault()}>
       <p className="text-sm text-zinc-600">
         GİB e-Arşiv portalı üzerinden ücretsiz e-Arşiv faturası kesilir. Kullanıcı kodu ve parola{" "}
         <a
@@ -101,6 +118,7 @@ export function EfaturaSettingsForm({ initial }: { initial: EfaturaFormState }) 
             value={s.sellerTitle}
             onChange={(e) => setS({ ...s, sellerTitle: e.target.value })}
             placeholder="Örn. Techizmet Shop Kozmetik Ltd. Şti."
+            autoComplete="organization"
           />
         </AdminField>
         <AdminField label="Satıcı VKN">
@@ -110,6 +128,7 @@ export function EfaturaSettingsForm({ initial }: { initial: EfaturaFormState }) 
             onChange={(e) => setS({ ...s, sellerTaxId: e.target.value.replace(/\D/g, "").slice(0, 11) })}
             placeholder="10 haneli VKN"
             inputMode="numeric"
+            autoComplete="off"
           />
         </AdminField>
         <AdminField label="Vergi dairesi">
@@ -118,6 +137,7 @@ export function EfaturaSettingsForm({ initial }: { initial: EfaturaFormState }) 
             value={s.sellerTaxOffice}
             onChange={(e) => setS({ ...s, sellerTaxOffice: e.target.value })}
             placeholder="Örn. Kadıköy"
+            autoComplete="off"
           />
         </AdminField>
       </div>
@@ -147,6 +167,7 @@ export function EfaturaSettingsForm({ initial }: { initial: EfaturaFormState }) 
             value={s.username}
             onChange={(e) => setS({ ...s, username: e.target.value })}
             placeholder="İVD kullanıcı kodu"
+            autoComplete="username"
           />
         </AdminField>
         <AdminField label="GİB parolası">
@@ -155,10 +176,13 @@ export function EfaturaSettingsForm({ initial }: { initial: EfaturaFormState }) 
             className={inputClass}
             value={s.password}
             onChange={(e) => setS({ ...s, password: e.target.value })}
-            placeholder={s.hasPassword ? "Kayıtlı — değiştirmek için yazın" : "Parola"}
+            placeholder={s.hasPassword ? "Kayıtlı — değiştirmek veya test etmek için yazın" : "Parola girin"}
+            autoComplete="current-password"
           />
           <p className="mt-1 text-xs text-zinc-500">
-            Üretimde parolayı <code>GIB_PASSWORD</code> ortam değişkeninde tutmanız önerilir.
+            {s.hasPassword
+              ? "Şifre kayıtlı. Test etmek veya değiştirmek için yeniden yazın."
+              : "İVD şifrenizi girin ve Kaydet'e tıklayın."}
           </p>
         </AdminField>
         <AdminField label="B2C varsayılan TCKN (VKN/TCKN yoksa)">
@@ -166,6 +190,7 @@ export function EfaturaSettingsForm({ initial }: { initial: EfaturaFormState }) 
             className={inputClass}
             value={s.defaultConsumerTaxId}
             onChange={(e) => setS({ ...s, defaultConsumerTaxId: e.target.value })}
+            autoComplete="off"
           />
         </AdminField>
         <AdminField
@@ -214,39 +239,52 @@ export function EfaturaSettingsForm({ initial }: { initial: EfaturaFormState }) 
       </div>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
-        <button type="button" className={btnPrimary} disabled={busy} onClick={() => void save()}>
-          Kaydet
+        <button type="submit" className={btnPrimary} disabled={busy} onClick={() => void save()}>
+          {busy ? "Kaydediliyor…" : "Kaydet"}
         </button>
         <button
           type="button"
           className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
-          disabled={testing || !s.username || (!s.password && !s.hasPassword)}
+          disabled={!canTest}
           onClick={() => void testConnection()}
+          title={!s.password && s.hasPassword ? "Test için şifrenizi tekrar yazın veya kayıtlı şifreyle test edin" : ""}
         >
           {testing ? "Test ediliyor…" : "GİB Bağlantısını Test Et"}
         </button>
       </div>
 
-      {msg ? <p className="mt-2 text-sm text-zinc-600">{msg}</p> : null}
+      {!s.password && s.hasPassword && (
+        <p className="mt-2 text-xs text-amber-600">
+          ⚠ Test için şifrenizi parola alanına yazın (DB&apos;deki şifreyle de otomatik test edilir).
+        </p>
+      )}
+
+      {msg ? (
+        <p className={`mt-2 text-sm ${msg.includes("✓") ? "text-emerald-700" : "text-zinc-600"}`}>{msg}</p>
+      ) : null}
 
       {testResult && (
         <div
-          className={`mt-3 rounded-lg border px-4 py-2.5 text-sm ${
+          className={`mt-3 rounded-lg border px-4 py-3 text-sm ${
             testResult.ok
               ? "border-emerald-200 bg-emerald-50 text-emerald-800"
               : "border-red-200 bg-red-50 text-red-800"
           }`}
         >
-          {testResult.ok ? "✓" : "✗"} {testResult.message}
+          <div className="font-medium">{testResult.ok ? "✓" : "✗"} {testResult.message}</div>
           {testResult.debug && (
-            <div className="mt-1 text-xs opacity-70">
-              Kullanıcı kodu: {testResult.debug.hasUsername ? "✓" : "✗ eksik"} ·
-              Şifre (DB): {testResult.debug.hasPasswordFromDb ? "✓" : "✗ eksik"} ·
-              Şifre (ENV): {testResult.debug.hasPasswordFromEnv ? "✓" : "✗ yok"}
+            <div className="mt-1.5 text-xs opacity-75 space-y-0.5">
+              <div>Kullanıcı kodu: {testResult.debug.hasUsername ? "✓ mevcut" : "✗ eksik — girin"}</div>
+              <div>Şifre (formdan): {testResult.debug.hasPasswordFromForm ? "✓" : "—"}</div>
+              <div>Şifre (DB): {testResult.debug.hasPasswordFromDb ? "✓ kayıtlı" : "✗ DB&apos;de yok — kaydedin"}</div>
+              <div>Şifre (ENV GIB_PASSWORD): {testResult.debug.hasPasswordFromEnv ? "✓" : "—"}</div>
+              {!testResult.debug.hasPasswordFromDb && !testResult.debug.hasPasswordFromEnv && !testResult.debug.hasPasswordFromForm && (
+                <div className="mt-1 font-medium">→ Parola alanını doldurup &quot;Kaydet&quot;e basın, ardından test edin.</div>
+              )}
             </div>
           )}
         </div>
       )}
-    </div>
+    </form>
   );
 }

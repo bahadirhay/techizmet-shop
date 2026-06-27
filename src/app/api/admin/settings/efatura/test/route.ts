@@ -5,16 +5,28 @@ import { parseSiteSettings } from "@/lib/site-settings";
 import { refreshGibSession } from "@/lib/efatura/gib-session";
 import { prisma } from "@/lib/prisma";
 
-export async function POST() {
+export async function POST(req: Request) {
   const auth = await requireStaffApi("store.integrations");
   if (auth instanceof NextResponse) return auth;
+
+  // Formdan doğrudan gelen şifre (henüz kaydedilmemiş olabilir)
+  let bodyPassword: string | undefined;
+  try {
+    const b = (await req.json()) as { password?: string };
+    bodyPassword = b.password?.trim() || undefined;
+  } catch { /* body yok */ }
 
   // Doğrudan Prisma'dan oku — cache'lenmiş settings'i atlıyoruz
   const site = await prisma.storeSite.findUnique({ where: { id: auth.siteId } });
   const settings = parseSiteSettings(site?.settingsJson ?? null);
   const config = parseEfaturaSettings(settings.efatura);
 
-  if (!config.username || !config.password) {
+  // Formdan gelen şifre DB/env'deki şifreyi override eder
+  const effectiveConfig = bodyPassword
+    ? { ...config, password: bodyPassword }
+    : config;
+
+  if (!effectiveConfig.username || !effectiveConfig.password) {
     return NextResponse.json(
       {
         ok: false,
@@ -23,6 +35,7 @@ export async function POST() {
           hasUsername: Boolean(config.username),
           hasPasswordFromEnv: Boolean(process.env.GIB_PASSWORD),
           hasPasswordFromDb: Boolean(settings.efatura?.password),
+          hasPasswordFromForm: Boolean(bodyPassword),
         },
       },
       { status: 400 },
@@ -30,7 +43,7 @@ export async function POST() {
   }
 
   try {
-    const session = await refreshGibSession(auth.siteId, config);
+    const session = await refreshGibSession(auth.siteId, effectiveConfig);
 
     type GibClient = {
       getUserData: (token: string) => Promise<Record<string, unknown>>;
