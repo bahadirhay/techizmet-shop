@@ -173,6 +173,8 @@ export type SiteSettings = {
       /** Muhtasar dönemi: aylık (12) veya 3 aylık (4) */
       muhtasarPeriod?: "monthly" | "quarterly";
     };
+    /** Google Sheets / harici entegrasyon için webhook token */
+    webhookToken?: string;
   };
   payment?: {
     paytr?: { merchantId?: string; merchantKey?: string; merchantSalt?: string; testMode?: boolean };

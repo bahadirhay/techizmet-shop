@@ -13,6 +13,7 @@ type Body = {
   incomeBrackets?: { upTo: number | null; rate: number }[];
   stampDuty?: { kdv?: number; muhtasar?: number; gecici?: number; yillikGelir?: number };
   muhtasarPeriod?: "monthly" | "quarterly";
+  webhookToken?: string;
 };
 
 function sanitizeBrackets(input: unknown): IncomeBracket[] | undefined {
@@ -50,6 +51,7 @@ export async function PATCH(req: Request) {
   const merged = mergeSiteSettings(current, {
     finance: {
       ...current.finance,
+      ...(body.webhookToken !== undefined ? { webhookToken: body.webhookToken.trim() || undefined } : {}),
       tax: {
         ...currentTax,
         ...(body.openingDate !== undefined ? { openingDate: body.openingDate || undefined } : {}),

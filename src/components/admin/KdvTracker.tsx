@@ -131,6 +131,8 @@ export function KdvTracker({
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [gibSyncing, setGibSyncing] = useState(false);
   const [gibMsg, setGibMsg] = useState<{ text: string; ok: boolean } | null>(null);
+  const [xlsUploading, setXlsUploading] = useState(false);
+  const [xlsMsg, setXlsMsg] = useState<{ text: string; ok: boolean } | null>(null);
 
   const loadYear = useCallback(async (y: number) => {
     setYear(y);
@@ -232,6 +234,31 @@ export function KdvTracker({
     setDeleteId(null);
   }
 
+  async function uploadExcel(file: File, direction: "outgoing" | "incoming") {
+    setXlsUploading(true);
+    setXlsMsg(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("direction", direction);
+      const r = await fetch("/api/admin/finance/invoices/excel-import", { method: "POST", body: fd });
+      const data = (await r.json()) as { message?: string; error?: string; created?: number };
+      if (!r.ok) {
+        setXlsMsg({ text: data.error ?? "Excel yüklenemedi.", ok: false });
+        return;
+      }
+      setXlsMsg({ text: data.message ?? "İçe aktarıldı.", ok: true });
+      if ((data.created ?? 0) > 0) {
+        const re = await fetch(`/api/admin/finance/invoices?year=${year}`);
+        const rd = (await re.json()) as { entries?: InvoiceEntryRow[] };
+        setEntries(rd.entries ?? []);
+      }
+    } finally {
+      setXlsUploading(false);
+      window.setTimeout(() => setXlsMsg(null), 7000);
+    }
+  }
+
   const years = [year - 1, year, year + 1];
 
   return (
@@ -282,7 +309,63 @@ export function KdvTracker({
             e-Arşiv gelen kutusundan otomatik içe aktar
           </p>
         </div>
+        {/* Excel import — kesilen faturalar (GİB Excel export) */}
+        <div className="flex flex-col justify-end">
+          <label className="cursor-pointer">
+            <span
+              className={`inline-block rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-1.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-100 ${xlsUploading ? "opacity-50" : ""}`}
+            >
+              {xlsUploading ? "Yükleniyor…" : "📊 GİB Excel Yükle (Kesilen)"}
+            </span>
+            <input
+              type="file"
+              accept=".xlsx,.xls"
+              className="hidden"
+              disabled={xlsUploading}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void uploadExcel(f, "outgoing");
+                e.target.value = "";
+              }}
+            />
+          </label>
+          <p className="mt-1 text-xs text-zinc-400">GİB e-Arşiv → Düzenlenen Faturalar → Excel</p>
+        </div>
+        {/* Excel import — gelen faturalar (gider) */}
+        <div className="flex flex-col justify-end">
+          <label className="cursor-pointer">
+            <span
+              className={`inline-block rounded-lg border border-orange-300 bg-orange-50 px-4 py-1.5 text-sm font-semibold text-orange-700 hover:bg-orange-100 ${xlsUploading ? "opacity-50" : ""}`}
+            >
+              {xlsUploading ? "Yükleniyor…" : "📊 GİB Excel Yükle (Gelen)"}
+            </span>
+            <input
+              type="file"
+              accept=".xlsx,.xls"
+              className="hidden"
+              disabled={xlsUploading}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void uploadExcel(f, "incoming");
+                e.target.value = "";
+              }}
+            />
+          </label>
+          <p className="mt-1 text-xs text-zinc-400">Gelen / gider faturalar için</p>
+        </div>
       </div>
+      {/* Excel bildirim mesajı */}
+      {xlsMsg && (
+        <div
+          className={`rounded-lg border px-4 py-2 text-sm ${
+            xlsMsg.ok
+              ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+              : "border-red-300 bg-red-50 text-red-800"
+          }`}
+        >
+          {xlsMsg.ok ? "✓ " : "✗ "}{xlsMsg.text}
+        </div>
+      )}
       {/* GİB bildirim mesajı */}
       {gibMsg && (
         <div

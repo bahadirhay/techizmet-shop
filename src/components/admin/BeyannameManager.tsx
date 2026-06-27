@@ -726,6 +726,7 @@ function CompanyProfileEditor({ config, onSaved }: { config: TaxConfig; onSaved:
   const [vkn, setVkn] = useState(config.vkn ?? "");
   const [vergiDairesi, setVergiDairesi] = useState(config.vergiDairesi ?? "");
   const [faaliyetKodu, setFaaliyetKodu] = useState(config.faaliyetKodu ?? "");
+  const [webhookToken, setWebhookToken] = useState("");
   const [saving, setSaving] = useState(false);
 
   async function save() {
@@ -734,7 +735,13 @@ function CompanyProfileEditor({ config, onSaved }: { config: TaxConfig; onSaved:
       const r = await fetch("/api/admin/finance/tax/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ openingDate: openingDate || undefined, vkn: vkn || undefined, vergiDairesi: vergiDairesi || undefined, faaliyetKodu: faaliyetKodu || undefined }),
+        body: JSON.stringify({
+          openingDate: openingDate || undefined,
+          vkn: vkn || undefined,
+          vergiDairesi: vergiDairesi || undefined,
+          faaliyetKodu: faaliyetKodu || undefined,
+          ...(webhookToken ? { webhookToken } : {}),
+        }),
       });
       const data = (await r.json()) as { config?: TaxConfig };
       if (data.config) onSaved(data.config);
@@ -788,6 +795,19 @@ function CompanyProfileEditor({ config, onSaved }: { config: TaxConfig; onSaved:
           <div>
             <label className="mb-1 block text-xs font-medium text-zinc-600">Faaliyet Kodu (isteğe bağlı)</label>
             <input type="text" className={inputClass} placeholder="NACE kodu" value={faaliyetKodu} onChange={(e) => setFaaliyetKodu(e.target.value)} />
+          </div>
+          <div className="md:col-span-2">
+            <label className="mb-1 block text-xs font-medium text-zinc-600">
+              Google Sheets Webhook Token{" "}
+              <span className="font-normal text-zinc-400">(yeni token girmek mevcut tokenı değiştirir)</span>
+            </label>
+            <input
+              type="text"
+              className={inputClass}
+              placeholder="Rastgele bir şifre yazın (ör: abc123xyz)"
+              value={webhookToken}
+              onChange={(e) => setWebhookToken(e.target.value)}
+            />
           </div>
           <div className="md:col-span-2 lg:col-span-4 flex gap-2 border-t border-zinc-100 pt-3">
             <button className={btnPrimary} onClick={() => void save()} disabled={saving}>
