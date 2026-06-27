@@ -16,7 +16,15 @@ export async function POST() {
 
   if (!config.username || !config.password) {
     return NextResponse.json(
-      { ok: false, message: "GİB bilgileri eksik. Kullanıcı kodu ve parola girilmeli." },
+      {
+        ok: false,
+        message: "GİB bilgileri eksik. Kullanıcı kodu ve parola girilmeli.",
+        debug: {
+          hasUsername: Boolean(config.username),
+          hasPasswordFromEnv: Boolean(process.env.GIB_PASSWORD),
+          hasPasswordFromDb: Boolean(settings.efatura?.password),
+        },
+      },
       { status: 400 },
     );
   }
