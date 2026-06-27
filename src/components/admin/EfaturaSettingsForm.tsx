@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { AdminField, btnPrimary, inputClass } from "@/components/admin/AdminForm";
 
-type TestResult = { ok: boolean; message: string };
+type TestResult = { ok: boolean; message: string; debug?: { hasUsername: boolean; hasPasswordFromEnv: boolean; hasPasswordFromDb: boolean } };
 
 type EfaturaFormState = {
   enabled: boolean;
@@ -238,6 +238,13 @@ export function EfaturaSettingsForm({ initial }: { initial: EfaturaFormState }) 
           }`}
         >
           {testResult.ok ? "✓" : "✗"} {testResult.message}
+          {testResult.debug && (
+            <div className="mt-1 text-xs opacity-70">
+              Kullanıcı kodu: {testResult.debug.hasUsername ? "✓" : "✗ eksik"} ·
+              Şifre (DB): {testResult.debug.hasPasswordFromDb ? "✓" : "✗ eksik"} ·
+              Şifre (ENV): {testResult.debug.hasPasswordFromEnv ? "✓" : "✗ yok"}
+            </div>
+          )}
         </div>
       )}
     </div>
