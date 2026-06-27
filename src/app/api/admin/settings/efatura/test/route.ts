@@ -1,13 +1,19 @@
 import { NextResponse } from "next/server";
 import { requireStaffApi } from "@/lib/staff-auth";
-import { getEfaturaConfig } from "@/lib/efatura/settings";
+import { parseEfaturaSettings } from "@/lib/efatura/settings";
+import { parseSiteSettings } from "@/lib/site-settings";
 import { refreshGibSession } from "@/lib/efatura/gib-session";
+import { prisma } from "@/lib/prisma";
 
 export async function POST() {
   const auth = await requireStaffApi("store.integrations");
   if (auth instanceof NextResponse) return auth;
 
-  const config = await getEfaturaConfig(auth.siteId);
+  // Doğrudan Prisma'dan oku — cache'lenmiş settings'i atlıyoruz
+  const site = await prisma.storeSite.findUnique({ where: { id: auth.siteId } });
+  const settings = parseSiteSettings(site?.settingsJson ?? null);
+  const config = parseEfaturaSettings(settings.efatura);
+
   if (!config.username || !config.password) {
     return NextResponse.json(
       { ok: false, message: "GİB bilgileri eksik. Kullanıcı kodu ve parola girilmeli." },
@@ -16,10 +22,8 @@ export async function POST() {
   }
 
   try {
-    // Force fresh login — token cache'i atla
     const session = await refreshGibSession(auth.siteId, config);
 
-    // getUserData ile kullanıcı adını al
     type GibClient = {
       getUserData: (token: string) => Promise<Record<string, unknown>>;
     };
