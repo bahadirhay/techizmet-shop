@@ -64,30 +64,34 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {mirrorHomePreload ? <link rel="preload" href={mirrorHomePreload} as="document" /> : null}
       </head>
       <body className={mirrorShell ? "antialiased" : `${poppins.variable} antialiased`}>
-        {gaId ? (
+        {!isAdminOrApi && (
           <>
-            <Script src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} strategy="lazyOnload" />
-            <Script id="ga-consent-default" strategy="lazyOnload">
-              {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('consent','default',{analytics_storage:'denied',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',wait_for_update:500});gtag('js',new Date());gtag('config','${gaId}');`}
-            </Script>
+            {gaId ? (
+              <>
+                <Script src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} strategy="lazyOnload" />
+                <Script id="ga-consent-default" strategy="lazyOnload">
+                  {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('consent','default',{analytics_storage:'denied',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',wait_for_update:500});gtag('js',new Date());gtag('config','${gaId}');`}
+                </Script>
+              </>
+            ) : null}
+            <JsonLdScript data={siteJsonLd} />
+            <ConsentAwareAnalytics
+              googleAnalyticsId={gaId ?? ""}
+              facebookPixelId={seo.facebookPixelId}
+            />
+            <CookieConsentBanner rawConfig={settings.cookieConsentJson} />
+            <WhatsappSiteWidgets
+              phoneDigits={wa.digits}
+              defaultMessage={wa.defaultMessage}
+              floatingEnabled={wa.floatingEnabled}
+              botEnabled={wa.botEnabled}
+            />
+            <Suspense fallback={null}>
+              <StoreEventTracker />
+              <MirrorAnalyticsBridge />
+            </Suspense>
           </>
-        ) : null}
-        <JsonLdScript data={siteJsonLd} />
-        <ConsentAwareAnalytics
-          googleAnalyticsId={gaId ?? ""}
-          facebookPixelId={seo.facebookPixelId}
-        />
-        <CookieConsentBanner rawConfig={settings.cookieConsentJson} />
-        <WhatsappSiteWidgets
-          phoneDigits={wa.digits}
-          defaultMessage={wa.defaultMessage}
-          floatingEnabled={wa.floatingEnabled}
-          botEnabled={wa.botEnabled}
-        />
-        <Suspense fallback={null}>
-          <StoreEventTracker />
-          <MirrorAnalyticsBridge />
-        </Suspense>
+        )}
         {children}
       </body>
     </html>
