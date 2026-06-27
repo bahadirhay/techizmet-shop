@@ -15,6 +15,7 @@ type EfaturaFormState = {
   defaultVatRate: number;
   autoSign: boolean;
   autoSendMarketplace: boolean;
+  autoInvoiceOnShip: boolean;
   hasPassword: boolean;
 };
 
@@ -42,6 +43,7 @@ export function EfaturaSettingsForm({ initial }: { initial: EfaturaFormState }) 
           defaultVatRate: s.defaultVatRate,
           autoSign: s.autoSign,
           autoSendMarketplace: s.autoSendMarketplace,
+          autoInvoiceOnShip: s.autoInvoiceOnShip,
         },
       }),
     });
@@ -179,6 +181,17 @@ export function EfaturaSettingsForm({ initial }: { initial: EfaturaFormState }) 
             onChange={(e) => setS({ ...s, autoSendMarketplace: e.target.checked })}
           />
           Pazaryeri siparişlerinde faturayı otomatik Trendyol&apos;a ilet
+        </label>
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={s.autoInvoiceOnShip}
+            onChange={(e) => setS({ ...s, autoInvoiceOnShip: e.target.checked })}
+          />
+          <span>
+            <strong>Oto-fatura:</strong> Sipariş &quot;kargoya verildi&quot; statüsüne geçince otomatik fatura kes
+            <span className="ml-1 text-xs text-zinc-400">(KDV takibine de otomatik girer)</span>
+          </span>
         </label>
       </div>
 

@@ -16,6 +16,7 @@ export type ResolvedEfaturaConfig = {
   defaultVatRate: number;
   autoSign: boolean;
   autoSendMarketplace: boolean;
+  autoInvoiceOnShip: boolean;
 };
 
 export function parseEfaturaSettings(raw: StoreEfaturaSettings | undefined): ResolvedEfaturaConfig {
@@ -32,6 +33,7 @@ export function parseEfaturaSettings(raw: StoreEfaturaSettings | undefined): Res
     defaultVatRate: typeof e.defaultVatRate === "number" && e.defaultVatRate >= 0 ? e.defaultVatRate : 20,
     autoSign: e.autoSign !== false,
     autoSendMarketplace: e.autoSendMarketplace !== false,
+    autoInvoiceOnShip: e.autoInvoiceOnShip === true,
   };
 }
 

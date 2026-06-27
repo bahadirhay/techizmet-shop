@@ -34,6 +34,7 @@ export default async function EfaturaSettingsPage() {
           defaultVatRate: config.defaultVatRate,
           autoSign: config.autoSign,
           autoSendMarketplace: config.autoSendMarketplace,
+          autoInvoiceOnShip: config.autoInvoiceOnShip,
           hasPassword: Boolean(process.env.GIB_PASSWORD || settings.efatura?.password),
         }}
       />

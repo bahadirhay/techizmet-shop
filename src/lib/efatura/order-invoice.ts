@@ -6,6 +6,10 @@ import { buildInvoiceDetailsFromOrder } from "@/lib/efatura/build-invoice";
 import { efaturaReady, getEfaturaConfig, type ResolvedEfaturaConfig } from "@/lib/efatura/settings";
 import { sendMarketplaceInvoice } from "@/lib/marketplace/actions";
 import { prisma } from "@/lib/prisma";
+import { syncKdvFromInvoiceDate } from "@/lib/finance/kdv-sync";
+import { syncGeciciObligations } from "@/lib/finance/gecici-sync";
+import { getTaxConfig } from "@/lib/finance/tax";
+import { parseSiteSettings } from "@/lib/site-settings";
 
 export type OrderInvoiceMeta = {
   publicToken?: string;
@@ -167,6 +171,55 @@ export async function issueOrderInvoice(
       } else {
         message += ` · Pazaryeri: ${mp.message}`;
       }
+    }
+
+    // InvoiceEntry bridge — sipariş faturasını KDV takibine ekle
+    try {
+      const dedupKey = `order:${order.orderNumber}`;
+      const entryExists = await prisma.invoiceEntry.findFirst({
+        where: { siteId, invoiceNo: dedupKey },
+        select: { id: true },
+      });
+      if (!entryExists) {
+        const defaultRate = config.defaultVatRate;
+        // Satırları KDV oranına göre grupla
+        const rateGroups = new Map<number, number>(); // rate → netMinor
+        for (const l of order.lines) {
+          const rate = l.vatRate ?? defaultRate;
+          const normalRate = rate <= 2 ? 1 : rate <= 15 ? 10 : 20;
+          const lineNet = Math.max(0, l.lineMinor - (l.discountMinor ?? 0));
+          rateGroups.set(normalRate, (rateGroups.get(normalRate) ?? 0) + lineNet);
+        }
+        if (order.shippingMinor > 0) {
+          const sr = defaultRate <= 2 ? 1 : defaultRate <= 15 ? 10 : 20;
+          rateGroups.set(sr, (rateGroups.get(sr) ?? 0) + order.shippingMinor);
+        }
+        for (const [rate, lineTotal] of rateGroups) {
+          // lineTotal burada KDV dahil (order.lineMinor = total incl. VAT)
+          const netMinor = Math.round(lineTotal / (1 + rate / 100));
+          const kdvMinor = lineTotal - netMinor;
+          await prisma.invoiceEntry.create({
+            data: {
+              siteId,
+              direction: "outgoing",
+              invoiceDate: order.createdAt,
+              invoiceNo: rateGroups.size > 1 ? `${dedupKey}:r${rate}` : dedupKey,
+              counterparty: order.customerName?.trim() || "Tüketici",
+              netMinor,
+              kdvRate: rate as 1 | 10 | 20,
+              kdvMinor,
+              description: `${order.marketplacePlatform ? order.marketplacePlatform + " · " : ""}Sipariş #${order.orderNumber}`,
+            },
+          });
+        }
+        // Obligations senkronize et
+        const site = await prisma.storeSite.findUnique({ where: { id: siteId }, select: { settingsJson: true } });
+        const taxConfig = getTaxConfig(parseSiteSettings(site?.settingsJson ?? null));
+        await syncKdvFromInvoiceDate(siteId, order.createdAt);
+        await syncGeciciObligations(siteId, order.createdAt.getUTCFullYear(), taxConfig.incomeBrackets);
+      }
+    } catch (kdvErr) {
+      console.error("[invoice-entry-bridge]", kdvErr);
     }
 
     return {

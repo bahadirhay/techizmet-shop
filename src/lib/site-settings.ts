@@ -369,6 +369,8 @@ export type StoreEfaturaSettings = {
   autoSign?: boolean;
   /** Pazaryeri siparişinde faturayı otomatik Trendyol'a ilet */
   autoSendMarketplace?: boolean;
+  /** Sipariş "shipped" statüsüne geçince otomatik fatura kes */
+  autoInvoiceOnShip?: boolean;
 };
 
 /** Admin form — DB'deki ham değerler (boş alanlarda vitrin fallback) */

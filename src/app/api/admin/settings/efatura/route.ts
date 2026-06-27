@@ -28,6 +28,7 @@ export async function GET() {
       defaultVatRate: config.defaultVatRate,
       autoSign: config.autoSign,
       autoSendMarketplace: config.autoSendMarketplace,
+      autoInvoiceOnShip: config.autoInvoiceOnShip,
     },
     envHint: "Parola için GIB_PASSWORD ortam değişkeni önerilir.",
   });

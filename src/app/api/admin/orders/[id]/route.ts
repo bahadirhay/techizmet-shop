@@ -50,6 +50,18 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     await sendOrderStatusEmailIfNeeded(order.id, existing.status, newStatus).catch((e) =>
       console.error("[email] status", e),
     );
+
+    // Oto-fatura: kargoya verildi → fatura kes
+    if (newStatus === "shipped" && !existing.invoiceStatus || (newStatus === "shipped" && existing.invoiceStatus === "none")) {
+      const { getEfaturaConfig } = await import("@/lib/efatura/settings");
+      const cfg = await getEfaturaConfig(auth.siteId).catch(() => null);
+      if (cfg?.autoInvoiceOnShip && cfg.enabled) {
+        const { issueOrderInvoice } = await import("@/lib/efatura/order-invoice");
+        issueOrderInvoice(auth.siteId, order.id).catch((e) =>
+          console.error("[auto-invoice]", e),
+        );
+      }
+    }
   }
 
   return NextResponse.json({ order });
