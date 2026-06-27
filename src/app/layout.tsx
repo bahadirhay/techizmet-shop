@@ -58,10 +58,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="tr">
       <head>
-        {mirrorHeroPreload ? (
-          <link rel="preload" href={mirrorHeroPreload} as="image" fetchPriority="high" />
-        ) : null}
-        {mirrorHomePreload ? <link rel="preload" href={mirrorHomePreload} as="document" /> : null}
+        {/* mirrorHeroPreload ana frame'de kullanılmıyor (iframe içinde yükleniyor) — preload kaldırıldı */}
+        {/* as="document" rel="preload" için desteklenmiyor; prefetch olarak bırakıldı */}
+        {mirrorHomePreload ? <link rel="prefetch" href={mirrorHomePreload} /> : null}
       </head>
       <body className={mirrorShell ? "antialiased" : `${poppins.variable} antialiased`}>
         {!isAdminOrApi && (
