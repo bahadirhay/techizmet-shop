@@ -129,6 +129,8 @@ export function KdvTracker({
   const [devredenTl, setDevredenTl] = useState("");
   const [filterDir, setFilterDir] = useState<"" | InvoiceDirection>("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [gibSyncing, setGibSyncing] = useState(false);
+  const [gibMsg, setGibMsg] = useState<{ text: string; ok: boolean } | null>(null);
 
   const loadYear = useCallback(async (y: number) => {
     setYear(y);
@@ -136,6 +138,29 @@ export function KdvTracker({
     const data = (await r.json()) as { entries?: InvoiceEntryRow[] };
     setEntries(data.entries ?? []);
   }, []);
+
+  const gibSync = useCallback(async () => {
+    setGibSyncing(true);
+    setGibMsg(null);
+    try {
+      const r = await fetch("/api/admin/finance/invoices/gib-sync", { method: "POST" });
+      const data = (await r.json()) as { message?: string; error?: string; kdvEntriesCreated?: number };
+      if (!r.ok) {
+        setGibMsg({ text: data.error ?? "GİB senkronizasyonu başarısız.", ok: false });
+        return;
+      }
+      setGibMsg({ text: data.message ?? "Senkronize edildi.", ok: true });
+      // Yeni KDV girişleri varsa listeyi yenile
+      if ((data.kdvEntriesCreated ?? 0) > 0) {
+        const re = await fetch(`/api/admin/finance/invoices?year=${year}`);
+        const rd = (await re.json()) as { entries?: InvoiceEntryRow[] };
+        setEntries(rd.entries ?? []);
+      }
+    } finally {
+      setGibSyncing(false);
+      window.setTimeout(() => setGibMsg(null), 6000);
+    }
+  }, [year]);
 
   const monthlySummaries = useMemo(
     () => calcYearlyKdv(entries, year, devredenBaslangic),
@@ -244,7 +269,41 @@ export function KdvTracker({
             }}
           />
         </div>
+        {/* GİB senkronizasyon */}
+        <div className="flex flex-col justify-end">
+          <button
+            className="rounded-lg border border-blue-300 bg-blue-50 px-4 py-1.5 text-sm font-semibold text-blue-700 hover:bg-blue-100 disabled:opacity-50"
+            onClick={() => void gibSync()}
+            disabled={gibSyncing}
+          >
+            {gibSyncing ? "GİB'e bağlanıyor…" : "📥 GİB'den Fatura Çek"}
+          </button>
+          <p className="mt-1 text-xs text-zinc-400">
+            e-Arşiv gelen kutusundan otomatik içe aktar
+          </p>
+        </div>
       </div>
+      {/* GİB bildirim mesajı */}
+      {gibMsg && (
+        <div
+          className={`rounded-lg border px-4 py-2 text-sm ${
+            gibMsg.ok
+              ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+              : "border-red-300 bg-red-50 text-red-800"
+          }`}
+        >
+          {gibMsg.ok ? "✓ " : "✗ "}{gibMsg.text}
+          {!gibMsg.ok && (
+            <span className="ml-2 text-xs opacity-70">
+              GİB ayarları için{" "}
+              <a href="/admin/settings/efatura" className="underline">
+                /admin/settings/efatura
+              </a>{" "}
+              sayfasını kontrol edin.
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Yıllık özet şerit */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -400,7 +459,13 @@ export function KdvTracker({
                         {DIRECTION_LABELS[e.direction as InvoiceDirection]}
                       </span>
                       {e.invoiceNo && (
-                        <span className="ml-2 text-xs text-zinc-400">#{e.invoiceNo}</span>
+                        e.invoiceNo.startsWith("gib:") ? (
+                          <span className="ml-2 rounded bg-blue-100 px-1.5 py-0.5 text-xs font-medium text-blue-700">
+                            GİB e-Arşiv
+                          </span>
+                        ) : (
+                          <span className="ml-2 text-xs text-zinc-400">#{e.invoiceNo}</span>
+                        )
                       )}
                       {e.counterparty && (
                         <div className="truncate text-xs text-zinc-500">{e.counterparty}</div>
