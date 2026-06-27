@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireStaffApi } from "@/lib/staff-auth";
-import { getEfaturaConfig, efaturaReady } from "@/lib/efatura/settings";
+import { getEfaturaConfig } from "@/lib/efatura/settings";
 import { refreshGibSession } from "@/lib/efatura/gib-session";
 
 export async function POST() {
@@ -8,7 +8,7 @@ export async function POST() {
   if (auth instanceof NextResponse) return auth;
 
   const config = await getEfaturaConfig(auth.siteId);
-  if (!efaturaReady(config)) {
+  if (!config.username || !config.password) {
     return NextResponse.json(
       { ok: false, message: "GİB bilgileri eksik. Kullanıcı kodu ve parola girilmeli." },
       { status: 400 },
