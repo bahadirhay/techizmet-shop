@@ -158,6 +158,14 @@ export type SiteSettings = {
     packagingCostMinor?: number;
     /** Vergi / beyanname yapılandırması (şahıs şirketi) */
     tax?: {
+      /** Mükellefiyet başlangıç tarihi (YYYY-MM-DD) */
+      openingDate?: string;
+      /** Vergi Kimlik Numarası (VKN) */
+      vkn?: string;
+      /** Vergi dairesi adı */
+      vergiDairesi?: string;
+      /** NACE / faaliyet kodu */
+      faaliyetKodu?: string;
       /** Gelir vergisi dilimleri — artan oranlı tarife (GVK 103) */
       incomeBrackets?: { upTo: number | null; rate: number }[];
       /** Beyanname başına damga vergisi (TL) */

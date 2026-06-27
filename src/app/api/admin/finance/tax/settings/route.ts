@@ -6,6 +6,10 @@ import { parseSiteSettings } from "@/lib/site-settings";
 import { requireStaffApi } from "@/lib/staff-auth";
 
 type Body = {
+  openingDate?: string;
+  vkn?: string;
+  vergiDairesi?: string;
+  faaliyetKodu?: string;
   incomeBrackets?: { upTo: number | null; rate: number }[];
   stampDuty?: { kdv?: number; muhtasar?: number; gecici?: number; yillikGelir?: number };
   muhtasarPeriod?: "monthly" | "quarterly";
@@ -48,6 +52,10 @@ export async function PATCH(req: Request) {
       ...current.finance,
       tax: {
         ...currentTax,
+        ...(body.openingDate !== undefined ? { openingDate: body.openingDate || undefined } : {}),
+        ...(body.vkn !== undefined ? { vkn: body.vkn.trim() || undefined } : {}),
+        ...(body.vergiDairesi !== undefined ? { vergiDairesi: body.vergiDairesi.trim() || undefined } : {}),
+        ...(body.faaliyetKodu !== undefined ? { faaliyetKodu: body.faaliyetKodu.trim() || undefined } : {}),
         ...(brackets ? { incomeBrackets: brackets } : {}),
         ...(body.stampDuty
           ? {

@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireStaffApi } from "@/lib/staff-auth";
 import { calcKdv } from "@/lib/finance/kdv";
+import { syncKdvFromInvoiceDate } from "@/lib/finance/kdv-sync";
+import { syncGeciciObligations } from "@/lib/finance/gecici-sync";
+import { parseSiteSettings } from "@/lib/site-settings";
+import { getTaxConfig } from "@/lib/finance/tax";
 
 function serializeEntry(e: {
   id: string; direction: string; invoiceDate: Date; invoiceNo: string | null;
@@ -28,17 +32,21 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const auth = await requireStaffApi("store.finance");
   if (auth instanceof NextResponse) return auth;
-  const body = await req.json();
+  const body = (await req.json()) as {
+    direction?: string; invoiceDate?: string; invoiceNo?: string; counterparty?: string;
+    netMinor?: unknown; kdvRate?: unknown; kdvMinor?: unknown; description?: string;
+  };
   const netMinor = Math.round(parseFloat(String(body.netMinor ?? 0)));
   const kdvRate = parseInt(String(body.kdvRate ?? 20), 10);
   const kdvMinor = body.kdvMinor !== undefined
     ? Math.round(parseFloat(String(body.kdvMinor)))
     : calcKdv(netMinor, kdvRate as 1 | 10 | 20);
+  const invoiceDate = new Date(body.invoiceDate ?? new Date().toISOString());
   const entry = await prisma.invoiceEntry.create({
     data: {
       siteId: auth.siteId,
       direction: body.direction === "incoming" ? "incoming" : "outgoing",
-      invoiceDate: new Date(body.invoiceDate),
+      invoiceDate,
       invoiceNo: body.invoiceNo?.trim() || null,
       counterparty: body.counterparty?.trim() || null,
       netMinor,
@@ -47,5 +55,15 @@ export async function POST(req: Request) {
       description: body.description?.trim() || null,
     },
   });
+
+  // Senkronize: KDV ve geçici vergi yükümlülüklerini güncelle
+  const year = invoiceDate.getUTCFullYear();
+  const [site] = await Promise.all([
+    prisma.storeSite.findUnique({ where: { id: auth.siteId }, select: { settingsJson: true } }),
+    syncKdvFromInvoiceDate(auth.siteId, invoiceDate),
+  ]);
+  const config = getTaxConfig(parseSiteSettings(site?.settingsJson ?? null));
+  await syncGeciciObligations(auth.siteId, year, config.incomeBrackets);
+
   return NextResponse.json({ entry: serializeEntry(entry) }, { status: 201 });
 }

@@ -28,6 +28,10 @@ export type TaxConfig = {
   incomeBrackets: IncomeBracket[];
   stampDuty: StampDutyConfig;
   muhtasarPeriod: "monthly" | "quarterly";
+  openingDate?: string;
+  vkn?: string;
+  vergiDairesi?: string;
+  faaliyetKodu?: string;
 };
 
 /** 2026 gelir vergisi dilimleri (GVK md.103) */
@@ -90,6 +94,10 @@ export function getTaxConfig(settings: SiteSettings | null | undefined): TaxConf
       yillikGelir: numOr(t.stampDuty?.yillikGelir, DEFAULT_STAMP_DUTY_2026.yillikGelir),
     },
     muhtasarPeriod: t.muhtasarPeriod === "monthly" ? "monthly" : "quarterly",
+    openingDate: t.openingDate ?? undefined,
+    vkn: t.vkn ?? undefined,
+    vergiDairesi: t.vergiDairesi ?? undefined,
+    faaliyetKodu: t.faaliyetKodu ?? undefined,
   };
 }
 
@@ -263,6 +271,12 @@ export function generateYearObligations(year: number, config: TaxConfig): Obliga
     dueDate: rollToBusinessDay(utc(year + 1, 3, 31)),
     stampDutyMinor: toMinor(sd.yillikGelir),
   });
+
+  // Açılış tarihinden önceki dönemleri filtrele
+  if (config.openingDate) {
+    const opening = new Date(config.openingDate);
+    return out.filter((seed) => seed.periodEnd >= opening);
+  }
 
   return out;
 }
