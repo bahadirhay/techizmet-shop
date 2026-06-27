@@ -1,6 +1,5 @@
 import "server-only";
 
-import { createFaturaClient } from "fatura";
 import { nanoid } from "nanoid";
 import { buildInvoiceDetailsFromOrder } from "@/lib/efatura/build-invoice";
 import { efaturaReady, getEfaturaConfig, type ResolvedEfaturaConfig } from "@/lib/efatura/settings";
@@ -10,6 +9,7 @@ import { syncKdvFromInvoiceDate } from "@/lib/finance/kdv-sync";
 import { syncGeciciObligations } from "@/lib/finance/gecici-sync";
 import { getTaxConfig } from "@/lib/finance/tax";
 import { parseSiteSettings } from "@/lib/site-settings";
+import { getGibSession, refreshGibSession } from "@/lib/efatura/gib-session";
 
 export type OrderInvoiceMeta = {
   publicToken?: string;
@@ -91,35 +91,53 @@ export async function issueOrderInvoice(
 
   const invoiceDetails = buildInvoiceDetailsFromOrder(order, config, options.recipientTaxId);
   const sign = options.sign ?? config.autoSign;
-  const client = createFaturaClient(config.testMode ? "TEST" : "PROD");
+
+  type FaturaClient = {
+    createDraftInvoice: (t: string, d: unknown) => Promise<{ uuid: string }>;
+    findInvoice: (t: string, d: { uuid: string }) => Promise<Record<string, unknown> | undefined>;
+    signDraftInvoice: (t: string, f: unknown) => Promise<void>;
+    getDownloadURL: (t: string, uuid: string, opts: { signed: boolean }) => string;
+  };
+
+  // Cached session — 90 dakika boyunca token yeniden kullanılır
+  let session = await getGibSession(siteId, config);
+  let client = session.client as unknown as FaturaClient;
+  let token = session.token;
+
+  async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
+    try {
+      return await fn();
+    } catch (err) {
+      // Token süresi dolmuş olabilir — session'ı yenile ve bir kez daha dene
+      const refreshed = await refreshGibSession(siteId, config);
+      client = refreshed.client as unknown as FaturaClient;
+      token = refreshed.token;
+      return fn();
+    }
+  }
 
   try {
-    const token = await client.getToken(config.username, config.password);
-    const draft = await client.createDraftInvoice(token, invoiceDetails);
-    const found = await client.findInvoice(token, draft);
+    const draft = await withRetry(() => client.createDraftInvoice(token, invoiceDetails));
+    const found = await withRetry(() => client.findInvoice(token, draft));
     let signed = false;
-    let invoiceNumber = extractDocumentNumber(found as Record<string, unknown> | undefined);
+    let invoiceNumber = extractDocumentNumber(found);
 
     if (sign && found) {
       try {
-        await client.signDraftInvoice(token, found);
+        await withRetry(() => client.signDraftInvoice(token, found));
         signed = true;
-        const afterSign = await client.findInvoice(token, draft);
-        invoiceNumber = extractDocumentNumber(afterSign as Record<string, unknown> | undefined) ?? invoiceNumber;
+        const afterSign = await withRetry(() => client.findInvoice(token, draft));
+        invoiceNumber = extractDocumentNumber(afterSign) ?? invoiceNumber;
       } catch (signErr) {
         const msg = signErr instanceof Error ? signErr.message : String(signErr);
-        await client.logout(token);
-        return {
-          ok: false,
-          message: `Taslak oluşturuldu ancak imzalanamadı (SMS doğrulama gerekebilir): ${msg}. GİB portalından imzalayabilirsiniz.`,
-          invoiceUuid: draft.uuid,
-        };
+        // İmzalanamadı ama taslak oluşturuldu — KV takibine ve DB'ye yaz, devam et
+        console.warn("[invoice] imzalama başarısız, taslak kaydedildi:", msg);
       }
     }
 
     const publicToken = parseInvoiceMeta(order.invoiceMetaJson).publicToken ?? nanoid(24);
-    const gibDownloadUrl = client.getDownloadURL(token, draft.uuid, { signed });
-    await client.logout(token);
+    const gibDownloadUrl = (session.client as unknown as { getDownloadURL: (t: string, uuid: string, opts: { signed: boolean }) => string })
+      .getDownloadURL(token, draft.uuid, { signed });
 
     const invoiceLink = `${siteBaseUrl()}/api/public/invoice/${publicToken}`;
     const invoiceUuid = draft.uuid;
@@ -256,6 +274,7 @@ export async function getPublicInvoiceHtml(publicToken: string): Promise<string 
   if (!efaturaReady(config)) return null;
 
   const meta = parseInvoiceMeta(order.invoiceMetaJson);
+  const { createFaturaClient } = await import("fatura");
   const client = createFaturaClient(config.testMode ? "TEST" : "PROD");
   try {
     const token = await client.getToken(config.username, config.password);

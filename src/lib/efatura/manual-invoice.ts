@@ -1,8 +1,8 @@
 import "server-only";
 
-import { createFaturaClient } from "fatura";
 import type { InvoiceDetails, InvoiceItem } from "fatura";
 import { efaturaReady, getEfaturaConfig } from "@/lib/efatura/settings";
+import { getGibSession, refreshGibSession } from "@/lib/efatura/gib-session";
 import { normalizeConsumerTaxId } from "@/lib/efatura/consumer-tax-id";
 import { prisma } from "@/lib/prisma";
 import { syncKdvFromInvoiceDate } from "@/lib/finance/kdv-sync";
@@ -132,8 +132,12 @@ export async function issueManualInvoice(
     paymentTotal: grandTotalInclVAT,
   };
 
-  const clientAny = createFaturaClient(config.testMode ? "TEST" : "PROD") as unknown as Record<string, (...args: unknown[]) => Promise<unknown>>;
-  const client = clientAny as typeof createFaturaClient extends (...args: unknown[]) => infer R ? R : never;
+  type FC = {
+    createDraftInvoice: (t: string, d: InvoiceDetails) => Promise<{ uuid: string }>;
+    findInvoice: (t: string, d: { uuid: string }) => Promise<Record<string, unknown> | undefined>;
+    signDraftInvoice: (t: string, f: unknown) => Promise<void>;
+    getDownloadURL: (t: string, uuid: string, opts: { signed: boolean }) => string;
+  };
 
   let invoiceNumber: string | undefined;
   let invoiceUuid: string | undefined;
@@ -141,26 +145,35 @@ export async function issueManualInvoice(
   let signed = false;
 
   try {
-    const token = await (client as unknown as { getToken: (u: string, p: string) => Promise<unknown> }).getToken(config.username, config.password);
-    const draft = await (client as unknown as { createDraftInvoice: (t: unknown, d: InvoiceDetails) => Promise<{ uuid: string }> }).createDraftInvoice(token, invoiceDetails);
-    invoiceUuid = draft.uuid;
+    let session = await getGibSession(siteId, config);
+    let c = session.client as unknown as FC;
+    let tok = session.token;
 
-    const found = await (client as unknown as { findInvoice: (t: unknown, d: { uuid: string }) => Promise<Record<string, unknown> | undefined> }).findInvoice(token, draft);
+    async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
+      try { return await fn(); } catch {
+        const r = await refreshGibSession(siteId, config);
+        c = r.client as unknown as FC; tok = r.token;
+        return fn();
+      }
+    }
+
+    const draft = await withRetry(() => c.createDraftInvoice(tok, invoiceDetails));
+    invoiceUuid = draft.uuid;
+    const found = await withRetry(() => c.findInvoice(tok, draft));
     invoiceNumber = extractDocumentNumber(found);
 
     if (config.autoSign && found) {
       try {
-        await (client as unknown as { signDraftInvoice: (t: unknown, f: unknown) => Promise<void> }).signDraftInvoice(token, found);
+        await withRetry(() => c.signDraftInvoice(tok, found));
         signed = true;
-        const afterSign = await (client as unknown as { findInvoice: (t: unknown, d: { uuid: string }) => Promise<Record<string, unknown> | undefined> }).findInvoice(token, draft);
+        const afterSign = await withRetry(() => c.findInvoice(tok, draft));
         invoiceNumber = extractDocumentNumber(afterSign) ?? invoiceNumber;
       } catch {
-        // İmzalanmadı ama taslak oluşturuldu — devam et
+        // İmzalanmadı — taslak devam eder
       }
     }
 
-    downloadUrl = (client as unknown as { getDownloadURL: (t: unknown, uuid: string, opts: { signed: boolean }) => string }).getDownloadURL(token, draft.uuid, { signed });
-    await (client as unknown as { logout: (t: unknown) => Promise<void> }).logout(token);
+    downloadUrl = c.getDownloadURL(tok, draft.uuid, { signed });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return { ok: false, message: `GİB bağlantı hatası: ${msg}` };
