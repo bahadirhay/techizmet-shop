@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { AdminField, btnPrimary, inputClass } from "@/components/admin/AdminForm";
 
+type TestResult = { ok: boolean; message: string };
+
 type EfaturaFormState = {
   enabled: boolean;
   testMode: boolean;
@@ -23,6 +25,22 @@ export function EfaturaSettingsForm({ initial }: { initial: EfaturaFormState }) 
   const [s, setS] = useState(initial);
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<TestResult | null>(null);
+
+  async function testConnection() {
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const res = await fetch("/api/admin/settings/efatura/test", { method: "POST" });
+      const j = (await res.json()) as TestResult;
+      setTestResult(j);
+    } catch {
+      setTestResult({ ok: false, message: "İstek gönderilemedi." });
+    } finally {
+      setTesting(false);
+    }
+  }
 
   async function save() {
     setBusy(true);
@@ -151,8 +169,8 @@ export function EfaturaSettingsForm({ initial }: { initial: EfaturaFormState }) 
           />
         </AdminField>
         <AdminField
-          label="Varsayılan KDV (%)"
-          hint="Ürün kartında ayrı oran seçilmemişse ve kargo satırında kullanılır. Ürün bazlı oran: Ürünler → düzenle."
+          label="Yedek KDV oranı (%) — kargo satırı için"
+          hint="Her ürünün kendi KDV oranı Ürünler → düzenle sayfasından ayarlanır ve faturada otomatik kullanılır. Bu alan yalnızca kargo bedeli ve ürüne oran atanmamış istisnai durumlarda devreye girer."
         >
           <input
             type="number"
@@ -195,10 +213,33 @@ export function EfaturaSettingsForm({ initial }: { initial: EfaturaFormState }) 
         </label>
       </div>
 
-      <button type="button" className={`${btnPrimary} mt-6`} disabled={busy} onClick={() => void save()}>
-        Kaydet
-      </button>
+      <div className="mt-6 flex flex-wrap items-center gap-3">
+        <button type="button" className={btnPrimary} disabled={busy} onClick={() => void save()}>
+          Kaydet
+        </button>
+        <button
+          type="button"
+          className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+          disabled={testing || !s.username || (!s.password && !s.hasPassword)}
+          onClick={() => void testConnection()}
+        >
+          {testing ? "Test ediliyor…" : "GİB Bağlantısını Test Et"}
+        </button>
+      </div>
+
       {msg ? <p className="mt-2 text-sm text-zinc-600">{msg}</p> : null}
+
+      {testResult && (
+        <div
+          className={`mt-3 rounded-lg border px-4 py-2.5 text-sm ${
+            testResult.ok
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+              : "border-red-200 bg-red-50 text-red-800"
+          }`}
+        >
+          {testResult.ok ? "✓" : "✗"} {testResult.message}
+        </div>
+      )}
     </div>
   );
 }
