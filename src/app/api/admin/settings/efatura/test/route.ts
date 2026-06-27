@@ -4,7 +4,8 @@ import { getEfaturaConfig, efaturaReady } from "@/lib/efatura/settings";
 import { refreshGibSession } from "@/lib/efatura/gib-session";
 
 export async function POST() {
-  const auth = await requireStaffApi();
+  const auth = await requireStaffApi("store.integrations");
+  if (auth instanceof NextResponse) return auth;
 
   const config = await getEfaturaConfig(auth.siteId);
   if (!efaturaReady(config)) {
