@@ -1,54 +1,40 @@
 import { NextResponse } from "next/server";
-import { requireStaffApi } from "@/lib/staff-auth";
 import { prisma } from "@/lib/prisma";
+import { requireStaffApi } from "@/lib/staff-auth";
 
-export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
+export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireStaffApi("store.finance");
   if (auth instanceof NextResponse) return auth;
-  const { id } = await ctx.params;
-  const body = (await req.json()) as {
-    status?: string;
-    categoryId?: string | null;
-    accountId?: string | null;
-    title?: string;
-    description?: string;
-  };
-  const invoice = await prisma.financeInvoice.findFirst({
-    where: { id, siteId: auth.siteId },
-    select: { id: true, status: true },
-  });
-  if (!invoice) {
-    return NextResponse.json({ error: "Fatura bulunamadı." }, { status: 404 });
+  const { id } = await params;
+  const entry = await prisma.invoiceEntry.findUnique({ where: { id } });
+  if (!entry || entry.siteId !== auth.siteId) {
+    return NextResponse.json({ error: "Bulunamadı" }, { status: 404 });
   }
-  if (invoice.status === "posted") {
-    return NextResponse.json({ error: "Muhasebeye işlenen fatura düzenlenemez." }, { status: 400 });
-  }
+  await prisma.invoiceEntry.delete({ where: { id } });
+  return NextResponse.json({ ok: true });
+}
 
-  const updated = await prisma.financeInvoice.update({
-    where: { id: invoice.id },
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const auth = await requireStaffApi("store.finance");
+  if (auth instanceof NextResponse) return auth;
+  const { id } = await params;
+  const entry = await prisma.invoiceEntry.findUnique({ where: { id } });
+  if (!entry || entry.siteId !== auth.siteId) {
+    return NextResponse.json({ error: "Bulunamadı" }, { status: 404 });
+  }
+  const body = await req.json();
+  const updated = await prisma.invoiceEntry.update({
+    where: { id },
     data: {
-      categoryId: body.categoryId !== undefined ? body.categoryId || null : undefined,
-      accountId: body.accountId !== undefined ? body.accountId || null : undefined,
-      title: body.title !== undefined ? body.title.trim() || null : undefined,
-      description: body.description !== undefined ? body.description.trim() || null : undefined,
-      status:
-        body.status === "pending_approval" || body.status === "draft"
-          ? body.status
-          : undefined,
+      ...(body.netMinor !== undefined && { netMinor: Math.round(parseFloat(String(body.netMinor))) }),
+      ...(body.kdvRate !== undefined && { kdvRate: parseInt(String(body.kdvRate), 10) }),
+      ...(body.kdvMinor !== undefined && { kdvMinor: Math.round(parseFloat(String(body.kdvMinor))) }),
+      ...(body.invoiceNo !== undefined && { invoiceNo: body.invoiceNo?.trim() || null }),
+      ...(body.counterparty !== undefined && { counterparty: body.counterparty?.trim() || null }),
+      ...(body.description !== undefined && { description: body.description?.trim() || null }),
+      ...(body.direction !== undefined && { direction: body.direction }),
+      ...(body.invoiceDate !== undefined && { invoiceDate: new Date(body.invoiceDate) }),
     },
   });
-
-  if (body.status === "pending_approval") {
-    await prisma.financeInvoiceApprovalLog.create({
-      data: {
-        siteId: auth.siteId,
-        invoiceId: invoice.id,
-        action: "submit_for_approval",
-        actorUserId: auth.staffUserId,
-        note: "Taslak onay kuyruğuna gönderildi.",
-      },
-    });
-  }
-
-  return NextResponse.json({ invoice: updated });
+  return NextResponse.json({ entry: { ...updated, invoiceDate: updated.invoiceDate.toISOString(), createdAt: updated.createdAt.toISOString() } });
 }

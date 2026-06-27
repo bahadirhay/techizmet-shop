@@ -61,6 +61,7 @@ model StoreSite {
   financePostingTemplates FinancePostingTemplate[]
   financeInvoicePostJobs   FinanceInvoicePostJob[]
   taxObligations           TaxObligation[]
+  invoiceEntries           InvoiceEntry[]
   streetFoodCampaigns      StreetFoodCampaign[]
   streetFoodContributions  StreetFoodContribution[]
   streetFoodDonations      StreetFoodDonation[]
@@ -1464,5 +1465,34 @@ model StreetFoodDonation {
   @@index([siteId, published, donatedAt])
   @@index([campaignId])
   @@map("street_food_donation")
+  @@schema("shop")
+}
+
+model InvoiceEntry {
+  id              String   @id @default(cuid())
+  siteId          String
+  site            StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  /** outgoing = kesilen (satış) | incoming = gelen (alış/gider) */
+  direction       String
+  /** Fatura tarihi */
+  invoiceDate     DateTime
+  /** Fatura numarası (isteğe bağlı) */
+  invoiceNo       String?
+  /** Karşı taraf adı */
+  counterparty    String?
+  /** KDV hariç tutar (kuruş) */
+  netMinor        Int
+  /** KDV oranı: 1 | 10 | 20 */
+  kdvRate         Int
+  /** KDV tutarı (kuruş) = netMinor * kdvRate / 100 */
+  kdvMinor        Int
+  /** Açıklama */
+  description     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([siteId, invoiceDate])
+  @@index([siteId, direction, invoiceDate])
+  @@map("invoice_entry")
   @@schema("shop")
 }

@@ -168,6 +168,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
       { href: "/admin/finance/payouts", label: "Hakediş Mutabakatı", perm: "store.finance" },
       { href: "/admin/finance/profitability", label: "Kârlılık Raporu", perm: "store.finance" },
       { href: "/admin/finance/beyanname", label: "Beyanname & Vergi", perm: "store.finance" },
+      { href: "/admin/finance/faturalar", label: "Fatura & KDV Takibi", perm: "store.finance" },
     ],
   },
   {
@@ -400,4 +401,5 @@ export const ADMIN_PAGE_TITLES: Record<string, string> = {
   "/admin/finance/payouts": "Hakediş Mutabakatı",
   "/admin/finance/profitability": "Kârlılık Raporu",
   "/admin/finance/beyanname": "Beyanname & Vergi",
+  "/admin/finance/faturalar": "Fatura & KDV Takibi",
 };
