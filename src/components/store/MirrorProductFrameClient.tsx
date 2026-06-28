@@ -41,7 +41,8 @@ import {
   type ProductPageBottomSettings,
 } from "@/lib/product-page-bottom";
 import {
-  applyProductReviewsToDocument,
+  applyProductStarBadge,
+  applyProductReviewsAccordion,
   type IframeReviewStats,
   type IframeReviewItem,
 } from "@/lib/mirror-product-reviews-inject";
@@ -251,12 +252,23 @@ export function MirrorProductFrameClient({
 
     applyProductContentOverlay(doc, overlay ?? {});
     if (reviewStats) {
-      applyProductReviewsToDocument(doc, reviewStats, reviews);
+      // Yıldız bandı: erken enjekte et (share butonu konumlanınca yerleşir)
+      applyProductStarBadge(doc, reviewStats);
       for (const ms of PATCH_RETRY_MS) {
         window.setTimeout(() => {
           const d = iframeRef.current?.contentDocument;
           if (d?.getElementById("MainContent") && reviewStats)
-            applyProductReviewsToDocument(d, reviewStats, reviews);
+            applyProductStarBadge(d, reviewStats);
+        }, ms);
+      }
+      // Accordion: overlay içerikleri (Öne Çıkan, Nasıl Kullanılır) yerleştikten sonra enjekte et
+      const capturedStats = reviewStats;
+      const capturedReviews = reviews;
+      for (const ms of [1500, 2500, 4000]) {
+        window.setTimeout(() => {
+          const d = iframeRef.current?.contentDocument;
+          if (d?.getElementById("MainContent"))
+            applyProductReviewsAccordion(d, capturedStats, capturedReviews);
         }, ms);
       }
     }

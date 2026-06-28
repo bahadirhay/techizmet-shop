@@ -129,10 +129,10 @@ export function buildProductReviewsAccordionHtml(
     </form>
   </details>`;
 
-  return `<details class="product-accordion--item border-bottom" id="kn-reviews-accordion" open>
+  return `<details class="product-accordion--item border-bottom" id="kn-reviews-accordion">
   <summary class="product-accordion--heading" style="cursor:pointer;">
     <h2 class="product-accordion--heading-text">${heading}</h2>
-    <span class="product-accordion--icon product-accordion--icon--open"></span>
+    <span class="product-accordion--icon"></span>
   </summary>
   <div class="product-accordion--content">
     <div class="product-accordion--content-body rte" style="padding:16px 0;">
@@ -158,34 +158,58 @@ function ensureReviewStyles(doc: Document) {
   doc.head.appendChild(style);
 }
 
+/** iframe DOM'una yıldız bandını enjekte eder (erken çağrı — başlık + share sonrası) */
+export function applyProductStarBadge(doc: Document, stats: IframeReviewStats) {
+  if (stats.count === 0) return;
+  if (doc.getElementById("kn-product-star-badge")) return;
+  ensureReviewStyles(doc);
+
+  const html = buildProductStarBadgeHtml(stats);
+  // "Paylaş" butonu veya share alanı sonrasına — referans görsele uygun
+  const shareEl =
+    doc.querySelector(".product-share") ??
+    doc.querySelector(".product--share") ??
+    doc.querySelector("[data-share]") ??
+    doc.querySelector(".kn-share-btn-wrap");
+
+  if (shareEl) {
+    shareEl.insertAdjacentHTML("afterend", html);
+    return;
+  }
+  // Fallback: fiyat alanı altına
+  const priceEl = doc.querySelector(".price-wrapper") ?? doc.querySelector(".product--pricing");
+  if (priceEl) {
+    priceEl.insertAdjacentHTML("afterend", html);
+    return;
+  }
+  // Son fallback: başlık altı
+  const titleEl = doc.querySelector(".product-title-heading");
+  if (titleEl) {
+    titleEl.insertAdjacentHTML("afterend", html);
+  }
+}
+
+/** iframe DOM'una yorum akordeonunu enjekte eder (geç çağrı — overlay sonrası) */
+export function applyProductReviewsAccordion(
+  doc: Document,
+  stats: IframeReviewStats,
+  reviews: IframeReviewItem[],
+) {
+  if (doc.getElementById("kn-reviews-accordion")) return;
+  ensureReviewStyles(doc);
+
+  const accordion = doc.querySelector(".product-accordion");
+  if (!accordion) return;
+  const html = buildProductReviewsAccordionHtml(stats, reviews);
+  accordion.insertAdjacentHTML("beforeend", html);
+}
+
 /** iframe DOM'una yıldız bandı + yorum akordeonunu enjekte eder */
 export function applyProductReviewsToDocument(
   doc: Document,
   stats: IframeReviewStats,
   reviews: IframeReviewItem[],
 ) {
-  ensureReviewStyles(doc);
-
-  // 1) Başlık altına yıldız bandı
-  if (stats.count > 0 && !doc.getElementById("kn-product-star-badge")) {
-    const titleEl = doc.querySelector(".product-title-heading");
-    if (titleEl) {
-      const badgeDiv = doc.createElement("div");
-      badgeDiv.innerHTML = buildProductStarBadgeHtml(stats);
-      const badge = badgeDiv.firstElementChild;
-      if (badge) titleEl.insertAdjacentElement("afterend", badge);
-    }
-  }
-
-  // 2) Yorum akordeonunu .product-accordion sonuna ekle
-  if (!doc.getElementById("kn-reviews-accordion")) {
-    const accordion = doc.querySelector(".product-accordion");
-    if (accordion) {
-      const html = buildProductReviewsAccordionHtml(stats, reviews);
-      accordion.insertAdjacentHTML("beforeend", html);
-    }
-  }
-
-  // 3) iframe içinden gelen form submit mesajını burada handle etme —
-  //    parent window (MirrorProductFrameClient) tarafından handle edilir
+  applyProductStarBadge(doc, stats);
+  applyProductReviewsAccordion(doc, stats, reviews);
 }
