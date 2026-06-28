@@ -379,7 +379,7 @@ export function MirrorProductFrameClient({
         body: string;
         productId?: string;
       };
-      const pid = iframe?.contentDocument?.documentElement?.getAttribute("data-kn-product-id") ?? productSlug ?? "";
+      const pid = productFromAdmin?.productId ?? iframe?.contentDocument?.documentElement?.getAttribute("data-kn-product-id") ?? "";
       fetch("/api/store/reviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -417,7 +417,7 @@ export function MirrorProductFrameClient({
       window.removeEventListener("message", onMessage);
       timers.forEach(window.clearTimeout);
     };
-  }, [src, productSlug]);
+  }, [src, productSlug, productFromAdmin]);
 
   return (
     <div ref={wrapRef} className="kn-home-mirror kn-home-mirror--product relative w-full">
