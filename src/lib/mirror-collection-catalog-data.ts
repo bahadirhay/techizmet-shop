@@ -16,7 +16,6 @@ import { MIRROR_COLLECTION_PAGE_SIZE } from "@/lib/mirror-collections-sync";
 import { withProductDisplayTitle } from "@/lib/product-display-title";
 import { imageUrlsFromProductRow, primaryImageUrlFromProductRow } from "@/lib/mirror-product-card-images";
 import { getCategoryFilterOptions, getCategoryScopeIds } from "@/lib/store-category-tree";
-import { getApprovedReviewCountsBySite } from "@/lib/reviews/service";
 
 /** Koleksiyon/kategori ürün listesi — prebuild ve runtime (server-only değil) */
 export async function loadCollectionCatalogCore(
@@ -108,8 +107,18 @@ export async function loadCollectionCatalogCore(
       where: baseProductWhere,
       select: facetSelect,
     }),
-    getApprovedReviewCountsBySite(siteId),
+    prisma.storeProductReview.groupBy({
+      by: ["productId"],
+      where: { siteId, status: "approved" },
+      _count: { _all: true },
+      _sum: { rating: true },
+    }),
   ]);
+
+  const reviewStatsMap = new Map<string, { count: number; sum: number }>();
+  for (const g of reviewStats) {
+    reviewStatsMap.set(g.productId, { count: g._count._all, sum: g._sum.rating ?? 0 });
+  }
 
   const filterFacets = buildCollectionFilterFacets(facetProducts);
 
@@ -143,7 +152,7 @@ export async function loadCollectionCatalogCore(
     collectionFromAdmin,
     productsFromAdmin: products.map((p) => {
       const imageUrls = imageUrlsFromProductRow(p);
-      const rv = reviewStats.get(p.id);
+      const rv = reviewStatsMap.get(p.id);
       const reviewCount = rv?.count ?? 0;
       const reviewAvg = reviewCount > 0 ? Math.round((rv!.sum / reviewCount) * 10) / 10 : 0;
       return withProductDisplayTitle({
