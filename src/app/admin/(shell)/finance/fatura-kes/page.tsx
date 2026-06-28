@@ -4,6 +4,8 @@ import { TopluFatura } from "@/components/admin/TopluFatura";
 import { orderInvoicePendingWhere } from "@/lib/admin/order-invoice-workflow";
 import { requireStaffPage } from "@/lib/staff-auth";
 import { prisma } from "@/lib/prisma";
+import { getSiteSettings } from "@/lib/site-settings";
+import { getDefaultSite } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
@@ -16,9 +18,12 @@ export default async function FaturaKesPage() {
     "https://sizin-domain.com"
   ).replace(/\/$/, "");
 
-  const pendingCount = await prisma.storeOrder.count({
-    where: { siteId: auth.siteId, ...orderInvoicePendingWhere() },
-  });
+  const [site, pendingCount] = await Promise.all([
+    getDefaultSite(),
+    prisma.storeOrder.count({ where: { siteId: auth.siteId, ...orderInvoicePendingWhere() } }),
+  ]);
+  const settings = await getSiteSettings(site.id);
+  const efatura = settings.efatura ?? {};
 
   return (
     <div className="space-y-10">
@@ -48,7 +53,12 @@ export default async function FaturaKesPage() {
             Sipariş dışı faturalar için: hizmet bedeli, danışmanlık, kira vb. GİB e-Arşiv'e gönderilir.
           </p>
         </div>
-        <ManuelFaturaKes siteUrl={siteUrl} />
+        <ManuelFaturaKes
+          siteUrl={siteUrl}
+          sellerTitle={efatura.sellerTitle ?? site.name}
+          sellerTaxId={efatura.sellerTaxId ?? ""}
+          sellerTaxOffice={efatura.sellerTaxOffice ?? ""}
+        />
       </div>
     </div>
   );

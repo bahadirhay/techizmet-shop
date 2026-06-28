@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { InvoiceLineAutocomplete } from "@/components/admin/InvoiceLineAutocomplete";
+import { InvoicePreview } from "@/components/admin/InvoicePreview";
 import type { InvoiceLineSuggestion } from "@/app/api/admin/finance/invoice-lines/suggest/route";
 
 type Line = {
@@ -44,7 +45,17 @@ function fmt(tl: number) {
   return new Intl.NumberFormat("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(tl) + " ₺";
 }
 
-export function ManuelFaturaKes({ siteUrl }: { siteUrl: string }) {
+export function ManuelFaturaKes({
+  siteUrl,
+  sellerTitle,
+  sellerTaxId,
+  sellerTaxOffice,
+}: {
+  siteUrl: string;
+  sellerTitle?: string;
+  sellerTaxId?: string;
+  sellerTaxOffice?: string;
+}) {
   const [recipientName, setRecipientName] = useState("");
   const [recipientTaxId, setRecipientTaxId] = useState("");
   const [recipientTaxOffice, setRecipientTaxOffice] = useState("");
@@ -185,6 +196,8 @@ export function ManuelFaturaKes({ siteUrl }: { siteUrl: string }) {
   }
 
   const canSubmit = recipientName.trim() && lines.every((l) => l.description && parseTl(l.unitPriceTl) > 0);
+
+  const [showPreview, setShowPreview] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -445,6 +458,30 @@ export function ManuelFaturaKes({ siteUrl }: { siteUrl: string }) {
         </div>
       </div>
 
+      {/* Önizleme */}
+      {showPreview && (
+        <InvoicePreview
+          sellerTitle={sellerTitle ?? ""}
+          sellerTaxId={sellerTaxId ?? ""}
+          sellerTaxOffice={sellerTaxOffice ?? ""}
+          recipientName={recipientName}
+          recipientTaxId={recipientTaxId}
+          recipientTaxOffice={recipientTaxOffice}
+          recipientAddress={recipientAddress}
+          recipientCity={recipientCity}
+          recipientEmail={recipientEmail}
+          recipientPhone={recipientPhone}
+          invoiceDate={invoiceDate}
+          lines={lines.map((l) => ({
+            description: l.description,
+            qty: parseTl(l.qty) || 1,
+            unitPriceTl: parseTl(l.unitPriceTl),
+            vatRate: l.vatRate,
+          }))}
+          totals={totals}
+        />
+      )}
+
       {/* GİB uyarısı + submit */}
       <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-800">
         <strong>Not:</strong> Fatura GİB e-Arşiv portalına gönderilecek. E-Arşiv ayarlarınızın (kullanıcı adı/şifre) doğru girilmiş olması gerekir.{" "}
@@ -459,6 +496,13 @@ export function ManuelFaturaKes({ siteUrl }: { siteUrl: string }) {
           onClick={() => void submit()}
         >
           {submitting ? "GİB&apos;e gönderiliyor…" : "Fatura Kes & GİB&apos;e Gönder"}
+        </button>
+        <button
+          type="button"
+          className="rounded-lg border border-zinc-300 px-6 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
+          onClick={() => setShowPreview((v) => !v)}
+        >
+          {showPreview ? "Önizlemeyi Kapat" : "Fatura Önizle"}
         </button>
       </div>
 
