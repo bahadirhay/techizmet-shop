@@ -335,11 +335,48 @@ export function MirrorProductFrameClient({
       }
     }
 
-    iframe.addEventListener("load", measure);
-    // load'dan sonra tema JS render edince tekrar ölç
-    const timers = [500, 1200, 2500, 4000].map((ms) => window.setTimeout(measure, ms));
+    // iframe içinden "yorumlara git" mesajını dinle → #yorumlar bölümüne kaydır
+    function onMessage(e: MessageEvent) {
+      if (e.data?.type === "kn-scroll-to-reviews") {
+        document.getElementById("yorumlar")?.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+    window.addEventListener("message", onMessage);
+
+    // iframe yüklenince "Yorumlara git" butonu + scroll-passthrough enjekte et
+    function injectReviewsJump() {
+      try {
+        const doc = iframe?.contentDocument;
+        if (!doc || doc.getElementById("kn-reviews-jump")) return;
+        const btn = doc.createElement("a");
+        btn.id = "kn-reviews-jump";
+        btn.href = "#";
+        btn.textContent = "★ Müşteri Yorumları";
+        btn.setAttribute("aria-label", "Müşteri yorumlarına git");
+        btn.style.cssText =
+          "display:flex;align-items:center;justify-content:center;gap:6px;" +
+          "width:100%;padding:14px 16px;background:#f5f3ef;border-top:1px solid rgba(0,0,0,.08);" +
+          "color:#2d4a6f;font-weight:600;font-size:0.92rem;text-decoration:none;cursor:pointer;";
+        btn.addEventListener("click", (ev) => {
+          ev.preventDefault();
+          window.parent.postMessage({ type: "kn-scroll-to-reviews" }, "*");
+        });
+        // iframe'in en altına ekle (body'nin son çocuğu olarak)
+        const target = doc.body ?? doc.documentElement;
+        target.appendChild(btn);
+      } catch {
+        // cross-origin guard
+      }
+    }
+
+    iframe.addEventListener("load", () => { measure(); injectReviewsJump(); });
+    // load'dan sonra tema JS render edince tekrar ölç + butonu enjekte et
+    const timers = [500, 1200, 2500, 4000].map((ms) =>
+      window.setTimeout(() => { measure(); injectReviewsJump(); }, ms)
+    );
     return () => {
       iframe.removeEventListener("load", measure);
+      window.removeEventListener("message", onMessage);
       timers.forEach(window.clearTimeout);
     };
   }, [src]);
