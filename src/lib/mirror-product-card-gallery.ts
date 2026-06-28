@@ -40,7 +40,7 @@ function ensureGalleryStyles(doc: Document) {
   background: rgba(255, 255, 255, 0.95);
 }
 .product--card-image img.product--card-image {
-  transition: opacity 0.12s ease;
+  transition: opacity 0.12s ease, transform 0.6s ease;
 }
 `;
   doc.head.appendChild(style);

@@ -466,6 +466,12 @@ export function applyCollectionProductsFromAdmin(
     .map((product) => productCardHtml(product, resolved, { locale }))
     .join("");
   initProductCardGalleries(doc);
+  // Tema JS enjeksiyondan sonra kartları yeniden başlatabilir; galeriyi gecikmeli de bağla
+  const win = doc.defaultView;
+  if (win) {
+    win.setTimeout(() => initProductCardGalleries(doc), 400);
+    win.setTimeout(() => initProductCardGalleries(doc), 1200);
+  }
 }
 
 export function applyCollectionCategoryFiltersFromAdmin(
