@@ -60,6 +60,7 @@ model StoreSite {
   financeInvoiceApprovalLogs FinanceInvoiceApprovalLog[]
   financePostingTemplates FinancePostingTemplate[]
   financeInvoicePostJobs   FinanceInvoicePostJob[]
+  financeInvoiceLineTemplates FinanceInvoiceLineTemplate[]
   taxObligations           TaxObligation[]
   invoiceEntries           InvoiceEntry[]
   streetFoodCampaigns      StreetFoodCampaign[]
@@ -1362,6 +1363,25 @@ model FinanceInvoicePostJob {
   @@index([siteId, status, nextRetryAt])
   @@index([siteId, invoiceId])
   @@map("finance_invoice_post_job")
+  @@schema("shop")
+}
+
+model FinanceInvoiceLineTemplate {
+  id          String    @id @default(cuid())
+  siteId      String
+  site        StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  description String
+  unit        String    @default("adet")
+  unitPriceTl Decimal   @db.Decimal(12, 2)
+  vatRate     Int       @default(20)
+  notes       String?
+  active      Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([siteId, active, sortOrder])
+  @@map("finance_invoice_line_template")
   @@schema("shop")
 }
 

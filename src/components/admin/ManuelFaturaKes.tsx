@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { InvoiceLineAutocomplete } from "@/components/admin/InvoiceLineAutocomplete";
+import type { InvoiceLineSuggestion } from "@/app/api/admin/finance/invoice-lines/suggest/route";
 
 type Line = {
   id: number;
@@ -117,6 +119,30 @@ export function ManuelFaturaKes({ siteUrl }: { siteUrl: string }) {
 
   function updateLine(id: number, patch: Partial<Line>) {
     setLines((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)));
+  }
+
+  function applyLineSuggestion(lineId: number, s: InvoiceLineSuggestion) {
+    setLines((prev) =>
+      prev.map((l) =>
+        l.id === lineId
+          ? { ...l, description: s.description, unitPriceTl: String(s.unitPriceTl), vatRate: s.vatRate }
+          : l,
+      ),
+    );
+  }
+
+  async function saveLineAsTemplate(l: Line) {
+    const price = parseTl(l.unitPriceTl);
+    if (!l.description.trim() || price <= 0) return;
+    await fetch("/api/admin/finance/invoice-lines", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        description: l.description.trim(),
+        unitPriceTl: price,
+        vatRate: l.vatRate,
+      }),
+    });
   }
 
   async function submit() {
@@ -356,12 +382,13 @@ export function ManuelFaturaKes({ siteUrl }: { siteUrl: string }) {
         <div className="space-y-2">
           {lines.map((l, idx) => (
             <div key={l.id} className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_80px_120px_100px_32px]">
-              <input
-                type="text"
-                className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm"
-                placeholder={`Satır ${idx + 1} — ürün/hizmet açıklaması`}
+              <InvoiceLineAutocomplete
                 value={l.description}
-                onChange={(e) => updateLine(l.id, { description: e.target.value })}
+                onChange={(val) => updateLine(l.id, { description: val })}
+                onSelect={(s) => applyLineSuggestion(l.id, s)}
+                onSaveAsTemplate={() => void saveLineAsTemplate(l)}
+                placeholder={`Satır ${idx + 1} — ürün/hizmet açıklaması`}
+                className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm w-full"
               />
               <input
                 type="text"
