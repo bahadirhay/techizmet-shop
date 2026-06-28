@@ -1,7 +1,6 @@
 import type { VitrinCollectionDetail } from "@/lib/mirror-collections-sync";
 import type { CollectionCatalogPayload } from "@/lib/mirror-collection-payload-types";
 import type { ShopLocale } from "@/lib/i18n/locale";
-import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSiteSettingsUncached } from "@/lib/site-settings-load";
 import { resolveMirrorCollectionTexts } from "@/lib/store-static-texts";
@@ -81,13 +80,6 @@ export async function loadCollectionCatalogCore(
     variants: { select: { label: true, stockQty: true } },
   } as const;
 
-  // Facet ürünleri: filtre seçenekleri nadiren değişir, 5dk cache'le (duplikat query'den kurtulur)
-  const getCachedFacetProducts = unstable_cache(
-    () => prisma.storeProduct.findMany({ where: baseProductWhere, select: facetSelect }),
-    ["collection-facets", siteId, slug ?? "", categorySlug ?? ""],
-    { revalidate: 300 },
-  );
-
   const [totalProductCount, products, facetProducts, reviewStats] = await Promise.all([
     prisma.storeProduct.count({ where: productWhere }),
     prisma.storeProduct.findMany({
@@ -111,7 +103,7 @@ export async function loadCollectionCatalogCore(
         images: { orderBy: { sortOrder: "asc" }, select: { url: true } },
       },
     }),
-    getCachedFacetProducts(),
+    prisma.storeProduct.findMany({ where: baseProductWhere, select: facetSelect }),
     prisma.storeProductReview.groupBy({
       by: ["productId"],
       where: { siteId, status: "approved" },
