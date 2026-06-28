@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 
 type Line = {
   id: number;
@@ -8,6 +8,18 @@ type Line = {
   qty: string;
   unitPriceTl: string;
   vatRate: number;
+};
+
+type CustomerSuggestion = {
+  id: string;
+  source: "customer" | "counterparty";
+  name: string;
+  email: string;
+  phone: string;
+  taxId: string;
+  taxOffice: string;
+  address: string;
+  city: string;
 };
 
 type Result = {
@@ -43,6 +55,52 @@ export function ManuelFaturaKes({ siteUrl }: { siteUrl: string }) {
   const [lines, setLines] = useState<Line[]>([newLine()]);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
+
+  // Müşteri arama
+  const [searchQuery, setSearchQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<CustomerSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const fetchSuggestions = useCallback(async (q: string) => {
+    if (q.length < 2) { setSuggestions([]); return; }
+    const res = await fetch(`/api/admin/customers/search?q=${encodeURIComponent(q)}`);
+    if (!res.ok) return;
+    const data = (await res.json()) as { suggestions: CustomerSuggestion[] };
+    setSuggestions(data.suggestions);
+    setShowSuggestions(true);
+  }, []);
+
+  function onSearchChange(val: string) {
+    setSearchQuery(val);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => void fetchSuggestions(val), 250);
+  }
+
+  function selectCustomer(c: CustomerSuggestion) {
+    setRecipientName(c.name);
+    setRecipientTaxId(c.taxId);
+    setRecipientTaxOffice(c.taxOffice);
+    setRecipientEmail(c.email);
+    setRecipientPhone(c.phone);
+    setRecipientAddress(c.address);
+    setRecipientCity(c.city);
+    setSearchQuery("");
+    setSuggestions([]);
+    setShowSuggestions(false);
+  }
+
+  // Dışarı tıklayınca dropdown kapat
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    }
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, []);
 
   const totals = useMemo(() => {
     let totalNet = 0, totalVat = 0;
@@ -143,7 +201,43 @@ export function ManuelFaturaKes({ siteUrl }: { siteUrl: string }) {
 
       {/* Alıcı bilgileri */}
       <div className="admin-card admin-card-pad">
-        <h3 className="mb-4 font-semibold text-zinc-800">Alıcı Bilgileri</h3>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h3 className="font-semibold text-zinc-800">Alıcı Bilgileri</h3>
+          {/* Müşteri arama */}
+          <div ref={searchRef} className="relative w-72">
+            <input
+              type="text"
+              className="w-full rounded-md border border-zinc-300 px-3 py-1.5 text-sm placeholder:text-zinc-400"
+              placeholder="Müşteri ara (ad, e-posta, VKN…)"
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+            />
+            {showSuggestions && suggestions.length > 0 && (
+              <ul className="absolute left-0 top-full z-50 mt-1 w-full rounded-md border border-zinc-200 bg-white shadow-lg">
+                {suggestions.map((c) => (
+                  <li key={c.id}>
+                    <button
+                      type="button"
+                      className="w-full px-3 py-2 text-left text-sm hover:bg-zinc-50"
+                      onMouseDown={(e) => { e.preventDefault(); selectCustomer(c); }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-zinc-800">{c.name || "—"}</span>
+                        <span className={`rounded px-1 py-0.5 text-[10px] font-medium ${c.source === "counterparty" ? "bg-blue-100 text-blue-700" : "bg-zinc-100 text-zinc-500"}`}>
+                          {c.source === "counterparty" ? "cari" : "üye"}
+                        </span>
+                      </div>
+                      <div className="text-xs text-zinc-500">
+                        {[c.email, c.phone, c.taxId].filter(Boolean).join(" · ")}
+                      </div>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
           <div className="lg:col-span-2">
             <label className="mb-1 block text-xs font-medium text-zinc-600">

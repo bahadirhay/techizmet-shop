@@ -14,7 +14,10 @@ async function requireCustomer() {
 
 export async function GET() {
   const auth = await requireCustomer();
-  if (auth.error) return auth.error;
+  if (auth.error) {
+    // Giriş yapmamış kullanıcılar için boş liste döndür — 401 yerine 200
+    return NextResponse.json({ productIds: [], slugs: [] });
+  }
 
   const rows = await prisma.customerFavorite.findMany({
     where: { customerId: auth.customerId! },

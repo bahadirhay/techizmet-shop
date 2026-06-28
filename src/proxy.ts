@@ -118,7 +118,9 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api/theme/cdn")
   ) {
-    return nextWithShopHost(request);
+    const response = nextWithShopHost(request);
+    response.headers.set("x-pathname", pathname);
+    return response;
   }
 
   if (
