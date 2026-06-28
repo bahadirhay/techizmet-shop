@@ -40,6 +40,11 @@ import {
   applyProductPageBottomOverlay,
   type ProductPageBottomSettings,
 } from "@/lib/product-page-bottom";
+import {
+  applyProductReviewsToDocument,
+  type IframeReviewStats,
+  type IframeReviewItem,
+} from "@/lib/mirror-product-reviews-inject";
 
 const PATCH_RETRY_MS = [50, 200, 500] as const;
 
@@ -69,6 +74,8 @@ export function MirrorProductFrameClient({
   templateMirrorSlug,
   share,
   breadcrumbs = [],
+  reviewStats,
+  reviews = [],
 }: {
   src: string;
   title: string;
@@ -88,6 +95,8 @@ export function MirrorProductFrameClient({
   productSlug?: string;
   templateMirrorSlug?: string;
   breadcrumbs?: { name: string; href: string; current?: boolean }[];
+  reviewStats?: IframeReviewStats;
+  reviews?: IframeReviewItem[];
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const cancelBrandingRef = useRef<(() => void) | undefined>(undefined);
@@ -184,6 +193,7 @@ export function MirrorProductFrameClient({
     exploreResolved,
     pageBottomLive,
     share,
+    reviewStats,
   });
 
   useMirrorIframeAutoHeight(iframeRef, false, src); // Ürün sayfasında: useProductFrameHeight ile yönetilir
@@ -240,6 +250,16 @@ export function MirrorProductFrameClient({
     }
 
     applyProductContentOverlay(doc, overlay ?? {});
+    if (reviewStats) {
+      applyProductReviewsToDocument(doc, reviewStats, reviews);
+      for (const ms of PATCH_RETRY_MS) {
+        window.setTimeout(() => {
+          const d = iframeRef.current?.contentDocument;
+          if (d?.getElementById("MainContent") && reviewStats)
+            applyProductReviewsToDocument(d, reviewStats, reviews);
+        }, ms);
+      }
+    }
     if (commerce) applyMirrorProductCommerce(doc, commerce);
 
     const sharePayload = share ?? commerce?.share;
@@ -306,6 +326,8 @@ export function MirrorProductFrameClient({
     pageBottomLive,
     share,
     breadcrumbs,
+    reviewStats,
+    reviews,
   ]);
 
   useMirrorIframeLifecycle(iframeRef, src, runPatch, [patchKey, runPatch, src]);
@@ -335,51 +357,55 @@ export function MirrorProductFrameClient({
       }
     }
 
-    // iframe içinden "yorumlara git" mesajını dinle → #yorumlar bölümüne kaydır
+    // iframe içinden yorum formu submit mesajını dinle → /api/store/reviews'e post et
     function onMessage(e: MessageEvent) {
-      if (e.data?.type === "kn-scroll-to-reviews") {
-        document.getElementById("yorumlar")?.scrollIntoView({ behavior: "smooth" });
-      }
+      if (e.data?.type !== "kn-submit-review") return;
+      const data = e.data.data as {
+        rating: number;
+        authorName: string;
+        title?: string;
+        body: string;
+        productId?: string;
+      };
+      const pid = iframe?.contentDocument?.documentElement?.getAttribute("data-kn-product-id") ?? productSlug ?? "";
+      fetch("/api/store/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...data, productId: pid }),
+      })
+        .then((r) => r.json())
+        .then((res: { ok: boolean; error?: string }) => {
+          try {
+            const doc = iframe?.contentDocument;
+            const msg = doc?.getElementById("kn-review-form-msg");
+            if (!msg) return;
+            if (res.ok) {
+              msg.textContent = "Yorumunuz alındı, onaylandıktan sonra yayınlanacak.";
+              msg.style.color = "#166534";
+              msg.style.display = "block";
+              const form = doc?.getElementById("kn-iframe-review-form") as HTMLFormElement | null;
+              form?.reset();
+            } else {
+              msg.textContent = res.error ?? "Bir hata oluştu, lütfen tekrar deneyin.";
+              msg.style.color = "#dc2626";
+              msg.style.display = "block";
+            }
+          } catch { /* cross-origin guard */ }
+        })
+        .catch(() => { /* network error */ });
     }
     window.addEventListener("message", onMessage);
 
-    // iframe yüklenince "Yorumlara git" butonu + scroll-passthrough enjekte et
-    function injectReviewsJump() {
-      try {
-        const doc = iframe?.contentDocument;
-        if (!doc || doc.getElementById("kn-reviews-jump")) return;
-        const btn = doc.createElement("a");
-        btn.id = "kn-reviews-jump";
-        btn.href = "#";
-        btn.textContent = "★ Müşteri Yorumları";
-        btn.setAttribute("aria-label", "Müşteri yorumlarına git");
-        btn.style.cssText =
-          "display:flex;align-items:center;justify-content:center;gap:6px;" +
-          "width:100%;padding:14px 16px;background:#f5f3ef;border-top:1px solid rgba(0,0,0,.08);" +
-          "color:#2d4a6f;font-weight:600;font-size:0.92rem;text-decoration:none;cursor:pointer;";
-        btn.addEventListener("click", (ev) => {
-          ev.preventDefault();
-          window.parent.postMessage({ type: "kn-scroll-to-reviews" }, "*");
-        });
-        // iframe'in en altına ekle (body'nin son çocuğu olarak)
-        const target = doc.body ?? doc.documentElement;
-        target.appendChild(btn);
-      } catch {
-        // cross-origin guard
-      }
-    }
-
-    iframe.addEventListener("load", () => { measure(); injectReviewsJump(); });
-    // load'dan sonra tema JS render edince tekrar ölç + butonu enjekte et
+    iframe.addEventListener("load", measure);
     const timers = [500, 1200, 2500, 4000].map((ms) =>
-      window.setTimeout(() => { measure(); injectReviewsJump(); }, ms)
+      window.setTimeout(measure, ms)
     );
     return () => {
       iframe.removeEventListener("load", measure);
       window.removeEventListener("message", onMessage);
       timers.forEach(window.clearTimeout);
     };
-  }, [src]);
+  }, [src, productSlug]);
 
   return (
     <div ref={wrapRef} className="kn-home-mirror kn-home-mirror--product relative w-full">

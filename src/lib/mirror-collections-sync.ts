@@ -45,6 +45,8 @@ export type VitrinCollectionProductCard = {
   lowStockThreshold: number;
   badgesJson?: string | null;
   kind?: string | null;
+  reviewCount?: number;
+  reviewAvg?: number;
 };
 
 export type VitrinCollectionCategoryOption = {
@@ -288,6 +290,7 @@ function productCardHtml(
       <div class="product--card-detail-inner">
         <div class="product--card-detail-content">
           <a href="${escAttr(href)}" class="product--title text" aria-label="${title}">${title}</a>
+          ${product.reviewCount && product.reviewCount > 0 ? `<div class="kn-card-stars" style="display:flex;align-items:center;gap:4px;margin:2px 0 4px;line-height:1;"><span style="color:#f5a623;font-size:0.78rem;letter-spacing:0.5px;">${"★".repeat(Math.round(Math.min(5, product.reviewAvg ?? 0)))}${"☆".repeat(5 - Math.round(Math.min(5, product.reviewAvg ?? 0)))}</span><span style="font-size:0.75rem;color:#52525b;">(${product.reviewCount})</span></div>` : ""}
           <div class="product--pricing text">
             <span class="product--actual-price heading-font">${price}</span>
             ${compare}

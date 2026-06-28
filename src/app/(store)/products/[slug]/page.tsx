@@ -68,7 +68,6 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           title={seoCtx.visibleTitle}
           breadcrumbs={breadcrumbs}
         />
-        <ProductReviews productId={seoCtx.product.id} productName={seoCtx.visibleTitle} />
       </>
     );
   }

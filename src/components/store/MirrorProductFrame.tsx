@@ -8,6 +8,8 @@ import { loadMirrorNavItems } from "@/lib/mirror-nav-server";
 import { loadMirrorProductFramePayload } from "@/lib/mirror-product-frame-server";
 import { getSiteBranding, getSiteSettings } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
+import { getApprovedReviews, getReviewStats } from "@/lib/reviews/service";
+import type { IframeReviewStats, IframeReviewItem } from "@/lib/mirror-product-reviews-inject";
 
 /** HTTrack mirror — ürün detay; DB fiyat/içerik istemci + API ile yansır */
 export async function MirrorProductFrame({
@@ -35,6 +37,18 @@ export async function MirrorProductFrame({
   ]);
   if (!payload) notFound();
 
+  const productId = payload.productFromAdmin?.productId;
+  let reviewStats: IframeReviewStats = { count: 0, average: 0 };
+  let reviews: IframeReviewItem[] = [];
+  if (productId) {
+    const [stats, approved] = await Promise.all([
+      getReviewStats(productId),
+      getApprovedReviews(productId, 30),
+    ]);
+    reviewStats = { count: stats.count, average: stats.average };
+    reviews = approved;
+  }
+
   const branding = getSiteBranding(settings);
   const src = await buildProductMirrorSrc(slug, locale, resolvedTemplateSlug);
   const frameTitle = title ?? `Product — ${slug}`;
@@ -57,6 +71,8 @@ export async function MirrorProductFrame({
       templateMirrorSlug={resolvedTemplateSlug !== slug ? resolvedTemplateSlug : undefined}
       productPageBottom={payload.productPageBottom}
       breadcrumbs={breadcrumbs}
+      reviewStats={reviewStats}
+      reviews={reviews}
     />
   );
 }

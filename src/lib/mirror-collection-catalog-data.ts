@@ -16,6 +16,7 @@ import { MIRROR_COLLECTION_PAGE_SIZE } from "@/lib/mirror-collections-sync";
 import { withProductDisplayTitle } from "@/lib/product-display-title";
 import { imageUrlsFromProductRow, primaryImageUrlFromProductRow } from "@/lib/mirror-product-card-images";
 import { getCategoryFilterOptions, getCategoryScopeIds } from "@/lib/store-category-tree";
+import { getApprovedReviewCountsBySite } from "@/lib/reviews/service";
 
 /** Koleksiyon/kategori ürün listesi — prebuild ve runtime (server-only değil) */
 export async function loadCollectionCatalogCore(
@@ -80,7 +81,7 @@ export async function loadCollectionCatalogCore(
     variants: { select: { label: true, stockQty: true } },
   } as const;
 
-  const [totalProductCount, products, facetProducts] = await Promise.all([
+  const [totalProductCount, products, facetProducts, reviewStats] = await Promise.all([
     prisma.storeProduct.count({ where: productWhere }),
     prisma.storeProduct.findMany({
       where: productWhere,
@@ -88,6 +89,7 @@ export async function loadCollectionCatalogCore(
       skip: (safePage - 1) * MIRROR_COLLECTION_PAGE_SIZE,
       take: MIRROR_COLLECTION_PAGE_SIZE,
       select: {
+        id: true,
         slug: true,
         title: true,
         imageUrl: true,
@@ -106,6 +108,7 @@ export async function loadCollectionCatalogCore(
       where: baseProductWhere,
       select: facetSelect,
     }),
+    getApprovedReviewCountsBySite(siteId),
   ]);
 
   const filterFacets = buildCollectionFilterFacets(facetProducts);
@@ -140,10 +143,15 @@ export async function loadCollectionCatalogCore(
     collectionFromAdmin,
     productsFromAdmin: products.map((p) => {
       const imageUrls = imageUrlsFromProductRow(p);
+      const rv = reviewStats.get(p.id);
+      const reviewCount = rv?.count ?? 0;
+      const reviewAvg = reviewCount > 0 ? Math.round((rv!.sum / reviewCount) * 10) / 10 : 0;
       return withProductDisplayTitle({
         ...p,
         imageUrl: primaryImageUrlFromProductRow(p),
         imageUrls: imageUrls.length > 1 ? imageUrls : undefined,
+        reviewCount: reviewCount > 0 ? reviewCount : undefined,
+        reviewAvg: reviewCount > 0 ? reviewAvg : undefined,
       });
     }),
     totalProductCount,
