@@ -131,8 +131,8 @@ export function buildProductReviewsAccordionHtml(
 
   return `<details class="product-accordion--item border-bottom" id="kn-reviews-accordion">
   <summary class="product-accordion--heading" style="cursor:pointer;">
-    <h2 class="product-accordion--heading-text">${heading}</h2>
-    <span class="product-accordion--icon"></span>
+    <p class="product-accordion--heading-text h6">${heading}</p>
+    <span class="product-accordion--icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.5H3v-1h18v1Z"></path><path d="M12.5 3v18h-1V3h1Z"></path></svg></span>
   </summary>
   <div class="product-accordion--content">
     <div class="product-accordion--content-body rte" style="padding:16px 0;">
