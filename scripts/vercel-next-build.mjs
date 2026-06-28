@@ -7,8 +7,9 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const nextBin = require.resolve("next/dist/bin/next");
 
-const heapMb = Number(process.env.NEXT_BUILD_HEAP_MB || "6144");
-const useWebpack = process.env.NEXT_BUILD_WEBPACK !== "0";
+const heapMb = Number(process.env.NEXT_BUILD_HEAP_MB || "3072");
+// Webpack varsayılan olarak kapalı — Turbopack daha az bellek kullanır
+const useWebpack = process.env.NEXT_BUILD_WEBPACK === "1";
 const nextArgs = ["build"];
 if (useWebpack) nextArgs.push("--webpack");
 
