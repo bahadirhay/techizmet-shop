@@ -1,6 +1,6 @@
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { FinanceCariClient } from "@/components/admin/FinanceCariClient";
-import { loadCariSummaryList, loadReceivablesPayables } from "@/lib/finance/cari-ledger";
+import { loadAllCariRows, loadReceivablesPayables } from "@/lib/finance/cari-ledger";
 import { requireStaffPage } from "@/lib/staff-auth";
 
 type Tab = "cariler" | "alacak" | "borc";
@@ -19,8 +19,8 @@ export default async function FinanceCariPage({
   const { tab: tabRaw } = await searchParams;
   const tab = parseTab(tabRaw);
 
-  const [summaries, { receivables, payables, totalReceivableMinor, totalPayableMinor }] =
-    await Promise.all([loadCariSummaryList(auth.siteId), loadReceivablesPayables(auth.siteId)]);
+  const [allRows, { receivables, payables, totalReceivableMinor, totalPayableMinor }] =
+    await Promise.all([loadAllCariRows(auth.siteId), loadReceivablesPayables(auth.siteId)]);
 
   return (
     <div>
@@ -31,7 +31,7 @@ export default async function FinanceCariPage({
       />
       <FinanceCariClient
         tab={tab}
-        summaries={summaries}
+        allRows={allRows}
         receivables={receivables}
         payables={payables}
         totalReceivableMinor={totalReceivableMinor}

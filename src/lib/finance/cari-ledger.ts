@@ -381,6 +381,88 @@ export async function loadReceivablesPayables(siteId: string): Promise<{
   };
 }
 
+// ── Tüm cari listesi (counterparty + carisi olmayan üyeler) ─────────────────
+
+export type CustomerNoCariRow = {
+  kind: "customer_no_cari";
+  customerId: string;
+  title: string;
+  email: string | null;
+  phone: string | null;
+  taxId: string | null;
+  orderCount: number;
+  totalSpentMinor: number;
+};
+
+export type UnifiedCariRow =
+  | (CariCounterpartySummary & { kind: "counterparty" })
+  | CustomerNoCariRow;
+
+export async function loadAllCariRows(siteId: string): Promise<UnifiedCariRow[]> {
+  const [summaries, customersWithOrders] = await Promise.all([
+    loadCariSummaryList(siteId),
+    prisma.storeCustomer.findMany({
+      where: { siteId, orders: { some: {} } },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        companyName: true,
+        email: true,
+        phone: true,
+        taxId: true,
+        financeCounterparties: {
+          where: { active: true },
+          select: { id: true },
+          take: 1,
+        },
+        _count: { select: { orders: true } },
+        orders: {
+          select: { totalMinor: true },
+          take: 100,
+          orderBy: { createdAt: "desc" },
+        },
+      },
+    }),
+  ]);
+
+  // Hangi müşterilerin zaten cari kaydı var?
+  const counterpartyCustomerIds = new Set(summaries.map((s) => s.customerId).filter(Boolean));
+
+  const rows: UnifiedCariRow[] = summaries.map((s) => ({ ...s, kind: "counterparty" as const }));
+
+  for (const c of customersWithOrders) {
+    if (c.financeCounterparties.length > 0 || counterpartyCustomerIds.has(c.id)) continue;
+    const name =
+      c.companyName?.trim() ||
+      [c.firstName, c.lastName].filter(Boolean).join(" ").trim() ||
+      c.email ||
+      "Üye";
+    rows.push({
+      kind: "customer_no_cari",
+      customerId: c.id,
+      title: name,
+      email: c.email,
+      phone: c.phone,
+      taxId: c.taxId,
+      orderCount: c._count.orders,
+      totalSpentMinor: c.orders.reduce((s, o) => s + o.totalMinor, 0),
+    });
+  }
+
+  // Counterparty'ler önce (bakiyeli en başta), sonra üyeler
+  rows.sort((a, b) => {
+    if (a.kind === "counterparty" && b.kind === "counterparty") {
+      return (b.receivableMinor + b.payableMinor) - (a.receivableMinor + a.payableMinor);
+    }
+    if (a.kind === "counterparty") return -1;
+    if (b.kind === "counterparty") return 1;
+    return b.orderCount - a.orderCount;
+  });
+
+  return rows;
+}
+
 export async function loadCariTotals(siteId: string): Promise<{
   totalReceivableMinor: number;
   totalPayableMinor: number;

@@ -1,24 +1,25 @@
 import Link from "next/link";
 import { formatTry } from "@/lib/admin/money";
-import type { CariCounterpartySummary, ReceivablePayableRow } from "@/lib/finance/cari-ledger";
+import type { UnifiedCariRow, ReceivablePayableRow } from "@/lib/finance/cari-ledger";
+import { CreateCariButton } from "@/components/admin/CreateCariButton";
 
 type Tab = "cariler" | "alacak" | "borc";
 
 function counterpartyTypeLabel(type: string): string {
-  if (type === "site_member") return "Müşteri / üye";
+  if (type === "site_member") return "Üye";
   return "Dış cari";
 }
 
 export function FinanceCariClient({
   tab,
-  summaries,
+  allRows,
   receivables,
   payables,
   totalReceivableMinor,
   totalPayableMinor,
 }: {
   tab: Tab;
-  summaries: CariCounterpartySummary[];
+  allRows: UnifiedCariRow[];
   receivables: ReceivablePayableRow[];
   payables: ReceivablePayableRow[];
   totalReceivableMinor: number;
@@ -30,7 +31,8 @@ export function FinanceCariClient({
     { id: "borc", label: "Borçlar", href: "/admin/finance/cari?tab=borc" },
   ];
 
-  const activeCariler = summaries.filter((s) => s.receivableMinor > 0 || s.payableMinor > 0);
+  const counterpartyRows = allRows.filter((r) => r.kind === "counterparty");
+  const noCariRows = allRows.filter((r) => r.kind === "customer_no_cari");
 
   return (
     <div>
@@ -61,6 +63,11 @@ export function FinanceCariClient({
             }`}
           >
             {t.label}
+            {t.id === "cariler" && allRows.length > 0 && (
+              <span className="ml-1.5 rounded-full bg-zinc-100 px-1.5 py-0.5 text-xs text-zinc-600">
+                {allRows.length}
+              </span>
+            )}
           </Link>
         ))}
         <Link
@@ -72,57 +79,121 @@ export function FinanceCariClient({
       </div>
 
       {tab === "cariler" ? (
-        <section className="admin-card admin-card-pad mt-6">
-          <h2 className="font-semibold">Cari kartlar</h2>
-          {activeCariler.length === 0 ? (
-            <p className="mt-4 text-sm text-zinc-500">
-              Açık alacak/borç yok. Fatura ekleyin veya karşı taraf tanımlayın.
-            </p>
-          ) : (
-            <table className="mt-4 w-full text-sm">
-              <thead>
-                <tr className="border-b text-left text-xs text-zinc-500">
-                  <th className="pb-2">Cari</th>
-                  <th className="pb-2">Tür</th>
-                  <th className="pb-2 text-right">Alacak</th>
-                  <th className="pb-2 text-right">Borç</th>
-                  <th className="pb-2 text-right">Net</th>
-                  <th className="pb-2 text-right">Açık fatura</th>
-                </tr>
-              </thead>
-              <tbody>
-                {activeCariler.map((s) => (
-                  <tr key={s.id} className="border-b border-zinc-100">
-                    <td className="py-2 pr-2">
-                      <Link href={`/admin/finance/counterparties/${s.id}`} className="font-medium underline">
-                        {s.title}
-                      </Link>
-                      {s.taxId ? <p className="text-xs text-zinc-500">VKN/TCKN: {s.taxId}</p> : null}
-                      {s.tags ? <p className="text-xs text-indigo-700">{s.tags}</p> : null}
-                      {s.creditLimitMinor != null ? (
-                        <p className="text-xs text-zinc-500">
-                          Limit: {formatTry(s.creditLimitMinor)}
-                          {s.creditHold ? " · KİLİTLİ" : ""}
-                        </p>
-                      ) : null}
-                    </td>
-                    <td className="py-2 pr-2">{counterpartyTypeLabel(s.type)}</td>
-                    <td className="py-2 pr-2 text-right tabular-nums text-emerald-700">
-                      {formatTry(s.receivableMinor)}
-                    </td>
-                    <td className="py-2 pr-2 text-right tabular-nums text-red-700">
-                      {formatTry(s.payableMinor)}
-                    </td>
-                    <td className="py-2 pr-2 text-right tabular-nums font-medium">
-                      {formatTry(s.netMinor)}
-                    </td>
-                    <td className="py-2 text-right">{s.openInvoiceCount}</td>
+        <div className="mt-6 space-y-6">
+          {/* Cari kayıtları */}
+          <section className="admin-card admin-card-pad">
+            <h2 className="font-semibold">
+              Cari kartlar
+              {counterpartyRows.length > 0 && (
+                <span className="ml-2 text-sm font-normal text-zinc-500">({counterpartyRows.length})</span>
+              )}
+            </h2>
+            {counterpartyRows.length === 0 ? (
+              <p className="mt-4 text-sm text-zinc-500">
+                Henüz cari kaydı yok. Aşağıdaki üyelerden veya{" "}
+                <Link href="/admin/finance/master-data" className="underline">
+                  Karşı taraf ekle
+                </Link>{" "}
+                sayfasından oluşturun.
+              </p>
+            ) : (
+              <table className="mt-4 w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-xs text-zinc-500">
+                    <th className="pb-2">Cari</th>
+                    <th className="pb-2">Tür</th>
+                    <th className="pb-2 text-right">Alacak</th>
+                    <th className="pb-2 text-right">Borç</th>
+                    <th className="pb-2 text-right">Net</th>
+                    <th className="pb-2 text-right">Açık fatura</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {counterpartyRows.map((row) => {
+                    if (row.kind !== "counterparty") return null;
+                    return (
+                      <tr key={row.id} className="border-b border-zinc-100">
+                        <td className="py-2 pr-2">
+                          <Link href={`/admin/finance/counterparties/${row.id}`} className="font-medium underline">
+                            {row.title}
+                          </Link>
+                          {row.taxId ? <p className="text-xs text-zinc-500">VKN/TCKN: {row.taxId}</p> : null}
+                          {row.email ? <p className="text-xs text-zinc-400">{row.email}</p> : null}
+                          {row.tags ? <p className="text-xs text-indigo-700">{row.tags}</p> : null}
+                          {row.creditLimitMinor != null ? (
+                            <p className="text-xs text-zinc-500">
+                              Limit: {formatTry(row.creditLimitMinor)}
+                              {row.creditHold ? " · KİLİTLİ" : ""}
+                            </p>
+                          ) : null}
+                        </td>
+                        <td className="py-2 pr-2 text-zinc-500">{counterpartyTypeLabel(row.type)}</td>
+                        <td className="py-2 pr-2 text-right tabular-nums text-emerald-700">
+                          {formatTry(row.receivableMinor)}
+                        </td>
+                        <td className="py-2 pr-2 text-right tabular-nums text-red-700">
+                          {formatTry(row.payableMinor)}
+                        </td>
+                        <td className="py-2 pr-2 text-right tabular-nums font-medium">
+                          {formatTry(row.netMinor)}
+                        </td>
+                        <td className="py-2 text-right">{row.openInvoiceCount}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </section>
+
+          {/* Carisi olmayan siparişli üyeler */}
+          {noCariRows.length > 0 && (
+            <section className="admin-card admin-card-pad">
+              <h2 className="font-semibold">
+                Sipariş veren üyeler — cari kaydı yok
+                <span className="ml-2 text-sm font-normal text-zinc-500">({noCariRows.length})</span>
+              </h2>
+              <p className="mt-1 text-xs text-zinc-500">
+                Bu üyelere fatura keserken veya cari takibe almak istediğinizde &quot;Cari Aç&quot; butonu ile tek tıkla ekleyebilirsiniz.
+              </p>
+              <table className="mt-4 w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-xs text-zinc-500">
+                    <th className="pb-2">Üye</th>
+                    <th className="pb-2 text-right">Sipariş</th>
+                    <th className="pb-2 text-right">Toplam alım</th>
+                    <th className="pb-2"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {noCariRows.map((row) => {
+                    if (row.kind !== "customer_no_cari") return null;
+                    return (
+                      <tr key={row.customerId} className="border-b border-zinc-100">
+                        <td className="py-2 pr-2">
+                          <Link href={`/admin/customers/${row.customerId}`} className="font-medium underline">
+                            {row.title}
+                          </Link>
+                          {row.taxId ? <p className="text-xs text-zinc-500">VKN/TCKN: {row.taxId}</p> : null}
+                          {row.email ? <p className="text-xs text-zinc-400">{row.email}</p> : null}
+                        </td>
+                        <td className="py-2 pr-2 text-right tabular-nums text-zinc-600">
+                          {row.orderCount}
+                        </td>
+                        <td className="py-2 pr-2 text-right tabular-nums text-zinc-700">
+                          {formatTry(row.totalSpentMinor)}
+                        </td>
+                        <td className="py-2 text-right">
+                          <CreateCariButton customerId={row.customerId} title={row.title} />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </section>
           )}
-        </section>
+        </div>
       ) : null}
 
       {tab === "alacak" ? (
