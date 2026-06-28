@@ -39,3 +39,16 @@ html.kn-scroll-locked body {
 .kn-home-mirror--ready .mirror-home-frame {
   opacity: 1;
 }
+
+/* Ürün sayfası: iframe içerik yüksekliğine genişler, altındaki yorum bölümü görünür */
+.kn-home-mirror--product {
+  height: auto;
+  min-height: 60vh;
+  overflow: visible;
+  overflow-x: clip;
+}
+.kn-home-mirror--product .mirror-home-frame {
+  height: var(--product-frame-h, 100vh);
+  min-height: 60vh;
+  max-height: none;
+}

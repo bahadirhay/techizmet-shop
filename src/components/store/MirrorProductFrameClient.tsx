@@ -186,7 +186,7 @@ export function MirrorProductFrameClient({
     share,
   });
 
-  useMirrorIframeAutoHeight(iframeRef, true, src);
+  useMirrorIframeAutoHeight(iframeRef, false, src); // Ürün sayfasında: useProductFrameHeight ile yönetilir
 
   const runPatch = useCallback(() => {
     const frame = iframeRef.current;
@@ -315,8 +315,37 @@ export function MirrorProductFrameClient({
     return () => window.clearTimeout(t);
   }, [patchKey, src]);
 
+  // Ürün sayfası: iframe içerik yüksekliğini ölçüp CSS değişkenine yaz
+  const wrapRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    const wrap = wrapRef.current;
+    if (!iframe || !wrap) return;
+
+    function measure() {
+      try {
+        const doc = iframe?.contentDocument;
+        const h = doc?.documentElement?.scrollHeight ?? doc?.body?.scrollHeight ?? 0;
+        if (h > 200) {
+          wrap?.style.setProperty("--product-frame-h", `${h}px`);
+          if (iframe) iframe.style.height = `${h}px`;
+        }
+      } catch {
+        // cross-origin guard
+      }
+    }
+
+    iframe.addEventListener("load", measure);
+    // load'dan sonra tema JS render edince tekrar ölç
+    const timers = [500, 1200, 2500, 4000].map((ms) => window.setTimeout(measure, ms));
+    return () => {
+      iframe.removeEventListener("load", measure);
+      timers.forEach(window.clearTimeout);
+    };
+  }, [src]);
+
   return (
-    <div className="kn-home-mirror relative h-screen w-full overflow-hidden">
+    <div ref={wrapRef} className="kn-home-mirror kn-home-mirror--product relative w-full">
       <iframe
         ref={iframeRef}
         title={title}

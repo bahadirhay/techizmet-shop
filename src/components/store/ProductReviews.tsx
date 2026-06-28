@@ -33,6 +33,15 @@ export async function ProductReviews({
 
   return (
     <section className="kn-reviews" id="yorumlar" aria-label="Ürün yorumları">
+      {/* Kullanıcıya yorum bölümü olduğunu bildiren görünür başlık bandı */}
+      <div className="kn-reviews__banner">
+        <span className="kn-reviews__banner-icon">★</span>
+        <span>
+          {stats.count > 0
+            ? `${stats.count} müşteri yorumu · Puan: ${stats.average.toFixed(1)}/5`
+            : "Yorum yaz — ilk değerlendiren siz olun"}
+        </span>
+      </div>
       <div className="kn-reviews__inner">
         <h2 className="kn-reviews__title">Müşteri Yorumları</h2>
 
