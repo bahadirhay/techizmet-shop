@@ -115,42 +115,15 @@ export function MirrorProductFrameClient({
   // Ürün sayfasında parent route'u iframe location'ından senkronlamak güvenli değil.
   useMirrorFrameRouteSync(iframeRef, src, false);
 
-  useEffect(() => {
-    const link = document.createElement("link");
-    link.rel = "preload";
-    link.as = "document";
-    link.href = src;
-    document.head.appendChild(link);
-    return () => {
-      link.remove();
-    };
-  }, [src]);
+  // preload kaldırıldı — iframe src ile double-load yapıyordu (+1 gereksiz HTTP request)
 
   useEffect(() => {
     setContentVisible(isPrebuiltMirrorSrc(src));
   }, [src]);
 
+  // Tek API isteği — pageBottom + exploreLooks birlikte alınır (önceden 2 ayrı fetch vardı)
   useEffect(() => {
     if (!productSlug) return;
-    let cancelled = false;
-    fetch(`/api/vitrin/product-frame?slug=${encodeURIComponent(productSlug)}`, {
-      cache: "no-store",
-    })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data: { pageBottom?: ProductPageBottomSettings } | null) => {
-        if (cancelled || !data?.pageBottom) return;
-        setPageBottomLive(data.pageBottom);
-      })
-      .catch(() => {
-        /* SSR props yedek */
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [productSlug]);
-
-  useEffect(() => {
-    if (!productSlug || explorePrefetched) return;
     let cancelled = false;
     fetch(`/api/vitrin/product-frame?slug=${encodeURIComponent(productSlug)}`, {
       cache: "no-store",
@@ -159,13 +132,17 @@ export function MirrorProductFrameClient({
       .then(
         (
           data: {
+            pageBottom?: ProductPageBottomSettings;
             exploreLooks?: ProductExploreLook[];
             exploreProductsBySlug?: Record<string, ExploreOverlayProduct>;
           } | null,
         ) => {
           if (cancelled) return;
-          setExploreLooks(data?.exploreLooks ?? []);
-          setExploreProductsBySlug(data?.exploreProductsBySlug ?? {});
+          if (data?.pageBottom) setPageBottomLive(data.pageBottom);
+          if (!explorePrefetched) {
+            setExploreLooks(data?.exploreLooks ?? []);
+            setExploreProductsBySlug(data?.exploreProductsBySlug ?? {});
+          }
           setExploreResolved(true);
         },
       )
@@ -345,7 +322,7 @@ export function MirrorProductFrameClient({
   useMirrorIframeLifecycle(iframeRef, src, runPatch, [patchKey, runPatch, src]);
 
   useEffect(() => {
-    const t = window.setTimeout(() => setContentVisible(true), 1800);
+    const t = window.setTimeout(() => setContentVisible(true), 700);
     return () => window.clearTimeout(t);
   }, [patchKey, src]);
 

@@ -70,8 +70,9 @@ const nextConfig: NextConfig = {
         value: "public, max-age=31536000, immutable",
       },
     ] as const;
-    const prebuiltHtmlNoStore = [
-      { key: "Cache-Control", value: "private, no-store, max-age=0, must-revalidate" },
+    // Prebuilt HTML — içerik client-side patch edildiğinden shell 5dk browser + 1 saat CDN edge'de cache'de kalabilir
+    const prebuiltHtmlCache = [
+      { key: "Cache-Control", value: "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400" },
     ] as const;
     /**
      * SEO tarama dosyaları — dinamik route handler'ları varsayılan no-store
@@ -109,7 +110,7 @@ const nextConfig: NextConfig = {
         headers: [storeCsp, ...securityHeaders],
       },
       { source: "/api/admin/:path*", headers: [...noStore] },
-      { source: "/_mirror-prebuilt/:path*.html", headers: [...prebuiltHtmlNoStore] },
+      { source: "/_mirror-prebuilt/:path*.html", headers: [...prebuiltHtmlCache] },
       { source: "/_mirror-prebuilt/:path*", headers: [...prebuiltCache] },
       {
         // JS/CSS/images — uzun süreli cache uygun

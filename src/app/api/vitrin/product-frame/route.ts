@@ -6,7 +6,7 @@ import { parseSiteSettings, resolveProductExploreLooks } from "@/lib/site-settin
 import { getDefaultSite } from "@/lib/site";
 import { prisma } from "@/lib/prisma";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 /** Ürün EXPLORE bölümü — ana kabuktan ayrı, hafif JSON */
 export async function GET(req: Request) {
@@ -35,7 +35,8 @@ export async function GET(req: Request) {
     { exploreLooks, exploreProductsBySlug, pageBottom },
     {
       headers: {
-        "Cache-Control": "private, no-store, max-age=0",
+        // Kullanıcıya özel değil, kısa browser cache + edge stale-while-revalidate
+        "Cache-Control": "public, max-age=60, s-maxage=300, stale-while-revalidate=600",
       },
     },
   );

@@ -21,7 +21,7 @@
     },
     { passive: true },
   );
-  setInterval(syncTop, 250);
+  // setInterval(syncTop, 250) kaldırıldı — scroll event yeterli, her 250ms polling gereksizdi
   document.addEventListener(
     "click",
     function (ev) {
@@ -80,7 +80,12 @@
     qsa("[data-kn-gallery]").forEach(bindGallery);
   }
   initGalleries();
-  setInterval(initGalleries, 2000);
+  // Galeri binding: 20 saniye boyunca her 2 saniyede çalışır, sonra durur (sonsuz DOM taraması yerine)
+  var _galleryTick = 0;
+  var _galleryInterval = setInterval(function () {
+    initGalleries();
+    if (++_galleryTick >= 10) clearInterval(_galleryInterval);
+  }, 2000);
   function renderBar(p) {
     var pct = Math.max(0, Math.min(100, Number(p.progressPercent) || 0));
     return (
