@@ -29,6 +29,7 @@ export type SearchIntentTarget = {
 
 const LANDING_ALL = "/collections/all";
 /** Head terimler için adanmış landing sayfaları (kendi URL + H1 + içerik) */
+const LANDING_DOGAL_KOPEK_ODULU = "/collections/dogal-kopek-odulu";
 const LANDING_KOPEK_ODUL_MAMASI = "/collections/kopek-odul-mamasi";
 const LANDING_DOGAL_KOPEK_ODUL_MAMASI = "/collections/dogal-kopek-odul-mamasi";
 
@@ -38,9 +39,9 @@ export const DEFAULT_SEARCH_INTENTS: SearchIntentTarget[] = [
     id: "dog-natural-treat",
     query: "doğal köpek ödülü",
     priority: 1,
-    landingPath: LANDING_ALL,
-    landingKind: "staticPage",
-    staticPageKey: LANDING_ALL,
+    landingPath: LANDING_DOGAL_KOPEK_ODULU,
+    landingKind: "collection",
+    collectionSlug: "dogal-kopek-odulu",
     title: "Doğal Köpek Ödülü | Anatolian Paw",
     description:
       "Doğal köpek ödülü ve eğitim maması — tahılsız, katkısız, Türkiye üretimi. Kurutulmuş dana ciğer, akciğer ve kemik ödülleri 150–250 TL aralığında. Hızlı kargo, güvenilir içerik.",
@@ -524,6 +525,21 @@ export function getSearchIntents(_settings?: SiteSettings): SearchIntentTarget[]
 export const LANDING_COLLECTION_SLUGS: string[] = DEFAULT_SEARCH_INTENTS.filter(
   (i) => i.landingKind === "collection" && Boolean(i.collectionSlug),
 ).map((i) => i.collectionSlug as string);
+
+/**
+ * Blog yazısı slug → FAQ eşleşmesi.
+ * Blog post page'de FAQPage schema enjekte etmek için kullanılır.
+ */
+const BLOG_SLUG_FAQ_MAP: Record<string, SearchIntentFaq[]> = {
+  "dogal-kopek-odulu-nedir": DEFAULT_SEARCH_INTENTS.find((i) => i.id === "dog-natural-treat")?.faqs ?? [],
+  "dogal-kopek-odul-mamasi-rehberi": DEFAULT_SEARCH_INTENTS.find((i) => i.id === "natural-dog-treat-food")?.faqs ?? [],
+  "kopek-odul-mamasi-secimi": DEFAULT_SEARCH_INTENTS.find((i) => i.id === "dog-treat-food")?.faqs ?? [],
+};
+
+/** Blog yazısı slug'ı için FAQPage schema'da kullanılacak S/C listesini döner */
+export function findFaqsForBlogSlug(slug: string): SearchIntentFaq[] {
+  return BLOG_SLUG_FAQ_MAP[slug.trim().toLowerCase()] ?? [];
+}
 
 /** /collections/<slug> için adanmış landing intent'ini bulur */
 export function findLandingIntentBySlug(slug: string): SearchIntentTarget | undefined {

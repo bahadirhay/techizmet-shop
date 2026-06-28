@@ -8,6 +8,7 @@ import { JsonLdScript } from "@/components/store/JsonLdScript";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { buildNewsArticleJsonLd } from "@/lib/seo/site-json-ld";
 import { blogFeedUrl } from "@/lib/seo/rss-feed";
+import { findFaqsForBlogSlug } from "@/lib/seo/search-intent";
 import { buildSiteMetadata } from "@/lib/site-metadata";
 import { getHomepageMode, getSiteSettings } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
@@ -75,9 +76,23 @@ export default async function BlogArticlePage({ params }: { params: Promise<{ sl
     articleSection: "Blog",
   });
 
+  const blogFaqs = findFaqsForBlogSlug(slug);
+  const faqJsonLd = blogFaqs.length > 0
+    ? {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: blogFaqs.map((f) => ({
+          "@type": "Question",
+          name: f.question,
+          acceptedAnswer: { "@type": "Answer", text: f.answer },
+        })),
+      }
+    : null;
+
   return (
     <>
       <JsonLdScript data={jsonLd} />
+      {faqJsonLd && <JsonLdScript data={faqJsonLd} />}
       <BlogArticlePageView post={post} locale={locale} siteName={site.name} />
     </>
   );
