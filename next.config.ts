@@ -10,8 +10,9 @@ const legacyProductRedirects = Object.entries(LEGACY_PRODUCT_REDIRECTS).map(([fr
 
 const nextConfig: NextConfig = {
   productionBrowserSourceMaps: false,
+  // Turbopack — Next 16'da varsayılan; webpack config çakışma uyarısını susturur
+  turbopack: {},
   experimental: {
-    // Vercel 8GB build konteynerinde webpack OOM riskini azaltir
     cpus: 1,
   },
   serverExternalPackages: ["@prisma/client", ".prisma/client", "linkedom", "html-encoding-sniffer", "@exodus/bytes"],
