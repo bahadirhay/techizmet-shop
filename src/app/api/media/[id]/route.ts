@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { resizeImageBuffer } from "@/lib/image-resize";
+import sharp from "sharp";
 
 export const dynamic = "force-dynamic";
 
@@ -52,8 +53,18 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
   const width = parseWidth(req);
   let out = body;
   let mimeType = row.mimeType || "application/octet-stream";
+  const acceptsWebp = req.headers.get("accept")?.includes("image/webp") ?? false;
 
-  if (width && mimeType.startsWith("image/")) {
+  if (mimeType.startsWith("image/") && !mimeType.includes("gif")) {
+    if (width) {
+      const resized = await resizeImageBuffer(body, width, mimeType);
+      out = resized.body;
+      mimeType = resized.mimeType;
+    } else if (acceptsWebp && !mimeType.includes("webp")) {
+      out = await sharp(body).rotate().webp({ quality: 82 }).toBuffer();
+      mimeType = "image/webp";
+    }
+  } else if (width && mimeType.startsWith("image/")) {
     const resized = await resizeImageBuffer(body, width, mimeType);
     out = resized.body;
     mimeType = resized.mimeType;
@@ -64,6 +75,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
       "Content-Type": mimeType,
       "Content-Length": String(out.length),
       "Cache-Control": "public, max-age=31536000, immutable",
+      "Vary": "Accept",
       ...(row.filename ? { "Content-Disposition": `inline; filename="${row.filename.replace(/"/g, "")}"` } : {}),
     },
   });

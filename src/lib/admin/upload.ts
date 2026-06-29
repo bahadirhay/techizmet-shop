@@ -2,9 +2,13 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
 import { sniffImageMime, sniffVideoMime } from "@/lib/admin/file-sniff";
+import sharp from "sharp";
 
 const IMAGE_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 const VIDEO_MIME = new Set(["video/mp4", "video/webm", "video/quicktime"]);
+
+const MAX_IMAGE_WIDTH = 1920;
+const WEBP_QUALITY = 82;
 
 export type SavedUpload = {
   url: string;
@@ -30,16 +34,18 @@ export async function saveUploadedImage(siteId: string, file: File): Promise<Sav
     throw new Error("Yalnızca JPEG, PNG, WebP veya GIF yüklenebilir.");
   }
 
-  const ext =
-    sniffed === "image/png"
-      ? "png"
-      : sniffed === "image/webp"
-        ? "webp"
-        : sniffed === "image/gif"
-          ? "gif"
-          : "jpg";
+  // GIF'i olduğu gibi sakla; diğer tüm formatları WebP'ye dönüştür ve boyutlandır
+  if (sniffed === "image/gif") {
+    return writeUpload(siteId, buf, "gif", sniffed, file.size);
+  }
 
-  return writeUpload(siteId, buf, ext, sniffed, file.size);
+  const converted = await sharp(buf)
+    .rotate()
+    .resize({ width: MAX_IMAGE_WIDTH, withoutEnlargement: true })
+    .webp({ quality: WEBP_QUALITY })
+    .toBuffer();
+
+  return writeUpload(siteId, converted, "webp", "image/webp", converted.length);
 }
 
 export async function saveUploadedVideo(siteId: string, file: File): Promise<SavedUpload> {
