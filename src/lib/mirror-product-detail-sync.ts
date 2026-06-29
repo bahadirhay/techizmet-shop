@@ -530,7 +530,7 @@ html.kn-mirror-embed .product-media-popup .swiper-slide {
   const script = doc.createElement("script");
   script.id = "kn-product-media-zoom-fix-script";
   script.textContent = `(function(){
-  var KN_ZOOM_VER=4;
+  var KN_ZOOM_VER=5;
   if(window.__knProductZoomVer===KN_ZOOM_VER)return;
   window.__knProductZoomVer=KN_ZOOM_VER;
   var TAP_MOVE_PX=14;
@@ -579,9 +579,14 @@ html.kn-mirror-embed .product-media-popup .swiper-slide {
   }
   function openProductZoom(btn){
     if(!btn)return false;
-    var section=btn.closest(".kn-mirror-section");
+    // Bölümü class VEYA ID formatına göre bul (kn-mirror-section, kn-section-template-- vb.)
+    var section=btn.closest(".kn-mirror-section,[id^='kn-mirror-section-'],[id^='kn-section-template--'],[id^='kn-section-']");
     var sectionId=btn.dataset.section;
     var template=section&&section.querySelector("[data-product-media-content] template");
+    // Section bulunamadıysa #MainContent içinde geniş arama yap
+    if(!template){
+      template=document.querySelector("#MainContent [data-product-media-content] template");
+    }
     if(!template||!sectionId)return false;
     var index=resolveGalleryIndex(btn);
     document.querySelectorAll("product-media-popup[id^='product-media-content-']").forEach(function(node){node.remove();});
