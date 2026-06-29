@@ -4,16 +4,7 @@ import type { ShopLocale } from "@/lib/i18n/locale";
 
 const PUBLIC_MIRROR = "/theme/techizmet-shop/mirror";
 
-/** build-mirror-* script çıktıları ile uyumlu (edge middleware — fs yok) */
-const COLLECTION_SLUGS = new Set([
-  "all",
-  "facial-boosters",
-  "glow-essentials",
-  "luxe-skincare",
-  "moisture-magic",
-  "natural-glam",
-  "pure-by-nature",
-]);
+const COLLECTION_SLUGS = new Set<string>();
 
 const PAGE_SLUGS = new Set([
   "about",
@@ -24,29 +15,7 @@ const PAGE_SLUGS = new Set([
   "refund-policy",
 ]);
 
-/** mirror-product-variants.json anahtarları */
-const PRODUCT_SLUGS = new Set([
-  "24hr-smudge-proof-mascara",
-  "anti-cellulite-body-oil",
-  "berry-tint-lip-balm",
-  "creamy-foundation-for-all-skin-types",
-  "daily-use-face-moisturizer",
-  "dewmist-hydrating-makeup-fixer",
-  "dual-contour-bronzer-set",
-  "flawless-silkskin-foundation",
-  "floral-eau-de-parfum-long-lasting",
-  "hydrasilk-skin-reviving-cleanser",
-  "hydrasoft-face-moisturizer",
-  "hydrating-shampoo-for-soft-smooth-hair",
-  "liquid-foundation-spf-30",
-  "long-lasting-make-up-fixer",
-  "micro-sculpting-moisturizer",
-  "skinglow-moisture-boost-serum",
-  "smooth-finish-hd-concealer",
-  "spectrum-sunscreen-spf-50",
-  "ultra-fine-hydration-mist",
-  "vitamin-c-hyaluronic-acid-radiant-serum",
-]);
+const PRODUCT_SLUGS = new Set<string>();
 
 function rewriteTo(request: NextRequest, publicPath: string) {
   return NextResponse.rewrite(new URL(publicPath, request.url));

@@ -192,7 +192,7 @@ export function injectMirrorSectionOrderStylesheet(
   order: string[],
   hiddenKeys?: Set<string>,
 ) {
-  if (!order.length) return;
+  if (!order.length && !hiddenKeys?.size) return;
 
   const rank = new Map(order.map((key, index) => [key, index]));
   const rules = [
@@ -327,6 +327,15 @@ export function applyMirrorHomeOverlay(
   applyMirrorPageOverlay(doc, config, undefined, locale);
 }
 
+/**
+ * Noor kozmetik temasından gelen, anatolianpaw.com ile ilgisiz bölümler.
+ * Admin bu bölümler için içerik (mediaGridItems vb.) eklemediyse varsayılan olarak gizlenir.
+ */
+const COSMETICS_DEFAULT_HIDDEN_KEYS = new Set([
+  "media_grid_bGXVTf",        // Kozmetik hero (MG1-MG4)
+  "featured_collection_bwyMgJ", // Kozmetik ürün kartları (silinmiş görseller)
+]);
+
 function applyMirrorSectionLayout(doc: Document, config: MirrorPageConfig, locale: ShopLocale) {
   const main = doc.getElementById("MainContent");
   if (!main) return;
@@ -334,6 +343,18 @@ function applyMirrorSectionLayout(doc: Document, config: MirrorPageConfig, local
   const hiddenKeys = new Set(
     config.order.filter((key) => !!config.sections[key]?.hidden),
   );
+
+  // Kozmetik varsayılan gizlilik — admin içerik eklemediyse CSS ile gizle
+  for (const key of COSMETICS_DEFAULT_HIDDEN_KEYS) {
+    const edit = config.sections[key];
+    const hasAdminContent = edit?.mediaGridItems?.length || edit?.hidden === false;
+    if (!hasAdminContent) hiddenKeys.add(key);
+  }
+
+  // Kozmetik varsayılan gizlilik her zaman CSS ile enjekte edilir (order olmasa bile)
+  if (!config.order.length && hiddenKeys.size) {
+    injectMirrorSectionOrderStylesheet(doc, [], hiddenKeys);
+  }
 
   if (config.order.length) {
     // hiddenKeys CSS stylesheet'e eklenir — tema JS inline style'ı temizlese bile gizli kalır
