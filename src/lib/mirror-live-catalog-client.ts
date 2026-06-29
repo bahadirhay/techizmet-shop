@@ -23,10 +23,14 @@ export type LiveStoreCatalogPayload = {
   texts: ResolvedMirrorCollectionTexts;
 };
 
-/** Sunucu / prebuild HTML zaten ürün listesi ve fiyatları içeriyorsa canlı fetch atlanır (flash önlenir). */
+/**
+ * Canlı client fetch'in atlanıp atlanmayacağını belirler.
+ * data-kn-home-products-injected (prebuild) burada KONTROL EDİLMEZ —
+ * prebuild stale olabilir (silinmiş görseller, güncellenen fiyatlar).
+ * Yalnızca aynı oturumda zaten canlı fetch yapıldıysa atlanır.
+ */
 export function mirrorCatalogAlreadyHydrated(doc: Document): boolean {
   const root = doc.documentElement;
-  if (root.getAttribute("data-kn-home-products-injected") === "1") return true;
   if (root.getAttribute("data-kn-catalog-live") === "1") return true;
   return Boolean(doc.getElementById("kn-catalog-prices")?.textContent?.trim());
 }
