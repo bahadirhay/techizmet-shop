@@ -1,6 +1,7 @@
 /** Liste kartları — fare ile görsel scrub + çizgi göstergesi */
 
 const STYLE_ID = "kn-card-gallery-styles";
+const DELEGATE_ID = "kn-card-gallery-delegate";
 const MAX_PRELOAD = 6;
 
 function ensureGalleryStyles(doc: Document) {
@@ -10,6 +11,7 @@ function ensureGalleryStyles(doc: Document) {
   style.textContent = `
 [data-kn-gallery] {
   position: relative;
+  pointer-events: auto;
 }
 .kn-card-gallery-indicator {
   position: absolute;
@@ -77,56 +79,43 @@ function preloadUrls(urls: string[], fromIndex = 1) {
   }
 }
 
-function bindGalleryMedia(media: HTMLElement) {
-  if (media.getAttribute("data-kn-gallery-bound") === "1") return;
+/** State per-element, key = data-kn-gallery string (immutable per card) */
+const galleryState = new WeakMap<Element, {
+  urls: string[];
+  activeIndex: number;
+  preloaded: boolean;
+}>();
 
-  const urls = parseGalleryUrls(media.getAttribute("data-kn-gallery"));
-  if (urls.length <= 1) return;
+function getOrInitState(media: Element) {
+  let state = galleryState.get(media);
+  if (!state) {
+    const urls = parseGalleryUrls(media.getAttribute("data-kn-gallery"));
+    if (urls.length <= 1) return null;
+    state = { urls, activeIndex: 0, preloaded: false };
+    galleryState.set(media, state);
+  }
+  return state;
+}
 
-  media.setAttribute("data-kn-gallery-bound", "1");
-  media.style.pointerEvents = "auto";
-  let activeIndex = 0;
-  let preloaded = false;
+function showIndex(media: Element, index: number) {
+  const state = getOrInitState(media);
+  if (!state) return;
+  const img = media.querySelector("img.product--card-image, img") as HTMLImageElement | null;
+  if (!img) return;
+  state.activeIndex = index;
+  const next = state.urls[index];
+  if (next && img.getAttribute("src") !== next) {
+    img.src = next;
+    img.setAttribute("data-src", next);
+    img.setAttribute("data-original", next);
+  }
+  setActiveSegment(media.querySelector(".kn-card-gallery-indicator"), index);
+}
 
-  const getImg = (): HTMLImageElement | null =>
-    media.querySelector("img.product--card-image, img");
-
-  const showIndex = (index: number) => {
-    const img = getImg();
-    if (!img) return;
-    if (index === activeIndex && img.getAttribute("src") === urls[index]) return;
-    activeIndex = index;
-    const next = urls[index];
-    if (next && img.getAttribute("src") !== next) {
-      img.src = next;
-      img.setAttribute("data-src", next);
-      img.setAttribute("data-original", next);
-    }
-    setActiveSegment(media.querySelector(".kn-card-gallery-indicator"), index);
-  };
-
-  const onEnter = () => {
-    media.classList.add("kn-card-gallery-active");
-    if (!preloaded) {
-      preloaded = true;
-      preloadUrls(urls);
-    }
-  };
-
-  const onMove = (event: PointerEvent) => {
-    if (event.pointerType === "touch") return;
-    const rect = media.getBoundingClientRect();
-    showIndex(galleryIndex(event.clientX, rect, urls.length));
-  };
-
-  const onLeave = () => {
-    media.classList.remove("kn-card-gallery-active");
-    showIndex(0);
-  };
-
-  media.addEventListener("pointerenter", onEnter);
-  media.addEventListener("pointermove", onMove);
-  media.addEventListener("pointerleave", onLeave);
+function closestGallery(target: EventTarget | null): HTMLElement | null {
+  if (!(target instanceof Element)) return null;
+  const el = target.closest<HTMLElement>("[data-kn-gallery]");
+  return el ?? null;
 }
 
 function canBindGalleriesInDocument(doc: Document): boolean {
@@ -134,14 +123,53 @@ function canBindGalleriesInDocument(doc: Document): boolean {
   return !!view && typeof view.Image === "function";
 }
 
-/** Kart HTML'ine enjekte edilen galeri markup'ını bağlar */
+/**
+ * Galeriyi delegated listener ile kurar — tema JS DOM'u değiştirsek de çalışır.
+ * Birden fazla çağrı güvenli (idempotent).
+ */
 export function initProductCardGalleries(doc: Document) {
   if (!canBindGalleriesInDocument(doc)) return;
   ensureGalleryStyles(doc);
-  doc.querySelectorAll<HTMLElement>("[data-kn-gallery]").forEach((media) => {
-    media.removeAttribute("data-kn-gallery-bound");
-    bindGalleryMedia(media);
+
+  if (doc.getElementById(DELEGATE_ID)) return; // zaten kurulu
+
+  const marker = doc.createElement("meta");
+  marker.id = DELEGATE_ID;
+  (doc.head ?? doc.body).appendChild(marker);
+
+  doc.addEventListener("pointermove", (event: Event) => {
+    const pe = event as PointerEvent;
+    if (pe.pointerType === "touch") return;
+    const media = closestGallery(pe.target);
+    if (!media) return;
+    const state = getOrInitState(media);
+    if (!state) return;
+    if (!state.preloaded) {
+      state.preloaded = true;
+      preloadUrls(state.urls);
+    }
+    const rect = media.getBoundingClientRect();
+    showIndex(media, galleryIndex(pe.clientX, rect, state.urls.length));
   });
+
+  doc.addEventListener("pointerenter", (event: Event) => {
+    const media = closestGallery((event as PointerEvent).target);
+    if (!media) return;
+    const state = getOrInitState(media);
+    if (!state) return;
+    media.classList.add("kn-card-gallery-active");
+    if (!state.preloaded) {
+      state.preloaded = true;
+      preloadUrls(state.urls);
+    }
+  }, true);
+
+  doc.addEventListener("pointerleave", (event: Event) => {
+    const media = closestGallery((event as PointerEvent).target);
+    if (!media) return;
+    media.classList.remove("kn-card-gallery-active");
+    showIndex(media, 0);
+  }, true);
 }
 
 /** Sunucu/prebuild HTML — bağlı sanılan ama dinleyicisiz galeri bayraklarını temizler */
