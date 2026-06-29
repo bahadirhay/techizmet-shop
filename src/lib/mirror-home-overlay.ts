@@ -369,7 +369,14 @@ function applyMirrorSectionLayout(doc: Document, config: MirrorPageConfig, local
 
   const visibleInOrder = config.order.length - hiddenKeys.size;
 
-  for (const key of config.order) {
+  // config.order'da olmayan ama sections'da edit bulunan section'lara da uygula
+  // (admin sıralama ayarlamadan yalnızca görsel/içerik değiştirdiyse)
+  const keysToEdit = new Set([
+    ...config.order,
+    ...Object.keys(config.sections ?? {}),
+  ]);
+
+  for (const key of keysToEdit) {
     const edit = config.sections[key];
     const el = sectionEl(doc, key);
     if (!el) continue;
