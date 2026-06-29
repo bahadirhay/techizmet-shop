@@ -32,10 +32,20 @@ const nextConfig: NextConfig = {
       ...config.resolve.alias,
       canvas: false,
     };
-    // Modern tarayıcı hedefi — Next dahili polyfill modülü (~12 KiB) gereksiz
     if (!isServer) {
+      // Modern tarayıcı hedefi (chrome≥111) — Next dahili polyfill modülleri gereksiz
       config.resolve.alias["../build/polyfills/polyfill-module"] = false;
       config.resolve.alias["next/dist/build/polyfills/polyfill-module"] = false;
+      // polyfill-nomodule.js → <script nomodule> ile IE11 için kopyalanır;
+      // browserslist'imiz modern tarayıcılar — bu dosyayı çıktıya ekleme
+      config.plugins = (config.plugins ?? []).filter((p: { constructor?: { name?: string }; name?: string }) => {
+        const name = p?.constructor?.name ?? p?.name ?? "";
+        if (name === "CopyFilePlugin") {
+          const hint = (p as Record<string, unknown>).filePath as string | undefined;
+          return !hint?.includes("polyfill-nomodule");
+        }
+        return true;
+      });
     }
     return config;
   },

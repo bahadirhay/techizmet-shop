@@ -1,12 +1,9 @@
 import type { Metadata } from "next";
 import Script from "next/script";
+import dynamic from "next/dynamic";
 import { Suspense } from "react";
 import { headers } from "next/headers";
 import { Poppins } from "next/font/google";
-import { CookieConsentBanner } from "@/components/store/CookieConsentBanner";
-import { ConsentAwareAnalytics } from "@/components/store/ConsentAwareAnalytics";
-import { MirrorAnalyticsBridge } from "@/components/store/MirrorAnalyticsBridge";
-import { StoreEventTracker } from "@/components/store/StoreEventTracker";
 import { JsonLdScript } from "@/components/store/JsonLdScript";
 import { buildSiteMetadata } from "@/lib/site-metadata";
 import { buildOrganizationJsonLd, buildWebSiteJsonLd } from "@/lib/seo/site-json-ld";
@@ -17,9 +14,30 @@ import { resolveStoreMirrorIframeSrcForRequest } from "@/lib/mirror-prebuilt-res
 import { getDefaultSite } from "@/lib/site";
 import { getHomepageMode, getSiteSeo } from "@/lib/site-settings";
 import { isMirrorShellPath } from "@/lib/store-mirror-paths";
-import { WhatsappSiteWidgets } from "@/components/store/WhatsappSiteWidgets";
 import { getWhatsAppConfig } from "@/lib/whatsapp-settings";
 import "./globals.css";
+
+// İlk render için kritik olmayan bileşenler — ayrı chunk'ta lazy load edilir
+const CookieConsentBanner = dynamic(
+  () => import("@/components/store/CookieConsentBanner").then((m) => m.CookieConsentBanner),
+  { ssr: false },
+);
+const ConsentAwareAnalytics = dynamic(
+  () => import("@/components/store/ConsentAwareAnalytics").then((m) => m.ConsentAwareAnalytics),
+  { ssr: false },
+);
+const WhatsappSiteWidgets = dynamic(
+  () => import("@/components/store/WhatsappSiteWidgets").then((m) => m.WhatsappSiteWidgets),
+  { ssr: false },
+);
+const StoreEventTracker = dynamic(
+  () => import("@/components/store/StoreEventTracker").then((m) => m.StoreEventTracker),
+  { ssr: false },
+);
+const MirrorAnalyticsBridge = dynamic(
+  () => import("@/components/store/MirrorAnalyticsBridge").then((m) => m.MirrorAnalyticsBridge),
+  { ssr: false },
+);
 
 const poppins = Poppins({
   subsets: ["latin", "latin-ext"],
@@ -85,10 +103,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               floatingEnabled={wa.floatingEnabled}
               botEnabled={wa.botEnabled}
             />
-            <Suspense fallback={null}>
-              <StoreEventTracker />
-              <MirrorAnalyticsBridge />
-            </Suspense>
+            <StoreEventTracker />
+            <MirrorAnalyticsBridge />
           </>
         )}
         {children}
