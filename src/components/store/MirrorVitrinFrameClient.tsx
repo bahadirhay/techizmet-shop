@@ -53,11 +53,13 @@ import {
   applyLiveStoreCatalogToDocument,
   fetchLiveStoreCatalog,
   mirrorCatalogAlreadyHydrated,
+  type LiveStoreCatalogPayload,
 } from "@/lib/mirror-live-catalog-client";
 import { initProductCardGalleries } from "@/lib/mirror-product-card-gallery";
 import { applyInstagramFeedToDoc } from "@/lib/mirror-instagram-feed";
 import type { InstagramFeedPostDTO } from "@/lib/instagram-feed-card";
 import type { MirrorContactData } from "@/lib/mirror-contact-overlay";
+import type { VitrinCollectionProductCard } from "@/lib/mirror-collections-sync";
 
 function vitrinOverridesMarquee(config: MirrorPageConfig | undefined): boolean {
   if (!config) return false;
@@ -102,6 +104,7 @@ export function MirrorVitrinFrameClient({
   instagramPosts,
   instagramFeedTitle,
   contact,
+  homeProductsFromAdmin,
 }: {
   src: string;
   title: string;
@@ -113,6 +116,7 @@ export function MirrorVitrinFrameClient({
   visualEditMode?: boolean;
   collectionsFromAdmin?: VitrinCollectionCard[];
   categoriesFromAdmin?: VitrinCollectionCategoryOption[];
+  homeProductsFromAdmin?: VitrinCollectionProductCard[];
   mirrorTexts?: ResolvedMirrorCollectionTexts;
   siteMarquee?: ProductPageBottomSettings["marquee"];
   sectionCatalog?: MirrorPageSection[];
@@ -145,6 +149,7 @@ export function MirrorVitrinFrameClient({
     overlaySig,
     collectionsFromAdmin,
     categoriesFromAdmin,
+    homeProductsFromAdmin,
     mirrorTexts,
     branding,
     nav,
@@ -270,7 +275,13 @@ export function MirrorVitrinFrameClient({
       const catalogHydrated = mirrorCatalogAlreadyHydrated(doc);
       try {
         if (!visualEditMode && !isCartOrCheckoutShell && !catalogHydrated) {
-          const payload = await fetchLiveStoreCatalog();
+          let payload: LiveStoreCatalogPayload | null = null;
+          if (homeProductsFromAdmin?.length && mirrorTexts) {
+            // Sunucu tarafından gelen taze veri — ayrı network isteği gerekmez
+            payload = { products: homeProductsFromAdmin, texts: mirrorTexts };
+          } else {
+            payload = await fetchLiveStoreCatalog();
+          }
           if (disposed || catalogGen !== liveCatalogGenRef.current) return;
           if (payload) {
             applyLiveStoreCatalogToDocument(doc, payload, locale ?? "tr", config, mirrorTexts);

@@ -12,6 +12,7 @@ import type { MirrorFooterData } from "@/lib/mirror-footer-overlay";
 import type { MirrorNavItem } from "@/lib/mirror-nav-overlay";
 import type { InstagramFeedPostDTO } from "@/lib/instagram-feed-card";
 import type { MirrorContactData } from "@/lib/mirror-contact-overlay";
+import type { VitrinCollectionProductCard } from "@/lib/mirror-collections-sync";
 
 function MirrorVitrinFrameInner({
   src,
@@ -22,6 +23,7 @@ function MirrorVitrinFrameInner({
   footer,
   collectionsFromAdmin,
   categoriesFromAdmin,
+  homeProductsFromAdmin,
   instagramPosts,
   instagramFeedTitle,
   contact,
@@ -34,6 +36,7 @@ function MirrorVitrinFrameInner({
   footer?: MirrorFooterData;
   collectionsFromAdmin?: VitrinCollectionCard[];
   categoriesFromAdmin?: VitrinCollectionCategoryOption[];
+  homeProductsFromAdmin?: VitrinCollectionProductCard[];
   instagramPosts?: InstagramFeedPostDTO[];
   instagramFeedTitle?: string;
   contact?: MirrorContactData;
@@ -53,6 +56,7 @@ function MirrorVitrinFrameInner({
       siteMarquee={hydration?.siteMarquee}
       collectionsFromAdmin={collectionsFromAdmin}
       categoriesFromAdmin={categoriesFromAdmin}
+      homeProductsFromAdmin={homeProductsFromAdmin}
       instagramPosts={instagramPosts}
       instagramFeedTitle={instagramFeedTitle}
       contact={contact}
@@ -70,6 +74,7 @@ export function MirrorVitrinFrameHost({
   footer,
   collectionsFromAdmin,
   categoriesFromAdmin,
+  homeProductsFromAdmin,
   instagramPosts,
   instagramFeedTitle,
   contact,
@@ -83,6 +88,7 @@ export function MirrorVitrinFrameHost({
   footer?: MirrorFooterData;
   collectionsFromAdmin?: VitrinCollectionCard[];
   categoriesFromAdmin?: VitrinCollectionCategoryOption[];
+  homeProductsFromAdmin?: VitrinCollectionProductCard[];
   instagramPosts?: InstagramFeedPostDTO[];
   instagramFeedTitle?: string;
   contact?: MirrorContactData;
@@ -98,6 +104,7 @@ export function MirrorVitrinFrameHost({
         footer={footer}
         collectionsFromAdmin={collectionsFromAdmin}
         categoriesFromAdmin={categoriesFromAdmin}
+        homeProductsFromAdmin={homeProductsFromAdmin}
         instagramPosts={instagramPosts}
         instagramFeedTitle={instagramFeedTitle}
         contact={contact}

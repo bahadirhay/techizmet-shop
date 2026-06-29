@@ -1,5 +1,6 @@
 import { MirrorVitrinFrameHost } from "@/components/store/MirrorVitrinFrameHost";
-import type { VitrinCollectionCard, VitrinCollectionCategoryOption } from "@/lib/mirror-collections-sync";
+import type { VitrinCollectionCard, VitrinCollectionCategoryOption, VitrinCollectionProductCard } from "@/lib/mirror-collections-sync";
+import { loadHomeListingProducts } from "@/lib/mirror-home-products-inject-server";
 import { getMirrorVitrinHydration } from "@/lib/mirror-vitrin-data";
 import { getVitrinPage, vitrinMirrorFileRel, type VitrinPageKey } from "@/lib/mirror-vitrin-pages";
 import { resolveStoreMirrorIframeSrcForRequest } from "@/lib/mirror-prebuilt-resolve-server";
@@ -64,11 +65,13 @@ export async function MirrorVitrinFrame({
     hasCustomBranding,
     hasAnnouncementBarSettings: hasCustomAnnouncementBarSettings(settings),
   });
-  const [hydration, nav, footer, instagramPosts] = await Promise.all([
+  const [hydration, nav, footer, instagramPosts, homeProductsFromAdmin] = await Promise.all([
     getMirrorVitrinHydration(site.id, pageKey, locale),
     loadMirrorNavItems(site.id, locale),
     loadMirrorFooterData(site.id, locale),
     pageKey === "home" ? getStoreInstagramFeedPosts(site.id) : Promise.resolve([]),
+    // Anasayfa ürünlerini sunucu tarafında çek — client-side fetch gereksiz
+    pageKey === "home" ? loadHomeListingProducts(site.id) : Promise.resolve(undefined),
   ]);
 
   let collectionsFromAdmin: VitrinCollectionCard[] | undefined;
@@ -93,6 +96,7 @@ export async function MirrorVitrinFrame({
       footer={footer}
       collectionsFromAdmin={collectionsFromAdmin}
       categoriesFromAdmin={categoriesFromAdmin}
+      homeProductsFromAdmin={homeProductsFromAdmin ?? undefined}
       instagramPosts={instagramPosts}
       instagramFeedTitle="Instagram"
       contact={contact}
