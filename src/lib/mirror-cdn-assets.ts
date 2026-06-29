@@ -3,8 +3,8 @@ import { join } from "node:path";
 
 const THEME_ROOT = join(process.cwd(), "public/theme/techizmet-shop");
 
-/** Diskte bulunamayan görseller için yedek */
-const FALLBACK_REL = "theme/techizmet-shop/cdn/shop/files/MG1_b0421d9f-5d83-4554-9ecb-3419c31cb87484b8.jpg";
+/** Diskte bulunamayan görseller için yedek — kozmetik MG1 kaldırıldı */
+const FALLBACK_REL: string | null = null;
 
 const CDN_SUBDIRS = ["cdn/shop/files", "cdn/shop/collections", "cdn/shop/articles"] as const;
 
@@ -99,6 +99,7 @@ export function resolveMirrorThemeFile(publicPath: string): { abs: string; rel: 
 
   let actual = getMirrorAssetResolver().pickBest(sub, requested);
   if (!actual) {
+    if (!FALLBACK_REL) return null;
     const fb = join(process.cwd(), "public", FALLBACK_REL);
     if (existsSync(fb)) return { abs: fb, rel: FALLBACK_REL };
     return null;
@@ -107,6 +108,7 @@ export function resolveMirrorThemeFile(publicPath: string): { abs: string; rel: 
   const rel = `theme/techizmet-shop/${sub}/${actual}`;
   const abs = join(process.cwd(), "public", rel);
   if (!existsSync(abs)) {
+    if (!FALLBACK_REL) return null;
     const fb = join(process.cwd(), "public", FALLBACK_REL);
     if (existsSync(fb)) return { abs: fb, rel: FALLBACK_REL };
     return null;
