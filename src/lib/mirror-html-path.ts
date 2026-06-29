@@ -23,14 +23,7 @@ export function mirrorCollectionHtmlExists(slug: string) {
 export function resolveMirrorCollectionTemplateSlug(slug: string): string | null {
   if (mirrorCollectionHtmlExists(slug)) return slug;
 
-  for (const preferred of [
-    "facial-boosters",
-    "glow-essentials",
-    "luxe-skincare",
-    "moisture-magic",
-    "natural-glam",
-    "pure-by-nature",
-  ]) {
+  for (const preferred of [] as string[]) {
     if (mirrorCollectionHtmlExists(preferred)) return preferred;
   }
 
@@ -47,13 +40,7 @@ export function resolveMirrorCollectionTemplateSlug(slug: string): string | null
 export function resolveMirrorProductTemplateSlug(slug: string): string | null {
   if (mirrorProductHtmlExists(slug)) return slug;
 
-  for (const preferred of [
-    "spectrum-sunscreen-spf-50",
-    "micro-sculpting-moisturizer",
-    "hydrasoft-face-moisturizer",
-    "hydrasilk-skin-reviving-cleanser",
-    "vitamin-c-hyaluronic-acid-radiant-serum",
-  ]) {
+  for (const preferred of [] as string[]) {
     if (mirrorProductHtmlExists(preferred)) return preferred;
   }
 
