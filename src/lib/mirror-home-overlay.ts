@@ -186,8 +186,12 @@ export function applyMirrorSectionOrderStyles(main: Element, order: string[]) {
   (main as HTMLElement).setAttribute("data-kn-section-order", order.join(","));
 }
 
-/** Kalıcı stylesheet — tema inline style sıfırlasa bile sıra korunur */
-export function injectMirrorSectionOrderStylesheet(doc: Document, order: string[]) {
+/** Kalıcı stylesheet — tema inline style sıfırlasa bile sıra ve görünürlük korunur */
+export function injectMirrorSectionOrderStylesheet(
+  doc: Document,
+  order: string[],
+  hiddenKeys?: Set<string>,
+) {
   if (!order.length) return;
 
   const rank = new Map(order.map((key, index) => [key, index]));
@@ -203,6 +207,16 @@ export function injectMirrorSectionOrderStylesheet(doc: Document, order: string[
     if (key) {
       rules.push(
         `#MainContent > section[id$="__${escapeMirrorSectionKeyCss(key)}"] { order: ${orderVal} !important; }`,
+      );
+    }
+  }
+
+  // Gizli section'lar inline style yerine CSS kuralı ile gizlenir —
+  // tema JS'i inline style'ı temizlese bile gizli kalır
+  if (hiddenKeys?.size) {
+    for (const key of hiddenKeys) {
+      rules.push(
+        `#MainContent > section[id$="__${escapeMirrorSectionKeyCss(key)}"] { display: none !important; }`,
       );
     }
   }
@@ -317,15 +331,22 @@ function applyMirrorSectionLayout(doc: Document, config: MirrorPageConfig, local
   const main = doc.getElementById("MainContent");
   if (!main) return;
 
+  const hiddenKeys = new Set(
+    config.order.filter((key) => !!config.sections[key]?.hidden),
+  );
+
   if (config.order.length) {
-    applyMirrorSectionOrderToDocument(doc, config.order);
+    // hiddenKeys CSS stylesheet'e eklenir — tema JS inline style'ı temizlese bile gizli kalır
+    injectMirrorSectionOrderStylesheet(doc, config.order, hiddenKeys);
+    applyMirrorSectionOrderStyles(main, config.order);
+    reorderMirrorSectionsInMain(main, config.order);
   }
 
   main.querySelectorAll("section.kn-mirror-section").forEach((el) => {
     (el as HTMLElement).style.removeProperty("display");
   });
 
-  const visibleInOrder = config.order.filter((key) => !config.sections[key]?.hidden).length;
+  const visibleInOrder = config.order.length - hiddenKeys.size;
 
   for (const key of config.order) {
     const edit = config.sections[key];
