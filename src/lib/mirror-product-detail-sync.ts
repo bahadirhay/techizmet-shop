@@ -530,7 +530,7 @@ html.kn-mirror-embed .product-media-popup .swiper-slide {
   const script = doc.createElement("script");
   script.id = "kn-product-media-zoom-fix-script";
   script.textContent = `(function(){
-  var KN_ZOOM_VER=5;
+  var KN_ZOOM_VER=6;
   if(window.__knProductZoomVer===KN_ZOOM_VER)return;
   window.__knProductZoomVer=KN_ZOOM_VER;
   var TAP_MOVE_PX=14;
@@ -577,6 +577,24 @@ html.kn-mirror-embed .product-media-popup .swiper-slide {
       if(run()||++tries>40)clearInterval(timer);
     },50);
   }
+  function initPopupSwiper(popup){
+    // swiper-content custom element kendi init metodunu çağır
+    var host=popup.querySelector("swiper-content");
+    if(host&&typeof host._initial_run==="function"){host._initial_run();return;}
+    // Manuel Swiper init — gizliyken init olmuşsa boyutları güncelle
+    popup.querySelectorAll("[data-swiper]").forEach(function(el){
+      if(el.classList.contains("swiper-initialized")){
+        if(el.swiper&&typeof el.swiper.update==="function")el.swiper.update();
+        return;
+      }
+      if(typeof Swiper==="undefined")return;
+      try{
+        var cfg=JSON.parse(el.getAttribute("data-swiper")||"{}");
+        cfg.loop=false;
+        el.swiper=new Swiper(el,cfg);
+      }catch(e){}
+    });
+  }
   function openProductZoom(btn){
     if(!btn)return false;
     // Bölümü class VEYA ID formatına göre bul (kn-mirror-section, kn-section-template-- vb.)
@@ -594,14 +612,13 @@ html.kn-mirror-embed .product-media-popup .swiper-slide {
     document.body.appendChild(content);
     var popup=document.getElementById("product-media-content-"+sectionId);
     if(!popup)return false;
+    // Popup'u ÖNCE görünür yap — Swiper doğru boyutlarda init olsun
     popup.style.display="flex";
-    setTimeout(function(){selectPopupSlide(popup,index);},60);
-    setTimeout(function(){popup.classList.add("show");},180);
-    setTimeout(function(){popup.classList.add("shadow");},420);
-    var outerHost=document.querySelector("#MainContent swiper-content");
-    if(outerHost&&typeof outerHost._selectSlide==="function"){
-      setTimeout(function(){outerHost._selectSlide(index);},500);
-    }
+    // Görünür haldeyken Swiper'ı başlat/güncelle, sonra doğru slayta git
+    initPopupSwiper(popup);
+    setTimeout(function(){initPopupSwiper(popup);selectPopupSlide(popup,index);},80);
+    setTimeout(function(){popup.classList.add("show");},200);
+    setTimeout(function(){popup.classList.add("shadow");},440);
     return true;
   }
   function activeGalleryMedia(target){
