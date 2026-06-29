@@ -488,6 +488,12 @@ html.kn-mirror-embed.kn-product-zoom-open body {
 #MainContent .main--product-image-slider-outer .main--product-img .media > video {
   pointer-events: none !important;
 }
+/* Masaüstü: tüm görsel alanı tıklanabilir görünsün */
+@media (hover: hover) and (pointer: fine) {
+  #MainContent .main--product-image-slider-outer .swiper-slide .media {
+    cursor: zoom-in !important;
+  }
+}
 /* Popup zoom swiper: resim boyutunu viewport ile sınırla */
 html.kn-mirror-embed product-media-popup .swiper-zoom-container img,
 html.kn-mirror-embed .product-media-popup .swiper-zoom-container img {
@@ -524,7 +530,7 @@ html.kn-mirror-embed .product-media-popup .swiper-slide {
   const script = doc.createElement("script");
   script.id = "kn-product-media-zoom-fix-script";
   script.textContent = `(function(){
-  var KN_ZOOM_VER=3;
+  var KN_ZOOM_VER=4;
   if(window.__knProductZoomVer===KN_ZOOM_VER)return;
   window.__knProductZoomVer=KN_ZOOM_VER;
   var TAP_MOVE_PX=14;
@@ -625,7 +631,18 @@ html.kn-mirror-embed .product-media-popup .swiper-slide {
   document.addEventListener("touchcancel",function(){pending=null;},true);
   document.addEventListener("click",function(e){
     if(isMobile())return;
-    var btn=e.target&&e.target.closest&&e.target.closest("#MainContent media-zoom-button");
+    // Görselin herhangi bir yerine tıklamak zoom'u açsın (sadece ikon değil)
+    var media=e.target&&e.target.closest&&e.target.closest("#MainContent .main--product-image-slider-outer .swiper-slide .media");
+    if(!media){
+      // Doğrudan butona tıklama da çalışsın
+      var directBtn=e.target&&e.target.closest&&e.target.closest("#MainContent media-zoom-button");
+      if(!directBtn)return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      openProductZoom(directBtn);
+      return;
+    }
+    var btn=media.querySelector("media-zoom-button");
     if(!btn)return;
     e.preventDefault();
     e.stopImmediatePropagation();
