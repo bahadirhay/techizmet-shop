@@ -12,8 +12,17 @@ const nextConfig: NextConfig = {
   productionBrowserSourceMaps: false,
   // Turbopack — Next 16'da varsayılan; webpack config çakışma uyarısını susturur
   turbopack: {},
-  experimental: {
-    cpus: 1,
+  experimental: {},
+  images: {
+    // Modern formatlar: AVIF %50, WebP %30 daha küçük → LCP iyileşir
+    formats: ["image/avif", "image/webp"],
+    // Mobil-önce responsive genişlikler (ürün kartı, hero, thumbnail)
+    deviceSizes: [360, 480, 640, 750, 828, 1080, 1200, 1440, 1920],
+    imageSizes: [32, 64, 128, 192, 256, 384, 512],
+    // Vercel CDN kalite ayarı — AVIF'te 75, WebP'de yeterince keskin
+    qualities: [60, 75, 85],
+    // 31 gün CDN cache — aynı URL aynı dosyayı döndürür
+    minimumCacheTTL: 2678400,
   },
   serverExternalPackages: ["@prisma/client", ".prisma/client", "linkedom", "html-encoding-sniffer", "@exodus/bytes"],
   // public/ statik CDN'den sunulur; fs ile taranan uploads/brands/cdn pakete girmesin (Vercel 250MB limiti).
@@ -80,9 +89,10 @@ const nextConfig: NextConfig = {
         value: "public, max-age=31536000, immutable",
       },
     ] as const;
-    // Prebuilt HTML — içerik client-side patch edildiğinden shell 5dk browser + 1 saat CDN edge'de cache'de kalabilir
+    // Prebuilt HTML — içerik client-side patch edildiğinden shell 5dk browser + 24 saat CDN edge'de cache'de kalabilir
+    // Revalidation API çağrıldığında CDN cache temizlenir
     const prebuiltHtmlCache = [
-      { key: "Cache-Control", value: "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400" },
+      { key: "Cache-Control", value: "public, max-age=300, s-maxage=86400, stale-while-revalidate=604800" },
     ] as const;
     /**
      * SEO tarama dosyaları — dinamik route handler'ları varsayılan no-store

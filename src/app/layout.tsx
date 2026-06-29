@@ -18,7 +18,9 @@ import "./globals.css";
 
 const poppins = Poppins({
   subsets: ["latin", "latin-ext"],
-  weight: ["400", "500", "600", "700"],
+  // Mirror shell sayfalarında Poppins kullanılmıyor; preload yalnızca admin/non-mirror için gerekli.
+  // 400 (gövde) + 600 (başlık) yeterli — 500 ve 700'ü kaldırmak ~60KB tasarruf sağlar.
+  weight: ["400", "600"],
   variable: "--font-poppins",
   display: "swap",
   preload: true,
@@ -50,14 +52,34 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const mirrorShell =
     !isAdminOrApi && getHomepageMode(settings) === "mirror" && isMirrorShellPath(pathname);
 
+  // Mirror shell sayfalarında Poppins kullanılmıyor — font variable class'ı ekleme
+  const bodyClass = mirrorShell ? "antialiased" : `${poppins.variable} antialiased`;
+
   return (
     <html lang="tr">
       <head>
-        {/* mirrorHeroPreload ana frame'de kullanılmıyor (iframe içinde yükleniyor) — preload kaldırıldı */}
-        {/* as="document" rel="preload" için desteklenmiyor; prefetch olarak bırakıldı */}
-        {mirrorHomePreload ? <link rel="prefetch" href={mirrorHomePreload} /> : null}
+        {/* Kritik dış domain'lere erken bağlantı — DNS+TCP+TLS maliyeti ~150-300ms azalır */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {gaId ? <link rel="preconnect" href="https://www.googletagmanager.com" /> : null}
+        {gaId ? <link rel="dns-prefetch" href="https://www.google-analytics.com" /> : null}
+
+        {/* Mirror iframe HTML'ini yüksek öncelikle ön yükle — sayfa açıldığında hazır olsun */}
+        {mirrorHomePreload ? (
+          <link rel="preload" href={mirrorHomePreload} as="fetch" crossOrigin="anonymous" />
+        ) : null}
+
+        {/* LCP hero görseli — iframe içinde yüklense de tarayıcıya önden ipucu verilir */}
+        {mirrorHeroPreload ? (
+          <link
+            rel="preload"
+            href={mirrorHeroPreload}
+            as="image"
+            fetchPriority="high"
+          />
+        ) : null}
       </head>
-      <body className={mirrorShell ? "antialiased" : `${poppins.variable} antialiased`}>
+      <body className={bodyClass}>
         {!isAdminOrApi && (
           <>
             {gaId ? (
