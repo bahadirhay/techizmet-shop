@@ -83,14 +83,17 @@ function bindGalleryMedia(media: HTMLElement) {
   const urls = parseGalleryUrls(media.getAttribute("data-kn-gallery"));
   if (urls.length <= 1) return;
 
-  const img = media.querySelector("img.product--card-image, img") as HTMLImageElement | null;
-  if (!img) return;
-
   media.setAttribute("data-kn-gallery-bound", "1");
+  media.style.pointerEvents = "auto";
   let activeIndex = 0;
   let preloaded = false;
 
+  const getImg = (): HTMLImageElement | null =>
+    media.querySelector("img.product--card-image, img");
+
   const showIndex = (index: number) => {
+    const img = getImg();
+    if (!img) return;
     if (index === activeIndex && img.getAttribute("src") === urls[index]) return;
     activeIndex = index;
     const next = urls[index];

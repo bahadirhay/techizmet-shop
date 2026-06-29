@@ -472,8 +472,10 @@ export function applyCollectionProductsFromAdmin(
   // Tema JS enjeksiyondan sonra kartları yeniden başlatabilir; galeriyi gecikmeli de bağla
   const win = doc.defaultView;
   if (win) {
-    win.setTimeout(() => initProductCardGalleries(doc), 400);
-    win.setTimeout(() => initProductCardGalleries(doc), 1200);
+    win.setTimeout(() => initProductCardGalleries(doc), 300);
+    win.setTimeout(() => initProductCardGalleries(doc), 800);
+    win.setTimeout(() => initProductCardGalleries(doc), 2000);
+    win.setTimeout(() => initProductCardGalleries(doc), 4000);
   }
 }
 
