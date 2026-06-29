@@ -22,6 +22,14 @@ const MOBILE_PERF_GUARD_TAG = `<script id="${MOBILE_PERF_GUARD_ID}">
 })();
 </script>`;
 
+const FONT_DISPLAY_SWAP_ID = "kn-font-display-swap";
+
+/** Tema fontları için font-display:swap — CLS'yi azaltır */
+const FONT_DISPLAY_SWAP_TAG = `<style id="${FONT_DISPLAY_SWAP_ID}">
+@font-face{font-family:'Poppins';font-display:swap}
+@font-face{font-family:'Libre Baskerville';font-display:swap}
+</style>`;
+
 /** Tema sticky header debug logları — gereksiz iş */
 function stripThemeDebugLogs(html: string): string {
   return html.replace(/\s*console\.log\([^)]*isScrolling[^)]*\);\s*/g, "");
@@ -40,6 +48,9 @@ export function patchMirrorPerformance(html: string): string {
   }
   if (!out.includes(`id="${MOBILE_PERF_GUARD_ID}"`)) {
     out = out.replace(/<head(\b[^>]*)>/i, `<head$1>\n${MOBILE_PERF_GUARD_TAG}`);
+  }
+  if (!out.includes(`id="${FONT_DISPLAY_SWAP_ID}"`)) {
+    out = out.replace(/<head(\b[^>]*)>/i, `<head$1>\n${FONT_DISPLAY_SWAP_TAG}`);
   }
   return out;
 }

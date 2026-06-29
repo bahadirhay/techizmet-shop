@@ -198,10 +198,12 @@ export function applyProductReviewsAccordion(
   if (doc.getElementById("kn-reviews-accordion")) return;
   ensureReviewStyles(doc);
 
-  const accordion = doc.querySelector(".product-accordion");
-  if (!accordion) return;
-  const html = buildProductReviewsAccordionHtml(stats, reviews);
-  accordion.insertAdjacentHTML("beforeend", html);
+  // Her accordion kendi .product-accordion wrapper'ında — son wrapper'ın SONRASINA ekliyoruz
+  const allAccordions = doc.querySelectorAll(".product-accordion");
+  const lastAccordion = allAccordions[allAccordions.length - 1] as HTMLElement | undefined;
+  if (!lastAccordion) return;
+  const html = `<div class="product-accordion">${buildProductReviewsAccordionHtml(stats, reviews)}</div>`;
+  lastAccordion.insertAdjacentHTML("afterend", html);
 }
 
 /** iframe DOM'una yıldız bandı + yorum akordeonunu enjekte eder */

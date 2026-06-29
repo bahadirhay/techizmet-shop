@@ -462,6 +462,8 @@ html.kn-mirror-embed .popup.product-media-popup .popup-dialog.fullwidth {
   width: 100% !important;
   height: 100% !important;
   padding: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 html.kn-mirror-embed product-media-popup .popup-close,
 html.kn-mirror-embed .product-media-popup .popup-close {
@@ -484,6 +486,25 @@ html.kn-mirror-embed.kn-product-zoom-open body {
 #MainContent .main--product-image-slider-outer .main--product-img .media > img,
 #MainContent .main--product-image-slider-outer .main--product-img .media > video {
   pointer-events: none !important;
+}
+/* Popup zoom swiper: resim boyutunu viewport ile sınırla */
+html.kn-mirror-embed product-media-popup .swiper-zoom-container img,
+html.kn-mirror-embed .product-media-popup .swiper-zoom-container img {
+  max-height: 80vh !important;
+  max-width: 90vw !important;
+  width: auto !important;
+  height: auto !important;
+  object-fit: contain !important;
+}
+html.kn-mirror-embed product-media-popup .swiper,
+html.kn-mirror-embed .product-media-popup .swiper {
+  height: 100% !important;
+}
+html.kn-mirror-embed product-media-popup .swiper-slide,
+html.kn-mirror-embed .product-media-popup .swiper-slide {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }`;
 
   doc.getElementById("kn-product-media-zoom-fix-script")?.remove();
@@ -592,11 +613,16 @@ html.kn-mirror-embed.kn-product-zoom-open body {
     e.stopImmediatePropagation();
     openProductZoom(btn);
   },true);
+  var _zoomWasOpen=false;
   function sync(){
     var open=!!document.querySelector("product-media-popup.show,.product-media-popup.show");
     document.documentElement.classList.toggle("kn-product-zoom-open",open);
     var bar=document.getElementById("kn-street-food-bar");
     if(bar)bar.toggleAttribute("hidden",open);
+    if(open!==_zoomWasOpen){
+      _zoomWasOpen=open;
+      try{window.parent.postMessage({type:open?"kn-zoom-open":"kn-zoom-close"},"*");}catch(e){}
+    }
   }
   try{
     new MutationObserver(sync).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:["class","style"]});

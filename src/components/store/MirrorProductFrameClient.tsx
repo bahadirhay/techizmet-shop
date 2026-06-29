@@ -102,6 +102,7 @@ export function MirrorProductFrameClient({
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const cancelBrandingRef = useRef<(() => void) | undefined>(undefined);
   const [contentVisible, setContentVisible] = useState(() => isPrebuiltMirrorSrc(src));
+  const [zoomOpen, setZoomOpen] = useState(false);
   const [exploreLooks, setExploreLooks] = useState<ProductExploreLook[]>(exploreLooksInitial ?? []);
   const [exploreProductsBySlug, setExploreProductsBySlug] = useState<
     Record<string, ExploreOverlayProduct>
@@ -326,6 +327,17 @@ export function MirrorProductFrameClient({
     return () => window.clearTimeout(t);
   }, [patchKey, src]);
 
+  // iframe zoom popup → parent'ı tam ekran yap
+  useEffect(() => {
+    function onMsg(e: MessageEvent) {
+      if (e.source !== iframeRef.current?.contentWindow) return;
+      if (e.data?.type === "kn-zoom-open") setZoomOpen(true);
+      else if (e.data?.type === "kn-zoom-close") setZoomOpen(false);
+    }
+    window.addEventListener("message", onMsg);
+    return () => window.removeEventListener("message", onMsg);
+  }, []);
+
   // Ürün sayfası: iframe içerik yüksekliğini ölçüp CSS değişkenine yaz
   const wrapRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -397,12 +409,17 @@ export function MirrorProductFrameClient({
   }, [src, productSlug, productFromAdmin]);
 
   return (
-    <div ref={wrapRef} className="kn-home-mirror kn-home-mirror--product relative w-full">
+    <div
+      ref={wrapRef}
+      className="kn-home-mirror kn-home-mirror--product relative w-full"
+      style={zoomOpen ? { position: "fixed", inset: 0, zIndex: 9999, width: "100%", height: "100%" } : undefined}
+    >
       <iframe
         ref={iframeRef}
         title={title}
         src={src}
         className="mirror-home-frame"
+        style={zoomOpen ? { width: "100%", height: "100%" } : undefined}
         loading="eager"
       />
     </div>

@@ -77,7 +77,6 @@ export function isMirrorPathUncacheable(
 ) {
   if (layoutOrder?.length) return true;
   if (blogSlug?.trim()) return true;
-  if (productSlug?.trim()) return true;
   if (cmsSlug?.trim()) return true;
   if (normalized.includes("mirror/cart/")) return true;
   if (normalized.includes("mirror/checkout/")) return true;

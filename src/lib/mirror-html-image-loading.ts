@@ -58,13 +58,19 @@ function patchImgTagAttrs(attrs: string, width: number, opts?: { isFirstHero?: b
 }
 
 function patchImgAttrUrl(attrs: string, attr: string, width: number): string {
-  const re = new RegExp(`${attr}="([^"]+)"`, "i");
+  // `src="..."` regex'i `data-src="..."` içindeki src'yi de yakalar — word-boundary ile ayırt et
+  const re = attr === "src"
+    ? /(?<![a-z-])src="([^"]+)"/i
+    : new RegExp(`${attr}="([^"]+)"`, "i");
   const m = attrs.match(re);
   if (!m?.[1]) return attrs;
   const raw = m[1].replace(/&amp;/g, "&");
   if (!isResizableMirrorImageUrl(raw)) return attrs;
   const sized = mirrorCdnImageUrl(raw, width);
-  return attrs.replace(re, `${attr}="${escapeHtmlAttr(sized)}"`);
+  // data-src patching için regex doğrudan kullanılır; src için ise sadece src="..." kısmını değiştir
+  return attr === "src"
+    ? attrs.replace(/(?<![a-z-])src="([^"]+)"/i, `src="${escapeHtmlAttr(sized)}"`)
+    : attrs.replace(re, `${attr}="${escapeHtmlAttr(sized)}"`);
 }
 
 /** Sunucu HTML — tema CDN, /uploads ve kart görsellerini küçült */

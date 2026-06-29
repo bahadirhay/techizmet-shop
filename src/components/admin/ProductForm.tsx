@@ -123,6 +123,8 @@ export function ProductForm({
   );
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [rebuildBusy, setRebuildBusy] = useState(false);
+  const [rebuildMsg, setRebuildMsg] = useState<string | null>(null);
 
   const galleryKey = `${initial.id ?? "new"}-${initial.mediaItems.map((m) => `${m.mediaType}:${m.url}`).join("|")}`;
 
@@ -293,6 +295,37 @@ export function ProductForm({
             >
               Vitrini aç
             </Link>
+          ) : null}
+          {form.slug && homepageMode === "mirror" ? (
+            <button
+              type="button"
+              disabled={rebuildBusy}
+              className={btnSecondary}
+              title="Ürün sayfasını HTML olarak oluşturur ve önbelleği günceller — ziyaretçiler daha hızlı sayfa görür"
+              onClick={async () => {
+                setRebuildBusy(true);
+                setRebuildMsg(null);
+                try {
+                  const res = await fetch("/api/admin/mirror-rebuild", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ slug: form.slug }),
+                  });
+                  const j = await res.json() as { ok?: boolean; error?: string };
+                  setRebuildMsg(j.ok ? "✓ Sayfa önbelleği güncellendi" : (j.error ?? "Hata oluştu"));
+                } catch {
+                  setRebuildMsg("Bağlantı hatası");
+                } finally {
+                  setRebuildBusy(false);
+                  setTimeout(() => setRebuildMsg(null), 4000);
+                }
+              }}
+            >
+              {rebuildBusy ? "Oluşturuluyor…" : "Sayfayı Yenile"}
+            </button>
+          ) : null}
+          {rebuildMsg ? (
+            <span className="text-sm text-zinc-600">{rebuildMsg}</span>
           ) : null}
           {form.id ? (
             <button
