@@ -478,7 +478,8 @@ html.kn-mirror-embed.kn-product-zoom-open,
 html.kn-mirror-embed.kn-product-zoom-open body {
   overflow: visible !important;
 }
-@media (max-width: 767px) {
+/* Zoom butonunu yalnızca gerçek dokunmatik cihazlarda kapat (mobil JS touch handler üstlenir) */
+@media (hover: none) and (pointer: coarse) {
   #MainContent .main--product-image-slider-outer media-zoom-button {
     pointer-events: none !important;
   }
@@ -530,7 +531,8 @@ html.kn-mirror-embed .product-media-popup .swiper-slide {
   var TAP_MAX_MS=420;
   var pending=null;
   function isMobile(){
-    return window.matchMedia("(max-width: 767px)").matches;
+    // Gerçek dokunmatik cihaz tespiti — dar masaüstü penceresini yanlış etiketlemez
+    return window.matchMedia("(hover: none) and (pointer: coarse)").matches;
   }
   function mainGallerySwiper(){
     var outer=document.querySelector("#MainContent .main--product-image-slider-outer");
