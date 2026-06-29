@@ -3,8 +3,8 @@ import { join } from "node:path";
 
 const THEME_ROOT = join(process.cwd(), "public/theme/techizmet-shop");
 
-/** Diskte bulunamayan görseller için yedek */
-const FALLBACK_REL = "theme/techizmet-shop/cdn/shop/files/MG1_b0421d9f-5d83-4554-9ecb-3419c31cb87484b8.jpg";
+/** Diskte bulunamayan görseller için yedek — null: 404 döner, kozmetik görsel dönmez */
+const FALLBACK_REL: string | null = null;
 
 const CDN_SUBDIRS = ["cdn/shop/files", "cdn/shop/collections", "cdn/shop/articles"] as const;
 
@@ -99,16 +99,20 @@ export function resolveMirrorThemeFile(publicPath: string): { abs: string; rel: 
 
   let actual = getMirrorAssetResolver().pickBest(sub, requested);
   if (!actual) {
-    const fb = join(process.cwd(), "public", FALLBACK_REL);
-    if (existsSync(fb)) return { abs: fb, rel: FALLBACK_REL };
+    if (FALLBACK_REL) {
+      const fb = join(process.cwd(), "public", FALLBACK_REL);
+      if (existsSync(fb)) return { abs: fb, rel: FALLBACK_REL };
+    }
     return null;
   }
 
   const rel = `theme/techizmet-shop/${sub}/${actual}`;
   const abs = join(process.cwd(), "public", rel);
   if (!existsSync(abs)) {
-    const fb = join(process.cwd(), "public", FALLBACK_REL);
-    if (existsSync(fb)) return { abs: fb, rel: FALLBACK_REL };
+    if (FALLBACK_REL) {
+      const fb = join(process.cwd(), "public", FALLBACK_REL);
+      if (existsSync(fb)) return { abs: fb, rel: FALLBACK_REL };
+    }
     return null;
   }
   return { abs, rel };
