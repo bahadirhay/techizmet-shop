@@ -18,7 +18,7 @@ const FEATURED_FALLBACK_BY_SLUG: Record<string, string> = {
   "the-benefits-of-switching-to-cruelty-free-skincare-products":
     "/theme/techizmet-shop/cdn/shop/files/76418.jpg",
   "the-truth-about-common-skincare-myths-debunked":
-    "/theme/techizmet-shop/cdn/shop/files/14a5d41.jpg",
+    "/theme/techizmet-shop/cdn/shop/files/18af34f.jpg",
 };
 
 export function resolveMirrorPublicAsset(publicPath: string): string | null {

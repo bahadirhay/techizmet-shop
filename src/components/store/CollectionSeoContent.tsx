@@ -1,3 +1,4 @@
+import "./collection-seo-content.css";
 import Link from "next/link";
 import { formatTry } from "@/lib/format";
 

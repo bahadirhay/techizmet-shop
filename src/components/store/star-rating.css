@@ -1,0 +1,22 @@
+/* Yıldız puanı */
+.kn-stars {
+  display: inline-flex;
+  gap: 1px;
+  line-height: 1;
+  white-space: nowrap;
+}
+.kn-stars__on {
+  color: #f5a623;
+}
+.kn-stars__off {
+  color: #d4d4d8;
+}
+.kn-stars--sm {
+  font-size: 0.9rem;
+}
+.kn-stars--md {
+  font-size: 1.1rem;
+}
+.kn-stars--lg {
+  font-size: 1.5rem;
+}

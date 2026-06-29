@@ -1,0 +1,118 @@
+/* Taranabilir SEO içerik bloğu (koleksiyon + head terim landing sayfaları) */
+.kn-seo-content {
+  background: var(--background);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 2.25rem 1rem 3rem;
+}
+
+.kn-seo-content__inner {
+  max-width: 60rem;
+  margin: 0 auto;
+}
+
+.kn-seo-content__title {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 700;
+  color: var(--foreground);
+  margin: 0 0 0.85rem;
+}
+
+.kn-seo-content__intro {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: #3f3f46;
+  margin: 0 0 1.5rem;
+}
+
+.kn-seo-content__subtitle {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin: 1.75rem 0 0.75rem;
+}
+
+.kn-seo-content__criteria {
+  list-style: disc;
+  padding-left: 1.25rem;
+  margin: 0;
+  display: grid;
+  gap: 0.5rem;
+  color: #3f3f46;
+  line-height: 1.6;
+}
+
+.kn-seo-content__criteria strong {
+  color: var(--foreground);
+}
+
+.kn-seo-content__products {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.kn-seo-content__products a {
+  color: var(--kn-brand);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.kn-seo-content__products a:hover {
+  text-decoration: underline;
+}
+
+.kn-seo-content__price {
+  color: #71717a;
+  font-size: 0.9rem;
+}
+
+.kn-seo-content__faq details {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  padding: 0.65rem 0;
+}
+
+.kn-seo-content__faq summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--foreground);
+  list-style: revert;
+}
+
+.kn-seo-content__faq p {
+  margin: 0.5rem 0 0;
+  color: #3f3f46;
+  line-height: 1.65;
+}
+
+.kn-seo-content__related {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+
+.kn-seo-content__related a {
+  color: var(--kn-brand);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.kn-seo-content__related a:hover {
+  text-decoration: underline;
+}
+
+.kn-landing {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+}
+
+.kn-landing .kn-seo-content {
+  background: transparent;
+  border-top: none;
+  padding: 0;
+}

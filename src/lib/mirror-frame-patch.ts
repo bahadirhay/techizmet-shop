@@ -49,9 +49,17 @@ export function isMirrorServerReady(doc: Document): boolean {
   return isServerProcessedMirror(doc) && !!doc.getElementById("kn-branding-bootstrap");
 }
 
-/** Tüm mirror iframe’lerinde ortak yama (istemci güvenli) */
-export function applyMirrorFramePatches(doc: Document, opts: MirrorFramePatchOpts) {
+/**
+ * Tüm mirror iframe’lerinde ortak yama (istemci güvenli).
+ * Ağır DOM işlemleri scheduler.yield() ile 3 gruba bölünmüştür:
+ *   1) Layout/stil kurulumu (görsel kritik)
+ *   2) Marka/logo/favicon
+ *   3) Nav/footer/locale + post-load
+ */
+export async function applyMirrorFramePatches(doc: Document, opts: MirrorFramePatchOpts): Promise<void> {
   const serverReady = isMirrorServerReady(doc);
+
+  // --- Grup 1: Layout & hesap widget kurulumu (görsel baskı önlenir) ---
   installMirrorLayoutQuiet(doc);
   ensureMirrorLayoutStyles(doc);
   ensureMirrorProductImageStyles(doc);
@@ -59,6 +67,9 @@ export function applyMirrorFramePatches(doc: Document, opts: MirrorFramePatchOpt
   applyMirrorAccountDashboardClient(doc);
   if (opts.accountDrawerForm) openAccountDrawer(doc, opts.accountDrawerForm);
 
+  await yieldToMain();
+
+  // --- Grup 2: Marka kimliği (logo, favicon, renk) ---
   applyMirrorHeaderIconsFix(doc);
   if (opts.branding?.logoUrl?.trim()) {
     applyMirrorLogoUnify(doc, opts.branding);
@@ -75,6 +86,9 @@ export function applyMirrorFramePatches(doc: Document, opts: MirrorFramePatchOpt
     }
   }
 
+  await yieldToMain();
+
+  // --- Grup 3: Navigasyon, footer, locale, post-load ---
   const locale = opts.locale ?? "tr";
   if (opts.nav?.length) {
     syncMirrorNavigation(doc, opts.nav, locale);
@@ -110,9 +124,8 @@ export function scheduleMirrorFramePatches(
 ): () => void {
   const apply = () => {
     const d = getDoc();
-    if (!d?.getElementById("MainContent")) return false;
-    applyMirrorFramePatches(d, opts);
-    return Boolean(opts.nav?.length && d.querySelector("ul.header--navigation-list[data-kn-nav-injected]"));
+    if (!d?.getElementById("MainContent")) return;
+    void applyMirrorFramePatches(d, opts);
   };
 
   const delays = opts.nav?.length
@@ -122,17 +135,33 @@ export function scheduleMirrorFramePatches(
       : [800];
   const timers: number[] = [];
   for (const ms of delays) {
-    timers.push(
-      window.setTimeout(() => {
-        apply();
-      }, ms),
-    );
+    timers.push(window.setTimeout(apply, ms));
   }
 
   return () => timers.forEach((t) => window.clearTimeout(t));
 }
 
+type SchedulerWithYield = { yield(): Promise<void> };
+const _scheduler = typeof window !== "undefined"
+  ? (window as unknown as { scheduler?: SchedulerWithYield }).scheduler
+  : undefined;
+
+/**
+ * Ana thread’i bırakır — scheduler.yield() destekleniyorsa continuation önceliği
+ * alır (diğer görevlerin önünde çalışır), aksi hâlde setTimeout(0) ile devam eder.
+ */
+async function yieldToMain(): Promise<void> {
+  if (_scheduler && "yield" in _scheduler) {
+    return _scheduler.yield();
+  }
+  return new Promise<void>((resolve) => setTimeout(resolve, 0));
+}
+
 /** Ana thread’i bloklamadan patch çalıştırır */
-export function deferMirrorFrameWork(work: () => void) {
-  window.setTimeout(work, 0);
+export function deferMirrorFrameWork(work: () => void): void {
+  if (_scheduler && "yield" in _scheduler) {
+    void _scheduler.yield().then(work);
+  } else {
+    window.setTimeout(work, 0);
+  }
 }

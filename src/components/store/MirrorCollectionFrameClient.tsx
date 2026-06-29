@@ -103,7 +103,7 @@ export function MirrorCollectionFrameClient({
       setCollectionProductsAwaiting(doc, true);
     }
 
-    applyMirrorFramePatches(doc, {
+    void applyMirrorFramePatches(doc, {
       branding,
       nav,
       footer,

@@ -422,11 +422,12 @@ export function MirrorVitrinFrameClient({
       }
 
       // Sunucu zaten overlay uyguladıysa client tekrar uygulamaz (görsel titreme önlenir)
+      // hasWidgets (özel bloklar) dahil — sunucu HTML'de zaten enjekte edilmiştir
       const needsClientOverlay =
         !visualEditMode &&
         config &&
         shouldApplyMirrorPageOverlay(config) &&
-        (hasWidgets || !serverOverlay);
+        !serverOverlay;
 
       if (!visualEditMode && needsClientOverlay) {
         applyPageOverlayToDoc(doc);

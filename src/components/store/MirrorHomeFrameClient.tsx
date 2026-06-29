@@ -88,7 +88,9 @@ export function MirrorHomeFrameClient({
           locale,
         });
 
-        if (config) applyMirrorHomeOverlay(doc, config, locale ?? "tr");
+        if (config && (!doc.documentElement.getAttribute("data-kn-overlay-server") || visualEditMode)) {
+          applyMirrorHomeOverlay(doc, config, locale ?? "tr");
+        }
         if (visualEditMode) {
           stampMirrorEditableElements(doc);
           disableMirrorNavigation(doc);

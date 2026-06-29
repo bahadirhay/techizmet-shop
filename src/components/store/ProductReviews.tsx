@@ -1,3 +1,4 @@
+import "./product-reviews.css";
 import { getApprovedReviews, getReviewStats } from "@/lib/reviews/service";
 import { StarRating } from "@/components/store/StarRating";
 import { ReviewForm } from "@/components/store/ReviewForm";

@@ -1,3 +1,5 @@
+import "./star-rating.css";
+
 /** Salt görüntüleme yıldız puanı (server-safe) */
 export function StarRating({
   value,

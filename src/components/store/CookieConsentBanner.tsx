@@ -1,5 +1,6 @@
 "use client";
 
+import "./cookie-consent-banner.css";
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 

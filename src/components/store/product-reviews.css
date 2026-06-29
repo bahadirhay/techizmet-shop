@@ -1,0 +1,200 @@
+/* Ürün yorumları bloğu */
+.kn-reviews {
+  background: var(--background);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 2.25rem 1rem 3rem;
+}
+.kn-reviews__banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #fafaf8;
+  border-bottom: 1px solid rgba(0,0,0,0.07);
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #444;
+  margin: -2.25rem -1rem 2rem;
+}
+.kn-reviews__banner-icon {
+  color: #f5a623;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+.kn-reviews__inner {
+  max-width: 60rem;
+  margin: 0 auto;
+}
+.kn-reviews__title {
+  font-size: clamp(1.35rem, 3vw, 1.8rem);
+  font-weight: 700;
+  color: var(--foreground);
+  margin: 0 0 1rem;
+}
+.kn-reviews__summary {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+.kn-reviews__avg {
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: var(--foreground);
+  line-height: 1;
+}
+.kn-reviews__summary-stars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.kn-reviews__count {
+  font-size: 0.85rem;
+  color: #71717a;
+}
+.kn-reviews__empty {
+  color: #52525b;
+  margin: 0;
+}
+.kn-reviews__list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 2rem;
+  display: grid;
+  gap: 1.1rem;
+}
+.kn-review {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+  background: #fff;
+}
+.kn-review__head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+.kn-review__author {
+  font-weight: 600;
+  color: var(--foreground);
+}
+.kn-review__badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #166534;
+  background: #dcfce7;
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+}
+.kn-review__date {
+  font-size: 0.78rem;
+  color: #a1a1aa;
+  margin-left: auto;
+}
+.kn-review__title {
+  font-weight: 600;
+  margin: 0.55rem 0 0.25rem;
+  color: var(--foreground);
+}
+.kn-review__body {
+  margin: 0.35rem 0 0;
+  color: #3f3f46;
+  line-height: 1.6;
+  white-space: pre-line;
+}
+
+/* Yorum formu */
+.kn-review-form {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 14px;
+  padding: 1.1rem 1.15rem;
+  background: #fff;
+  display: grid;
+  gap: 0.7rem;
+  max-width: 40rem;
+}
+.kn-review-form__title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--foreground);
+  margin: 0;
+}
+.kn-review-form__rating {
+  display: flex;
+  gap: 0.15rem;
+}
+.kn-review-form__star {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.7rem;
+  line-height: 1;
+  color: #d4d4d8;
+  padding: 0;
+  transition: color 0.1s ease;
+}
+.kn-review-form__star.is-on {
+  color: #f5a623;
+}
+.kn-review-form__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.7rem;
+}
+@media (max-width: 520px) {
+  .kn-review-form__row {
+    grid-template-columns: 1fr;
+  }
+}
+.kn-review-form__input,
+.kn-review-form__textarea {
+  width: 100%;
+  border: 1px solid #d4d4d8;
+  border-radius: 9px;
+  padding: 0.55rem 0.7rem;
+  font: inherit;
+  color: var(--foreground);
+  background: #fff;
+}
+.kn-review-form__input:focus,
+.kn-review-form__textarea:focus {
+  outline: 2px solid var(--kn-brand);
+  outline-offset: 1px;
+}
+.kn-review-form__textarea {
+  resize: vertical;
+}
+.kn-review-form__submit {
+  justify-self: start;
+  background: var(--kn-brand);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 0.6rem 1.4rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.kn-review-form__submit:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.kn-review-form__note {
+  font-size: 0.75rem;
+  color: #a1a1aa;
+  margin: 0;
+}
+.kn-review-form__error {
+  color: #dc2626;
+  font-size: 0.85rem;
+  margin: 0;
+}
+.kn-review-form__done {
+  background: #dcfce7;
+  color: #166534;
+  border-radius: 12px;
+  padding: 1rem 1.15rem;
+  font-weight: 500;
+  margin: 0;
+}
