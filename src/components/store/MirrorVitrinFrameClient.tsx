@@ -35,7 +35,7 @@ import {
 } from "@/lib/mirror-home-overlay";
 import { applySiteMarqueeOverlay } from "@/lib/product-page-bottom";
 import type { ProductPageBottomSettings } from "@/lib/product-page-bottom";
-import { shouldApplyMirrorPageOverlay } from "@/lib/mirror-has-page-edits";
+import { shouldApplyMirrorPageOverlay, hasMirrorPageEdits } from "@/lib/mirror-has-page-edits";
 import {
   applyCollectionsCardsFromAdmin,
   applyCollectionCategoryFiltersFromAdmin,
@@ -421,13 +421,14 @@ export function MirrorVitrinFrameClient({
         });
       }
 
-      // Sunucu zaten overlay uyguladıysa client tekrar uygulamaz (görsel titreme önlenir)
-      // hasWidgets (özel bloklar) dahil — sunucu HTML'de zaten enjekte edilmiştir
+      // Sunucu overlay'i yapıldıysa CLS'i önlemek için client genelde tekrar uygulamaz.
+      // Ama admin'den bölüm içeriği (mediaGridItems, headingHtml vb.) kaydedildiyse,
+      // prebuild anındaki veriden farklı olabilir — bu durumda client overlay zorunlu.
       const needsClientOverlay =
         !visualEditMode &&
         config &&
         shouldApplyMirrorPageOverlay(config) &&
-        !serverOverlay;
+        (!serverOverlay || hasMirrorPageEdits(config));
 
       if (!visualEditMode && needsClientOverlay) {
         applyPageOverlayToDoc(doc);
