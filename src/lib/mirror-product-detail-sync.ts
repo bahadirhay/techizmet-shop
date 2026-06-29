@@ -490,11 +490,23 @@ html.kn-mirror-embed.kn-product-zoom-open body {
 /* Popup zoom swiper: resim boyutunu viewport ile sınırla */
 html.kn-mirror-embed product-media-popup .swiper-zoom-container img,
 html.kn-mirror-embed .product-media-popup .swiper-zoom-container img {
-  max-height: 80vh !important;
-  max-width: 90vw !important;
+  max-height: 90vh !important;
+  max-width: 95vw !important;
   width: auto !important;
   height: auto !important;
   object-fit: contain !important;
+}
+/* Masaüstü: Trendyol gibi büyük, ortalanmış görsel */
+@media (min-width: 768px) {
+  html.kn-mirror-embed product-media-popup .swiper-zoom-container img,
+  html.kn-mirror-embed .product-media-popup .swiper-zoom-container img {
+    max-height: 88vh !important;
+    max-width: 80vw !important;
+  }
+  html.kn-mirror-embed product-media-popup .popup-dialog.fullwidth,
+  html.kn-mirror-embed .product-media-popup .popup-dialog.fullwidth {
+    flex-direction: row !important;
+  }
 }
 html.kn-mirror-embed product-media-popup .swiper,
 html.kn-mirror-embed .product-media-popup .swiper {
@@ -525,9 +537,10 @@ html.kn-mirror-embed .product-media-popup .swiper-slide {
     return outer&&outer.swiper?outer.swiper:null;
   }
   function resolveGalleryIndex(btn){
-    var sw=mainGallerySwiper();
-    if(sw&&typeof sw.realIndex==="number"&&!isNaN(sw.realIndex))return sw.realIndex;
-    if(sw&&typeof sw.activeIndex==="number"&&!isNaN(sw.activeIndex))return sw.activeIndex;
+    // Önce: tıklanan butondaki data-index — masaüstü slidesPerView>1 durumunda en güvenilir
+    var fromAttr=parseInt(btn&&btn.dataset&&btn.dataset.index,10);
+    if(!isNaN(fromAttr))return fromAttr;
+    // Butonu içeren slide'ın DOM sırası
     var slide=btn&&btn.closest?btn.closest(".swiper-slide"):null;
     if(slide&&!slide.classList.contains("swiper-slide-duplicate")){
       var outer=document.querySelector("#MainContent .main--product-image-slider-outer");
@@ -535,8 +548,11 @@ html.kn-mirror-embed .product-media-popup .swiper-slide {
       var idx=slides.indexOf(slide);
       if(idx>=0)return idx;
     }
-    var parsed=parseInt(btn&&(btn.slideIndex||btn.dataset.index),10);
-    return isNaN(parsed)?0:parsed;
+    // Fallback: swiper aktif index (tek resimli mobil için)
+    var sw=mainGallerySwiper();
+    if(sw&&typeof sw.realIndex==="number"&&!isNaN(sw.realIndex))return sw.realIndex;
+    if(sw&&typeof sw.activeIndex==="number"&&!isNaN(sw.activeIndex))return sw.activeIndex;
+    return 0;
   }
   function selectPopupSlide(popup,index){
     var host=popup.querySelector("swiper-content");
