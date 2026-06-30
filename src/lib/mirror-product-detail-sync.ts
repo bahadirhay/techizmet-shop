@@ -530,9 +530,12 @@ html.kn-mirror-embed .product-media-popup .swiper-slide {
   const script = doc.createElement("script");
   script.id = "kn-product-media-zoom-fix-script";
   script.textContent = `(function(){
-  var KN_ZOOM_VER=8;
+  var KN_ZOOM_VER=9;
   if(window.__knProductZoomVer===KN_ZOOM_VER)return;
   window.__knProductZoomVer=KN_ZOOM_VER;
+  // Generation counter: eski sürüm listener'ları bu sayaç değişince kendini iptal eder
+  window.__knZoomGen=(window.__knZoomGen||0)+1;
+  var _gen=window.__knZoomGen;
   var TAP_MOVE_PX=14;
   var TAP_MAX_MS=420;
   var pending=null;
@@ -618,6 +621,7 @@ html.kn-mirror-embed .product-media-popup .swiper-slide {
     return target&&target.closest&&target.closest("#MainContent .main--product-image-slider-outer .swiper-slide-active .media");
   }
   document.addEventListener("touchstart",function(e){
+    if(window.__knZoomGen!==_gen)return;
     if(!isMobile())return;
     var media=activeGalleryMedia(e.target);
     if(!media){pending=null;return;}
@@ -626,13 +630,13 @@ html.kn-mirror-embed .product-media-popup .swiper-slide {
     pending={x:t.clientX,y:t.clientY,t:Date.now(),moved:false,media:media};
   },{passive:true,capture:true});
   document.addEventListener("touchmove",function(e){
-    if(!pending)return;
+    if(window.__knZoomGen!==_gen||!pending)return;
     var t=e.changedTouches&&e.changedTouches[0];
     if(!t)return;
     if(Math.abs(t.clientX-pending.x)>TAP_MOVE_PX||Math.abs(t.clientY-pending.y)>TAP_MOVE_PX)pending.moved=true;
   },{passive:true,capture:true});
   document.addEventListener("touchend",function(e){
-    if(!isMobile()||!pending)return;
+    if(window.__knZoomGen!==_gen||!isMobile()||!pending)return;
     var snap=pending;
     pending=null;
     if(snap.moved||Date.now()-snap.t>TAP_MAX_MS)return;
@@ -643,9 +647,9 @@ html.kn-mirror-embed .product-media-popup .swiper-slide {
     e.preventDefault();
     openProductZoom(btn);
   },true);
-  document.addEventListener("touchcancel",function(){pending=null;},true);
+  document.addEventListener("touchcancel",function(){if(window.__knZoomGen===_gen)pending=null;},true);
   document.addEventListener("click",function(e){
-    if(isMobile())return;
+    if(window.__knZoomGen!==_gen||isMobile())return;
     // Görselin herhangi bir yerine tıklamak zoom'u açsın
     var media=e.target&&e.target.closest&&e.target.closest("#MainContent .main--product-image-slider-outer .swiper-slide .media");
     if(!media)return;
