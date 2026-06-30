@@ -95,6 +95,10 @@ export function mergeSiteSettings(current: SiteSettings, patch: SiteSettings): S
             patch.seo.googleSwg !== undefined
               ? { ...current.seo?.googleSwg, ...patch.seo.googleSwg }
               : current.seo?.googleSwg,
+          googleCustomerReviews:
+            patch.seo.googleCustomerReviews !== undefined
+              ? { ...current.seo?.googleCustomerReviews, ...patch.seo.googleCustomerReviews }
+              : current.seo?.googleCustomerReviews,
         }
       : current.seo,
     payment: patch.payment

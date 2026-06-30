@@ -35,6 +35,7 @@ export function StoreSeoSettingsForm({
         theme: "light" | "dark";
         lang: string;
       };
+      googleCustomerReviews: { merchantId?: string; deliveryDays?: number };
     };
   };
   siteUrl: string;
@@ -325,6 +326,47 @@ export function StoreSeoSettingsForm({
           Yalnızca <code>meta</code> ve <code>link</code> etiketleri (doğrulama vb.). Script kodları buraya
           yapıştırılamaz; blog için Google Haberler bölümünü kullanın.
         </p>
+      </section>
+
+      <section className="admin-card admin-card-pad space-y-4">
+        <h2 className="text-lg font-semibold">Google Müşteri Yorumları</h2>
+        <p className="text-xs text-zinc-500">
+          Sipariş onayı sayfasında Google'ın opt-in anket widget'ını gösterir. Google Merchant Center
+          hesabınızdaki Merchant ID'yi girin.
+        </p>
+        <AdminField label="Google Merchant ID">
+          <input
+            className={inputClass}
+            value={seo.googleCustomerReviews.merchantId ?? ""}
+            onChange={(e) =>
+              setSeo((s) => ({
+                ...s,
+                googleCustomerReviews: { ...s.googleCustomerReviews, merchantId: e.target.value.trim() },
+              }))
+            }
+            placeholder="238095470"
+          />
+        </AdminField>
+        <AdminField label="Tahmini teslimat süresi (gün)">
+          <input
+            className={inputClass}
+            type="number"
+            min={1}
+            max={60}
+            value={seo.googleCustomerReviews.deliveryDays ?? 7}
+            onChange={(e) => {
+              const n = parseInt(e.target.value, 10);
+              setSeo((s) => ({
+                ...s,
+                googleCustomerReviews: {
+                  ...s.googleCustomerReviews,
+                  deliveryDays: Number.isFinite(n) && n >= 1 ? n : 7,
+                },
+              }));
+            }}
+            placeholder="7"
+          />
+        </AdminField>
       </section>
 
       <div className="sticky bottom-0 -mx-4 flex items-center justify-between gap-3 border-t border-zinc-200 bg-white/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-xl sm:border sm:px-4">

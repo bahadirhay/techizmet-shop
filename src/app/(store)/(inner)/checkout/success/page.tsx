@@ -3,7 +3,7 @@ import { MirrorCheckoutSuccessFrame } from "@/components/store/MirrorCheckoutSuc
 import { getCustomerSession } from "@/lib/customer-session";
 import { prisma } from "@/lib/prisma";
 import { getDefaultSite } from "@/lib/site";
-import { getStoreHomepageMode } from "@/lib/site-settings";
+import { getStoreHomepageMode, getSiteSettings } from "@/lib/site-settings";
 import { getStoreLocale } from "@/lib/i18n/server";
 import { getStreetFoodContributionForOrder } from "@/lib/street-food-fund/order-contribution-message";
 
@@ -21,15 +21,70 @@ export default async function CheckoutSuccessPage({
   const locale = await getStoreLocale();
   let paid = false;
   let streetFoodContributionMessage: string | undefined;
+
+  let googleReviewsData:
+    | {
+        merchantId: string;
+        orderId: string;
+        email: string;
+        deliveryCountry: string;
+        estimatedDeliveryDate: string;
+        gtins: string[];
+      }
+    | undefined;
+
   if (orderNumber) {
     const row = await prisma.storeOrder.findFirst({
       where: { siteId: site.id, orderNumber },
-      select: { id: true, paymentStatus: true, paymentMethod: true },
+      select: {
+        id: true,
+        paymentStatus: true,
+        paymentMethod: true,
+        customerEmail: true,
+        shippingAddressJson: true,
+        lines: {
+          select: {
+            product: { select: { barcode: true } },
+          },
+        },
+      },
     });
     paid = row?.paymentStatus === "paid" || row?.paymentMethod !== "card";
     if (row) {
       const contribution = await getStreetFoodContributionForOrder(site.id, row.id, locale);
       streetFoodContributionMessage = contribution?.message;
+
+      const settings = await getSiteSettings(site.id);
+      const gcr = settings.seo?.googleCustomerReviews;
+      if (gcr?.merchantId?.trim()) {
+        const deliveryDays = gcr.deliveryDays ?? 7;
+        const deliveryDate = new Date();
+        deliveryDate.setDate(deliveryDate.getDate() + deliveryDays);
+        const estimatedDeliveryDate = deliveryDate.toISOString().split("T")[0]!;
+
+        const shippingAddr = row.shippingAddressJson
+          ? (JSON.parse(row.shippingAddressJson) as { country?: string; countryCode?: string })
+          : null;
+        const deliveryCountry =
+          shippingAddr?.countryCode?.toUpperCase() ||
+          shippingAddr?.country?.slice(0, 2).toUpperCase() ||
+          "TR";
+
+        const gtins = row.lines
+          .map((l) => l.product?.barcode)
+          .filter((b): b is string => Boolean(b?.trim()));
+
+        if (row.customerEmail?.trim()) {
+          googleReviewsData = {
+            merchantId: gcr.merchantId.trim(),
+            orderId: orderNumber,
+            email: row.customerEmail.trim(),
+            deliveryCountry,
+            estimatedDeliveryDate,
+            gtins,
+          };
+        }
+      }
     }
   }
 
@@ -42,6 +97,7 @@ export default async function CheckoutSuccessPage({
         paid={paid}
         loggedIn={loggedIn}
         streetFoodContributionMessage={streetFoodContributionMessage}
+        googleReviewsData={googleReviewsData}
       />
     );
   }
