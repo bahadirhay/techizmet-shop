@@ -30,10 +30,23 @@ export type MirrorPageConfigLike = {
   contactFormCentered?: boolean;
 };
 
+/**
+ * Noor kozmetik temasından gelen bölümler — admin içerik eklemediyse gizlenmeleri gerekir.
+ * Bu kontrol overlay çalışmadan gerçekleşemez, bu yüzden overlay'i tetiklemelidir.
+ */
+const COSMETICS_REQUIRE_OVERLAY = ["media_grid_bGXVTf", "featured_collection_bwyMgJ"] as const;
+
 /** Sıra / gizleme dahil — overlay ve canlı API gerekiyor mu */
 export function shouldApplyMirrorPageOverlay(config: MirrorPageConfigLike): boolean {
   if ((config.order?.length ?? 0) > 0) return true;
-  return hasMirrorPageEdits(config);
+  if (hasMirrorPageEdits(config)) return true;
+  // Kozmetik bölümler admin içerik eklemediyse gizlenmeli — bu da overlay gerektirir
+  for (const key of COSMETICS_REQUIRE_OVERLAY) {
+    const edit = config.sections?.[key];
+    const hasContent = (edit?.mediaGridItems?.length ?? 0) > 0 || edit?.hidden === false;
+    if (!hasContent) return true;
+  }
+  return false;
 }
 
 export function hasMirrorPageEdits(config: MirrorPageConfigLike): boolean {
