@@ -530,6 +530,13 @@ html.kn-mirror-embed .product-media-popup .swiper-slide {
   const script = doc.createElement("script");
   script.id = "kn-product-media-zoom-fix-script";
   script.textContent = `(function(){
+  // Tema JS kaldırıldı — [data-swiper] elementlerini kendimiz init ediyoruz
+  (function initAllSwipers(){
+    if(typeof Swiper==="undefined")return;
+    document.querySelectorAll("[data-swiper]:not(.swiper-initialized)").forEach(function(el){
+      try{var cfg=JSON.parse(el.getAttribute("data-swiper")||"{}");new Swiper(el,cfg);}catch(e){}
+    });
+  })();
   var KN_ZOOM_VER=9;
   if(window.__knProductZoomVer===KN_ZOOM_VER)return;
   window.__knProductZoomVer=KN_ZOOM_VER;

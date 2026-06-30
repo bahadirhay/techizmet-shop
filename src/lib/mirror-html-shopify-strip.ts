@@ -49,6 +49,14 @@ const SHOPIFY_PERF_MARK =
 const DNS_PREFETCH_SHOPIFY =
   /<link\b[^>]*\bhref=["']https?:\/\/[^"']*(?:shopify|myshopify|shopifysvc)[^"']*["'][^>]*>/gi;
 
+/** Noor tema JS — artık kendi kodumuzla değiştirildi */
+const NOOR_THEME_MAIN_JS =
+  /<script\b[^>]*\ssrc=["'][^"']*\/assets\/theme[a-f0-9]+\.js[^"']*["'][^>]*>\s*<\/script>/gi;
+
+/** Kullanılmayan animasyon kütüphaneleri (GSAP, magnet, SplitText, ScrollTrigger) */
+const UNUSED_ANIMATION_LIBS =
+  /<script\b[^>]*\ssrc=["'][^"']*\/assets\/(?:gsap\.min|ScrollTrigger\.min|SplitText\.min|magnet|animate)[a-f0-9]*\.js[^"']*["'][^>]*>\s*<\/script>/gi;
+
 const HTTRACK_MIRROR_COMMENT =
   /<!--\s*Mirrored from[^>]*(?:myshopify|shopify)[^>]*-->\s*/gi;
 
@@ -92,6 +100,8 @@ function stripTrackingScripts(html: string): string {
   out = out.replace(HTTRACK_MIRROR_COMMENT, "");
   out = out.replace(META_SHOPIFY, "");
   out = out.replace(STYLE_DATA_SHOPIFY, "<style>");
+  out = out.replace(NOOR_THEME_MAIN_JS, "");
+  out = out.replace(UNUSED_ANIMATION_LIBS, "");
   return out;
 }
 
