@@ -35,6 +35,12 @@ export async function getMirrorHomeHeroPreloadHref(siteId: string, locale: "tr" 
   const fromConfig = heroFromPageConfig(settings);
   if (fromConfig) return fromConfig;
 
-  // Statik HTML fallback kaldırıldı — eski HTTrack snapshot'ından yanlış görsel gelmesin
-  return null;
+  const rel =
+    locale === "en" ? "theme/techizmet-shop/mirror/index.html" : "theme/techizmet-shop/mirror/index-tr.html";
+  try {
+    const html = await readFile(join(process.cwd(), "public", rel), "utf8");
+    return heroFromHtmlSnippet(html.slice(0, 400_000));
+  } catch {
+    return null;
+  }
 }
