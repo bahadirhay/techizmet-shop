@@ -92,8 +92,9 @@ export function applyTestimonialVisibility(sectionEl: Element, visibleCount?: nu
   cards.forEach((card, i) => {
     if (!isElementNode(card)) return;
     if (i >= limit) {
-      // DOM'dan tamamen kaldır — Swiper gizli slide'ları yeniden gösterebilir
-      card.remove();
+      // DOM'dan silmek yerine gizle — admin sayıyı artırırsa client geri açabilir
+      card.setAttribute("data-kn-hidden", "1");
+      card.style.setProperty("display", "none", "important");
     } else {
       card.style.removeProperty("display");
       card.removeAttribute("data-kn-hidden");
