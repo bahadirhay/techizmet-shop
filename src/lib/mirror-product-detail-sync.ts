@@ -530,7 +530,7 @@ html.kn-mirror-embed .product-media-popup .swiper-slide {
   const script = doc.createElement("script");
   script.id = "kn-product-media-zoom-fix-script";
   script.textContent = `(function(){
-  var KN_ZOOM_VER=7;
+  var KN_ZOOM_VER=8;
   if(window.__knProductZoomVer===KN_ZOOM_VER)return;
   window.__knProductZoomVer=KN_ZOOM_VER;
   var TAP_MOVE_PX=14;
@@ -579,8 +579,39 @@ html.kn-mirror-embed .product-media-popup .swiper-slide {
   }
   function openProductZoom(btn){
     if(!btn)return false;
-    // Temayı doğrudan tetikle — kendi slide navigation ve swiper init mekanizması çalışsın
-    btn.dispatchEvent(new MouseEvent("click",{bubbles:true,cancelable:true,composed:true}));
+    var section=btn.closest(".kn-mirror-section,[id^='kn-mirror-section-'],[id^='kn-section-template--'],[id^='kn-section-']");
+    var sectionId=btn.dataset&&btn.dataset.section;
+    var template=section&&section.querySelector("[data-product-media-content] template");
+    if(!template)template=document.querySelector("#MainContent [data-product-media-content] template");
+    if(!template||!sectionId)return false;
+    var index=resolveGalleryIndex(btn);
+    document.querySelectorAll("product-media-popup[id^='product-media-content-']").forEach(function(node){node.remove();});
+    var content=template.content.firstElementChild.cloneNode(true);
+    document.body.appendChild(content);
+    var popup=document.getElementById("product-media-content-"+sectionId);
+    if(!popup)return false;
+    // Görünür yap — Swiper boyutları doğru ölçsün (gizliyken 0 olur)
+    popup.style.display="flex";
+    // initialSlide ile doğru slayta başlat (slideTo gecikmesi yok, layout sorunsuz)
+    if(typeof Swiper!=="undefined"){
+      popup.querySelectorAll("[data-swiper]").forEach(function(el){
+        try{
+          var cfg=JSON.parse(el.getAttribute("data-swiper")||"{}");
+          cfg.loop=false;
+          cfg.initialSlide=index;
+          el.swiper=new Swiper(el,cfg);
+        }catch(e){}
+      });
+    }
+    // Tema JS çökmüş olabilir — kapatma butonlarına kendi handler'ımızı ekle
+    popup.querySelectorAll("[data-popup-close]").forEach(function(closeBtn){
+      closeBtn.addEventListener("click",function(){
+        popup.classList.remove("show","shadow");
+        setTimeout(function(){if(popup.parentNode)popup.parentNode.removeChild(popup);},300);
+      });
+    });
+    setTimeout(function(){popup.classList.add("show");},60);
+    setTimeout(function(){popup.classList.add("shadow");},300);
     return true;
   }
   function activeGalleryMedia(target){
@@ -615,9 +646,7 @@ html.kn-mirror-embed .product-media-popup .swiper-slide {
   document.addEventListener("touchcancel",function(){pending=null;},true);
   document.addEventListener("click",function(e){
     if(isMobile())return;
-    // media-zoom-button tıklandıysa (sentetik event dahil) temaya bırak — sonsuz döngü önle
-    if(e.target&&e.target.closest&&e.target.closest("media-zoom-button"))return;
-    // Görselin herhangi bir yerine tıklamak zoom'u açsın (sadece ikon değil)
+    // Görselin herhangi bir yerine tıklamak zoom'u açsın
     var media=e.target&&e.target.closest&&e.target.closest("#MainContent .main--product-image-slider-outer .swiper-slide .media");
     if(!media)return;
     var btn=media.querySelector("media-zoom-button");
