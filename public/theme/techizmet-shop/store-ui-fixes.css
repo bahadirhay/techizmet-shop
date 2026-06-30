@@ -792,11 +792,11 @@ html.kn-mirror-embed.kn-product-zoom-open body {
 
 /* Müşteri yorumları — az kart varken ortala, kaydırma yok (geniş ekran) */
 @media (min-width: 1025px) {
-  .section-testimonial.kn-testimonial-fits .testimonial--outer.swiper-initialized .swiper-wrapper {
+  .section-testimonial.kn-testimonial-fits .testimonial--outer .swiper-wrapper {
     justify-content: center;
     transform: none !important;
   }
-  .section-testimonial.kn-testimonial-fits .testimonial--outer.swiper-initialized .swiper-slide {
+  .section-testimonial.kn-testimonial-fits .testimonial--outer .swiper-slide {
     width: min(
       300px,
       calc((100% - 20px * (var(--kn-testimonial-visible, 4) - 1)) / var(--kn-testimonial-visible, 4))
@@ -809,7 +809,7 @@ html.kn-mirror-embed.kn-product-zoom-open body {
   .section-testimonial.kn-testimonial-fits .swiper--custom-buttons {
     display: none !important;
   }
-  .section-testimonial.kn-testimonial-fits .testimonial--outer.swiper-initialized {
+  .section-testimonial.kn-testimonial-fits .testimonial--outer {
     cursor: default;
     overflow: hidden;
   }
