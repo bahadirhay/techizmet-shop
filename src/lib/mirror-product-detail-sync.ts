@@ -582,39 +582,68 @@ html.kn-mirror-embed .product-media-popup .swiper-slide {
   }
   function openProductZoom(btn){
     if(!btn)return false;
-    var section=btn.closest(".kn-mirror-section,[id^='kn-mirror-section-'],[id^='kn-section-template--'],[id^='kn-section-']");
-    var sectionId=btn.dataset&&btn.dataset.section;
-    var template=section&&section.querySelector("[data-product-media-content] template");
-    if(!template)template=document.querySelector("#MainContent [data-product-media-content] template");
-    if(!template||!sectionId)return false;
     var index=resolveGalleryIndex(btn);
-    document.querySelectorAll("product-media-popup[id^='product-media-content-']").forEach(function(node){node.remove();});
-    var content=template.content.firstElementChild.cloneNode(true);
-    document.body.appendChild(content);
-    var popup=document.getElementById("product-media-content-"+sectionId);
-    if(!popup)return false;
-    // Görünür yap — Swiper boyutları doğru ölçsün (gizliyken 0 olur)
-    popup.style.display="flex";
-    // initialSlide ile doğru slayta başlat (slideTo gecikmesi yok, layout sorunsuz)
-    if(typeof Swiper!=="undefined"){
-      popup.querySelectorAll("[data-swiper]").forEach(function(el){
-        try{
-          var cfg=JSON.parse(el.getAttribute("data-swiper")||"{}");
-          cfg.loop=false;
-          cfg.initialSlide=index;
-          el.swiper=new Swiper(el,cfg);
-        }catch(e){}
-      });
-    }
-    // Tema JS çökmüş olabilir — kapatma butonlarına kendi handler'ımızı ekle
-    popup.querySelectorAll("[data-popup-close]").forEach(function(closeBtn){
-      closeBtn.addEventListener("click",function(){
-        popup.classList.remove("show","shadow");
-        setTimeout(function(){if(popup.parentNode)popup.parentNode.removeChild(popup);},300);
-      });
+    // Galeri slide'larından görsel URL'lerini topla
+    var outer=document.querySelector("#MainContent .main--product-image-slider-outer");
+    if(!outer)return false;
+    var slides=Array.prototype.slice.call(outer.querySelectorAll(".swiper-slide:not(.swiper-slide-duplicate)"));
+    if(!slides.length)return false;
+    var images=[];
+    slides.forEach(function(s){
+      var img=s.querySelector("img[data-original],img");
+      if(img)images.push(img.getAttribute("data-original")||img.getAttribute("src")||"");
     });
-    setTimeout(function(){popup.classList.add("show");},60);
-    setTimeout(function(){popup.classList.add("shadow");},300);
+    images=images.filter(Boolean);
+    if(!images.length)return false;
+    var current=Math.min(index,images.length-1);
+    // Mevcut overlay varsa kaldır
+    var existing=document.getElementById("kn-zoom-overlay");
+    if(existing)existing.parentNode&&existing.parentNode.removeChild(existing);
+    // Overlay
+    var overlay=document.createElement("div");
+    overlay.id="kn-zoom-overlay";
+    overlay.style.cssText="position:fixed;top:0;left:0;width:100%;height:100%;background:#111;z-index:99999;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.18s;";
+    // Görsel
+    var imgEl=document.createElement("img");
+    imgEl.src=images[current];
+    imgEl.style.cssText="max-width:94vw;max-height:94vh;object-fit:contain;display:block;border-radius:4px;";
+    overlay.appendChild(imgEl);
+    // Kapatma butonu
+    var closeBtn=document.createElement("button");
+    closeBtn.setAttribute("aria-label","Kapat");
+    closeBtn.style.cssText="position:absolute;top:14px;right:14px;background:rgba(255,255,255,0.18);border:none;color:#fff;width:44px;height:44px;border-radius:50%;font-size:26px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;";
+    closeBtn.innerHTML="&times;";
+    overlay.appendChild(closeBtn);
+    function closeOverlay(){
+      overlay.style.opacity="0";
+      setTimeout(function(){
+        if(overlay.parentNode)overlay.parentNode.removeChild(overlay);
+        try{window.parent.postMessage({type:"kn-zoom-close"},"*");}catch(ex){}
+      },180);
+    }
+    closeBtn.addEventListener("click",closeOverlay);
+    overlay.addEventListener("click",function(e){if(e.target===overlay)closeOverlay();});
+    var _escHandler=function(e){if(e.key==="Escape"){closeOverlay();document.removeEventListener("keydown",_escHandler);}};
+    document.addEventListener("keydown",_escHandler);
+    // Navigasyon (birden fazla görsel)
+    if(images.length>1){
+      function makeNavBtn(html,side){
+        var b=document.createElement("button");
+        b.style.cssText="position:absolute;"+side+":14px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.18);border:none;color:#fff;width:48px;height:48px;border-radius:50%;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;";
+        b.innerHTML=html;
+        return b;
+      }
+      var prevBtn=makeNavBtn("&#8592;","left");
+      var nextBtn=makeNavBtn("&#8594;","right");
+      prevBtn.addEventListener("click",function(e){e.stopPropagation();current=(current-1+images.length)%images.length;imgEl.src=images[current];});
+      nextBtn.addEventListener("click",function(e){e.stopPropagation();current=(current+1)%images.length;imgEl.src=images[current];});
+      overlay.appendChild(prevBtn);
+      overlay.appendChild(nextBtn);
+    }
+    document.body.appendChild(overlay);
+    // Fade-in ve iframe genişletme
+    setTimeout(function(){overlay.style.opacity="1";},16);
+    try{window.parent.postMessage({type:"kn-zoom-open"},"*");}catch(ex){}
     return true;
   }
   function activeGalleryMedia(target){
