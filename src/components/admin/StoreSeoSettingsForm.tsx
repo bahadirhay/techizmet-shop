@@ -7,27 +7,6 @@ import { ImageUploadField } from "@/components/admin/ImageUploadField";
 import { SiteSeoAuditPanel } from "@/components/admin/SiteSeoAuditPanel";
 import { extractUrls } from "@/lib/social-links";
 
-type StaticPageEntry = { seoTitle: string; seoDescription: string };
-type StaticPages = Record<string, StaticPageEntry>;
-
-const STATIC_PAGE_LABELS: { path: string; label: string }[] = [
-  { path: "/", label: "Ana sayfa" },
-  { path: "/collections/all", label: "Tüm ürünler (/collections/all)" },
-  { path: "/collections", label: "Koleksiyonlar (/collections)" },
-  { path: "/blogs/news", label: "Blog (/blogs/news)" },
-];
-
-function initStaticPages(raw: Record<string, { seoTitle?: string; seoDescription?: string }>): StaticPages {
-  const result: StaticPages = {};
-  for (const { path } of STATIC_PAGE_LABELS) {
-    result[path] = {
-      seoTitle: raw[path]?.seoTitle?.trim() ?? "",
-      seoDescription: raw[path]?.seoDescription?.trim() ?? "",
-    };
-  }
-  return result;
-}
-
 export function StoreSeoSettingsForm({
   initial,
   siteUrl,
@@ -56,7 +35,6 @@ export function StoreSeoSettingsForm({
         theme: "light" | "dark";
         lang: string;
       };
-      staticPages?: Record<string, { seoTitle?: string; seoDescription?: string }>;
     };
   };
   siteUrl: string;
@@ -65,43 +43,21 @@ export function StoreSeoSettingsForm({
   const router = useRouter();
   const [branding, setBranding] = useState(initial.branding);
   const [seo, setSeo] = useState(initial.seo);
-  const [staticPages, setStaticPages] = useState<StaticPages>(() =>
-    initStaticPages(initial.seo.staticPages ?? {}),
-  );
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
-
-  function setPage(path: string, field: keyof StaticPageEntry, value: string) {
-    setStaticPages((prev) => ({
-      ...prev,
-      [path]: { ...prev[path]!, [field]: value },
-    }));
-  }
 
   async function save() {
     setBusy(true);
     setMsg(null);
-    const { staticPages: _omit, ...seoFields } = seo as typeof seo & {
+    // staticPages yalnızca vitrin sayfa editöründen yönetilir — form kaydında gönderilmez
+    const { staticPages: _ignored, ...seoFields } = seo as typeof seo & {
       staticPages?: Record<string, unknown>;
     };
     seoFields.organizationSameAs = extractUrls(seoFields.organizationSameAs);
-
-    // Mevcut staticPages'i koru; yalnızca form alanlarını üzerine yaz
-    const mergedStaticPages = { ...(initial.seo.staticPages ?? {}) };
-    for (const { path } of STATIC_PAGE_LABELS) {
-      const entry = staticPages[path];
-      if (!entry) continue;
-      mergedStaticPages[path] = {
-        ...(mergedStaticPages[path] ?? {}),
-        seoTitle: entry.seoTitle.trim() || undefined,
-        seoDescription: entry.seoDescription.trim() || undefined,
-      };
-    }
-
     const res = await fetch("/api/admin/settings/seo", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ branding, seo: { ...seoFields, staticPages: mergedStaticPages } }),
+      body: JSON.stringify({ branding, seo: seoFields }),
     });
     const j = (await res.json()) as {
       error?: string;
@@ -369,36 +325,6 @@ export function StoreSeoSettingsForm({
           Yalnızca <code>meta</code> ve <code>link</code> etiketleri (doğrulama vb.). Script kodları buraya
           yapıştırılamaz; blog için Google Haberler bölümünü kullanın.
         </p>
-      </section>
-
-      <section className="admin-card admin-card-pad space-y-6">
-        <div>
-          <h2 className="text-lg font-semibold">Sayfa başlıkları</h2>
-          <p className="mt-1 text-sm text-zinc-500">
-            Her sayfa için arama motorlarında görünecek başlık ve açıklamayı buradan düzenleyin. Boş bırakılırsa varsayılan değer kullanılır.
-          </p>
-        </div>
-        {STATIC_PAGE_LABELS.map(({ path, label }) => (
-          <div key={path} className="space-y-2 border-t border-zinc-100 pt-4 first:border-0 first:pt-0">
-            <p className="text-sm font-medium text-zinc-700">{label}</p>
-            <AdminField label="Başlık (title)">
-              <input
-                className={inputClass}
-                value={staticPages[path]?.seoTitle ?? ""}
-                onChange={(e) => setPage(path, "seoTitle", e.target.value)}
-                placeholder={path === "/" ? siteName : undefined}
-              />
-            </AdminField>
-            <AdminField label="Açıklama (meta description)">
-              <textarea
-                className={inputClass}
-                rows={2}
-                value={staticPages[path]?.seoDescription ?? ""}
-                onChange={(e) => setPage(path, "seoDescription", e.target.value)}
-              />
-            </AdminField>
-          </div>
-        ))}
       </section>
 
       <div className="sticky bottom-0 -mx-4 flex items-center justify-between gap-3 border-t border-zinc-200 bg-white/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-xl sm:border sm:px-4">

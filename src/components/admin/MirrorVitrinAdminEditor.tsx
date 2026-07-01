@@ -115,6 +115,7 @@ export function MirrorVitrinAdminEditor({
   sectionSwiperMs = {},
   blogPosts,
   initialEditorMode,
+  initialSeoMeta,
 }: {
   pageKey: VitrinPageKey;
   catalog: MirrorPageSection[];
@@ -130,6 +131,7 @@ export function MirrorVitrinAdminEditor({
   sectionSwiperMs?: Record<string, number | null>;
   blogPosts?: BlogPostAdminEditorRow[];
   initialEditorMode?: "sections" | "blocks";
+  initialSeoMeta?: { seoTitle?: string; seoDescription?: string };
 }) {
   const def = getVitrinPage(pageKey)!;
   const router = useRouter();
@@ -138,9 +140,11 @@ export function MirrorVitrinAdminEditor({
     elements: initialConfig.elements ?? {},
     customBlocks: initialConfig.customBlocks,
   }));
-  const [editorMode, setEditorMode] = useState<"sections" | "blocks">(
+  const [editorMode, setEditorMode] = useState<"sections" | "blocks" | "seo">(
     initialEditorMode === "blocks" ? "blocks" : "sections",
   );
+  const [seoTitle, setSeoTitle] = useState(initialSeoMeta?.seoTitle ?? "");
+  const [seoDescription, setSeoDescription] = useState(initialSeoMeta?.seoDescription ?? "");
   const [customBlocks, setCustomBlocks] = useState<EditorMirrorCustomBlock[]>(() =>
     toEditorCustomBlocks(initialConfig.customBlocks),
   );
@@ -320,17 +324,37 @@ export function MirrorVitrinAdminEditor({
     setSaving(true);
     setMessage(null);
     try {
-      const res = await fetch(`/api/admin/theme/mirror-pages/${pageKey}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...config,
-          customBlocks: customBlocks.length ? stripMirrorCustomBlocks(customBlocks) : undefined,
+      const [pageRes, seoRes] = await Promise.all([
+        fetch(`/api/admin/theme/mirror-pages/${pageKey}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...config,
+            customBlocks: customBlocks.length ? stripMirrorCustomBlocks(customBlocks) : undefined,
+          }),
         }),
-      });
-      const data = (await res.json()) as { error?: string };
-      if (!res.ok) {
-        setMessage(data.error ?? "Kaydedilemedi");
+        fetch("/api/admin/settings/seo", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            seo: {
+              staticPages: {
+                [def.route]: {
+                  seoTitle: seoTitle.trim() || undefined,
+                  seoDescription: seoDescription.trim() || undefined,
+                },
+              },
+            },
+          }),
+        }),
+      ]);
+      const pageData = (await pageRes.json()) as { error?: string };
+      if (!pageRes.ok) {
+        setMessage(pageData.error ?? "Kaydedilemedi");
+        return;
+      }
+      if (!seoRes.ok) {
+        setMessage("Sayfa içeriği kaydedildi fakat SEO bilgisi kaydedilemedi.");
         return;
       }
       setMessage("Kaydedildi — vitrin güncellendi.");
@@ -385,6 +409,13 @@ export function MirrorVitrinAdminEditor({
             >
               Widget&apos;lar ({customBlocks.length})
             </button>
+            <button
+              type="button"
+              className={`rounded-md px-3 py-1.5 text-xs font-medium ${editorMode === "seo" ? "bg-zinc-700 text-white" : "text-zinc-400"}`}
+              onClick={() => setEditorMode("seo")}
+            >
+              SEO
+            </button>
           </div>
           <a href={def.route} target="_blank" rel="noreferrer" className={btnSecondary}>
             Vitrini aç ↗
@@ -420,7 +451,49 @@ export function MirrorVitrinAdminEditor({
         </p>
       ) : null}
 
-      {editorMode === "blocks" ? (
+      {editorMode === "seo" ? (
+        <div className="mx-4 mb-4 mt-3 md:mx-6">
+          <div className="max-w-lg rounded-xl border border-zinc-700 bg-zinc-900 p-6 space-y-5">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Sayfa SEO — {def.label}</p>
+              <p className="mt-1 text-xs text-zinc-500">
+                Arama motorlarında görünecek başlık ve açıklama. Boş bırakılırsa sistem varsayılanı kullanılır.
+              </p>
+            </div>
+            <div className="space-y-1">
+              <label className="block text-xs font-medium text-zinc-300">
+                Başlık <span className="text-zinc-500">(title tag)</span>
+              </label>
+              <input
+                type="text"
+                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
+                value={seoTitle}
+                onChange={(e) => setSeoTitle(e.target.value)}
+                placeholder={`${def.label} | Mağaza adı`}
+                maxLength={120}
+              />
+              <p className="text-xs text-zinc-600">{seoTitle.length} / 120</p>
+            </div>
+            <div className="space-y-1">
+              <label className="block text-xs font-medium text-zinc-300">
+                Açıklama <span className="text-zinc-500">(meta description)</span>
+              </label>
+              <textarea
+                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
+                value={seoDescription}
+                onChange={(e) => setSeoDescription(e.target.value)}
+                placeholder="Bu sayfa hakkında kısa bir açıklama…"
+                rows={3}
+                maxLength={320}
+              />
+              <p className="text-xs text-zinc-600">{seoDescription.length} / 320</p>
+            </div>
+            <p className="text-xs text-zinc-500">
+              Kaydet&apos;e basınca sayfa içeriğiyle birlikte kaydedilir.
+            </p>
+          </div>
+        </div>
+      ) : editorMode === "blocks" ? (
         <div className="ed-vitrin-workspace mx-4 mb-4 mt-3 md:mx-6">
           <div className="flex min-h-[520px] min-w-0 flex-1 flex-col gap-3 overflow-hidden rounded-xl border border-zinc-700 bg-zinc-900 lg:flex-row">
             <div className="min-h-[320px] min-w-0 flex-1 overflow-hidden flex flex-col">

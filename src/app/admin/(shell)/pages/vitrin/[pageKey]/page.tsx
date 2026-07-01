@@ -5,10 +5,10 @@ import { buildEditableCatalogFromHtml, extractSwiperAutoplayMs, sliceSectionHtml
 import { localizeEditableCatalogDefaults } from "@/lib/mirror-editable-catalog-server";
 import { loadMirrorPageSectionsCatalog } from "@/lib/mirror-page-sections";
 import { readMirrorPageHtml } from "@/lib/mirror-page-html";
-import { isVitrinPageKey } from "@/lib/mirror-vitrin-pages";
+import { isVitrinPageKey, getVitrinPage } from "@/lib/mirror-vitrin-pages";
 import { loadMirrorFooterData } from "@/lib/mirror-footer-server";
 import { loadMirrorNavItems } from "@/lib/mirror-nav-server";
-import { getSiteBranding, getSiteSettings } from "@/lib/site-settings";
+import { getSiteBranding, getSiteSeo, getSiteSettings } from "@/lib/site-settings";
 import { getStoreLocale } from "@/lib/i18n/server";
 import { requireStaffPage } from "@/lib/staff-auth";
 import { getDefaultSite } from "@/lib/site";
@@ -38,6 +38,13 @@ export default async function VitrinPageEditRoute({
   const site = await getDefaultSite();
   const settings = await getSiteSettings(auth.siteId);
   const branding = getSiteBranding(settings);
+  const pageDef = getVitrinPage(pageKey)!;
+  const seo = getSiteSeo(settings, site.name);
+  const pageStaticMeta = seo.staticPages[pageDef.route];
+  const initialSeoMeta = {
+    seoTitle: pageStaticMeta?.seoTitle?.trim() ?? "",
+    seoDescription: pageStaticMeta?.seoDescription?.trim() ?? "",
+  };
   const locale = await getStoreLocale();
   const nav = await loadMirrorNavItems(auth.siteId, locale);
   const footer = await loadMirrorFooterData(auth.siteId, locale);
@@ -104,6 +111,7 @@ export default async function VitrinPageEditRoute({
       sectionSwiperMs={sectionSwiperMs}
       blogPosts={blogPostsForEditor}
       initialEditorMode={tab === "widgets" ? "blocks" : "sections"}
+      initialSeoMeta={initialSeoMeta}
     />
   );
 }
