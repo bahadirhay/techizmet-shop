@@ -32,7 +32,7 @@ export function getCollectionCatalogPayload(
   const filterKey = filtersCacheKey(activeFilters ?? emptyActiveCollectionFilters());
   return unstable_cache(
     () => loadCollectionCatalogCore(siteId, slug, locale, cat || undefined, page, titleHint, activeFilters ?? emptyActiveCollectionFilters()),
-    ["collection-catalog-v2", siteId, slug, locale, cat, String(page), titleHint ?? "", filterKey],
+    ["collection-catalog-v3", siteId, slug, locale, cat, String(page), titleHint ?? "", filterKey],
     {
       revalidate: STORE_PUBLIC_REVALIDATE_SEC,
       tags: [storeSettingsTag(siteId), storeMirrorTag(siteId), "store-products"],
@@ -77,7 +77,7 @@ export function getCollectionFramePayload(
   const filterKey = filtersCacheKey(activeFilters ?? emptyActiveCollectionFilters());
   return unstable_cache(
     () => loadCollectionFramePayloadCore(siteId, slug, locale, cat || undefined, page, titleHint, activeFilters),
-    ["collection-frame-v2", siteId, slug, locale, cat, String(page), filterKey],
+    ["collection-frame-v3", siteId, slug, locale, cat, String(page), filterKey],
     {
       revalidate: STORE_PUBLIC_REVALIDATE_SEC,
       tags: [storeSettingsTag(siteId), storeMirrorTag(siteId), "store-products"],

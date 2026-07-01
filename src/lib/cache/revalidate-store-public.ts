@@ -13,5 +13,6 @@ export function revalidateStorePublicCache(siteId: string, productSlug?: string)
   revalidateTag(storeSettingsTag(siteId), { expire: 0 });
   revalidateTag(storeNavTag(siteId), { expire: 0 });
   revalidateTag(storeMirrorTag(siteId), { expire: 0 });
+  revalidateTag("store-products", { expire: 0 });
   if (productSlug?.trim()) revalidateTag(`product:${productSlug.trim()}`, { expire: 0 });
 }
