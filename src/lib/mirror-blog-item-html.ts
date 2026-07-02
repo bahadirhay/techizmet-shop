@@ -42,7 +42,7 @@ export function splitBlogItemHtmlParts(html: string): BlogItemHtmlParts {
   return { prefix, items, suffix };
 }
 
-/** Yalnızca blog görsel / başlık linkleri — global href değiştirme footer’ı bozar */
+/** Yalnızca blog görsel / başlık / "devamını oku" linkleri — global href değiştirme footer’ı bozar */
 export function patchBlogLinksInChunk(
   chunk: string,
   href: string,
@@ -58,6 +58,15 @@ export function patchBlogLinksInChunk(
   out = out.replace(
     /(<a[^>]*href=")[^"]*("[^>]*class="[^"]*blog--(?:image|title)[^"]*")/gi,
     `$1${safe}$2${tabAttrs}`,
+  );
+  // "Devamını oku" butonu — şablonda eski (kozmetik) href kalıyordu; DB yazısına bağla
+  out = out.replace(
+    /(<a[^>]*class="[^"]*\bsmall-button\b[^"]*"[^>]*href=")[^"]*(")/gi,
+    `$1${safe}$2`,
+  );
+  out = out.replace(
+    /(<a[^>]*href=")[^"]*("[^>]*class="[^"]*\bsmall-button\b[^"]*")/gi,
+    `$1${safe}$2`,
   );
   return out;
 }

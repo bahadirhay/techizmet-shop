@@ -82,8 +82,10 @@ import { rewriteLegacyThemePaths } from "@/lib/store-theme";
 import {
   loadPublishedProductSlugSet,
   loadPublishedBlogSlugSet,
+  loadKnownCollectionSlugSet,
   pruneMirrorHtmlToPublishedBlogs,
   pruneMirrorHtmlToPublishedCatalog,
+  pruneMirrorHtmlToPublishedCollections,
 } from "@/lib/mirror-catalog-prune";
 import {
   isCollectionMirrorPath,
@@ -275,6 +277,10 @@ export async function buildMirrorHtmlCore(params: MirrorHtmlBuildParams): Promis
 
   const publishedBlogSlugs = await loadPublishedBlogSlugSet(siteId);
   localized = pruneMirrorHtmlToPublishedBlogs(localized, publishedBlogSlugs);
+
+  // Şablondan gelen kozmetik koleksiyon promo kartlarını (luxe-skincare vb.) kaldır
+  const knownCollectionSlugs = await loadKnownCollectionSlugSet(siteId);
+  localized = pruneMirrorHtmlToPublishedCollections(localized, knownCollectionSlugs);
 
   if (pageKey && isVitrinPageKey(pageKey)) {
     let pageConfig = mergeLayoutOrderOverride(

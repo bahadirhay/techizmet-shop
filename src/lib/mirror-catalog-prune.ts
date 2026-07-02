@@ -76,14 +76,29 @@ function slugFromBlogItem(el: Element): string | null {
   return null;
 }
 
-/** Başka mağazanın blog kartlarını kaldırır */
+/** Bir blog kartında "devamını oku" butonunu kartın gerçek yazı linkine hizalar */
+function syncBlogReadMoreHref(el: Element): void {
+  const primary =
+    el.querySelector("a.blog--title[href]")?.getAttribute("href") ??
+    el.querySelector("a.blog--image[href]")?.getAttribute("href");
+  if (!primary) return;
+  el.querySelectorAll("a.small-button[href], .blog--button a[href]").forEach((btn) => {
+    btn.setAttribute("href", primary);
+  });
+}
+
+/** Başka mağazanın blog kartlarını kaldırır + kalan kartların "devamını oku" linkini düzeltir */
 export function pruneMirrorDocToPublishedBlogs(
   doc: Document,
   publishedSlugs: ReadonlySet<string>,
 ): void {
   doc.querySelectorAll(".blog--item").forEach((el) => {
     const slug = slugFromBlogItem(el);
-    if (slug && !publishedSlugs.has(slug)) el.remove();
+    if (slug && !publishedSlugs.has(slug)) {
+      el.remove();
+      return;
+    }
+    syncBlogReadMoreHref(el);
   });
   doc.documentElement.setAttribute("data-kn-blog-pruned", "1");
 }
@@ -110,4 +125,53 @@ export async function loadPublishedBlogSlugSet(siteId: string): Promise<Set<stri
     select: { slug: true },
   });
   return new Set(rows.map((r) => r.slug.toLowerCase()));
+}
+
+const COLLECTION_HREF = /\/collections\/([^/?#]+)/i;
+
+function collectionSlugFromHref(href: string): string | null {
+  const m = href.match(COLLECTION_HREF);
+  if (!m) return null;
+  return m[1].replace(/\.html$/i, "").toLowerCase();
+}
+
+/**
+ * Şablondan gelen (kozmetik) koleksiyon promo kartlarını kaldırır:
+ * DB'de olmayan bir /collections/{slug}'a bağlı `.card--item` kartları budanır.
+ * "all" ve gerçek koleksiyon/kategori slug'ları korunur.
+ */
+export function pruneMirrorDocToPublishedCollections(
+  doc: Document,
+  knownSlugs: ReadonlySet<string>,
+): void {
+  doc.querySelectorAll("a.card--item[href]").forEach((el) => {
+    const slug = collectionSlugFromHref(el.getAttribute("href") ?? "");
+    if (!slug) return;
+    if (slug === "all") return;
+    if (knownSlugs.has(slug)) return;
+    // Kart genelde ayrıca dış sarmalayıcı içinde; yalnızca <a> kartı kaldır
+    el.remove();
+  });
+  doc.documentElement.setAttribute("data-kn-collection-cards-pruned", "1");
+}
+
+export function pruneMirrorHtmlToPublishedCollections(
+  html: string,
+  knownSlugs: ReadonlySet<string>,
+): string {
+  const { document } = parseHTML(html);
+  pruneMirrorDocToPublishedCollections(document, knownSlugs);
+  const doctype = html.match(/^<!DOCTYPE[^>]*>/i)?.[0] ?? "<!DOCTYPE html>";
+  return `${doctype}\n${document.documentElement.outerHTML}`;
+}
+
+export async function loadKnownCollectionSlugSet(siteId: string): Promise<Set<string>> {
+  const [collections, categories] = await Promise.all([
+    prisma.storeCollection.findMany({ where: { siteId }, select: { slug: true } }),
+    prisma.storeCategory.findMany({ where: { siteId }, select: { slug: true } }),
+  ]);
+  const set = new Set<string>();
+  for (const c of collections) set.add(c.slug.toLowerCase());
+  for (const c of categories) set.add(c.slug.toLowerCase());
+  return set;
 }
