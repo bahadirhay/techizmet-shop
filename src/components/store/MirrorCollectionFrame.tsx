@@ -10,6 +10,7 @@ import {
 import { buildCollectionMirrorSrc } from "@/lib/mirror-html-path-server";
 import { hasPrebuiltMirrorHtml } from "@/lib/mirror-prebuilt";
 import { getDefaultSite } from "@/lib/site";
+import { ensureStoreTenant } from "@/lib/store-tenant";
 
 /** Koleksiyon/kategori — kategori: sunucu HTML; tüm ürünler: iframe + JSON */
 export async function MirrorCollectionFrame({
@@ -33,8 +34,10 @@ export async function MirrorCollectionFrame({
   const src = await buildCollectionMirrorSrc(slug, locale, templateSlug, categorySlug, page, title);
   const frameTitle = title ?? `Collection — ${slug}`;
   const site = await getDefaultSite();
+  const tenant = await ensureStoreTenant();
   const initialPayload = await getCollectionFramePayload(
     site.id,
+    tenant.databaseUrl,
     slug,
     locale,
     categorySlug?.trim() || undefined,

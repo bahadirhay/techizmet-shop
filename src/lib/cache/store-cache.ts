@@ -1,7 +1,6 @@
 import "server-only";
 
 import { unstable_cache } from "next/cache";
-import { prisma } from "@/lib/prisma";
 import type { SiteSettings } from "@/lib/site-settings";
 
 export const STORE_PUBLIC_REVALIDATE_SEC = 300;
@@ -46,13 +45,19 @@ export function getCachedStoreSiteBySlug(slug: string, databaseUrl?: string) {
   )();
 }
 
-export function getCachedParsedSiteSettings(siteId: string): Promise<SiteSettings> {
+export function getCachedParsedSiteSettings(
+  siteId: string,
+  databaseUrl?: string,
+): Promise<SiteSettings> {
+  const dbKey = databaseUrl?.trim() || "default";
   return unstable_cache(
     async () => {
-      const site = await prisma.storeSite.findUnique({ where: { id: siteId } });
+      const { getPrismaForDatabaseUrl } = await import("@/lib/prisma");
+      const client = getPrismaForDatabaseUrl(databaseUrl);
+      const site = await client.storeSite.findUnique({ where: { id: siteId } });
       return parseSettingsJson(site?.settingsJson ?? null);
     },
-    ["store-settings", siteId],
+    ["store-settings", siteId, dbKey],
     {
       revalidate: STORE_PUBLIC_REVALIDATE_SEC,
       tags: [storeSettingsTag(siteId), storeMirrorTag(siteId)],

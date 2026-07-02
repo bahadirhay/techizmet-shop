@@ -11,7 +11,12 @@ function parseSettingsJson(raw: string | null | undefined): SiteSettings {
 }
 
 /** Derleme ve çalışma zamanı — önbelleksiz ayarlar (prebuild betiği ile uyumlu) */
-export async function getSiteSettingsUncached(siteId: string): Promise<SiteSettings> {
-  const site = await prisma.storeSite.findUnique({ where: { id: siteId } });
+export async function getSiteSettingsUncached(
+  siteId: string,
+  databaseUrl?: string,
+): Promise<SiteSettings> {
+  const { getPrismaForDatabaseUrl } = await import("@/lib/prisma");
+  const client = databaseUrl ? getPrismaForDatabaseUrl(databaseUrl) : prisma;
+  const site = await client.storeSite.findUnique({ where: { id: siteId } });
   return parseSettingsJson(site?.settingsJson ?? null);
 }

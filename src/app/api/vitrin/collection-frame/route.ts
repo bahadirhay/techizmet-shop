@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getStoreLocaleFromHeaders } from "@/lib/i18n/server";
 import { getCollectionFramePayload } from "@/lib/mirror-collection-frame-server";
 import { getDefaultSite } from "@/lib/site";
+import { ensureStoreTenant } from "@/lib/store-tenant";
 
 export const revalidate = 300;
 
@@ -14,10 +15,12 @@ export async function GET(req: Request) {
   const titleHint = url.searchParams.get("title")?.trim() || undefined;
 
   const site = await getDefaultSite();
+  const tenant = await ensureStoreTenant();
   const locale = await getStoreLocaleFromHeaders();
 
   const payload = await getCollectionFramePayload(
     site.id,
+    tenant.databaseUrl,
     slug,
     locale,
     categorySlug,

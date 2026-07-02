@@ -1,7 +1,7 @@
 import type { VitrinCollectionDetail } from "@/lib/mirror-collections-sync";
 import type { CollectionCatalogPayload } from "@/lib/mirror-collection-payload-types";
 import type { ShopLocale } from "@/lib/i18n/locale";
-import { prisma } from "@/lib/prisma";
+import { getPrismaForDatabaseUrl } from "@/lib/prisma";
 import { getSiteSettingsUncached } from "@/lib/site-settings-load";
 import { resolveMirrorCollectionTexts } from "@/lib/store-static-texts";
 import { resolveCollectionFilterConfig } from "@/lib/collection-filter-settings";
@@ -26,23 +26,25 @@ export async function loadCollectionCatalogCore(
   page = 1,
   titleHint?: string,
   activeFilters: ActiveCollectionFilters = emptyActiveCollectionFilters(),
+  databaseUrl?: string,
 ): Promise<CollectionCatalogPayload> {
+  const db = getPrismaForDatabaseUrl(databaseUrl);
   const safePage = Math.max(1, page);
-  const settings = await getSiteSettingsUncached(siteId);
+  const settings = await getSiteSettingsUncached(siteId, databaseUrl);
   const mirrorTexts = resolveMirrorCollectionTexts(locale, settings.store?.texts);
   const filterConfig = resolveCollectionFilterConfig(locale, settings.store?.texts);
 
   const [row, categories] = await Promise.all([
     categorySlug
-      ? prisma.storeCategory.findFirst({
+      ? db.storeCategory.findFirst({
           where: { siteId, slug: categorySlug, active: true },
           select: { title: true, description: true, seoDescription: true, imageUrl: true },
         })
-      : prisma.storeCollection.findUnique({
+      : db.storeCollection.findUnique({
           where: { siteId_slug: { siteId, slug } },
           select: { title: true, description: true, imageUrl: true },
         }),
-    prisma.storeCategory.findMany({
+    db.storeCategory.findMany({
       where: { siteId, active: true },
       orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
       select: { id: true, slug: true, title: true, parentId: true },
@@ -81,8 +83,8 @@ export async function loadCollectionCatalogCore(
   } as const;
 
   const [totalProductCount, products, facetProducts, reviewStats] = await Promise.all([
-    prisma.storeProduct.count({ where: productWhere }),
-    prisma.storeProduct.findMany({
+    db.storeProduct.count({ where: productWhere }),
+    db.storeProduct.findMany({
       where: productWhere,
       orderBy: { title: "asc" },
       skip: (safePage - 1) * MIRROR_COLLECTION_PAGE_SIZE,
@@ -103,8 +105,8 @@ export async function loadCollectionCatalogCore(
         images: { orderBy: { sortOrder: "asc" }, select: { url: true } },
       },
     }),
-    prisma.storeProduct.findMany({ where: baseProductWhere, select: facetSelect }),
-    prisma.storeProductReview.groupBy({
+    db.storeProduct.findMany({ where: baseProductWhere, select: facetSelect }),
+    db.storeProductReview.groupBy({
       by: ["productId"],
       where: { siteId, status: "approved" },
       _count: { _all: true },
