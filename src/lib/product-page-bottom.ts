@@ -129,7 +129,7 @@ export function getProductPageBottomSettings(
       ),
     },
     revealingText: {
-      enabled: cfg?.revealingText?.enabled ?? true,
+      enabled: cfg?.revealingText?.enabled ?? !!cfg?.revealingText?.html?.trim(),
       html: resolveStoredOrDefault(
         cfg?.revealingText?.html?.trim(),
         DEFAULT_REVEALING_TEXT_PLAIN_EN,
@@ -139,7 +139,7 @@ export function getProductPageBottomSettings(
       ),
     },
     videoPromo: {
-      enabled: cfg?.videoPromo?.enabled ?? true,
+      enabled: cfg?.videoPromo?.enabled ?? !!cfg?.videoPromo?.headingHtml?.trim(),
       headingHtml: resolveStoredOrDefault(
         cfg?.videoPromo?.headingHtml?.trim(),
         DEFAULT_VIDEO_HEADING_PLAIN_EN,
