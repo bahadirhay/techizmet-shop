@@ -81,6 +81,34 @@ export async function GET(req: Request) {
     );
   }
 
+  // Koleksiyon "tüm ürünler" ve kategori sayfalarında ürün gridini DB'den doldur.
+  // Prebuild aynı işi yapıp _mirror-prebuilt'e yazar; canlı/önizleme (admin editör,
+  // layoutOrder) build'inde ürünler enjekte edilmezse grid boş kalır.
+  const collectionMirrorMatch = normalized.match(
+    /\/mirror\/collections\/(all|category-[a-z0-9-]+)(?:-tr)?\.html$/i,
+  );
+  if (collectionMirrorMatch) {
+    const { loadCollectionCatalogCore } = await import("@/lib/mirror-collection-catalog-data");
+    const { applyCollectionCatalogToMirrorHtml } = await import(
+      "@/lib/mirror-collection-catalog-html"
+    );
+    const matched = collectionMirrorMatch[1].toLowerCase();
+    const categorySlug = matched.startsWith("category-")
+      ? matched.slice("category-".length)
+      : undefined;
+    const catalog = await loadCollectionCatalogCore(
+      site.id,
+      "all",
+      locale,
+      categorySlug,
+      1,
+      undefined,
+      undefined,
+      tenant.databaseUrl,
+    );
+    localized = applyCollectionCatalogToMirrorHtml(localized, catalog, locale, 1);
+  }
+
   const session = await getCustomerSession();
 
   if (normalized.includes("mirror/cart/")) {
