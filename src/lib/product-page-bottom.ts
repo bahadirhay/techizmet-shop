@@ -267,6 +267,14 @@ export function applySiteMarqueeOverlay(
   }
 }
 
+/**
+ * Kapalı bir bölümü tamamen çökerten kural gövdesi.
+ * `min-height:0` — mobilde şablonun `.m-media-fixed{min-height:450px}` gibi sabit
+ * yükseklik kuralları bölüm gizliyken bile boşluk bırakmasın diye kritik.
+ */
+const SECTION_COLLAPSE_DECL =
+  "{display:none!important;visibility:hidden!important;height:0!important;min-height:0!important;overflow:hidden!important;margin:0!important;padding:0!important}";
+
 /** İlk boyamadan önce kapalı PDP alt bölümlerini gizle — şablon flaşını önler */
 export function injectProductPageBottomCriticalCss(
   html: string,
@@ -275,21 +283,67 @@ export function injectProductPageBottomCriticalCss(
 ): string {
   const rules: string[] = [];
   if (!config.marquee.enabled) {
-    rules.push("#MainContent .section-marquee{display:none!important;visibility:hidden!important;height:0!important;overflow:hidden!important;margin:0!important;padding:0!important}");
+    rules.push(`#MainContent .section-marquee${SECTION_COLLAPSE_DECL}`);
   }
   if (!config.revealingText.enabled) {
-    rules.push("#MainContent .section-revealing-text{display:none!important;visibility:hidden!important;height:0!important;overflow:hidden!important;margin:0!important;padding:0!important}");
+    rules.push(`#MainContent .section-revealing-text${SECTION_COLLAPSE_DECL}`);
   }
   if (!config.videoPromo.enabled) {
-    rules.push("#MainContent .section-video{display:none!important;visibility:hidden!important;height:0!important;overflow:hidden!important;margin:0!important;padding:0!important}");
+    rules.push(`#MainContent .section-video${SECTION_COLLAPSE_DECL}`);
   }
   if (hideExplore) {
-    rules.push("#MainContent .section-collections-grid{display:none!important;visibility:hidden!important;height:0!important;overflow:hidden!important;margin:0!important;padding:0!important}");
+    rules.push(`#MainContent .section-collections-grid${SECTION_COLLAPSE_DECL}`);
   }
   if (!rules.length) return html;
   if (html.includes('id="kn-pdp-bottom-critical"')) return html;
 
   const style = `<style id="kn-pdp-bottom-critical">${rules.join("")}</style>`;
+  if (html.includes("<head>")) {
+    return html.replace("<head>", `<head>${style}`);
+  }
+  return html.replace(/<head([^>]*)>/i, `<head$1>${style}`);
+}
+
+/**
+ * Ürün dışı mirror sayfalar (ör. Hakkımızda) — kozmetik şablondan gelen video bölümü.
+ * Global videoPromo açıksa başlık/açıklama güncellenir; kapalıysa bölüm gizlenir
+ * (aksi halde mobilde video yüklenemeyince 450px boş alan kalır).
+ */
+export function injectVideoPromoMirrorHtml(
+  html: string,
+  videoPromo: ProductPageBottomSettings["videoPromo"],
+): string {
+  if (!html.includes("section-video")) return html;
+  let out = html;
+
+  if (videoPromo.enabled) {
+    if (videoPromo.headingHtml) {
+      out = out.replace(
+        /(<section\b[^>]*\bsection-video\b[^>]*>[\s\S]*?<div class="section--heading[^"]*">)[\s\S]*?(<\/div>)/i,
+        `$1${videoPromo.headingHtml}$2`,
+      );
+    }
+    if (videoPromo.descriptionHtml) {
+      out = out.replace(
+        /(<section\b[^>]*\bsection-video\b[^>]*>[\s\S]*?<div class="section--description[^"]*">)[\s\S]*?(<\/div>)/i,
+        `$1${videoPromo.descriptionHtml}$2`,
+      );
+    }
+    return out;
+  }
+
+  return out.replace(/(<section\b[^>]*\bsection-video\b[^>]*?)(>)/i, (m, pre: string, close: string) =>
+    /data-kn-pdp-hidden/.test(pre) ? m : `${pre} data-kn-pdp-hidden="1" style="display:none!important"${close}`,
+  );
+}
+
+/** Ürün dışı mirror sayfalar — video bölümü kapalıyken güvenilir collapse CSS'i */
+export function injectVideoSectionCollapseCss(html: string, enabled: boolean): string {
+  if (enabled) return html;
+  if (!html.includes("section-video")) return html;
+  if (html.includes('id="kn-video-collapse"')) return html;
+
+  const style = `<style id="kn-video-collapse">#MainContent .section-video${SECTION_COLLAPSE_DECL}</style>`;
   if (html.includes("<head>")) {
     return html.replace("<head>", `<head>${style}`);
   }

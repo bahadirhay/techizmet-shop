@@ -356,10 +356,7 @@ export function MirrorVitrinFrameClient({
         !hasWidgets &&
         !visualEditMode &&
         !collectionsFromAdmin?.length &&
-        !categoriesFromAdmin?.length &&
-        // Admin'den kaydedilen içerik (mediaGridItems, headingHtml vb.) prebuild'den sonra değişmiş
-        // olabilir — server overlay güncel olmayabilir, client overlay zorunlu
-        !hasMirrorPageEdits(config ?? {});
+        !categoriesFromAdmin?.length;
       const skipClientWork =
         isCartOrCheckoutShell ||
         serverDidAllWork ||

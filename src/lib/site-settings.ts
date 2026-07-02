@@ -245,12 +245,6 @@ export type SiteSettings = {
     extraHeadHtml?: string;
     /** Google Haberler — Subscribe with Google Basic (blog sayfaları) */
     googleSwg?: import("@/lib/seo/google-swg-settings").GoogleSwgSettings;
-    /** Google Müşteri Yorumları — sipariş onayı sayfasına enjekte edilen opt-in widget */
-    googleCustomerReviews?: {
-      merchantId?: string;
-      /** Tahmini teslimat süresi (gün) — estimated_delivery_date hesabında kullanılır */
-      deliveryDays?: number;
-    };
     /** Koleksiyon listesi, blog listesi vb. sabit sayfa meta */
     staticPages?: Record<
       string,
@@ -411,7 +405,6 @@ export function getSiteSeo(settings: SiteSettings, siteName: string) {
     extraHeadHtml: s.extraHeadHtml?.trim() || "",
     googleSwg: getGoogleSwgSettings(settings),
     staticPages: s.staticPages ?? {},
-    googleCustomerReviews: s.googleCustomerReviews ?? {},
   };
 }
 

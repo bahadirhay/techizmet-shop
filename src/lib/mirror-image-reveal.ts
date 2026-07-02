@@ -47,24 +47,11 @@ function isHeroGridImage(img: HTMLImageElement): boolean {
   return Boolean(img.closest(".section-media-grid") && img.classList.contains("media_image"));
 }
 
-function isInHiddenContext(img: HTMLImageElement): boolean {
-  let el: Element | null = img.parentElement;
-  while (el) {
-    if (el instanceof HTMLElement) {
-      if (el.getAttribute("data-kn-hidden") === "1") return true;
-      if (el.style.display === "none") return true;
-    }
-    el = el.parentElement;
-  }
-  return false;
-}
-
 function applySizedMirrorImage(
   img: HTMLImageElement,
   width: number,
   opts?: { highPriority?: boolean; keepLazy?: boolean },
 ) {
-  if (isInHiddenContext(img)) return;
   const rawUrl = resolveMirrorImageUrl(img);
   if (!rawUrl) return;
   const base = rawUrl.split("?")[0] ?? rawUrl;
@@ -88,8 +75,6 @@ function applySizedMirrorImage(
   img.setAttribute("data-src", sized);
   img.setAttribute("data-original", base);
   img.setAttribute("data-kn-sized", "1");
-  // 404 dönen görselleri sessizce gizle
-  img.onerror = () => { img.style.display = "none"; };
 }
 
 /** Prebuild veya overlay sonrası tam boy görselleri zorla küçült */

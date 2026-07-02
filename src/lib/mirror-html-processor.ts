@@ -58,6 +58,8 @@ import {
   getProductPageBottomSettings,
   injectProductPageBottomCriticalCss,
   injectSiteMarqueeMirrorHtml,
+  injectVideoPromoMirrorHtml,
+  injectVideoSectionCollapseCss,
 } from "@/lib/product-page-bottom";
 import { injectPublishedProductIntoMirrorHtml } from "@/lib/mirror-product-detail-load";
 import { injectMirrorQuickviewBridge } from "@/lib/mirror-quickview-bridge";
@@ -215,6 +217,12 @@ export async function buildMirrorHtmlCore(params: MirrorHtmlBuildParams): Promis
     }
 
     localized = injectProductPageBottomCriticalCss(localized, bottomSettings, hideExplore);
+  } else if (localized.includes("section-video")) {
+    // Ürün dışı mirror sayfalar (ör. Hakkımızda) — kozmetik şablondan gelen video bölümü.
+    // Global videoPromo kapalıysa gizle; aksi halde mobilde video yüklenemeyince 450px boş alan kalır.
+    const videoPromo = getProductPageBottomSettings(settings, locale).videoPromo;
+    localized = injectVideoPromoMirrorHtml(localized, videoPromo);
+    localized = injectVideoSectionCollapseCss(localized, videoPromo.enabled);
   }
 
   if (blogSlug?.trim() && normalized.includes("/mirror/blogs/news/")) {
