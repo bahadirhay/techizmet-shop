@@ -139,7 +139,7 @@ function extractFieldsFromSectionBlock(sectionKey: string, block: string): Edita
   }
 
   const headingRe =
-    /class="(media-content-heading|section--heading|section-heading|image-with-text--heading|collection--heading|product-card--title|section--description)[^"]*"[^>]*>([\s\S]*?)<\/[^>]+>/gi;
+    /class="(media-content-heading|section--heading|section-heading|image-with-text--heading|collection--heading|section--description)[^"]*"[^>]*>([\s\S]*?)<\/[^>]+>/gi;
   let hm: RegExpExecArray | null;
   const headingIdx = new Map<string, number>();
   while ((hm = headingRe.exec(block))) {
@@ -204,11 +204,10 @@ function extractFieldsFromSectionBlock(sectionKey: string, block: string): Edita
       idBase: selectorKey("img.media_image"),
       label: (i) => `Görsel ${i + 1}`,
     },
-    {
-      re: /<img[^>]+class="[^"]*product--card-image[^"]*"[^>]*>/gi,
-      idBase: selectorKey("img.product--card-image"),
-      label: (i) => `Ürün görseli ${i + 1}`,
-    },
+    // NOT: `product--card-image` (ürün ızgarası kartları) bilinçli olarak dışarıda bırakıldı.
+    // Koleksiyon/liste sayfalarında ürün kartları canlıda gerçek katalogla (yayındaki ürünler)
+    // dinamik olarak değiştirilir; şablondaki kozmetik yer tutucu görselleri editöre
+    // "Ürün görseli N" olarak düşmesin — düzenlense bile vitrinde ezilir.
   ];
   for (const { re, idBase, label } of imagePatterns) {
     let ii = 0;
@@ -231,27 +230,9 @@ function extractFieldsFromSectionBlock(sectionKey: string, block: string): Edita
     bi += 1;
   }
 
-  const productLinkPatterns: Array<{ re: RegExp; idBase: string; label: (i: number) => string }> = [
-    {
-      re: /<a(?=[^>]*class="[^"]*product--image[^"]*")[^>]*href="([^"]+)"[^>]*>|<a(?=[^>]*href="([^"]+)")[^>]*class="[^"]*product--image[^"]*"[^>]*>/gi,
-      idBase: selectorKey("a.product--image"),
-      label: (i) => `Ürün görsel linki ${i + 1}`,
-    },
-    {
-      re: /<a(?=[^>]*class="[^"]*product--title[^"]*")[^>]*href="([^"]+)"[^>]*>|<a(?=[^>]*href="([^"]+)")[^>]*class="[^"]*product--title[^"]*"[^>]*>/gi,
-      idBase: selectorKey("a.product--title"),
-      label: (i) => `Ürün başlık linki ${i + 1}`,
-    },
-  ];
-  for (const { re, idBase, label } of productLinkPatterns) {
-    let li = 0;
-    while ((hm = re.exec(block))) {
-      const href = hm[1] ?? hm[2] ?? "";
-      if (!href) continue;
-      add(`${sectionKey}--${idBase}--${li}`, "link", label(li), href);
-      li += 1;
-    }
-  }
+  // NOT: Ürün kartı linkleri (a.product--image / a.product--title) dinamik katalogtan
+  // üretilir; editöre düşürmüyoruz (aksi halde kozmetik şablon ürünleri "Ürün görsel/başlık
+  // linki" olarak görünür ve düzenlense bile vitrinde ezilir).
 
   const themed: Array<{
     re: RegExp;
@@ -286,23 +267,8 @@ function extractFieldsFromSectionBlock(sectionKey: string, block: string): Edita
       label: (i) => `Yorum metni ${i + 1}`,
       idBase: "testimonial--desc",
     },
-    {
-      re: /class="product-card--title[^"]*"[^>]*>([\s\S]*?)<\//gi,
-      kind: "text",
-      label: (i) => `Ürün kartı ${i + 1}`,
-    },
-    {
-      re: /class="product--title[^"]*"[^>]*>([\s\S]*?)<\//gi,
-      kind: "text",
-      label: (i) => `Ürün adı ${i + 1}`,
-      idBase: selectorKey(".product--title"),
-    },
-    {
-      re: /class="product--actual-price[^"]*"[^>]*>([\s\S]*?)<\//gi,
-      kind: "text",
-      label: (i) => `Ürün fiyatı ${i + 1}`,
-      idBase: selectorKey(".product--actual-price"),
-    },
+    // NOT: Ürün kartı başlığı/adı/fiyatı (product-card--title, product--title,
+    // product--actual-price) dinamik katalogtan gelir; editöre düşürmüyoruz.
     {
       re: /class="button--text[^"]*"[^>]*>([\s\S]*?)<\//gi,
       kind: "text",
