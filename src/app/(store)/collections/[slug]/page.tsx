@@ -129,24 +129,13 @@ export default async function CollectionPage({
   }
 
   if (homepageMode === "mirror" && slug === "all") {
-    const content =
-      page === 1
-        ? await loadCollectionSeoContent("/collections/all", { includeProducts: true })
-        : null;
+    // SEO metin bloğu (Köpek Ödülü açıklaması, SSS, ilgili sayfalar) burada
+    // gösterilmez — adanmış landing sayfalarında (findLandingIntentBySlug) yer alır.
+    // JSON-LD yapısal veri korunur (görünmez, SEO için).
     return (
       <>
         {jsonLdNode}
         <MirrorCollectionFrame slug="all" locale={locale} page={page} activeFilters={activeFilters} />
-        {content ? (
-          <CollectionSeoContent
-            heading={content.heading}
-            intro={content.intro}
-            criteria={content.criteria}
-            products={content.products}
-            faqs={content.faqs}
-            relatedLinks={content.relatedLinks}
-          />
-        ) : null}
       </>
     );
   }
