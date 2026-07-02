@@ -164,28 +164,39 @@ export function getActiveTenant(): StoreTenant | undefined {
   return tenantStorage.getStore();
 }
 
-/** İstek başına tenant — prisma ve site metadata bunu kullanır */
-export const ensureStoreTenant = cache(async (): Promise<StoreTenant> => {
-  const existing = tenantStorage.getStore();
-  if (existing) return existing;
-
+/**
+ * İstek başına tenant çözümlemesi (saf — enterWith yok).
+ * React cache(): aynı istekte header/host/DB probe'ları tek sefer yapılır.
+ * Not: tenantStorage burada OKUNMAZ; okuma async-context'e bağlı olduğu için
+ * cache'lenmiş sonuçla tutarsızlık yaratır. Bağlama yazma ensureStoreTenant'ta.
+ */
+const resolveStoreTenant = cache(async (): Promise<StoreTenant> => {
   const fromProxy = await tenantFromProxyHeaders();
-  if (fromProxy) {
-    tenantStorage.enterWith(fromProxy);
-    return fromProxy;
-  }
+  if (fromProxy) return fromProxy;
 
   const host = await getRequestHost();
   const fromHost = await tenantFromRequestHost(host);
-  if (fromHost) {
-    tenantStorage.enterWith(fromHost);
-    return fromHost;
-  }
+  if (fromHost) return fromHost;
 
-  const tenant = resolveTenantFromEnv();
+  return resolveTenantFromEnv();
+});
+
+/**
+ * İstek başına tenant — prisma ve site metadata bunu kullanır.
+ *
+ * KRİTİK: `enterWith` HER çağrıda çalışır ve tenant'ı ÇAĞIRANIN async
+ * context'ine yazar. Böylece RSC layout'ta bir kez set edilip page render'ında
+ * kaybolması (AsyncLocalStorage context taşımaması) sorunu ortadan kalkar.
+ * Çözümlemenin kendisi cache'li olduğundan tekrar çağrı ucuzdur.
+ */
+export async function ensureStoreTenant(): Promise<StoreTenant> {
+  const existing = tenantStorage.getStore();
+  if (existing) return existing;
+
+  const tenant = await resolveStoreTenant();
   tenantStorage.enterWith(tenant);
   return tenant;
-});
+}
 
 export { getActivePublicOrigin, getActiveDatabaseUrl, getActiveTenantSlug } from "@/lib/tenant-context";
 export { STORE_HOST_TENANT, isDemoShopHost, isShopDemoDatabaseConfigured, normalizeRequestHost };

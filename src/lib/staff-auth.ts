@@ -8,6 +8,7 @@ import {
 } from "@/lib/staff-permissions";
 import { prisma } from "@/lib/prisma";
 import { getDefaultSite } from "@/lib/site";
+import { ensureStoreTenant } from "@/lib/store-tenant";
 
 export type StaffAccess = {
   staffUserId: string;
@@ -70,6 +71,9 @@ const loadStaffAccessCached = cache(async (): Promise<StaffAccess | null> => {
 });
 
 export async function requireStaffPage(): Promise<StaffAccess> {
+  // Tenant'ı bu çağıranın (layout/page) async context'ine yaz — RSC page
+  // render'ında prisma'nın doğru tenant DB'sini kullanmasını garanti eder.
+  await ensureStoreTenant();
   const s = await getAdminSession();
   const loaded = await loadStaffAccessCached();
   if (!loaded) {
@@ -82,6 +86,7 @@ export async function requireStaffPage(): Promise<StaffAccess> {
 }
 
 export async function requireStaffApi(perm?: string): Promise<StaffAccess | NextResponse> {
+  await ensureStoreTenant();
   const s = await getAdminSession();
   const loaded = await loadStaffAccessCached();
   if (!loaded) {
