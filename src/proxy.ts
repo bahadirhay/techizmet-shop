@@ -5,52 +5,6 @@ import {
   ADMIN_SESSION_COOKIE,
   isMaintenanceBypassPath,
 } from "@/lib/maintenance-mode";
-
-/** Müşteri oturum çerezi — giriş yapmış kullanıcılar cache'lenmez */
-const CUSTOMER_SESSION_COOKIE = "techizmet_shop_customer";
-
-/**
- * Vitrin katalog sayfaları (herkes için aynı içerik; sepet/hesap durumu
- * iframe içinde client tarafında yüklenir). Kişiye/orduma özel sayfalar
- * (hesap, sepet, ödeme, sipariş) buraya girmez.
- */
-function isCacheableCatalogPath(pathname: string): boolean {
-  if (pathname === "/") return true;
-  return (
-    pathname.startsWith("/products/") ||
-    pathname === "/collections" ||
-    pathname.startsWith("/collections/") ||
-    pathname.startsWith("/pages/") ||
-    pathname === "/blogs" ||
-    pathname.startsWith("/blogs/")
-  );
-}
-
-/**
- * TR + anonim + katalog isteklerinde Vercel CDN edge cache'i aç.
- * Kabuk HTML'i locale'e göre yalnızca iframe src'sinde (index-tr/index)
- * farklılaştığından, EN ve giriş yapmış kullanıcılar dinamik (no-store)
- * kalır; böylece dil karışması veya kişisel veri sızması olmaz.
- */
-function maybeCacheStorePage(
-  response: NextResponse,
-  request: NextRequest,
-  locale: ShopLocale,
-  pathname: string,
-): NextResponse {
-  if (request.method !== "GET") return response;
-  if (locale !== "tr") return response;
-  if (!isCacheableCatalogPath(pathname)) return response;
-  if (request.cookies.get(ADMIN_SESSION_COOKIE)?.value) return response;
-  if (request.cookies.get(CUSTOMER_SESSION_COOKIE)?.value) return response;
-
-  // 5 dk taze; 1 gün boyunca eskimişse arka planda yenile (SWR).
-  response.headers.set(
-    "Cache-Control",
-    "public, max-age=0, s-maxage=300, stale-while-revalidate=86400",
-  );
-  return response;
-}
 import { mirrorStaticRewrite } from "@/lib/mirror-static-rewrite";
 import { vitrinPageKeyFromMirrorFileRel } from "@/lib/mirror-vitrin-pages";
 import { isDemoShopHost, normalizeRequestHost, resolveStoreHostTenant } from "@/lib/store-tenant-hosts";
@@ -193,12 +147,7 @@ export async function proxy(request: NextRequest) {
     return attachLocale(mirrorRewrite, request, locale, pathname);
   }
 
-  return maybeCacheStorePage(
-    attachLocaleOnNext(request, locale, pathname),
-    request,
-    locale,
-    pathname,
-  );
+  return attachLocaleOnNext(request, locale, pathname);
 }
 
 export const config = {

@@ -103,6 +103,20 @@ const nextConfig: NextConfig = {
     const seoCrawlCache = [
       { key: "Cache-Control", value: "public, max-age=0, s-maxage=86400, stale-while-revalidate=604800" },
     ] as const;
+    /**
+     * Vitrin katalog sayfaları (ana sayfa, ürün, koleksiyon, statik sayfa, blog)
+     * — herkes için aynı kabuk HTML; sepet/hesap durumu iframe içinde client
+     * tarafında yüklenir. Sayfalar dinamik render ediliyordu (no-store, her
+     * istekte cold start ~8s). Next 16 dinamik sayfalara Cache-Control basmaz;
+     * config seviyesinde verilen değer strip edilmez ve Vercel CDN edge'de
+     * cache'ler. stale-while-revalidate sayesinde ilk render'dan sonra hiçbir
+     * ziyaretçi cold start'a düşmez — CDN anında yanıt verir, yenileme arka
+     * planda olur. Kişiye özel sayfalar (hesap/sepet/ödeme/sipariş) bu kurala
+     * girmez, dinamik kalır.
+     */
+    const storeCatalogCache = [
+      { key: "Cache-Control", value: "public, max-age=0, s-maxage=300, stale-while-revalidate=3600" },
+    ] as const;
     const securityHeaders = [
       { key: "X-Content-Type-Options", value: "nosniff" },
       { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
@@ -129,6 +143,14 @@ const nextConfig: NextConfig = {
         source: "/((?!admin|api).*)",
         headers: [storeCsp, ...securityHeaders],
       },
+      // Katalog sayfaları — CDN edge cache (yukarıdaki CSP/security kuralları da uygulanmaya devam eder)
+      { source: "/", headers: [...storeCatalogCache] },
+      { source: "/products/:path*", headers: [...storeCatalogCache] },
+      { source: "/collections", headers: [...storeCatalogCache] },
+      { source: "/collections/:path*", headers: [...storeCatalogCache] },
+      { source: "/pages/:path*", headers: [...storeCatalogCache] },
+      { source: "/blogs", headers: [...storeCatalogCache] },
+      { source: "/blogs/:path*", headers: [...storeCatalogCache] },
       { source: "/api/admin/:path*", headers: [...noStore] },
       { source: "/_mirror-prebuilt/:path*.html", headers: [...prebuiltHtmlCache] },
       { source: "/_mirror-prebuilt/:path*", headers: [...prebuiltCache] },
