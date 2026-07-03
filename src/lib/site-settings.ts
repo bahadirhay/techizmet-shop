@@ -27,6 +27,7 @@ import {
   type ProductExploreLook,
 } from "@/lib/product-explore-looks";
 import type { AnnouncementBarSettings } from "@/lib/mirror-announcement-bar";
+import type { ThemeColorsSettings } from "@/lib/theme-colors";
 import type { StoreTextSettings } from "@/lib/store-static-texts";
 
 export type EmailTemplateKey = "orderConfirmation" | "orderShipped" | "orderCancelled";
@@ -135,6 +136,8 @@ export type SiteSettings = {
     defaultProductPageBottom?: ProductPageBottomThemeConfig;
     /** Header duyuru şeridi (üst kayan yazılar) */
     announcementBar?: AnnouncementBarSettings;
+    /** Tema kabuğu renkleri — header/footer/marka CSS değişken override'ları */
+    themeColors?: ThemeColorsSettings;
     /** mirror index → admin home blok içe aktarma sürümü */
     mirrorHomeImportVersion?: number;
     /** Techizmet Shop ana sayfa — bölüm sırası / gizle / başlık */

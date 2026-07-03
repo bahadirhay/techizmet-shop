@@ -35,6 +35,7 @@ export function StoreLayoutRouter({
   announcementScheme,
   footerHtml,
   schemeCss,
+  themeColorsCss,
   children,
 }: {
   homepageMode: HomepageMode;
@@ -49,6 +50,7 @@ export function StoreLayoutRouter({
   announcementScheme?: string;
   footerHtml?: string;
   schemeCss?: string;
+  themeColorsCss?: string;
   children: React.ReactNode;
 }) {
   const pathname = usePathname() ?? "/";
@@ -80,6 +82,7 @@ export function StoreLayoutRouter({
         <HtmlLang locale={locale} />
         <StoreThemeStyles />
         {schemeCss ? <style dangerouslySetInnerHTML={{ __html: schemeCss }} /> : null}
+        {themeColorsCss ? <style dangerouslySetInnerHTML={{ __html: themeColorsCss }} /> : null}
         {announcementSlides?.length ? (
           <ThemeShellAnnouncementBar slides={announcementSlides} schemeClass={announcementScheme} />
         ) : null}
@@ -99,6 +102,7 @@ export function StoreLayoutRouter({
     <>
       <HtmlLang locale={locale} />
       <StoreThemeStyles />
+      {themeColorsCss ? <style dangerouslySetInnerHTML={{ __html: themeColorsCss }} /> : null}
       <StoreShell siteName={siteName} logoSrc={logoSrc} locale={locale} messages={messages} nav={nav}>
         <main className="kn-main">{children}</main>
         <StoreFooter siteName={siteName} messages={messages.footer} socialLinks={socialLinks} />

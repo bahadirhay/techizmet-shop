@@ -104,6 +104,7 @@ function defaultOpenGroups(
     pathname.startsWith("/admin/settings/seo") ||
     pathname.startsWith("/admin/settings/menu") ||
     pathname.startsWith("/admin/settings/navigation") ||
+    pathname.startsWith("/admin/settings/appearance") ||
     pathname.startsWith("/admin/settings/cookie-consents")
   ) {
     open.add("settings");
