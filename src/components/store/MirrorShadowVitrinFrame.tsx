@@ -1,4 +1,4 @@
-import { MirrorShadowHost } from "@/components/store/MirrorShadowHost";
+import { MirrorLightHost } from "@/components/store/MirrorLightHost";
 import { buildMirrorHtmlCore } from "@/lib/mirror-html-processor";
 import { getStoreLocaleFromHeaders } from "@/lib/i18n/server";
 import { getDefaultSite } from "@/lib/site";
@@ -33,7 +33,7 @@ export async function MirrorShadowVitrinFrame({ pageKey }: { pageKey: VitrinPage
 
   return (
     <div className="kn-home-mirror kn-home-mirror--ready relative min-h-screen w-full">
-      <MirrorShadowHost html={html} />
+      <MirrorLightHost html={html} />
     </div>
   );
 }
