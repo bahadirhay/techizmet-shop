@@ -41,7 +41,8 @@ function attachLocale(
   pathname: string,
 ) {
   const existing = request.cookies.get(LOCALE_COOKIE)?.value;
-  if (existing !== locale) {
+  const localeCookieChanged = existing !== locale;
+  if (localeCookieChanged) {
     response.cookies.set(LOCALE_COOKIE, locale, {
       path: "/",
       maxAge: 60 * 60 * 24 * 365,
@@ -50,6 +51,10 @@ function attachLocale(
   }
   response.headers.set("x-shop-locale", locale);
   response.headers.set("x-pathname", pathname);
+  // Set-Cookie yoksa Vercel edge cache açılabilir (ilk ziyaret hariç)
+  if (!localeCookieChanged && isVitrinShellPath(pathname)) {
+    response.headers.set("Vercel-CDN-Cache-Control", VITRIN_SHELL_EDGE_CACHE);
+  }
   return response;
 }
 
@@ -79,6 +84,18 @@ async function isStoreInMaintenance(request: NextRequest): Promise<boolean> {
 const APEX_TO_WWW: Record<string, string> = {
   "anatolianpaw.com": "www.anatolianpaw.com",
 };
+
+/** Vitrin RSC shell — edge CDN (Faz 1). Set-Cookie olan yanıtlar cache'lenmez. */
+const VITRIN_SHELL_EDGE_CACHE = "s-maxage=60, stale-while-revalidate=86400";
+
+function isVitrinShellPath(pathname: string): boolean {
+  if (pathname === "/" || pathname === "/sokak-dostlari") return true;
+  if (pathname === "/collections" || pathname.startsWith("/collections/")) return true;
+  if (pathname.startsWith("/products/")) return true;
+  if (pathname === "/blogs/news" || pathname.startsWith("/blogs/news/")) return true;
+  if (pathname.startsWith("/pages/")) return true;
+  return false;
+}
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
