@@ -8,6 +8,7 @@ import { MirrorIframeBootScript } from "@/components/store/MirrorIframeBootScrip
 import { StoreFooter } from "@/components/store/StoreFooter";
 import { StoreShell } from "@/components/store/StoreShell";
 import { ThemeShellAnnouncementBar } from "@/components/store/ThemeShellAnnouncementBar";
+import type { ResolvedNavItem } from "@/lib/mirror-nav-resolve";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import type { StoreMessages } from "@/lib/i18n/messages";
 import type { HomepageMode } from "@/lib/site-settings";
@@ -41,7 +42,7 @@ export function StoreLayoutRouter({
   siteName: string;
   logoSrc?: string;
   messages: StoreMessages;
-  nav: { href: string; label: string }[];
+  nav: ResolvedNavItem[];
   socialLinks?: SocialLink[];
   themeShellPilotLive?: boolean;
   announcementSlides?: string[];

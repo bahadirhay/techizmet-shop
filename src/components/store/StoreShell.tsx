@@ -6,6 +6,7 @@ import { StreetFoodFundBar } from "@/components/store/StreetFoodFundBar";
 import { StoreHeader } from "@/components/store/StoreHeader";
 import { AccountProvider } from "@/components/store/account/AccountContext";
 import { AccountDrawer } from "@/components/store/account/AccountDrawer";
+import type { ResolvedNavItem } from "@/lib/mirror-nav-resolve";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import type { StoreMessages } from "@/lib/i18n/messages";
 
@@ -21,7 +22,7 @@ export function StoreShell({
   logoSrc?: string;
   locale: ShopLocale;
   messages: StoreMessages;
-  nav: { href: string; label: string }[];
+  nav: ResolvedNavItem[];
   children: React.ReactNode;
 }) {
   return (

@@ -1,14 +1,12 @@
 import Link from "next/link";
-import { Suspense } from "react";
-import { CartTrigger } from "@/components/cart/MiniCart";
-import { AccountTrigger } from "@/components/store/account/AccountDrawer";
-import { LocaleSwitcher } from "@/components/store/LocaleSwitcher";
+import { StoreHeaderIcons } from "@/components/store/StoreHeaderIcons";
 import { StoreHeaderNav } from "@/components/store/StoreHeaderNav";
-import { StoreSearchForm } from "@/components/store/StoreSearchForm";
+import { StoreMobileMenu } from "@/components/store/StoreMobileMenu";
 import type { ResolvedNavItem } from "@/lib/mirror-nav-resolve";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import type { StoreMessages } from "@/lib/i18n/messages";
 
+/** Mirror header birebir — header38c6.css + base2ff2.css (StoreThemeStyles ile global yüklü) */
 export function StoreHeader({
   siteName,
   logoSrc,
@@ -22,32 +20,28 @@ export function StoreHeader({
   messages: StoreMessages;
   nav: ResolvedNavItem[];
 }) {
-
   return (
-    <header className="kn-header kn-header--mirror">
-      <div className="kn-header__inner">
-        <Link href="/" className="kn-header__logo">
-          {logoSrc ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={logoSrc} alt={siteName} width={90} height={43} />
-          ) : (
-            siteName
-          )}
-        </Link>
-        <StoreHeaderNav items={nav} />
-        <div className="kn-header__actions">
-          <LocaleSwitcher
-            locale={locale}
-            label={messages.locale.label}
-            trLabel={messages.locale.tr}
-            enLabel={messages.locale.en}
-          />
-          <Suspense fallback={null}>
-            <StoreSearchForm className="kn-search-form kn-search-form--header" />
-          </Suspense>
-          <Link href="/orders/track">{messages.nav.trackOrder}</Link>
-          <AccountTrigger label={messages.nav.account} />
-          <CartTrigger />
+    <header className="section-header kn-theme-shell-header">
+      <div className="header style-logo-left-menu-left header-height-large sticky-always border-true shadow-true">
+        <div className="container-fullwidth">
+          <div className="header--wrapper logo-left-menu-left">
+            <StoreMobileMenu nav={nav} locale={locale} messages={messages} />
+
+            <Link className="header--logo" href="/" aria-label={siteName}>
+              {logoSrc ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img className="header--logo-img" src={logoSrc} alt={siteName} width={90} height={43} />
+              ) : (
+                <span className="header--logo-text">{siteName}</span>
+              )}
+            </Link>
+
+            <StoreHeaderNav items={nav} />
+
+            <div className="header--right" data-header-right>
+              <StoreHeaderIcons locale={locale} messages={messages} />
+            </div>
+          </div>
         </div>
       </div>
     </header>
