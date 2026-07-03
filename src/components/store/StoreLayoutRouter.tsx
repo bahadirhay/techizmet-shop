@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { CartProvider } from "@/components/cart/CartContext";
 import { HtmlLang } from "@/components/store/HtmlLang";
 import { MirrorIframeBootScript } from "@/components/store/MirrorIframeBootScript";
@@ -12,6 +12,7 @@ import type { StoreMessages } from "@/lib/i18n/messages";
 import type { HomepageMode } from "@/lib/site-settings";
 import type { SocialLink } from "@/lib/social-links";
 import { isMirrorShellPath } from "@/lib/store-mirror-paths";
+import { isThemeShellEnabledForPath } from "@/lib/theme-shell-pilot";
 
 const StoreThemeStyles = dynamic(
   () => import("@/components/store/StoreThemeStyles").then((m) => ({ default: m.StoreThemeStyles })),
@@ -27,6 +28,7 @@ export function StoreLayoutRouter({
   messages,
   nav,
   socialLinks,
+  themeShellPilotLive = false,
   children,
 }: {
   homepageMode: HomepageMode;
@@ -36,10 +38,21 @@ export function StoreLayoutRouter({
   messages: StoreMessages;
   nav: { href: string; label: string }[];
   socialLinks?: SocialLink[];
+  themeShellPilotLive?: boolean;
   children: React.ReactNode;
 }) {
   const pathname = usePathname() ?? "/";
-  const mirrorShell = homepageMode === "mirror" && isMirrorShellPath(pathname);
+  const searchParams = useSearchParams();
+  const themeShellActive = isThemeShellEnabledForPath(
+    pathname,
+    {
+      themeShell: searchParams.get("themeShell"),
+      mirror: searchParams.get("mirror"),
+    },
+    themeShellPilotLive,
+  );
+  const mirrorShell =
+    homepageMode === "mirror" && isMirrorShellPath(pathname, { themeShellActive });
 
   if (mirrorShell) {
     return (

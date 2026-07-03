@@ -2141,3 +2141,33 @@ html.kn-scroll-locked body {
 .kn-blog-article__footer a:hover {
   text-decoration: underline;
 }
+
+/* Tema kabuğu pilotu — mirror page-banner + richtext (iframe yok) */
+.kn-theme-shell-page {
+  background: var(--kn-bg);
+}
+.kn-theme-shell-page__banner .section-spacing {
+  --top_spacing: 25px;
+  --bottom_spacing: 25px;
+  --banner_height: 250px;
+}
+.kn-theme-shell-page__richtext .section-spacing {
+  --top_spacing: 25px;
+  --bottom_spacing: 40px;
+}
+.kn-theme-shell-page .container-narrow {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+}
+@media only screen and (max-width: 767px) {
+  .kn-theme-shell-page__banner .section-spacing {
+    --top_spacing: 0px;
+    --bottom_spacing: 0px;
+    --banner_height: 200px;
+  }
+  .kn-theme-shell-page__richtext .section-spacing {
+    --top_spacing: 20px;
+    --bottom_spacing: 30px;
+  }
+}

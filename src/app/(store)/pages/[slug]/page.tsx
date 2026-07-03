@@ -16,6 +16,7 @@ import { StorePublicBlocks } from "@/components/store/StorePublicBlocks";
 import { MirrorVitrinFrame } from "@/components/store/MirrorVitrinFrame";
 import { MirrorStaticPageFrame } from "@/components/store/MirrorStaticPageFrame";
 import { MirrorCmsPageFrame } from "@/components/store/MirrorCmsPageFrame";
+import { ThemeShellPageView } from "@/components/store/ThemeShellPageView";
 import { JsonLdScript } from "@/components/store/JsonLdScript";
 import { DistanceSalesAgreementView } from "@/components/legal/DistanceSalesAgreementView";
 import { buildWebPageJsonLd } from "@/lib/seo/site-json-ld";
@@ -23,6 +24,11 @@ import { resolveLegalSellerProfile } from "@/lib/legal/seller-profile";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { buildSiteMetadata } from "@/lib/site-metadata";
 import { resolveStoreBlockMessages } from "@/lib/store-static-texts";
+import { resolveThemeShellPageContent } from "@/lib/theme-shell-page-content";
+import {
+  isThemeShellEnabledForSlug,
+  type ThemeShellPilotQuery,
+} from "@/lib/theme-shell-pilot";
 
 function isMirrorContentPageSlug(slug: string): slug is VitrinPageKey {
   return (
@@ -47,12 +53,42 @@ export async function generateMetadata({
   });
 }
 
-export default async function CmsPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function CmsPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<ThemeShellPilotQuery>;
+}) {
   const { slug } = await params;
+  const query = await searchParams;
   const site = await getDefaultSite();
   const locale = await getStoreLocale();
   const settings = await getSiteSettings(site.id);
   const homepageMode = getHomepageMode(settings);
+  const themeShellLive = process.env.THEME_SHELL_PILOT_LIVE === "1";
+  const useThemeShell =
+    homepageMode === "mirror" &&
+    isVitrinPageKey(slug) &&
+    isThemeShellEnabledForSlug(slug, query, themeShellLive);
+
+  if (useThemeShell) {
+    const content = resolveThemeShellPageContent(settings, slug, locale);
+    if (!content) notFound();
+    const page = await getPageBySlug(slug);
+    const jsonLd = buildWebPageJsonLd({
+      name: page?.seoTitle?.trim() || content.bannerTitle || page?.title || slug,
+      description: page?.seoDescription,
+      path: `/pages/${slug}`,
+      siteName: site.name,
+    });
+    return (
+      <>
+        <JsonLdScript data={jsonLd} />
+        <ThemeShellPageView content={content} pageTitle={page?.title} />
+      </>
+    );
+  }
 
   if (homepageMode === "mirror" && isMirrorContentPageSlug(slug)) {
     return <MirrorVitrinFrame pageKey={slug} />;

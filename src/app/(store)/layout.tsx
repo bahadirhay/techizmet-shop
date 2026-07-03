@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { StoreLayoutRouter } from "@/components/store/StoreLayoutRouter";
 import { getCachedParsedSiteSettings } from "@/lib/cache/store-cache";
 import { getStoreMessages } from "@/lib/i18n/messages";
@@ -17,16 +18,19 @@ export default async function StoreLayout({ children }: { children: React.ReactN
   const socialLinks = detectSocialLinks(settings.seo?.organizationSameAs);
 
   return (
-    <StoreLayoutRouter
-      homepageMode={getHomepageMode(settings)}
-      locale={locale}
-      siteName={site.name}
-      logoSrc={branding.logoUrl}
-      messages={messages}
-      nav={nav}
-      socialLinks={socialLinks}
-    >
-      {children}
-    </StoreLayoutRouter>
+    <Suspense fallback={null}>
+      <StoreLayoutRouter
+        homepageMode={getHomepageMode(settings)}
+        locale={locale}
+        siteName={site.name}
+        logoSrc={branding.logoUrl}
+        messages={messages}
+        nav={nav}
+        socialLinks={socialLinks}
+        themeShellPilotLive={process.env.THEME_SHELL_PILOT_LIVE === "1"}
+      >
+        {children}
+      </StoreLayoutRouter>
+    </Suspense>
   );
 }

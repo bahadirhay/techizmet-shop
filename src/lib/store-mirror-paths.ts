@@ -1,5 +1,9 @@
 /** Mirror iframe tam ekran — React header/footer yok */
-export function isMirrorShellPath(pathname: string): boolean {
+export function isMirrorShellPath(
+  pathname: string,
+  opts?: { themeShellActive?: boolean },
+): boolean {
+  if (opts?.themeShellActive) return false;
   return (
     pathname === "/" ||
     pathname === "/collections" ||

@@ -1,19 +1,25 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import type { ShopLocale } from "@/lib/i18n/locale";
 import { getVitrinPage, type VitrinPageKey } from "@/lib/mirror-vitrin-pages";
 
-const themeRoot = join(process.cwd(), "public/theme/techizmet-shop");
-
-/** Sunucu — mirror HTML dosyası */
+/** Sunucu — mirror HTML dosyası (önce tr, sonra en) */
 export function readMirrorPageHtml(pageKey: VitrinPageKey): string | null {
+  return readMirrorPageHtmlForLocale(pageKey, "tr") ?? readMirrorPageHtmlForLocale(pageKey, "en");
+}
+
+/** Sunucu — locale'e göre mirror HTML */
+export function readMirrorPageHtmlForLocale(
+  pageKey: VitrinPageKey,
+  locale: ShopLocale,
+): string | null {
   const def = getVitrinPage(pageKey);
   if (!def) return null;
-  const rel = def.mirrorFileRel("tr");
-  const built = join(process.cwd(), "public", rel);
-  if (existsSync(built)) return readFileSync(built, "utf8");
-  const enRel = def.mirrorFileRel("en");
-  const enBuilt = join(process.cwd(), "public", enRel);
-  if (existsSync(enBuilt)) return readFileSync(enBuilt, "utf8");
+  const primary = join(process.cwd(), "public", def.mirrorFileRel(locale));
+  if (existsSync(primary)) return readFileSync(primary, "utf8");
+  const fallback = locale === "tr" ? "en" : "tr";
+  const alt = join(process.cwd(), "public", def.mirrorFileRel(fallback));
+  if (existsSync(alt)) return readFileSync(alt, "utf8");
   return null;
 }
 
