@@ -14,6 +14,7 @@ import { getDefaultSite } from "@/lib/site";
 import { getPageBySlug } from "@/lib/site";
 import { StorePublicBlocks } from "@/components/store/StorePublicBlocks";
 import { MirrorVitrinFrame } from "@/components/store/MirrorVitrinFrame";
+import { MirrorShadowVitrinFrame } from "@/components/store/MirrorShadowVitrinFrame";
 import { MirrorStaticPageFrame } from "@/components/store/MirrorStaticPageFrame";
 import { MirrorCmsPageFrame } from "@/components/store/MirrorCmsPageFrame";
 import { JsonLdScript } from "@/components/store/JsonLdScript";
@@ -47,14 +48,25 @@ export async function generateMetadata({
   });
 }
 
-export default async function CmsPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function CmsPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { slug } = await params;
+  const sp = await searchParams;
   const site = await getDefaultSite();
   const locale = await getStoreLocale();
   const settings = await getSiteSettings(site.id);
   const homepageMode = getHomepageMode(settings);
 
   if (homepageMode === "mirror" && isMirrorContentPageSlug(slug)) {
+    // De-iframe pilotu (Faz B) — yalnızca ?deiframe=1 bayrağıyla, canlıyı etkilemez
+    if (slug === "privacy-policy" && sp.deiframe === "1") {
+      return <MirrorShadowVitrinFrame pageKey={slug} />;
+    }
     return <MirrorVitrinFrame pageKey={slug} />;
   }
 
