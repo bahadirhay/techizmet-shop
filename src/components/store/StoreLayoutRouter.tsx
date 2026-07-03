@@ -7,6 +7,7 @@ import { HtmlLang } from "@/components/store/HtmlLang";
 import { MirrorIframeBootScript } from "@/components/store/MirrorIframeBootScript";
 import { StoreFooter } from "@/components/store/StoreFooter";
 import { StoreShell } from "@/components/store/StoreShell";
+import { ThemeShellAnnouncementBar } from "@/components/store/ThemeShellAnnouncementBar";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import type { StoreMessages } from "@/lib/i18n/messages";
 import type { HomepageMode } from "@/lib/site-settings";
@@ -29,6 +30,10 @@ export function StoreLayoutRouter({
   nav,
   socialLinks,
   themeShellPilotLive = false,
+  announcementSlides,
+  announcementScheme,
+  footerHtml,
+  schemeCss,
   children,
 }: {
   homepageMode: HomepageMode;
@@ -39,6 +44,10 @@ export function StoreLayoutRouter({
   nav: { href: string; label: string }[];
   socialLinks?: SocialLink[];
   themeShellPilotLive?: boolean;
+  announcementSlides?: string[];
+  announcementScheme?: string;
+  footerHtml?: string;
+  schemeCss?: string;
   children: React.ReactNode;
 }) {
   const pathname = usePathname() ?? "/";
@@ -60,6 +69,27 @@ export function StoreLayoutRouter({
         <HtmlLang locale={locale} />
         <MirrorIframeBootScript />
         <CartProvider>{children}</CartProvider>
+      </>
+    );
+  }
+
+  if (themeShellActive) {
+    return (
+      <>
+        <HtmlLang locale={locale} />
+        <StoreThemeStyles />
+        {schemeCss ? <style dangerouslySetInnerHTML={{ __html: schemeCss }} /> : null}
+        {announcementSlides?.length ? (
+          <ThemeShellAnnouncementBar slides={announcementSlides} schemeClass={announcementScheme} />
+        ) : null}
+        <StoreShell siteName={siteName} logoSrc={logoSrc} locale={locale} messages={messages} nav={nav}>
+          <main className="kn-main">{children}</main>
+          {footerHtml ? (
+            <div dangerouslySetInnerHTML={{ __html: footerHtml }} />
+          ) : (
+            <StoreFooter siteName={siteName} messages={messages.footer} socialLinks={socialLinks} />
+          )}
+        </StoreShell>
       </>
     );
   }
