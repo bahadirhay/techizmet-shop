@@ -19,6 +19,7 @@ export function StoreMobileMenu({
   messages: StoreMessages;
 }) {
   const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState<string | null>(null);
   const { openAccount } = useAccount();
 
   useEffect(() => {
@@ -34,7 +35,10 @@ export function StoreMobileMenu({
     };
   }, [open]);
 
-  const close = () => setOpen(false);
+  const close = () => {
+    setOpen(false);
+    setExpanded(null);
+  };
 
   return (
     <>
@@ -69,40 +73,56 @@ export function StoreMobileMenu({
             </div>
             <nav className="kn-mobile-menu__nav" aria-label="Mobil menü">
               <ul>
-                {nav.map((item) => (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      className="kn-mobile-menu__link heading-font"
-                      onClick={close}
-                    >
-                      {item.label}
-                    </Link>
-                    {item.columns?.length ? (
-                      <ul className="kn-mobile-menu__sub">
-                        {item.columns.flatMap((col) =>
-                          col.links.map((l) => (
+                {nav.map((item) => {
+                  const subLinks = item.columns?.length
+                    ? item.columns.flatMap((col) => col.links)
+                    : (item.children ?? []);
+                  const hasSub = subLinks.length > 0;
+                  const isExpanded = expanded === item.href;
+                  return (
+                    <li key={item.href}>
+                      <div className="kn-mobile-menu__row">
+                        <Link
+                          href={item.href}
+                          className="kn-mobile-menu__link heading-font"
+                          onClick={close}
+                        >
+                          {item.label}
+                        </Link>
+                        {hasSub ? (
+                          <button
+                            type="button"
+                            className={`kn-mobile-menu__toggle${isExpanded ? " is-open" : ""}`}
+                            aria-label={isExpanded ? "Kapat" : "Aç"}
+                            aria-expanded={isExpanded}
+                            onClick={() => setExpanded(isExpanded ? null : item.href)}
+                          >
+                            <svg width="12" height="8" viewBox="0 0 12 8" fill="none">
+                              <path
+                                d="M1 1l5 5 5-5"
+                                stroke="currentColor"
+                                strokeWidth="1.5"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          </button>
+                        ) : null}
+                      </div>
+                      {hasSub && isExpanded ? (
+                        <ul className="kn-mobile-menu__sub">
+                          {subLinks.map((l) => (
                             <li key={l.href}>
                               <Link href={l.href} onClick={close}>
                                 {l.label}
                               </Link>
                             </li>
-                          )),
-                        )}
-                      </ul>
-                    ) : item.children?.length ? (
-                      <ul className="kn-mobile-menu__sub">
-                        {item.children.map((l) => (
-                          <li key={l.href}>
-                            <Link href={l.href} onClick={close}>
-                              {l.label}
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </li>
-                ))}
+                          ))}
+                        </ul>
+                      ) : null}
+                    </li>
+                  );
+                })}
               </ul>
             </nav>
             <div className="kn-mobile-menu__foot">

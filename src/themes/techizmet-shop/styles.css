@@ -136,10 +136,12 @@ body {
 
 .kn-locale {
   display: inline-flex;
+  flex: 0 0 auto;
   border: 1px solid var(--kn-border, #e4e4e7);
   border-radius: 999px;
   overflow: hidden;
   font-size: 0.7rem;
+  white-space: nowrap;
 }
 .kn-locale__btn {
   padding: 0.25rem 0.55rem;
@@ -147,6 +149,8 @@ body {
   background: transparent;
   cursor: pointer;
   color: var(--kn-muted);
+  white-space: nowrap;
+  flex: 0 0 auto;
 }
 .kn-locale__btn--active {
   background: #111;
@@ -1043,6 +1047,12 @@ button.header--icon-link-text {
   display: flex;
   align-items: center;
 }
+/* Mobilde header'da devasa locale görünmesin — mobil menüde zaten var */
+@media (max-width: 1024px) {
+  .header--icons-list .kn-locale-icon-item {
+    display: none;
+  }
+}
 
 /* Masaüstü açılır menü (admin mega/alt menü) — flat menüde görünmez */
 .kn-has-dropdown {
@@ -1250,12 +1260,12 @@ button.header--icon-link-text {
   top: 0;
   left: 0;
   z-index: 90;
-  width: min(100%, 360px);
+  width: min(85%, 360px);
   height: 100vh;
-  background: var(--kn-surface, #fff);
+  background: #ffffff;
   display: flex;
   flex-direction: column;
-  box-shadow: 8px 0 40px rgba(0, 0, 0, 0.12);
+  box-shadow: 8px 0 40px rgba(0, 0, 0, 0.18);
 }
 .kn-mobile-menu__head {
   display: flex;
@@ -1281,8 +1291,14 @@ button.header--icon-link-text {
   margin: 0;
   padding: 0;
 }
+.kn-mobile-menu__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
 .kn-mobile-menu__link {
   display: block;
+  flex: 1;
   padding: 0.85rem 1.25rem;
   color: var(--kn-text);
   font-weight: 500;
@@ -1290,6 +1306,21 @@ button.header--icon-link-text {
 }
 .kn-mobile-menu__link:hover {
   color: var(--header_hover_color, var(--kn-brand));
+}
+.kn-mobile-menu__toggle {
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 0.85rem 1.25rem;
+  color: var(--kn-muted);
+  display: flex;
+  align-items: center;
+}
+.kn-mobile-menu__toggle svg {
+  transition: transform 0.25s ease;
+}
+.kn-mobile-menu__toggle.is-open svg {
+  transform: rotate(180deg);
 }
 .kn-mobile-menu__sub {
   padding: 0 0 0.5rem !important;
