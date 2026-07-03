@@ -44,12 +44,9 @@ export function StoreHeader({
           <Suspense fallback={null}>
             <StoreSearchForm className="kn-search-form kn-search-form--header" />
           </Suspense>
-          <CartTrigger />
           <Link href="/orders/track">{messages.nav.trackOrder}</Link>
           <Link href="/account">{messages.nav.account}</Link>
-          <Link href="/cart" className="kn-header__cart-link">
-            {messages.nav.cart}
-          </Link>
+          <CartTrigger />
         </div>
       </div>
     </header>
