@@ -103,6 +103,16 @@ const nextConfig: NextConfig = {
     const seoCrawlCache = [
       { key: "Cache-Control", value: "public, max-age=0, s-maxage=86400, stale-while-revalidate=604800" },
     ] as const;
+    /**
+     * Vitrin RSC shell — edge CDN cache (Faz 1).
+     * Sayfalar headers() nedeniyle dinamik üretilir; Next 16 route yanıtındaki
+     * no-store s-maxage'i strip eder. Config seviyesindeki Cache-Control strip
+     * edilmez → Vercel edge host başına cache'ler (multi-tenant güvenli).
+     * Sepet/checkout/hesap hariç — oturum/kullanıcıya özel sayfalar cache'lenmez.
+     */
+    const storeShellCache = [
+      { key: "Cache-Control", value: "public, max-age=60, s-maxage=60, stale-while-revalidate=86400" },
+    ] as const;
     const securityHeaders = [
       { key: "X-Content-Type-Options", value: "nosniff" },
       { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
@@ -129,6 +139,14 @@ const nextConfig: NextConfig = {
         source: "/((?!admin|api).*)",
         headers: [storeCsp, ...securityHeaders],
       },
+      { source: "/", headers: [...storeShellCache] },
+      { source: "/products/:path*", headers: [...storeShellCache] },
+      { source: "/collections", headers: [...storeShellCache] },
+      { source: "/collections/:path*", headers: [...storeShellCache] },
+      { source: "/blogs/news", headers: [...storeShellCache] },
+      { source: "/blogs/news/:path*", headers: [...storeShellCache] },
+      { source: "/pages/:path*", headers: [...storeShellCache] },
+      { source: "/sokak-dostlari", headers: [...storeShellCache] },
       { source: "/api/admin/:path*", headers: [...noStore] },
       { source: "/_mirror-prebuilt/:path*.html", headers: [...prebuiltHtmlCache] },
       { source: "/_mirror-prebuilt/:path*", headers: [...prebuiltCache] },
