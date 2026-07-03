@@ -18,10 +18,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
   const nav = await loadMirrorNavItems(site.id, locale);
   const socialLinks = detectSocialLinks(settings.seo?.organizationSameAs);
 
-  const lightLogoRaw = settings.branding?.logoUrlLight?.trim();
-  const footerLogoLight =
-    lightLogoRaw && lightLogoRaw !== settings.branding?.logoUrl?.trim() ? lightLogoRaw : null;
-  const chrome = await resolveThemeShellChrome(site.id, locale, footerLogoLight);
+  const chrome = await resolveThemeShellChrome(site.id, locale, branding.logoUrlLight);
 
   return (
     <Suspense fallback={null}>

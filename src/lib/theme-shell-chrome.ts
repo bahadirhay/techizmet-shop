@@ -45,8 +45,14 @@ function extractSchemeCss(html: string): string {
   const rootRe = /:root\s*\{[^{}]*\}/g;
   let r: RegExpExecArray | null;
   while ((r = rootRe.exec(html))) {
-    if (r[0].includes("--body_background") || r[0].includes("--text_color")) {
-      rules.push(r[0]);
+    const block = r[0];
+    if (
+      block.includes("--body_background") ||
+      block.includes("--text_color") ||
+      block.includes("--footer_background") ||
+      block.includes("--header_hover_color")
+    ) {
+      rules.push(block);
     }
   }
   const schemeRe = /\.scheme-[\w-]+\s*\{[^{}]*\}/g;

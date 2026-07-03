@@ -70,7 +70,7 @@ body {
   text-decoration: none;
 }
 .kn-header-nav-item > a:hover {
-  color: var(--kn-brand);
+  color: var(--header_hover_color, var(--kn-brand));
 }
 .kn-header-nav-dropdown {
   position: absolute;
