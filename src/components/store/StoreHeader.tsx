@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { CartTrigger } from "@/components/cart/MiniCart";
+import { AccountTrigger } from "@/components/store/account/AccountDrawer";
 import { LocaleSwitcher } from "@/components/store/LocaleSwitcher";
 import { StoreHeaderNav } from "@/components/store/StoreHeaderNav";
 import { StoreSearchForm } from "@/components/store/StoreSearchForm";
@@ -45,7 +46,7 @@ export function StoreHeader({
             <StoreSearchForm className="kn-search-form kn-search-form--header" />
           </Suspense>
           <Link href="/orders/track">{messages.nav.trackOrder}</Link>
-          <Link href="/account">{messages.nav.account}</Link>
+          <AccountTrigger label={messages.nav.account} />
           <CartTrigger />
         </div>
       </div>

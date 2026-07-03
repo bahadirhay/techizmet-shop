@@ -4,6 +4,8 @@ import { CartProvider } from "@/components/cart/CartContext";
 import { MiniCart } from "@/components/cart/MiniCart";
 import { StreetFoodFundBar } from "@/components/store/StreetFoodFundBar";
 import { StoreHeader } from "@/components/store/StoreHeader";
+import { AccountProvider } from "@/components/store/account/AccountContext";
+import { AccountDrawer } from "@/components/store/account/AccountDrawer";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import type { StoreMessages } from "@/lib/i18n/messages";
 
@@ -24,10 +26,13 @@ export function StoreShell({
 }) {
   return (
     <CartProvider>
-      <StreetFoodFundBar />
-      <StoreHeader siteName={siteName} logoSrc={logoSrc} locale={locale} messages={messages} nav={nav} />
-      <MiniCart />
-      {children}
+      <AccountProvider>
+        <StreetFoodFundBar />
+        <StoreHeader siteName={siteName} logoSrc={logoSrc} locale={locale} messages={messages} nav={nav} />
+        <MiniCart />
+        <AccountDrawer locale={locale} />
+        {children}
+      </AccountProvider>
     </CartProvider>
   );
 }

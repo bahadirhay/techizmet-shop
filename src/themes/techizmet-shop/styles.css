@@ -890,6 +890,131 @@ html.kn-scroll-locked body {
   border: 1px solid var(--kn-brand);
   color: var(--kn-brand);
 }
+
+/* Hesap çekmecesi — sepet çekmecesiyle aynı desen */
+.kn-account-trigger {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  padding: 0;
+}
+.kn-account-trigger:hover {
+  color: var(--header_hover_color, var(--kn-brand));
+}
+.kn-account-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 80;
+  border: none;
+  cursor: pointer;
+}
+.kn-account-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 90;
+  width: min(100%, 400px);
+  height: 100vh;
+  background: var(--kn-surface);
+  display: flex;
+  flex-direction: column;
+  box-shadow: -8px 0 40px rgba(0, 0, 0, 0.12);
+}
+.kn-account-drawer__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--kn-border);
+}
+.kn-account-drawer__head h2 {
+  margin: 0;
+  font-size: 1.125rem;
+}
+.kn-account-drawer__close {
+  border: none;
+  background: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  line-height: 1;
+}
+.kn-account-drawer__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem;
+}
+.kn-account-drawer__form form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+.kn-account-drawer__form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+.kn-account-drawer__form input {
+  border: 1px solid var(--kn-border);
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
+  font: inherit;
+  background: var(--kn-surface);
+}
+.kn-account-drawer__form input:focus {
+  outline: none;
+  border-color: var(--kn-brand);
+}
+.kn-account-drawer__hint {
+  margin: -0.25rem 0 0;
+  text-align: right;
+  font-size: 0.8rem;
+}
+.kn-account-drawer__footer {
+  margin: 1rem 0 0;
+  text-align: center;
+  font-size: 0.85rem;
+}
+.kn-account-drawer__link {
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  color: var(--kn-brand);
+  text-decoration: underline;
+}
+.kn-account-drawer__notice {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0 0 1rem;
+}
+.kn-account-drawer__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.kn-account-drawer__welcome {
+  margin: 0;
+  font-size: 0.95rem;
+}
+.kn-account-drawer__links {
+  display: flex;
+  flex-direction: column;
+}
+.kn-account-drawer__links a {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--kn-border);
+  color: var(--kn-text);
+  font-weight: 500;
+}
+.kn-account-drawer__links a:hover {
+  color: var(--header_hover_color, var(--kn-brand));
+}
 .kn-qty-picker {
   display: inline-flex;
   align-items: center;
