@@ -105,13 +105,16 @@ const nextConfig: NextConfig = {
     ] as const;
     /**
      * Vitrin RSC shell — edge CDN cache (Faz 1).
-     * Sayfalar headers() nedeniyle dinamik üretilir; Next 16 route yanıtındaki
-     * no-store s-maxage'i strip eder. Config seviyesindeki Cache-Control strip
-     * edilmez → Vercel edge host başına cache'ler (multi-tenant güvenli).
-     * Sepet/checkout/hesap hariç — oturum/kullanıcıya özel sayfalar cache'lenmez.
+     * Next.js dinamik RSC yanıtı tarayıcıya `private, no-store` verir; bu
+     * Cache-Control CDN'i engeller. Vercel-CDN-Cache-Control yalnızca edge
+     * katmanını yönetir, origin no-store ile çakışmaz (Vercel dokümantasyonu).
+     * Host başına ayrı entry → multi-tenant güvenli.
      */
     const storeShellCache = [
-      { key: "Cache-Control", value: "public, max-age=60, s-maxage=60, stale-while-revalidate=86400" },
+      {
+        key: "Vercel-CDN-Cache-Control",
+        value: "s-maxage=60, stale-while-revalidate=86400",
+      },
     ] as const;
     const securityHeaders = [
       { key: "X-Content-Type-Options", value: "nosniff" },
