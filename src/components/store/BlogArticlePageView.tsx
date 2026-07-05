@@ -30,10 +30,13 @@ export function BlogArticlePageView({
   post,
   locale,
   siteName,
+  draftPreview = false,
 }: {
   post: BlogPostRecord;
   locale: ShopLocale;
   siteName: string;
+  /** Admin taslak önizlemesi */
+  draftPreview?: boolean;
 }) {
   const title = blogTitle(post, locale);
   const excerpt = blogExcerpt(post, locale);
@@ -49,6 +52,11 @@ export function BlogArticlePageView({
 
   return (
     <article className="kn-section kn-blog-article" itemScope itemType="https://schema.org/NewsArticle">
+      {draftPreview ? (
+        <p className="kn-blog-article__draft" role="status">
+          Taslak önizleme — yalnızca siz görüyorsunuz. Yayınlamak için admin panelinden &quot;Yayında&quot; işaretleyin.
+        </p>
+      ) : null}
       <nav className="kn-blog-article__crumb" aria-label="Konum">
         <Link href="/">Ana sayfa</Link>
         <span aria-hidden="true"> / </span>

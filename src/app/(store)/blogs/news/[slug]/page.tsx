@@ -2,8 +2,10 @@ import { readThemeShellPilotLive } from "@/lib/theme-shell-pilot-live";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { BlogArticlePageView } from "@/components/store/BlogArticlePageView";
-import { ThemeShellSectionsView } from "@/components/store/ThemeShellSectionsView";
-import { getPublishedBlogPostBySlug } from "@/lib/blog/blog-posts-server";
+import {
+  getBlogPostBySlug,
+  getPublishedBlogPostBySlug,
+} from "@/lib/blog/blog-posts-server";
 import { blogTitle } from "@/lib/blog/blog-post-types";
 import { getStoreLocale } from "@/lib/i18n/server";
 import { JsonLdScript } from "@/components/store/JsonLdScript";
@@ -14,22 +16,39 @@ import { findFaqsForBlogSlug } from "@/lib/seo/search-intent";
 import { buildSiteMetadata } from "@/lib/site-metadata";
 import { getHomepageMode, getSiteSettings } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
-import { ensureStoreTenant } from "@/lib/store-tenant";
-import { resolveThemeShellBlogArticleContent } from "@/lib/theme-shell-blog-article-content";
+import { getStaffAccessOptional } from "@/lib/staff-auth";
 import {
   isThemeShellEnabledForBlogArticlePath,
   type ThemeShellPilotQuery,
 } from "@/lib/theme-shell-pilot";
 
+type BlogArticleSearchParams = ThemeShellPilotQuery & {
+  preview?: string | null;
+};
+
+async function resolveBlogPostForPage(siteId: string, slug: string, preview?: string | null) {
+  const draftPreview = preview === "1" && (await getStaffAccessOptional());
+  if (draftPreview) {
+    return { post: await getBlogPostBySlug(siteId, slug), draftPreview: true as const };
+  }
+  return {
+    post: await getPublishedBlogPostBySlug(siteId, slug),
+    draftPreview: false as const,
+  };
+}
+
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<BlogArticleSearchParams>;
 }): Promise<Metadata> {
   const { slug: raw } = await params;
   const slug = raw.replace(/\.html$/i, "");
+  const query = await searchParams;
   const site = await getDefaultSite();
-  const post = await getPublishedBlogPostBySlug(site.id, slug);
+  const { post, draftPreview } = await resolveBlogPostForPage(site.id, slug, query.preview);
   const base = await buildSiteMetadata();
   if (!post) return base;
   const locale = await getStoreLocale();
@@ -42,6 +61,9 @@ export async function generateMetadata({
   });
   return {
     ...pageMeta,
+    ...(draftPreview && !post.published
+      ? { robots: { index: false, follow: false } }
+      : {}),
     alternates: {
       ...(typeof pageMeta.alternates === "object" ? pageMeta.alternates : {}),
       types: {
@@ -56,7 +78,7 @@ export default async function BlogArticlePage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<ThemeShellPilotQuery>;
+  searchParams: Promise<BlogArticleSearchParams>;
 }) {
   const { slug: raw } = await params;
   const slug = raw.replace(/\.html$/i, "");
@@ -70,7 +92,7 @@ export default async function BlogArticlePage({
     homepageMode === "mirror" &&
     isThemeShellEnabledForBlogArticlePath(`/blogs/news/${slug}`, query, themeShellLive);
 
-  const post = await getPublishedBlogPostBySlug(site.id, slug);
+  const { post, draftPreview } = await resolveBlogPostForPage(site.id, slug, query.preview);
   if (!post) notFound();
 
   const headline = post.seoTitle?.trim() || blogTitle(post, locale);
@@ -78,66 +100,60 @@ export default async function BlogArticlePage({
   const publishedIso = post.publishedAt?.toISOString() ?? null;
   const modifiedIso = (post.updatedAt ?? post.publishedAt)?.toISOString() ?? null;
 
-  const jsonLd = buildNewsArticleJsonLd({
-    headline,
-    description: post.seoDescription?.trim() || post.excerptTr,
-    path,
-    imageUrl: post.imageUrl,
-    datePublished: publishedIso,
-    dateModified: modifiedIso,
-    author: post.author,
-    siteName: site.name,
-    settings,
-    articleSection: "Blog",
-  });
+  const jsonLd =
+    post.published && !draftPreview
+      ? buildNewsArticleJsonLd({
+          headline,
+          description: post.seoDescription?.trim() || post.excerptTr,
+          path,
+          imageUrl: post.imageUrl,
+          datePublished: publishedIso,
+          dateModified: modifiedIso,
+          author: post.author,
+          siteName: site.name,
+          settings,
+          articleSection: "Blog",
+        })
+      : null;
 
-  const blogFaqs = findFaqsForBlogSlug(slug);
-  const faqJsonLd = blogFaqs.length > 0
-    ? {
-        "@context": "https://schema.org",
-        "@type": "FAQPage",
-        mainEntity: blogFaqs.map((f) => ({
-          "@type": "Question",
-          name: f.question,
-          acceptedAnswer: { "@type": "Answer", text: f.answer },
-        })),
-      }
-    : null;
+  const blogFaqs = post.published ? findFaqsForBlogSlug(slug) : [];
+  const faqJsonLd =
+    blogFaqs.length > 0
+      ? {
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: blogFaqs.map((f) => ({
+            "@type": "Question",
+            name: f.question,
+            acceptedAnswer: { "@type": "Answer", text: f.answer },
+          })),
+        }
+      : null;
 
-  if (useThemeShell) {
-    const tenant = await ensureStoreTenant();
-    const content = await resolveThemeShellBlogArticleContent(
-      site.id,
-      site.name,
-      tenant.slug,
-      slug,
-      locale,
-    );
-    if (!content) notFound();
+  const article = (
+    <BlogArticlePageView
+      post={post}
+      locale={locale}
+      siteName={site.name}
+      draftPreview={draftPreview && !post.published}
+    />
+  );
+
+  if (useThemeShell || homepageMode === "mirror") {
     return (
       <>
-        <JsonLdScript data={jsonLd} />
+        {jsonLd ? <JsonLdScript data={jsonLd} /> : null}
         {faqJsonLd ? <JsonLdScript data={faqJsonLd} /> : null}
-        <ThemeShellSectionsView content={content} withVitrinBoot />
-      </>
-    );
-  }
-
-  if (homepageMode === "mirror") {
-    return (
-      <>
-        <JsonLdScript data={jsonLd} />
-        {faqJsonLd ? <JsonLdScript data={faqJsonLd} /> : null}
-        <BlogArticlePageView post={post} locale={locale} siteName={site.name} />
+        {article}
       </>
     );
   }
 
   return (
     <>
-      <JsonLdScript data={jsonLd} />
+      {jsonLd ? <JsonLdScript data={jsonLd} /> : null}
       {faqJsonLd ? <JsonLdScript data={faqJsonLd} /> : null}
-      <BlogArticlePageView post={post} locale={locale} siteName={site.name} />
+      {article}
     </>
   );
 }

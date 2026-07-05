@@ -66,7 +66,9 @@ export default async function AdminBlogListPage() {
               </div>
               <AdminListRowActions
                 editHref={`/admin/blog/${p.id}/edit`}
-                previewHref={p.published ? blogPostHref(p.slug) : undefined}
+                previewHref={
+                  p.published ? blogPostHref(p.slug) : `${blogPostHref(p.slug)}?preview=1`
+                }
                 apiUrl={`/api/admin/blog/${p.id}`}
                 enabled={p.published}
                 flagField="published"

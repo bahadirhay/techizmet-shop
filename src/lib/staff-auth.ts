@@ -60,7 +60,7 @@ async function staffAccessFromSession(session: {
 }
 
 /** Aynı RSC isteğinde layout + sayfa tek oturum/DB sorgusu */
-const loadStaffAccessCached = cache(async (): Promise<StaffAccess | null> => {
+export const getStaffAccessOptional = cache(async (): Promise<StaffAccess | null> => {
   const s = await getAdminSession();
   if (!s.isLoggedIn || !s.staffUserId || !s.siteId) return null;
 
@@ -75,7 +75,7 @@ export async function requireStaffPage(): Promise<StaffAccess> {
   // render'ında prisma'nın doğru tenant DB'sini kullanmasını garanti eder.
   await ensureStoreTenant();
   const s = await getAdminSession();
-  const loaded = await loadStaffAccessCached();
+  const loaded = await getStaffAccessOptional();
   if (!loaded) {
     if (s.isLoggedIn) {
       s.destroy();
@@ -88,7 +88,7 @@ export async function requireStaffPage(): Promise<StaffAccess> {
 export async function requireStaffApi(perm?: string): Promise<StaffAccess | NextResponse> {
   await ensureStoreTenant();
   const s = await getAdminSession();
-  const loaded = await loadStaffAccessCached();
+  const loaded = await getStaffAccessOptional();
   if (!loaded) {
     if (s.isLoggedIn) {
       await s.destroy();

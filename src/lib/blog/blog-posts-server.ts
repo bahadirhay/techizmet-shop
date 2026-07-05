@@ -31,6 +31,16 @@ const select = {
   seoDescription: true,
 } as const;
 
+export async function getBlogPostBySlug(
+  siteId: string,
+  slug: string,
+): Promise<BlogPostRecord | null> {
+  return prisma.storeBlogPost.findFirst({
+    where: { siteId, slug },
+    select,
+  });
+}
+
 export async function getPublishedBlogPostBySlug(
   siteId: string,
   slug: string,
