@@ -223,6 +223,22 @@ function patchFeaturedBlogItemHtml(
   return out;
 }
 
+/** Eski normalizeBlogItemHtml artefaktı — kartlar arası fazla </div> */
+function repairFeaturedBlogStackedHtml(sectionHtml: string): string {
+  return sectionHtml.replace(
+    /(<\/div>\s*<\/div>)\s*<\/div>(\s*<div class="blog--item)/gi,
+    "$1$2",
+  );
+}
+
+/** Ana sayfa featured-blog — herhangi bir pipeline adımından sonra düzeni onar */
+export function repairFeaturedBlogSectionInHtml(html: string): string {
+  const sectionBlock = sliceSectionHtml(html, FEATURED_BLOG_SECTION_KEY);
+  if (!sectionBlock) return html;
+  const repaired = repairFeaturedBlogStackedHtml(sectionBlock);
+  return repaired === sectionBlock ? html : html.replace(sectionBlock, repaired);
+}
+
 /** Sunucu — ana sayfa öne çıkan blog (DB); yalnızca featured-blog bölümü */
 export function applyFeaturedBlogPostsToHtml(
   html: string,
@@ -246,7 +262,9 @@ export function applyFeaturedBlogPostsToHtml(
     return patchFeaturedBlogItemHtml(chunk, post, locale);
   });
 
-  const patchedSection = reassembleBlogItemHtml(prefix, patched, suffix);
+  const patchedSection = repairFeaturedBlogStackedHtml(
+    reassembleBlogItemHtml(prefix, patched, suffix),
+  );
   return html.replace(sectionBlock, patchedSection);
 }
 

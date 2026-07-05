@@ -11,6 +11,7 @@ import { getCachedParsedSiteSettings } from "@/lib/cache/store-cache";
 import { getMirrorHomeHeroPreloadHref } from "@/lib/mirror-home-hero-preload";
 import { resolveStoreMirrorIframeSrcForRequest } from "@/lib/mirror-prebuilt-resolve-server";
 import { localeFromCookieValue } from "@/lib/i18n/locale";
+import { readThemeShellPilotLive } from "@/lib/theme-shell-pilot-live";
 import { getDefaultSite } from "@/lib/site";
 import { getHomepageMode, getSiteSeo } from "@/lib/site-settings";
 import { isMirrorShellPath } from "@/lib/store-mirror-paths";
@@ -43,17 +44,22 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const pathname = h.get("x-pathname") ?? "/";
   const locale = localeFromCookieValue(h.get("x-shop-locale") ?? undefined) ?? "tr";
   const isAdminOrApi = pathname.startsWith("/admin") || pathname.startsWith("/api");
-  const mirrorHomePreload = isAdminOrApi
-    ? null
-    : await resolveStoreMirrorIframeSrcForRequest(
+  const homepageMode = getHomepageMode(settings);
+  const themeShellLive = readThemeShellPilotLive();
+  const useMirrorIframeHome =
+    !isAdminOrApi && pathname === "/" && homepageMode === "mirror" && !themeShellLive;
+  const mirrorHomePreload = useMirrorIframeHome
+    ? await resolveStoreMirrorIframeSrcForRequest(
         "theme/techizmet-shop/mirror/index-tr.html",
         "home",
-      );
-  const isMirrorHome =
-    !isAdminOrApi && pathname === "/" && getHomepageMode(settings) === "mirror";
-  const mirrorHeroPreload = isMirrorHome ? await getMirrorHomeHeroPreloadHref(site.id, "tr") : null;
+      )
+    : null;
+  const isMirrorHome = useMirrorIframeHome;
+  const mirrorHeroPreload = isMirrorHome
+    ? await getMirrorHomeHeroPreloadHref(site.id, locale)
+    : null;
   const mirrorShell =
-    !isAdminOrApi && getHomepageMode(settings) === "mirror" && isMirrorShellPath(pathname);
+    !isAdminOrApi && homepageMode === "mirror" && isMirrorShellPath(pathname) && !themeShellLive;
 
   // Mirror shell sayfalarında Poppins kullanılmıyor — font variable class'ı ekleme
   const bodyClass = mirrorShell ? "antialiased" : `${poppins.variable} antialiased`;

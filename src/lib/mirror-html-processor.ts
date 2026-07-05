@@ -71,6 +71,7 @@ import { hasMarqueeElementOverride } from "@/lib/mirror-element-edits";
 import {
   applyFeaturedBlogPostsToHtml,
   mergeFeaturedBlogIntoPageConfig,
+  repairFeaturedBlogSectionInHtml,
 } from "@/lib/mirror-featured-blog";
 import { mergeLayoutOrderOverride } from "@/lib/mirror-home-overlay";
 import { getMirrorPageConfig } from "@/lib/mirror-page-settings";
@@ -347,6 +348,9 @@ export async function buildMirrorHtmlCore(params: MirrorHtmlBuildParams): Promis
   localized = enhanceMarqueeSectionsInHtml(localized);
   if (locale === "en") {
     localized = applyMirrorEnLocaleToHtml(localized, locale);
+  }
+  if (isHomeMirror) {
+    localized = repairFeaturedBlogSectionInHtml(localized);
   }
   return rewriteLegacyThemePaths(localized);
 }
