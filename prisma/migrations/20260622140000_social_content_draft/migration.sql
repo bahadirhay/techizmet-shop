@@ -1,4 +1,4 @@
-CREATE TABLE "shop"."social_content_draft" (
+CREATE TABLE IF NOT EXISTS "shop"."social_content_draft" (
     "id" TEXT NOT NULL,
     "siteId" TEXT NOT NULL,
     "productId" TEXT NOT NULL,
@@ -23,9 +23,20 @@ CREATE TABLE "shop"."social_content_draft" (
     CONSTRAINT "social_content_draft_pkey" PRIMARY KEY ("id")
 );
 
-CREATE UNIQUE INDEX "social_content_draft_siteId_productId_platform_key" ON "shop"."social_content_draft"("siteId", "productId", "platform");
-CREATE INDEX "social_content_draft_siteId_status_idx" ON "shop"."social_content_draft"("siteId", "status");
-CREATE INDEX "social_content_draft_siteId_productId_idx" ON "shop"."social_content_draft"("siteId", "productId");
+CREATE UNIQUE INDEX IF NOT EXISTS "social_content_draft_siteId_productId_platform_key" ON "shop"."social_content_draft"("siteId", "productId", "platform");
+CREATE INDEX IF NOT EXISTS "social_content_draft_siteId_status_idx" ON "shop"."social_content_draft"("siteId", "status");
+CREATE INDEX IF NOT EXISTS "social_content_draft_siteId_productId_idx" ON "shop"."social_content_draft"("siteId", "productId");
 
-ALTER TABLE "shop"."social_content_draft" ADD CONSTRAINT "social_content_draft_siteId_fkey" FOREIGN KEY ("siteId") REFERENCES "shop"."site"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-ALTER TABLE "shop"."social_content_draft" ADD CONSTRAINT "social_content_draft_productId_fkey" FOREIGN KEY ("productId") REFERENCES "shop"."product"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "shop"."social_content_draft"
+    ADD CONSTRAINT "social_content_draft_siteId_fkey"
+    FOREIGN KEY ("siteId") REFERENCES "shop"."site"("id")
+    ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "shop"."social_content_draft"
+    ADD CONSTRAINT "social_content_draft_productId_fkey"
+    FOREIGN KEY ("productId") REFERENCES "shop"."product"("id")
+    ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN null; END $$;
