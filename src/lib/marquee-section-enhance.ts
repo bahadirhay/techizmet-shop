@@ -1,5 +1,3 @@
-import "server-only";
-
 import { parseHTML } from "@/lib/linkedom-server";
 import { enhanceMarqueeSection } from "@/lib/mirror-element-edits";
 import { stripBrokenSectionDisplayAttr } from "@/lib/product-page-bottom";
