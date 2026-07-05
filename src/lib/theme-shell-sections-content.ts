@@ -109,7 +109,7 @@ function getCachedThemeShellSectionsContent(
 ): Promise<ThemeShellSectionsContent | null> {
   return unstable_cache(
     () => buildThemeShellSectionsContent(siteId, siteName, tenantSlug, pageKey, locale),
-    ["theme-shell-sections-v2", siteId, tenantSlug, pageKey, locale],
+    ["theme-shell-sections-v3", siteId, tenantSlug, pageKey, locale],
     {
       revalidate: STORE_PUBLIC_REVALIDATE_SEC,
       tags: [storeSettingsTag(siteId), storeMirrorTag(siteId), "store-products", "store-blog"],

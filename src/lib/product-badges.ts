@@ -36,6 +36,28 @@ export function badgePreset(id: string) {
   return PRODUCT_BADGE_PRESETS.find((b) => b.id === id);
 }
 
+const BADGE_LABEL_EN: Partial<Record<ProductBadgeId, string>> = {
+  new: "New",
+  bestseller: "Best seller",
+  free_shipping: "Free shipping",
+  editors_pick: "Editor's pick",
+  sale: "Sale",
+  limited: "Limited stock",
+  last_chance: "Last chance",
+  campaign: "Campaign",
+  online_exclusive: "Online exclusive",
+  new_season: "New season",
+  bundle: "Bundle",
+  gift: "Gift",
+};
+
+export function badgeLabelForLocale(id: ProductBadgeId, locale?: string): string {
+  const preset = badgePreset(id);
+  if (!preset) return id;
+  if (locale?.toLowerCase().startsWith("en")) return BADGE_LABEL_EN[id] ?? preset.label;
+  return preset.label;
+}
+
 /** İndirimli fiyat varsa otomatik indirim rozeti */
 export function resolveDisplayBadges(
   manual: ProductBadgeId[],

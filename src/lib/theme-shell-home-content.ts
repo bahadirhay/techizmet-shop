@@ -78,7 +78,7 @@ export function resolveThemeShellHomeContent(
 ): Promise<ThemeShellHomeContent | null> {
   return unstable_cache(
     () => buildThemeShellHomeContent(siteId, siteName, tenantSlug, locale),
-    ["theme-shell-home-v4", siteId, tenantSlug, locale],
+    ["theme-shell-home-v5", siteId, tenantSlug, locale],
     {
       revalidate: STORE_PUBLIC_REVALIDATE_SEC,
       tags: [storeSettingsTag(siteId), storeMirrorTag(siteId), "store-products"],

@@ -4,7 +4,8 @@ export function discountPercent(compareAtMinor: number, priceMinor: number): num
   return Math.round(((compareAtMinor - priceMinor) / compareAtMinor) * 100);
 }
 
-export function formatPercentOffBadge(percent: number): string {
+export function formatPercentOffBadge(percent: number, locale?: string): string {
+  if (locale?.toLowerCase().startsWith("en")) return `${percent}% OFF`;
   return `%${percent} İNDİRİM`;
 }
 

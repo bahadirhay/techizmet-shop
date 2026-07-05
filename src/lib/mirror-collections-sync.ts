@@ -1,4 +1,6 @@
 import { formatTry } from "@/lib/format";
+import type { ShopLocale } from "@/lib/i18n/locale";
+import { localizeMirrorTextForLocale } from "@/lib/mirror-en-locale";
 import {
   type ActiveCollectionFilters,
   type CollectionFilterFacets,
@@ -12,7 +14,7 @@ import {
   productImageMediaRatioStyle,
 } from "@/lib/product-image-spec";
 import { formatPercentOffBadge, percentOffFromPrices } from "@/lib/product-discount";
-import { badgePreset, parseProductBadges } from "@/lib/product-badges";
+import { badgePreset, badgeLabelForLocale, parseProductBadges } from "@/lib/product-badges";
 import type { ResolvedMirrorCollectionTexts } from "@/lib/store-static-texts";
 import { buildProductCardGalleryMarkup, initProductCardGalleries } from "@/lib/mirror-product-card-gallery";
 import { MIRROR_CARD_IMAGE_WIDTH, mirrorCdnImageUrl } from "@/lib/mirror-cdn-image";
@@ -203,16 +205,22 @@ export function applyCollectionsCardsFromAdmin(doc: Document, collections: Vitri
   }
 }
 
+function resolveCardLocale(locale?: string): ShopLocale {
+  return locale?.toLowerCase().startsWith("en") ? "en" : "tr";
+}
+
 function productBadgeHtml(
   product: VitrinCollectionProductCard,
   texts: ResolvedMirrorCollectionTexts,
+  locale?: string,
 ) {
+  const loc = resolveCardLocale(locale);
   const badges: string[] = [];
   if (product.kind === "bundle") {
     const preset = badgePreset("bundle");
     if (preset) {
       badges.push(
-        `<span class="badge" style="color:${preset.color};background:${preset.bg}">${escText(preset.label)}</span>`,
+        `<span class="badge" style="color:${preset.color};background:${preset.bg}">${escText(badgeLabelForLocale("bundle", loc))}</span>`,
       );
     }
   }
@@ -221,12 +229,12 @@ function productBadgeHtml(
     const preset = badgePreset(id);
     if (preset) {
       badges.push(
-        `<span class="badge" style="color:${preset.color};background:${preset.bg}">${escText(preset.label)}</span>`,
+        `<span class="badge" style="color:${preset.color};background:${preset.bg}">${escText(badgeLabelForLocale(id, loc))}</span>`,
       );
     }
   }
   const percent = percentOffFromPrices(product.compareAtMinor, product.priceMinor);
-  if (percent) badges.push(`<span class="badge">${escText(formatPercentOffBadge(percent))}</span>`);
+  if (percent) badges.push(`<span class="badge">${escText(formatPercentOffBadge(percent, loc))}</span>`);
   if (product.stockQty <= 0) badges.push(`<span class="badge">${escText(texts.soldOutBadge)}</span>`);
   else if (product.stockQty <= product.lowStockThreshold) {
     badges.push(`<span class="badge">${escText(`${texts.lowStockPrefix} ${product.stockQty}`)}</span>`);
@@ -239,8 +247,9 @@ function productCardHtml(
   texts: ResolvedMirrorCollectionTexts,
   options?: { swiperSlide?: boolean; locale?: string },
 ) {
+  const loc = resolveCardLocale(options?.locale);
   const href = productHref(product.slug);
-  const title = escText(product.title);
+  const title = escText(localizeMirrorTextForLocale(product.title, loc));
   const addLabel = options?.locale?.toLowerCase().startsWith("en") ? "Add to cart" : "Sepete ekle";
   const galleryUrls =
     product.imageUrls?.filter((u) => u.trim()).slice(0, 8) ??
@@ -255,7 +264,7 @@ function productCardHtml(
   const compare = product.compareAtMinor && product.compareAtMinor > product.priceMinor
     ? `<span class="product--cut-price line-through">${escText(formatTry(product.compareAtMinor))}</span>`
     : "";
-  const badges = productBadgeHtml(product, texts);
+  const badges = productBadgeHtml(product, texts, options?.locale);
   const slideClass = options?.swiperSlide ? " swiper-slide" : "";
   const slideAttr = options?.swiperSlide ? " data-card-animate" : "";
 

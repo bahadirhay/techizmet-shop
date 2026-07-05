@@ -2,6 +2,7 @@
 
 import { isAnchorNode, isElementNode, isImageNode } from "@/lib/mirror-dom-node";
 import type { ShopLocale } from "@/lib/i18n/locale";
+import { localizeMirrorTextForLocale } from "@/lib/mirror-en-locale";
 
 export type CollectionsTabProductEdit = {
   key: string;
@@ -174,7 +175,10 @@ export function collectionsTabLabel(tab: CollectionsTabItemEdit, locale: ShopLoc
 
 export function collectionsTabProductTitle(p: CollectionsTabProductEdit, locale: ShopLocale): string {
   if (locale === "tr") return p.titleTr?.trim() || p.title?.trim() || p.titleEn || "";
-  return p.titleEn?.trim() || p.title?.trim() || p.titleTr || "";
+  const tr = p.titleTr?.trim() || p.title?.trim() || "";
+  const en = p.titleEn?.trim() || "";
+  if (en && en !== tr) return en;
+  return tr ? localizeMirrorTextForLocale(tr, "en") : en;
 }
 
 /** Mağaza ürün listesinden sekme kartlarını doldur (başlık, görsel, fiyat) */
@@ -216,7 +220,7 @@ export function enrichCollectionsTabsFromProductOptions<
         key: product.slug,
         href: `/products/${product.slug}`,
         titleTr: product.title,
-        titleEn: product.title,
+        titleEn: localizeMirrorTextForLocale(product.title, "en"),
         title: product.title,
         imageUrl: product.imageUrl ?? p.imageUrl,
         priceText: product.priceLabel,
@@ -341,7 +345,7 @@ function normalizeTab(tab: CollectionsTabItemEdit): CollectionsTabItemEdit {
     labelEn,
     products: tab.products.map((p) => {
       const titleTr = p.titleTr?.trim() || p.title?.trim() || "";
-      const titleEn = p.titleEn?.trim() || titleTr;
+      const titleEn = p.titleEn?.trim() || (titleTr ? localizeMirrorTextForLocale(titleTr, "en") : "");
       return { ...p, title: titleTr, titleTr, titleEn };
     }),
   };
