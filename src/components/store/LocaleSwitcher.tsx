@@ -2,7 +2,14 @@
 
 import { useState } from "react";
 import type { ShopLocale } from "@/lib/i18n/locale";
-import { writeShopLocaleCookie } from "@/lib/i18n/locale";
+import { LOCALE_COOKIE, isShopLocale } from "@/lib/i18n/locale";
+
+function readLocaleCookie(): ShopLocale | null {
+  if (typeof document === "undefined") return null;
+  const m = document.cookie.match(new RegExp(`(?:^|;\\s*)${LOCALE_COOKIE}=([^;]+)`));
+  const raw = m?.[1]?.trim();
+  return isShopLocale(raw) ? raw : null;
+}
 
 export function LocaleSwitcher({
   locale,
@@ -20,12 +27,24 @@ export function LocaleSwitcher({
 }) {
   const [busy, setBusy] = useState(false);
 
-  function setLocale(next: ShopLocale) {
-    if (next === locale || busy) return;
+  async function setLocale(next: ShopLocale) {
+    const current = readLocaleCookie() ?? locale;
+    if (next === current || busy) return;
     setBusy(true);
-    writeShopLocaleCookie(next);
-    const target = `${window.location.pathname}${window.location.search}`;
-    window.location.assign(target);
+    try {
+      const res = await fetch("/api/locale", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ locale: next }),
+        credentials: "same-origin",
+      });
+      if (!res.ok) throw new Error("locale");
+      const target = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      window.location.replace(target);
+    } catch {
+      document.cookie = `${LOCALE_COOKIE}=${next}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
+      window.location.replace(`${window.location.pathname}${window.location.search}${window.location.hash}`);
+    }
   }
 
   if (compact) {
@@ -37,7 +56,7 @@ export function LocaleSwitcher({
           className={locale === "tr" ? "is-active" : ""}
           disabled={busy}
           aria-label={trLabel}
-          onClick={() => setLocale("tr")}
+          onClick={() => void setLocale("tr")}
         >
           TR
         </button>
@@ -47,7 +66,7 @@ export function LocaleSwitcher({
           className={locale === "en" ? "is-active" : ""}
           disabled={busy}
           aria-label={enLabel}
-          onClick={() => setLocale("en")}
+          onClick={() => void setLocale("en")}
         >
           EN
         </button>
@@ -61,7 +80,7 @@ export function LocaleSwitcher({
         type="button"
         className={`kn-locale__btn ${locale === "tr" ? "kn-locale__btn--active" : ""}`}
         disabled={busy}
-        onClick={() => setLocale("tr")}
+        onClick={() => void setLocale("tr")}
       >
         {trLabel}
       </button>
@@ -69,7 +88,7 @@ export function LocaleSwitcher({
         type="button"
         className={`kn-locale__btn ${locale === "en" ? "kn-locale__btn--active" : ""}`}
         disabled={busy}
-        onClick={() => setLocale("en")}
+        onClick={() => void setLocale("en")}
       >
         {enLabel}
       </button>

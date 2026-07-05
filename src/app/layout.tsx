@@ -10,7 +10,7 @@ import { safeGoogleAnalyticsId } from "@/lib/seo/google-analytics-id";
 import { getCachedParsedSiteSettings } from "@/lib/cache/store-cache";
 import { getMirrorHomeHeroPreloadHref } from "@/lib/mirror-home-hero-preload";
 import { resolveStoreMirrorIframeSrcForRequest } from "@/lib/mirror-prebuilt-resolve-server";
-import { localeFromCookieValue } from "@/lib/i18n/locale";
+import { getStoreLocale } from "@/lib/i18n/server";
 import { readThemeShellPilotLive } from "@/lib/theme-shell-pilot-live";
 import { getDefaultSite } from "@/lib/site";
 import { getHomepageMode, getSiteSeo } from "@/lib/site-settings";
@@ -29,6 +29,8 @@ const poppins = Poppins({
   adjustFontFallback: true,
 });
 
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata(): Promise<Metadata> {
   return buildSiteMetadata();
 }
@@ -42,7 +44,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const siteJsonLd = [buildOrganizationJsonLd(settings, site.name), buildWebSiteJsonLd(settings, site.name)];
   const h = await headers();
   const pathname = h.get("x-pathname") ?? "/";
-  const locale = localeFromCookieValue(h.get("x-shop-locale") ?? undefined) ?? "tr";
+  const locale = await getStoreLocale();
   const isAdminOrApi = pathname.startsWith("/admin") || pathname.startsWith("/api");
   const homepageMode = getHomepageMode(settings);
   const themeShellLive = readThemeShellPilotLive();

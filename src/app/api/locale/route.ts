@@ -8,6 +8,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Geçersiz dil" }, { status: 400 });
   }
   const res = NextResponse.json({ ok: true, locale });
+  res.headers.set("Cache-Control", "private, no-store, max-age=0, must-revalidate");
   res.cookies.set(LOCALE_COOKIE, locale, {
     path: "/",
     maxAge: 60 * 60 * 24 * 365,

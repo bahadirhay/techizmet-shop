@@ -19,7 +19,7 @@ import {
 } from "@/lib/theme-shell-pilot";
 import { getCachedParsedSiteSettings } from "@/lib/cache/store-cache";
 
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
   const site = await getDefaultSite();

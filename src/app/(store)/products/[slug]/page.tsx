@@ -31,7 +31,7 @@ import {
 } from "@/lib/theme-shell-pilot";
 
 /** Ürün güncellemeleri revalidateStorePublicCache ile anında yansır */
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,

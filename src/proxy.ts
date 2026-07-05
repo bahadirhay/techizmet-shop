@@ -13,10 +13,14 @@ import { isDemoShopHost, normalizeRequestHost, resolveStoreHostTenant } from "@/
 let maintenanceCache: { at: number; enabled: boolean } | null = null;
 const MAINTENANCE_CACHE_MS = 60_000;
 
-function shopHostRequestHeaders(request: NextRequest): Headers {
+function shopHostRequestHeaders(request: NextRequest, locale?: ShopLocale): Headers {
   const host = normalizeRequestHost(request.headers.get("host") ?? "");
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-shop-host", host);
+  requestHeaders.set("x-pathname", request.nextUrl.pathname);
+  if (locale) {
+    requestHeaders.set("x-shop-locale", locale);
+  }
 
   const tenant = resolveStoreHostTenant(host);
   if (tenant) {
@@ -30,8 +34,8 @@ function shopHostRequestHeaders(request: NextRequest): Headers {
   return requestHeaders;
 }
 
-function nextWithShopHost(request: NextRequest): NextResponse {
-  return NextResponse.next({ request: { headers: shopHostRequestHeaders(request) } });
+function nextWithLocaleRequest(request: NextRequest, locale: ShopLocale): NextResponse {
+  return NextResponse.next({ request: { headers: shopHostRequestHeaders(request, locale) } });
 }
 
 function attachLocale(
@@ -62,7 +66,7 @@ function attachLocale(
 }
 
 function attachLocaleOnNext(request: NextRequest, locale: ShopLocale, pathname: string) {
-  return attachLocale(nextWithShopHost(request), request, locale, pathname);
+  return attachLocale(nextWithLocaleRequest(request, locale), request, locale, pathname);
 }
 
 async function isStoreInMaintenance(request: NextRequest): Promise<boolean> {
@@ -114,9 +118,10 @@ export async function proxy(request: NextRequest) {
 
   if (pathname.startsWith("/_mirror-prebuilt")) {
     if (pathname.endsWith("/manifest.json")) {
-      return nextWithShopHost(request);
+      return nextWithLocaleRequest(request, resolveLocaleFromRequest(request));
     }
     if (isDemoShopHost(host)) {
+      const locale = resolveLocaleFromRequest(request);
       const rel = pathname.replace(/^\/_mirror-prebuilt\//, "");
       const rewriteUrl = request.nextUrl.clone();
       rewriteUrl.pathname = "/api/vitrin/mirror";
@@ -125,10 +130,10 @@ export async function proxy(request: NextRequest) {
       if (pageKey) q.set("pageKey", pageKey);
       rewriteUrl.search = q.toString();
       return NextResponse.rewrite(rewriteUrl, {
-        request: { headers: shopHostRequestHeaders(request) },
+        request: { headers: shopHostRequestHeaders(request, locale) },
       });
     }
-    return nextWithShopHost(request);
+    return nextWithLocaleRequest(request, resolveLocaleFromRequest(request));
   }
 
   if (
@@ -138,8 +143,7 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api/theme/cdn")
   ) {
-    const response = nextWithShopHost(request);
-    response.headers.set("x-pathname", pathname);
+    const response = nextWithLocaleRequest(request, resolveLocaleFromRequest(request));
     return response;
   }
 
@@ -157,7 +161,7 @@ export async function proxy(request: NextRequest) {
   }
 
   if (pathname.startsWith("/theme/")) {
-    return nextWithShopHost(request);
+    return nextWithLocaleRequest(request, resolveLocaleFromRequest(request));
   }
 
   const locale = resolveLocaleFromRequest(request);

@@ -1,13 +1,10 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import type { ShopLocale } from "@/lib/i18n/locale";
 
-/** iframe içindeki dil düğmeleri → üst sayfa çerezi + yenile */
+/** iframe içindeki dil düğmeleri → üst sayfa çerezi + tam yenileme */
 export function useMirrorLocaleMessage() {
-  const router = useRouter();
-
   useEffect(() => {
     function onMessage(event: MessageEvent) {
       const data = event.data;
@@ -18,9 +15,14 @@ export function useMirrorLocaleMessage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ locale }),
-      }).then(() => router.refresh());
+        credentials: "same-origin",
+      }).then(() => {
+        window.location.replace(
+          `${window.location.pathname}${window.location.search}${window.location.hash}`,
+        );
+      });
     }
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, [router]);
+  }, []);
 }

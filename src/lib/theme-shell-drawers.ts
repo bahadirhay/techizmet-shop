@@ -84,6 +84,28 @@ function patchThemeShellStoreBridgeJs(js: string): string {
     /if \(d\.nav && d\.nav\.length\) applyNav\(d\.nav\);/g,
     'if (d.nav && d.nav.length && document.documentElement.dataset.knNavServer !== "1") applyNav(d.nav);',
   );
+  // bindLocale — cur her tıklamada yeniden okunmalı (tek tık dil geçişi)
+  out = out.replace(
+    /var cur = getLocale\(\);\s*root\.querySelectorAll\("\[data-locale\]"\)\.forEach\(function \(btn\) \{\s*btn\.classList\.toggle\("is-active", btn\.getAttribute\("data-locale"\) === cur\);\s*btn\.addEventListener\("click", function \(\) \{\s*var next = btn\.getAttribute\("data-locale"\);\s*if \(!next \|\| next === cur\) return;/,
+    `root.querySelectorAll("[data-locale]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var next = btn.getAttribute("data-locale");
+        var cur = getLocale();
+        if (!next || next === cur) return;`,
+  );
+  if (!out.includes("kn-locale-sync-active")) {
+    out = out.replace(
+      /root\.dataset\.knBound = "1";/,
+      `root.dataset.knBound = "1";
+    var syncActive = function () {
+      var cur = getLocale();
+      root.querySelectorAll("[data-locale]").forEach(function (btn) {
+        btn.classList.toggle("is-active", btn.getAttribute("data-locale") === cur);
+      });
+    };
+    syncActive();`,
+    );
+  }
   if (!out.includes("drawerTrigger")) {
     out = out.replace(
       /document\.addEventListener\("click", function \(e\) \{\s*\n\s*var listSet =/,
@@ -121,7 +143,7 @@ export function resolveThemeShellDrawers(
 ): Promise<ThemeShellDrawers | null> {
   return unstable_cache(
     () => Promise.resolve(resolveThemeShellDrawersUncached(locale)),
-    ["theme-shell-drawers-v3", siteId, locale],
+    ["theme-shell-drawers-v4", siteId, locale],
     {
       revalidate: STORE_PUBLIC_REVALIDATE_SEC,
       tags: [storeMirrorTag(siteId)],
