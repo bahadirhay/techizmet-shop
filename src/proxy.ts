@@ -57,9 +57,6 @@ function attachLocale(
   response.headers.set("x-pathname", pathname);
   if (isVitrinShellPath(pathname)) {
     response.headers.set("Vary", "Cookie");
-  }
-  // Set-Cookie yoksa Vercel edge cache açılabilir (ilk ziyaret hariç)
-  if (!localeCookieChanged && isVitrinShellPath(pathname)) {
     response.headers.set("Vercel-CDN-Cache-Control", VITRIN_SHELL_EDGE_CACHE);
   }
   return response;
@@ -92,8 +89,8 @@ const APEX_TO_WWW: Record<string, string> = {
   "anatolianpaw.com": "www.anatolianpaw.com",
 };
 
-/** Vitrin RSC shell — edge CDN (Faz 1). Set-Cookie olan yanıtlar cache'lenmez. */
-const VITRIN_SHELL_EDGE_CACHE = "s-maxage=60, stale-while-revalidate=86400";
+/** Vitrin RSC — edge CDN locale ile güvenli değil; next.config no-store kullanır */
+const VITRIN_SHELL_EDGE_CACHE = "private, no-store";
 
 function isVitrinShellPath(pathname: string): boolean {
   if (pathname === "/" || pathname === "/sokak-dostlari") return true;
@@ -140,6 +137,7 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/admin") ||
     pathname.startsWith("/api/admin") ||
     pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/api/locale") ||
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api/theme/cdn")
   ) {

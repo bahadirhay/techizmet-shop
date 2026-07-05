@@ -106,6 +106,12 @@ function patchThemeShellStoreBridgeJs(js: string): string {
     syncActive();`,
     );
   }
+  if (!out.includes("kn-locale-reload")) {
+    out = out.replace(
+      /window\.location\.reload\(\);/g,
+      `(function(){var u=new URL(window.location.href);u.searchParams.delete("knlc");u.searchParams.set("knlc",String(Date.now()));window.location.replace(u.pathname+u.search+u.hash);})();`,
+    );
+  }
   if (!out.includes("drawerTrigger")) {
     out = out.replace(
       /document\.addEventListener\("click", function \(e\) \{\s*\n\s*var listSet =/,
@@ -143,7 +149,7 @@ export function resolveThemeShellDrawers(
 ): Promise<ThemeShellDrawers | null> {
   return unstable_cache(
     () => Promise.resolve(resolveThemeShellDrawersUncached(locale)),
-    ["theme-shell-drawers-v4", siteId, locale],
+    ["theme-shell-drawers-v5", siteId, locale],
     {
       revalidate: STORE_PUBLIC_REVALIDATE_SEC,
       tags: [storeMirrorTag(siteId)],

@@ -104,17 +104,13 @@ const nextConfig: NextConfig = {
       { key: "Cache-Control", value: "public, max-age=0, s-maxage=86400, stale-while-revalidate=604800" },
     ] as const;
     /**
-     * Vitrin RSC shell — edge CDN cache (Faz 1).
-     * Next.js dinamik RSC yanıtı tarayıcıya `private, no-store` verir; bu
-     * Cache-Control CDN'i engeller. Vercel-CDN-Cache-Control yalnızca edge
-     * katmanını yönetir, origin no-store ile çakışmaz (Vercel dokümantasyonu).
-     * Host başına ayrı entry → multi-tenant güvenli.
+     * Vitrin sayfaları shop_locale çerezine göre değişir — Vercel edge CDN tek
+     * yanıtı paylaşınca TR önbelleği EN çerezine de sunuluyordu (Vary: Cookie yetersiz).
+     * Bu rotalarda edge cache kapalı; ISR zaten force-dynamic ile kapatıldı.
      */
-    const storeShellCache = [
-      {
-        key: "Vercel-CDN-Cache-Control",
-        value: "s-maxage=60, stale-while-revalidate=86400",
-      },
+    const storeShellNoEdgeCache = [
+      { key: "Vercel-CDN-Cache-Control", value: "private, no-store" },
+      { key: "Cache-Control", value: "private, no-cache, no-store, must-revalidate" },
       { key: "Vary", value: "Cookie" },
     ] as const;
     const securityHeaders = [
@@ -143,14 +139,14 @@ const nextConfig: NextConfig = {
         source: "/((?!admin|api).*)",
         headers: [storeCsp, ...securityHeaders],
       },
-      { source: "/", headers: [...storeShellCache] },
-      { source: "/products/:path*", headers: [...storeShellCache] },
-      { source: "/collections", headers: [...storeShellCache] },
-      { source: "/collections/:path*", headers: [...storeShellCache] },
-      { source: "/blogs/news", headers: [...storeShellCache] },
-      { source: "/blogs/news/:path*", headers: [...storeShellCache] },
-      { source: "/pages/:path*", headers: [...storeShellCache] },
-      { source: "/sokak-dostlari", headers: [...storeShellCache] },
+      { source: "/", headers: [...storeShellNoEdgeCache] },
+      { source: "/products/:path*", headers: [...storeShellNoEdgeCache] },
+      { source: "/collections", headers: [...storeShellNoEdgeCache] },
+      { source: "/collections/:path*", headers: [...storeShellNoEdgeCache] },
+      { source: "/blogs/news", headers: [...storeShellNoEdgeCache] },
+      { source: "/blogs/news/:path*", headers: [...storeShellNoEdgeCache] },
+      { source: "/pages/:path*", headers: [...storeShellNoEdgeCache] },
+      { source: "/sokak-dostlari", headers: [...storeShellNoEdgeCache] },
       { source: "/api/admin/:path*", headers: [...noStore] },
       { source: "/_mirror-prebuilt/:path*.html", headers: [...prebuiltHtmlCache] },
       { source: "/_mirror-prebuilt/:path*", headers: [...prebuiltCache] },

@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import type { ShopLocale } from "@/lib/i18n/locale";
+import { buildLocaleSwitchUrl } from "@/lib/i18n/locale-switch-url";
 
 /** iframe içindeki dil düğmeleri → üst sayfa çerezi + tam yenileme */
 export function useMirrorLocaleMessage() {
@@ -18,7 +19,7 @@ export function useMirrorLocaleMessage() {
         credentials: "same-origin",
       }).then(() => {
         window.location.replace(
-          `${window.location.pathname}${window.location.search}${window.location.hash}`,
+          buildLocaleSwitchUrl(window.location.pathname, window.location.search, window.location.hash),
         );
       });
     }
