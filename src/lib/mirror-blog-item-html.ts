@@ -24,8 +24,12 @@ export type BlogItemHtmlParts = {
   suffix: string;
 };
 
-export function splitBlogItemHtmlParts(html: string): BlogItemHtmlParts {
-  const parts = normalizeBlogItemHtml(html).split(BLOG_ITEM_OPEN_TOKEN);
+export function splitBlogItemHtmlParts(
+  html: string,
+  opts?: { normalize?: boolean },
+): BlogItemHtmlParts {
+  const source = opts?.normalize === false ? html : normalizeBlogItemHtml(html);
+  const parts = source.split(BLOG_ITEM_OPEN_TOKEN);
   const prefix = parts[0] ?? "";
   if (parts.length < 2) {
     return { prefix: html, items: [], suffix: "" };

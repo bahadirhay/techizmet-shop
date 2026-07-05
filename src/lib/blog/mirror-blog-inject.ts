@@ -18,8 +18,8 @@ import {
   splitBlogItemHtmlParts,
 } from "@/lib/mirror-blog-item-html";
 
-const BLOG_CARDS_CSS = "/theme/techizmet-shop/kn-blog-cards.css?v=4";
-const BLOG_GRID_STYLE_TAG = `<style id="kn-blog-grid-css">.main-blog--items-wrapper{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;column-gap:30px!important;row-gap:60px!important}.main-blog--items-wrapper>.blog--item{min-width:0;width:100%}@media(max-width:991px){.main-blog--items-wrapper{grid-template-columns:repeat(2,minmax(0,1fr))!important}}@media(max-width:767px){.main-blog--items-wrapper{grid-template-columns:repeat(1,minmax(0,1fr))!important;row-gap:30px!important}}</style>`;
+const BLOG_CARDS_CSS = "/theme/techizmet-shop/kn-blog-cards.css?v=5";
+const BLOG_GRID_STYLE_TAG = `<style id="kn-blog-grid-css">.section-main-blog .main-blog--items-wrapper{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;column-gap:30px!important;row-gap:60px!important}.section-main-blog .main-blog--items-wrapper>.blog--item{min-width:0;width:100%}@media(max-width:991px){.section-main-blog .main-blog--items-wrapper{grid-template-columns:repeat(2,minmax(0,1fr))!important}}@media(max-width:767px){.section-main-blog .main-blog--items-wrapper{grid-template-columns:repeat(1,minmax(0,1fr))!important;row-gap:30px!important}}</style>`;
 
 function escapeHtml(s: string) {
   return s

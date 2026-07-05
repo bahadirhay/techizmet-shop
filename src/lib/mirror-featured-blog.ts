@@ -223,14 +223,17 @@ function patchFeaturedBlogItemHtml(
   return out;
 }
 
-/** Sunucu — ana sayfa öne çıkan blog (DB) */
+/** Sunucu — ana sayfa öne çıkan blog (DB); yalnızca featured-blog bölümü */
 export function applyFeaturedBlogPostsToHtml(
   html: string,
   posts: FeaturedBlogPostEdit[],
   locale: ShopLocale = "tr",
 ) {
+  const sectionBlock = sliceSectionHtml(html, FEATURED_BLOG_SECTION_KEY);
+  if (!sectionBlock) return html;
+
   const byId = new Map(posts.map((p) => [p.postId, p]));
-  const { prefix, items, suffix } = splitBlogItemHtmlParts(html);
+  const { prefix, items, suffix } = splitBlogItemHtmlParts(sectionBlock, { normalize: false });
   if (!items.length) return html;
 
   const patched = items.map((chunk, index) => {
@@ -243,7 +246,8 @@ export function applyFeaturedBlogPostsToHtml(
     return patchFeaturedBlogItemHtml(chunk, post, locale);
   });
 
-  return reassembleBlogItemHtml(prefix, patched, suffix);
+  const patchedSection = reassembleBlogItemHtml(prefix, patched, suffix);
+  return html.replace(sectionBlock, patchedSection);
 }
 
 export function mergeFeaturedBlogIntoPageConfig(
