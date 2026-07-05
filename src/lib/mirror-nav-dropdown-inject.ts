@@ -1,7 +1,7 @@
 const NAV_DROPDOWN_CSS = "/theme/techizmet-shop/kn-nav-dropdown.css?v=30";
 const MIRROR_HERO_CSS = "/theme/techizmet-shop/kn-mirror-hero.css?v=2";
 const MOBILE_MENU_CSS = "/theme/techizmet-shop/kn-mobile-menu.css?v=5";
-const BLOG_CARDS_CSS = "/theme/techizmet-shop/kn-blog-cards.css?v=2";
+const BLOG_CARDS_CSS = "/theme/techizmet-shop/kn-blog-cards.css?v=3";
 
 /** İstemci — vitrin iframe’e layout CSS (hero + nav) */
 export function ensureMirrorLayoutStyles(doc: Document) {

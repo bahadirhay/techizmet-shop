@@ -1,5 +1,6 @@
 import { htmlToPlainText } from "@/lib/html-plain-text";
 import type { ShopLocale } from "@/lib/i18n/locale";
+import { parseHTML } from "@/lib/linkedom-server";
 import {
   blogBody,
   blogExcerpt,
@@ -10,8 +11,8 @@ import {
 } from "@/lib/blog/blog-post-types";
 import type { FeaturedBlogPostEdit } from "@/lib/mirror-featured-blog";
 import {
+  BLOG_ITEM_OPEN_TOKEN,
   patchBlogLinksInChunk,
-  reassembleBlogItemHtml,
   splitBlogItemHtmlParts,
 } from "@/lib/mirror-blog-item-html";
 
@@ -115,6 +116,27 @@ export function applyBlogCardsToHtml(
     author?: string;
   }>,
 ) {
+  if (!posts.length) return html;
+
+  const { document } = parseHTML(html);
+  const wrapper = document.querySelector(".main-blog--items-wrapper");
+  const templateEl = document.querySelector(".blog--item");
+  if (wrapper && templateEl) {
+    const templateOuter = templateEl.outerHTML;
+    wrapper.querySelectorAll(".blog--item").forEach((el) => el.remove());
+
+    for (const post of posts) {
+      const patched = patchBlogItemChunk(templateOuter, post, { openInNewTab: true });
+      const host = document.createElement("div");
+      host.innerHTML = patched;
+      const card = host.querySelector(".blog--item") ?? host.firstElementChild;
+      if (card) wrapper.appendChild(card);
+    }
+
+    const doctype = html.match(/^<!DOCTYPE[^>]*>/i)?.[0] ?? "";
+    return `${doctype}\n${document.documentElement.outerHTML}`;
+  }
+
   const { prefix, items, suffix } = splitBlogItemHtmlParts(html);
   if (!items.length) return html;
 
@@ -123,14 +145,14 @@ export function applyBlogCardsToHtml(
 
   for (let i = 0; i < posts.length; i++) {
     const chunk = items[i] ?? template;
-    patched.push(patchBlogItemChunk(chunk, posts[i]!, { openInNewTab: true }));
+    const raw = chunk.startsWith("<div") ? chunk : BLOG_ITEM_OPEN_TOKEN + chunk;
+    patched.push(patchBlogItemChunk(raw, posts[i]!, { openInNewTab: true }));
   }
 
-  for (let i = posts.length; i < items.length; i++) {
-    patched.push(items[i]!.replace(/^(<div class="blog--item)/i, '$1 style="display:none!important"'));
-  }
-
-  return reassembleBlogItemHtml(prefix, patched, suffix);
+  const inner = patched
+    .map((item) => (item.startsWith("<div") ? item : BLOG_ITEM_OPEN_TOKEN + item))
+    .join("");
+  return prefix + inner + suffix;
 }
 
 export function blogPostsToFeaturedEdits(

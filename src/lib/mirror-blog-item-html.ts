@@ -12,10 +12,9 @@ export function normalizeBlogItemHtml(html: string): string {
 }
 
 export function truncateBlogItemChunk(chunk: string): { item: string; suffix: string } {
-  const m = chunk.match(
-    /^([\s\S]*?<div class="blog--content">[\s\S]*?<\/div>\s*\n?\s*<\/div>)([\s\S]*)$/i,
-  );
-  if (m) return { item: m[1]!, suffix: m[2]! };
+  // blog--content içinde blog--button vb. iç içe div var — sondaki iki </div> blog--item sonu
+  const m = chunk.match(/^([\s\S]*<\/div>\s*<\/div>)(\s*[\s\S]*)$/i);
+  if (m) return { item: m[1]!, suffix: m[2] ?? "" };
   return { item: chunk, suffix: "" };
 }
 
