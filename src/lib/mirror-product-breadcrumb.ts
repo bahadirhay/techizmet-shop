@@ -2,7 +2,7 @@ import type { ShopLocale } from "@/lib/i18n/locale";
 
 export type MirrorBreadcrumbItem = { name: string; href: string; current?: boolean };
 
-const BREADCRUMB_STYLE = `
+export const MIRROR_PRODUCT_BREADCRUMB_STYLE = `
 .kn-mirror-breadcrumb {
   padding: 14px clamp(16px, 4vw, 40px) 8px;
   font-size: 12px;
@@ -49,7 +49,7 @@ export function injectMirrorProductBreadcrumb(
   if (!doc.getElementById("kn-mirror-breadcrumb-style")) {
     const style = doc.createElement("style");
     style.id = "kn-mirror-breadcrumb-style";
-    style.textContent = BREADCRUMB_STYLE;
+    style.textContent = MIRROR_PRODUCT_BREADCRUMB_STYLE;
     doc.head.appendChild(style);
   }
 

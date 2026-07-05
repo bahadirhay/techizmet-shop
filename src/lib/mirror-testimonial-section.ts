@@ -89,6 +89,9 @@ export function applyTestimonialVisibility(sectionEl: Element, visibleCount?: nu
   ];
   if (!cards.length) return;
   const limit = resolveTestimonialVisibleCount(visibleCount, cards.length);
+  if (isElementNode(sectionEl)) {
+    sectionEl.setAttribute("data-kn-testimonial-visible", String(limit));
+  }
   cards.forEach((card, i) => {
     if (!isElementNode(card)) return;
     if (i >= limit) {
@@ -188,8 +191,10 @@ export function applyTestimonialSwiperFit(sectionEl: Element, visibleCount?: num
   if (isElementNode(sectionEl)) {
     if (fitsWide) {
       sectionEl.style.setProperty("--kn-testimonial-visible", String(visible));
+      sectionEl.setAttribute("data-kn-testimonial-visible", String(visible));
     } else {
       sectionEl.style.removeProperty("--kn-testimonial-visible");
+      sectionEl.removeAttribute("data-kn-testimonial-visible");
     }
   }
 
@@ -329,4 +334,20 @@ export function applyTestimonialToSection(
     }
   }
   applyTestimonialVisibility(sectionEl, visibleCount);
+}
+
+/** Tema kabuğu — swiper init sonrası gizli kartları yeniden uygula */
+export function bootTestimonialSections(root: ParentNode = document) {
+  root.querySelectorAll(".section-testimonial").forEach((section) => {
+    if (!isElementNode(section)) return;
+    const raw =
+      section.getAttribute("data-kn-testimonial-visible") ||
+      section.style.getPropertyValue("--kn-testimonial-visible") ||
+      getComputedStyle(section).getPropertyValue("--kn-testimonial-visible");
+    const visible = Number.parseInt(raw, 10);
+    if (!Number.isFinite(visible) || visible <= 0) return;
+    applyTestimonialVisibility(section, visible);
+  });
+  const doc = root instanceof Document ? root : root.ownerDocument;
+  if (doc) ensureTestimonialFitRuntime(doc);
 }

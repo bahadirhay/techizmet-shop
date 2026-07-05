@@ -194,6 +194,8 @@ function renderHeroHtml(payload: StreetFoodBarPayload): string {
 
 function findStreetFoodBarAnchor(doc: Document): Element {
   return (
+    doc.querySelector(".kn-theme-shell-announcement") ??
+    doc.querySelector(".kn-street-food-fund-bar") ??
     doc.querySelector(".section-announcement-bar") ??
     doc.querySelector(".section-header") ??
     doc.querySelector("[data-header-section]") ??
@@ -216,6 +218,8 @@ function syncHeroUnderHeader(doc: Document) {
   const win = doc.defaultView;
   const hero = doc.getElementById(HERO_ID);
   if (!win || !hero) return;
+  /* Tema kabuğunda header hero üstüne binmez — gizleme yok */
+  if (doc.querySelector(".kn-theme-shell-home")) return;
 
   const onScroll = () => {
     const header = doc.querySelector(".section-header");
@@ -253,9 +257,11 @@ export function applyStreetFoodFundBar(doc: Document, payload: StreetFoodBarPayl
 }
 
 export function applyStreetFoodFundHero(doc: Document, payload: StreetFoodBarPayload | null) {
-  const heroHost = doc.querySelector(
-    "#MainContent > .section-media-grid:first-of-type .media-grid--wrapper",
-  );
+  const heroHost =
+    doc.querySelector(
+      "#MainContent > .section-media-grid:first-of-type .media-grid--wrapper",
+    ) ??
+    doc.querySelector("#MainContent .section-media-grid:first-of-type .media-grid--wrapper");
   if (!heroHost) return;
 
   ensureHeroStyles(doc);
@@ -285,15 +291,31 @@ async function fetchPayload(): Promise<StreetFoodBarPayload | null> {
   }
 }
 
+function isThemeShellContext(doc: Document): boolean {
+  return !!(
+    doc.querySelector(".kn-theme-shell-announcement") ||
+    doc.querySelector(".kn-theme-shell-sections") ||
+    doc.querySelector(".kn-theme-shell-header")
+  );
+}
+
 export function installMirrorStreetFoodBar(doc: Document) {
   if (doc.querySelector("[data-kn-street-food-fund-page]")) return;
   if (doc.documentElement.getAttribute("data-kn-street-food-bar") === "1") return;
   doc.documentElement.setAttribute("data-kn-street-food-bar", "1");
 
+  const themeShell = isThemeShellContext(doc);
+
   const refresh = async () => {
     const payload = await fetchPayload();
-    applyStreetFoodFundBar(doc, payload);
-    applyStreetFoodFundHero(doc, payload);
+    if (themeShell) {
+      doc.getElementById(BAR_ID)?.remove();
+    } else if (!doc.querySelector(".kn-street-food-fund-bar")) {
+      applyStreetFoodFundBar(doc, payload);
+    }
+    if (doc.querySelector(".kn-theme-shell-home")) {
+      applyStreetFoodFundHero(doc, payload);
+    }
     syncHeroUnderHeader(doc);
   };
 
@@ -310,4 +332,10 @@ export function installMirrorStreetFoodBar(doc: Document) {
   const existing = (win as unknown as Record<string, number | undefined>)[key];
   if (existing) win.clearInterval(existing);
   (win as unknown as Record<string, number>)[key] = win.setInterval(() => void refresh(), 60_000);
+}
+
+/** Tema kabuğu ana sayfa — hero kartını media-grid sol altına yerleştir */
+export async function refreshStreetFoodFundHero(doc: Document = document): Promise<void> {
+  const payload = await fetchPayload();
+  applyStreetFoodFundHero(doc, payload);
 }

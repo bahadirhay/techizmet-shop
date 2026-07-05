@@ -37,3 +37,9 @@ body {
   max-width: 100%;
 }
 
+html.kn-theme-shell-product-active,
+html.kn-theme-shell-product-active body {
+  overflow-x: visible !important;
+  width: 100% !important;
+}
+

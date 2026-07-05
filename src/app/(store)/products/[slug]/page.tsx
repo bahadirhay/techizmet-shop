@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MirrorProductFrame } from "@/components/store/MirrorProductFrame";
+import { ThemeShellProductView } from "@/components/store/ThemeShellProductView";
 import { JsonLdScript } from "@/components/store/JsonLdScript";
 import { ProductSeoShell } from "@/components/store/ProductSeoShell";
 import { ProductReviews } from "@/components/store/ProductReviews";
@@ -21,6 +22,12 @@ import { loadResolvedBundleComponents, buildComponentsSnapshot } from "@/lib/pro
 import { ProductGalleryMedia } from "@/components/store/ProductGalleryMedia";
 import { sanitizePublicHtml } from "@/lib/html-sanitize";
 import { getDefaultSite } from "@/lib/site";
+import { ensureStoreTenant } from "@/lib/store-tenant";
+import { resolveThemeShellProductContent } from "@/lib/theme-shell-product-content";
+import {
+  isThemeShellEnabledForProductPath,
+  type ThemeShellPilotQuery,
+} from "@/lib/theme-shell-pilot";
 
 /** Ürün güncellemeleri revalidateStorePublicCache ile anında yansır */
 export const revalidate = 300;
@@ -43,20 +50,58 @@ export async function generateMetadata({
   });
 }
 
-export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function ProductPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<ThemeShellPilotQuery>;
+}) {
   const { slug } = await params;
+  const query = await searchParams;
   const locale = await getStoreLocaleFromHeaders();
   const site = await getDefaultSite();
   const settings = await getSiteSettings(site.id);
   const homepageMode = getHomepageMode(settings);
+  const themeShellLive = process.env.THEME_SHELL_PILOT_LIVE === "1";
   const seoCtx = await loadPublishedProductSeo(slug);
   const jsonLd = await buildProductPageJsonLd(slug);
 
   const mirrorTemplateSlug = homepageMode === "mirror" ? resolveMirrorProductTemplateSlug(slug) : null;
+
   if (homepageMode === "mirror" && mirrorTemplateSlug) {
     if (!seoCtx) notFound();
 
     const breadcrumbs = breadcrumbItemsToNav(buildProductBreadcrumbItems(seoCtx.product));
+
+    const useThemeShell = isThemeShellEnabledForProductPath(
+      `/products/${slug}`,
+      query,
+      themeShellLive,
+    );
+
+    if (useThemeShell) {
+      const tenant = await ensureStoreTenant();
+      const content = await resolveThemeShellProductContent(
+        site.id,
+        site.name,
+        tenant.slug,
+        slug,
+        locale,
+        breadcrumbs,
+      );
+      if (!content) notFound();
+      return (
+        <>
+          {jsonLd ? <JsonLdScript data={jsonLd} /> : null}
+          <ThemeShellProductView
+            content={content}
+            breadcrumbs={breadcrumbs}
+            locale={locale}
+          />
+        </>
+      );
+    }
 
     return (
       <>

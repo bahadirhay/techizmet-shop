@@ -13,12 +13,14 @@ export function StoreHeader({
   locale,
   messages,
   nav,
+  mirrorDrawers = false,
 }: {
   siteName: string;
   logoSrc?: string;
   locale: ShopLocale;
   messages: StoreMessages;
   nav: ResolvedNavItem[];
+  mirrorDrawers?: boolean;
 }) {
   return (
     <header className="section-header kn-theme-shell-header">
@@ -36,10 +38,10 @@ export function StoreHeader({
               )}
             </Link>
 
-            <StoreHeaderNav items={nav} />
+            <StoreHeaderNav items={nav} serverRendered={mirrorDrawers} />
 
             <div className="header--right" data-header-right>
-              <StoreHeaderIcons locale={locale} messages={messages} />
+              <StoreHeaderIcons locale={locale} messages={messages} mirrorDrawers={mirrorDrawers} />
             </div>
           </div>
         </div>

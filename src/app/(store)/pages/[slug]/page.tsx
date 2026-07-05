@@ -16,7 +16,9 @@ import { StorePublicBlocks } from "@/components/store/StorePublicBlocks";
 import { MirrorVitrinFrame } from "@/components/store/MirrorVitrinFrame";
 import { MirrorStaticPageFrame } from "@/components/store/MirrorStaticPageFrame";
 import { MirrorCmsPageFrame } from "@/components/store/MirrorCmsPageFrame";
+import { ThemeShellCmsPageView } from "@/components/store/ThemeShellCmsPageView";
 import { ThemeShellPageView } from "@/components/store/ThemeShellPageView";
+import { ThemeShellSectionsView } from "@/components/store/ThemeShellSectionsView";
 import { JsonLdScript } from "@/components/store/JsonLdScript";
 import { DistanceSalesAgreementView } from "@/components/legal/DistanceSalesAgreementView";
 import { buildWebPageJsonLd } from "@/lib/seo/site-json-ld";
@@ -24,9 +26,14 @@ import { resolveLegalSellerProfile } from "@/lib/legal/seller-profile";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { buildSiteMetadata } from "@/lib/site-metadata";
 import { resolveStoreBlockMessages } from "@/lib/store-static-texts";
+import { resolveThemeShellCmsPageContent } from "@/lib/theme-shell-cms-page-content";
 import { resolveThemeShellPageContent } from "@/lib/theme-shell-page-content";
+import { resolveThemeShellSectionsContent } from "@/lib/theme-shell-sections-content";
+import { ensureStoreTenant } from "@/lib/store-tenant";
 import {
-  isThemeShellEnabledForSlug,
+  isThemeShellEnabledForPagesPath,
+  isThemeShellPilotPageSlug,
+  isThemeShellSectionsPageSlug,
   type ThemeShellPilotQuery,
 } from "@/lib/theme-shell-pilot";
 
@@ -69,23 +76,62 @@ export default async function CmsPage({
   const themeShellLive = process.env.THEME_SHELL_PILOT_LIVE === "1";
   const useThemeShell =
     homepageMode === "mirror" &&
-    isVitrinPageKey(slug) &&
-    isThemeShellEnabledForSlug(slug, query, themeShellLive);
+    isThemeShellEnabledForPagesPath(`/pages/${slug}`, query, themeShellLive);
 
   if (useThemeShell) {
-    const content = resolveThemeShellPageContent(settings, slug, locale);
-    if (!content) notFound();
     const page = await getPageBySlug(slug);
     const jsonLd = buildWebPageJsonLd({
-      name: page?.seoTitle?.trim() || content.bannerTitle || page?.title || slug,
+      name: page?.seoTitle?.trim() || page?.title || slug,
       description: page?.seoDescription,
       path: `/pages/${slug}`,
       siteName: site.name,
     });
+
+    if (isVitrinPageKey(slug) && isThemeShellSectionsPageSlug(slug)) {
+      const tenant = await ensureStoreTenant();
+      const sections = await resolveThemeShellSectionsContent(
+        site.id,
+        site.name,
+        tenant.slug,
+        slug,
+        locale,
+      );
+      if (!sections) notFound();
+      return (
+        <>
+          <JsonLdScript data={jsonLd} />
+          <ThemeShellSectionsView content={sections} withVitrinBoot />
+        </>
+      );
+    }
+
+    if (isVitrinPageKey(slug) && isThemeShellPilotPageSlug(slug)) {
+      const content = resolveThemeShellPageContent(settings, slug, locale);
+      if (content) {
+        return (
+          <>
+            <JsonLdScript data={jsonLd} />
+            <ThemeShellPageView content={content} pageTitle={page?.title} />
+          </>
+        );
+      }
+    }
+
+    if (slug !== "mesafeli-satis" && !page?.published) notFound();
+
+    const tenant = await ensureStoreTenant();
+    const cmsContent = await resolveThemeShellCmsPageContent(
+      site.id,
+      site.name,
+      tenant.slug,
+      slug,
+      locale,
+    );
+    if (!cmsContent) notFound();
     return (
       <>
         <JsonLdScript data={jsonLd} />
-        <ThemeShellPageView content={content} pageTitle={page?.title} />
+        <ThemeShellCmsPageView content={cmsContent} pageTitle={page?.title} />
       </>
     );
   }

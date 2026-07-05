@@ -92,10 +92,10 @@ function botPanelHeader(
 ): { brand: string; title: string; hint?: string } {
   const brand = config.title?.trim() || "Asistan";
   if (view === "order") {
-    return { brand, title: ORDER_FORM_TITLE, hint: "Sipariş numarası ve e-posta ile sorgulayın" };
+    return { brand, title: ORDER_FORM_TITLE, hint: ORDER_FORM_HINT };
   }
   if (view === "recommend") {
-    return { brand, title: RECOMMEND_FORM_TITLE, hint: "Irk ve yaş bilgisiyle ürün önerisi" };
+    return { brand, title: RECOMMEND_FORM_TITLE, hint: RECOMMEND_FORM_HINT };
   }
   if (view === "direct") {
     return { brand, title: "Doğrudan mesaj", hint: "Mesajınız WhatsApp'ta hazır olur" };
@@ -556,7 +556,7 @@ export function WhatsappBotWidget() {
         <button
           type="button"
           onClick={openPanel}
-          className="fixed bottom-4 left-4 z-[99999] flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg ring-4 ring-white/10 transition hover:scale-105 hover:bg-emerald-700 hover:shadow-xl"
+          className="fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] left-4 z-[99999] flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg ring-4 ring-white/10 transition hover:scale-105 hover:bg-emerald-700 hover:shadow-xl"
           aria-label="WhatsApp asistan"
         >
           <svg viewBox="0 0 24 24" className="h-7 w-7" fill="currentColor" aria-hidden>
@@ -571,7 +571,7 @@ export function WhatsappBotWidget() {
             aria-label="Paneli kapat"
             onClick={closePanel}
           />
-          <div className="fixed bottom-4 left-3 right-3 z-[99999] mx-auto flex max-h-[min(88dvh,calc(100dvh-2rem))] max-w-[26rem] flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl sm:left-5 sm:right-auto sm:w-[26rem]">
+          <div className="fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] left-3 right-3 z-[99999] mx-auto flex max-h-[min(84dvh,calc(100dvh-5.5rem))] max-w-[26rem] min-w-0 flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl sm:left-5 sm:right-auto sm:w-[26rem]">
           <header className="relative shrink-0 overflow-hidden bg-gradient-to-br from-emerald-800 via-emerald-700 to-emerald-600 px-4 pb-4 pt-3.5 text-white shadow-[inset_0_-1px_0_rgba(255,255,255,0.12)]">
             <div
               className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.16),transparent_58%)]"
@@ -602,7 +602,7 @@ export function WhatsappBotWidget() {
                   {panelHeader.title}
                 </h2>
                 {panelHeader.hint ? (
-                  <p className="mt-1.5 line-clamp-2 text-sm font-medium leading-snug text-white/95">
+                  <p className="mt-1.5 text-sm font-medium leading-snug text-white/95">
                     {panelHeader.hint}
                   </p>
                 ) : null}
@@ -675,11 +675,11 @@ export function WhatsappBotWidget() {
             {view === "order" && orderForm ? (
               <div className="space-y-4">
                 {orderForm.topics.length > 1 ? (
-                  <fieldset className="space-y-2">
+                  <fieldset className="min-w-0 space-y-2">
                     <legend className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
                       Konu
                     </legend>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="grid grid-cols-2 gap-2">
                       {orderForm.topics.map((topic) => {
                         const active = orderForm.selected.id === topic.id;
                         return (
@@ -690,9 +690,9 @@ export function WhatsappBotWidget() {
                               setOrderForm((prev) => (prev ? { ...prev, selected: topic } : prev));
                               setOrderLookupSummary(null);
                             }}
-                            className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                            className={`min-h-0 w-full whitespace-normal rounded-xl px-2 py-2.5 text-center text-[11px] font-semibold leading-tight transition sm:px-3 sm:text-xs ${
                               active
-                                ? "bg-emerald-600 text-white"
+                                ? "bg-emerald-600 text-white shadow-sm"
                                 : "border border-zinc-200 bg-white text-zinc-700 hover:border-emerald-400"
                             }`}
                           >
@@ -704,7 +704,7 @@ export function WhatsappBotWidget() {
                   </fieldset>
                 ) : null}
 
-                <label className="block space-y-1.5">
+                <label className="block min-w-0 space-y-1.5">
                   <span className="text-sm font-medium text-zinc-900">
                     Sipariş numarası <span className="text-red-500">*</span>
                   </span>
@@ -717,13 +717,13 @@ export function WhatsappBotWidget() {
                       if (detailError) setDetailError(null);
                     }}
                     placeholder="ör. SHOP-20260521-AB12"
-                    className="w-full rounded-xl border border-zinc-300 px-3 py-2.5 text-sm text-zinc-900 outline-none ring-emerald-500/30 focus:border-emerald-500 focus:ring-2"
+                    className="box-border w-full min-w-0 max-w-full rounded-xl border border-zinc-300 px-3 py-2.5 text-base text-zinc-900 outline-none ring-emerald-500/30 placeholder:text-sm focus:border-emerald-500 focus:ring-2"
                     disabled={lookupBusy || opening}
                     autoFocus
                   />
                 </label>
 
-                <label className="block space-y-1.5">
+                <label className="block min-w-0 space-y-1.5">
                   <span className="text-sm font-medium text-zinc-900">
                     E-posta <span className="text-red-500">*</span>
                   </span>
@@ -735,8 +735,8 @@ export function WhatsappBotWidget() {
                       setOrderLookupSummary(null);
                       if (detailError) setDetailError(null);
                     }}
-                    placeholder="checkout sırasında kullandığınız e-posta"
-                    className="w-full rounded-xl border border-zinc-300 px-3 py-2.5 text-sm text-zinc-900 outline-none ring-emerald-500/30 focus:border-emerald-500 focus:ring-2"
+                    placeholder="Sipariş e-postanız"
+                    className="box-border w-full min-w-0 max-w-full rounded-xl border border-zinc-300 px-3 py-2.5 text-base text-zinc-900 outline-none ring-emerald-500/30 placeholder:text-sm focus:border-emerald-500 focus:ring-2"
                     disabled={lookupBusy || opening}
                   />
                 </label>
@@ -779,7 +779,7 @@ export function WhatsappBotWidget() {
                   type="button"
                   disabled={opening || !orderLookupSummary}
                   onClick={() => void continueOrderToWhatsApp()}
-                  className="w-full rounded-xl border border-emerald-600 bg-white px-4 py-3 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50 disabled:opacity-40"
+                  className="w-full rounded-xl border border-emerald-600 bg-white px-4 py-3 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-zinc-200 disabled:bg-zinc-50 disabled:text-zinc-400"
                 >
                   {opening ? "Açılıyor…" : "WhatsApp'tan devam et"}
                 </button>
@@ -983,7 +983,7 @@ export function WhatsappBotWidget() {
             ) : null}
           </div>
 
-          <footer className="shrink-0 space-y-2 border-t border-zinc-100 bg-white p-3">
+          <footer className="shrink-0 space-y-2 border-t border-zinc-100 bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             {view === "recommend" && (recommendProducts.length > 0 || recommendSummary) ? (
               <button
                 type="button"

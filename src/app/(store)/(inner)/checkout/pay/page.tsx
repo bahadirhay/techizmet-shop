@@ -2,15 +2,25 @@ import { redirect } from "next/navigation";
 import { PaytrCheckout } from "@/components/cart/PaytrCheckout";
 import { CheckoutEmbedStyles } from "@/components/store/CheckoutEmbedStyles";
 import { getStoreHomepageMode } from "@/lib/site-settings";
+import {
+  isThemeShellEnabledForCommercePath,
+  type ThemeShellPilotQuery,
+} from "@/lib/theme-shell-pilot";
 
 export default async function CheckoutPayPage({
   searchParams,
 }: {
-  searchParams: Promise<{ order?: string; failed?: string; token?: string }>;
+  searchParams: Promise<ThemeShellPilotQuery & { order?: string; failed?: string; token?: string }>;
 }) {
-  const { order, failed, token } = await searchParams;
+  const { order, failed, token, ...query } = await searchParams;
   if (!order?.trim() || !token?.trim()) redirect("/checkout");
+
   const homepageMode = await getStoreHomepageMode();
+  const themeShellLive = process.env.THEME_SHELL_PILOT_LIVE === "1";
+  const useThemeShell =
+    homepageMode === "mirror" &&
+    isThemeShellEnabledForCommercePath("/checkout/pay", query, themeShellLive);
+
   const pay = (
     <PaytrCheckout
       orderNumber={order.trim()}
@@ -21,7 +31,7 @@ export default async function CheckoutPayPage({
 
   if (homepageMode === "mirror") {
     return (
-      <div className="kn-checkout-embed-root kn-paytr-page">
+      <div className={`kn-checkout-embed-root kn-paytr-page${useThemeShell ? " kn-theme-shell-checkout" : ""}`}>
         <CheckoutEmbedStyles />
         {pay}
       </div>

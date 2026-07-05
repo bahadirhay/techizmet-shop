@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { TR_ADDRESS_CACHE_CONTROL } from "@/lib/tr-address/api-cache";
 import { listTrDistricts } from "@/lib/tr-address/index";
 
 export async function GET(req: Request) {
@@ -10,5 +11,8 @@ export async function GET(req: Request) {
   if (districts.length === 0) {
     return NextResponse.json({ error: "Geçersiz il" }, { status: 404 });
   }
-  return NextResponse.json({ districts });
+  return NextResponse.json(
+    { districts },
+    { headers: { "Cache-Control": TR_ADDRESS_CACHE_CONTROL } },
+  );
 }

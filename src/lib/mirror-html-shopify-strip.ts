@@ -49,9 +49,9 @@ const SHOPIFY_PERF_MARK =
 const DNS_PREFETCH_SHOPIFY =
   /<link\b[^>]*\bhref=["']https?:\/\/[^"']*(?:shopify|myshopify|shopifysvc)[^"']*["'][^>]*>/gi;
 
-/** Noor tema JS — artık kendi kodumuzla değiştirildi */
+/** Eski Noor theme*.js — themeeef6.js vitrin motoru, silinmez */
 const NOOR_THEME_MAIN_JS =
-  /<script\b[^>]*\ssrc=["'][^"']*\/assets\/theme[a-f0-9]+\.js[^"']*["'][^>]*>\s*<\/script>/gi;
+  /<script\b[^>]*\ssrc=["'][^"']*\/assets\/theme(?!eef6)[a-f0-9]+\.js[^"']*["'][^>]*>\s*<\/script>/gi;
 
 /** Kullanılmayan animasyon kütüphaneleri (GSAP, magnet, SplitText, ScrollTrigger) */
 const UNUSED_ANIMATION_LIBS =

@@ -1,15 +1,22 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { MirrorVitrinFrame } from "@/components/store/MirrorVitrinFrame";
+import { ThemeShellHomeView } from "@/components/store/ThemeShellHomeView";
 import { buildSiteMetadata } from "@/lib/site-metadata";
 import { StorePublicBlocks } from "@/components/store/StorePublicBlocks";
-import { headers } from "next/headers";
-import { getCachedParsedSiteSettings } from "@/lib/cache/store-cache";
+import { getStoreLocale } from "@/lib/i18n/server";
 import { getStoreMessages } from "@/lib/i18n/messages";
-import { localeFromCookieValue } from "@/lib/i18n/locale";
 import { getStoreHomepageBlocks } from "@/lib/store-homepage-blocks";
 import { getHomepageMode, getSiteSeo } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
 import { resolveStoreBlockMessages } from "@/lib/store-static-texts";
+import { ensureStoreTenant } from "@/lib/store-tenant";
+import { resolveThemeShellHomeContent } from "@/lib/theme-shell-home-content";
+import {
+  isThemeShellEnabledForHomePath,
+  type ThemeShellPilotQuery,
+} from "@/lib/theme-shell-pilot";
+import { getCachedParsedSiteSettings } from "@/lib/cache/store-cache";
 
 export const revalidate = 300;
 
@@ -33,17 +40,38 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<ThemeShellPilotQuery>;
+}) {
   const site = await getDefaultSite();
   const settings = await getCachedParsedSiteSettings(site.id);
   const homepageMode = getHomepageMode(settings);
+  const query = await searchParams;
+  const themeShellLive = process.env.THEME_SHELL_PILOT_LIVE === "1";
+  const useThemeShell =
+    homepageMode === "mirror" &&
+    isThemeShellEnabledForHomePath("/", query, themeShellLive);
+
+  if (useThemeShell) {
+    const locale = await getStoreLocale();
+    const tenant = await ensureStoreTenant();
+    const content = await resolveThemeShellHomeContent(
+      site.id,
+      site.name,
+      tenant.slug,
+      locale,
+    );
+    if (!content) notFound();
+    return <ThemeShellHomeView content={content} />;
+  }
 
   if (homepageMode === "mirror") {
     return <MirrorVitrinFrame pageKey="home" />;
   }
 
-  const h = await headers();
-  const locale = localeFromCookieValue(h.get("x-shop-locale") ?? undefined) ?? "tr";
+  const locale = await getStoreLocale();
   const messages = getStoreMessages(locale);
   const blocks = await getStoreHomepageBlocks(locale);
   return (

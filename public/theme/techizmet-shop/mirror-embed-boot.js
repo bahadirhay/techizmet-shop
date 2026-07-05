@@ -80,6 +80,20 @@
     qsa("[data-kn-gallery]").forEach(bindGallery);
   }
   initGalleries();
+  function bootMarqueeSections() {
+    qsa("section.section-marquee").forEach(function (section) {
+      section.classList.add("kn-marquee-readable");
+      qsa(".marquee--block-node", section).forEach(function (node) {
+        node.classList.add("autoplay--infinite");
+      });
+      qsa(".marquee-text .outline--filled", section).forEach(function (el) {
+        el.classList.add("outline-animate");
+      });
+    });
+  }
+  bootMarqueeSections();
+  setTimeout(bootMarqueeSections, 80);
+  setTimeout(bootMarqueeSections, 600);
   // Galeri binding: 20 saniye boyunca her 2 saniyede çalışır, sonra durur (sonsuz DOM taraması yerine)
   var _galleryTick = 0;
   var _galleryInterval = setInterval(function () {
@@ -155,6 +169,7 @@
     syncHeroUnderHeader();
   }
   function refreshBar() {
+    if (document.querySelector(".kn-street-food-fund-bar, #kn-street-food-bar")) return;
     fetch("/api/vitrin/street-food-fund", { cache: "no-store", credentials: "same-origin" })
       .then(function (r) {
         return r.ok ? r.json() : null;

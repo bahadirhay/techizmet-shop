@@ -15,6 +15,51 @@
   --text_color: #1a1a1a;
 }
 
+/* Mirror base2ff2 — h1..h6 var(--h2) checkout formuna sızmasın */
+.kn-checkout-embed-root .kn-checkout-page--embed .kn-checkout__section > h2,
+.kn-checkout-embed-root .kn-checkout-page--embed .kn-checkout__summary > h2 {
+  font-family: inherit !important;
+  font-size: 1.125rem !important;
+  font-weight: 600 !important;
+  line-height: 1.3 !important;
+  letter-spacing: normal !important;
+  text-transform: none !important;
+  color: var(--text_color, #1a1a1a) !important;
+  margin: 0 0 1rem !important;
+}
+
+.kn-checkout-embed-root .kn-checkout__subsection-title {
+  font-family: inherit !important;
+  font-size: 0.9375rem !important;
+  font-weight: 600 !important;
+  line-height: 1.35 !important;
+  margin: 0 0 0.75rem !important;
+}
+
+.kn-checkout-embed-root .kn-checkout__items {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  font-size: 0.875rem;
+}
+
+.kn-checkout-embed-root .kn-checkout__items li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.35rem 0;
+}
+
+.kn-checkout-embed-root .kn-checkout__items li > span:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.kn-checkout-embed-root .kn-checkout__items li > span:last-child {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
 /* Tema değişkenleri yokken input kutuları görünür olsun */
 .kn-checkout-embed-root .kn-checkout .form-control,
 .kn-checkout-embed-root .kn-checkout input:not([type="radio"]):not([type="checkbox"]),
@@ -310,10 +355,29 @@
 }
 
 .kn-distance-sales-agreement { font-size: 0.875rem; line-height: 1.65; }
-.kn-dsa-title { text-align: center; font-size: 1.15rem; margin: 0 0 0.75rem; }
-.kn-dsa-meta { margin: 0 0 1rem; }
-.kn-distance-sales-agreement h2 { font-size: 0.95rem; margin: 1.25rem 0 0.5rem; }
-.kn-distance-sales-agreement h3 { font-size: 0.9rem; margin: 0.75rem 0 0.35rem; }
+.kn-checkout-embed-root .kn-distance-sales-checkout__body .kn-distance-sales-agreement h1.kn-dsa-title,
+.kn-checkout-embed-root .kn-distance-sales-checkout__body h1.kn-dsa-title {
+  text-align: center;
+  font-family: inherit !important;
+  font-size: 1.1rem !important;
+  font-weight: 600 !important;
+  margin: 0 0 0.75rem;
+}
+.kn-checkout-embed-root .kn-distance-sales-checkout__body .kn-dsa-meta { margin: 0 0 1rem; }
+.kn-checkout-embed-root .kn-distance-sales-checkout__body h2.kn-dsa-h2 {
+  font-family: inherit !important;
+  font-size: 0.95rem !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+  margin: 1.1rem 0 0.45rem !important;
+}
+.kn-checkout-embed-root .kn-distance-sales-checkout__body h3.kn-dsa-h3 {
+  font-family: inherit !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+  margin: 0.65rem 0 0.3rem !important;
+}
 .kn-dsa-table { width: 100%; border-collapse: collapse; margin: 0.35rem 0 0.75rem; font-size: 0.8125rem; }
 .kn-dsa-table th, .kn-dsa-table td { border: 1px solid var(--border_color, #e5e2dd); padding: 0.4rem 0.55rem; text-align: left; vertical-align: top; }
 .kn-dsa-table th { width: 38%; background: var(--body_alternate_background, #f7f5f2); font-weight: 600; }

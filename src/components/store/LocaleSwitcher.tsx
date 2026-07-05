@@ -9,11 +9,14 @@ export function LocaleSwitcher({
   label,
   trLabel,
   enLabel,
+  compact = false,
 }: {
   locale: ShopLocale;
   label: string;
   trLabel: string;
   enLabel: string;
+  /** Header ikon çubuğu — mirror ile aynı TR/EN pill */
+  compact?: boolean;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -28,6 +31,29 @@ export function LocaleSwitcher({
     });
     router.refresh();
     setBusy(false);
+  }
+
+  if (compact) {
+    return (
+      <div className="kn-iframe-locale" aria-label={label}>
+        <button
+          type="button"
+          data-locale="tr"
+          className={locale === "tr" ? "is-active" : ""}
+          disabled={busy}
+          aria-label={trLabel}
+          onClick={() => setLocale("tr")}
+        />
+        <button
+          type="button"
+          data-locale="en"
+          className={locale === "en" ? "is-active" : ""}
+          disabled={busy}
+          aria-label={enLabel}
+          onClick={() => setLocale("en")}
+        />
+      </div>
+    );
   }
 
   return (

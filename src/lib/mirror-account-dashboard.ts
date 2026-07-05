@@ -692,3 +692,5 @@ export function injectAccountDashboardBridge(html: string): string {
   }
   return html.replace(/<\/body>/i, `${script}</body>`);
 }
+
+export const ACCOUNT_DASHBOARD_BRIDGE_JS = buildAccountDashboardBridgeScript();

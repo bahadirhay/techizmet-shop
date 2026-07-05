@@ -237,3 +237,8 @@ export function injectMirrorSearchBridge(html: string): string {
   const out = html.replace(/<script id="kn-search-bridge">[\s\S]*?<\/script>/i, "");
   return out.replace(/<\/body>/i, `${SEARCH_BRIDGE_SCRIPT}</body>`);
 }
+
+export const MIRROR_SEARCH_BRIDGE_JS = SEARCH_BRIDGE_SCRIPT.replace(
+  /^<script id="kn-search-bridge">/,
+  "",
+).replace(/<\/script>\s*$/i, "");

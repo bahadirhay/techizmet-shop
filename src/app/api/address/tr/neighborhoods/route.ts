@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { TR_ADDRESS_CACHE_CONTROL } from "@/lib/tr-address/api-cache";
 import { listTrNeighborhoods } from "@/lib/tr-address/index";
 
 export async function GET(req: Request) {
@@ -12,5 +13,8 @@ export async function GET(req: Request) {
   if (neighborhoods.length === 0) {
     return NextResponse.json({ error: "Geçersiz ilçe" }, { status: 404 });
   }
-  return NextResponse.json({ neighborhoods });
+  return NextResponse.json(
+    { neighborhoods },
+    { headers: { "Cache-Control": TR_ADDRESS_CACHE_CONTROL } },
+  );
 }

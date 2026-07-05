@@ -8,13 +8,20 @@ import { MirrorIframeBootScript } from "@/components/store/MirrorIframeBootScrip
 import { StoreFooter } from "@/components/store/StoreFooter";
 import { StoreShell } from "@/components/store/StoreShell";
 import { ThemeShellAnnouncementBar } from "@/components/store/ThemeShellAnnouncementBar";
+import { ThemeShellHeaderBoot } from "@/components/store/ThemeShellHeaderBoot";
+import { ThemeShellMarqueeBoot } from "@/components/store/ThemeShellMarqueeBoot";
+import { ThemeShellScrollTop } from "@/components/store/ThemeShellScrollTop";
 import type { ResolvedNavItem } from "@/lib/mirror-nav-resolve";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import type { StoreMessages } from "@/lib/i18n/messages";
 import type { HomepageMode } from "@/lib/site-settings";
 import type { SocialLink } from "@/lib/social-links";
+import type { ThemeShellDrawers } from "@/lib/theme-shell-drawers";
 import { isMirrorShellPath } from "@/lib/store-mirror-paths";
-import { isThemeShellEnabledForPath } from "@/lib/theme-shell-pilot";
+import {
+  isThemeShellEnabledForPath,
+  isThemeShellMinimalChromePath,
+} from "@/lib/theme-shell-pilot";
 
 const StoreThemeStyles = dynamic(
   () => import("@/components/store/StoreThemeStyles").then((m) => ({ default: m.StoreThemeStyles })),
@@ -36,6 +43,7 @@ export function StoreLayoutRouter({
   footerHtml,
   schemeCss,
   themeColorsCss,
+  mirrorDrawers,
   children,
 }: {
   homepageMode: HomepageMode;
@@ -51,22 +59,25 @@ export function StoreLayoutRouter({
   footerHtml?: string;
   schemeCss?: string;
   themeColorsCss?: string;
+  mirrorDrawers?: ThemeShellDrawers | null;
   children: React.ReactNode;
 }) {
   const pathname = usePathname() ?? "/";
   const searchParams = useSearchParams();
-  const themeShellActive = isThemeShellEnabledForPath(
-    pathname,
-    {
-      themeShell: searchParams.get("themeShell"),
-      mirror: searchParams.get("mirror"),
-    },
-    themeShellPilotLive,
-  );
+  const query = {
+    themeShell: searchParams.get("themeShell"),
+    mirror: searchParams.get("mirror"),
+  };
+  const themeShellActive = isThemeShellEnabledForPath(pathname, query, themeShellPilotLive);
+  const minimalChrome =
+    homepageMode === "mirror" &&
+    isThemeShellMinimalChromePath(pathname) &&
+    (themeShellPilotLive || query.themeShell === "1") &&
+    query.mirror !== "1";
   const mirrorShell =
     homepageMode === "mirror" && isMirrorShellPath(pathname, { themeShellActive });
 
-  if (mirrorShell) {
+  if (mirrorShell || minimalChrome) {
     return (
       <>
         <HtmlLang locale={locale} />
@@ -86,7 +97,16 @@ export function StoreLayoutRouter({
         {announcementSlides?.length ? (
           <ThemeShellAnnouncementBar slides={announcementSlides} schemeClass={announcementScheme} />
         ) : null}
-        <StoreShell siteName={siteName} logoSrc={logoSrc} locale={locale} messages={messages} nav={nav}>
+        <ThemeShellHeaderBoot />
+        <ThemeShellMarqueeBoot />
+        <StoreShell
+          siteName={siteName}
+          logoSrc={logoSrc}
+          locale={locale}
+          messages={messages}
+          nav={nav}
+          mirrorDrawers={themeShellActive ? (mirrorDrawers ?? undefined) : undefined}
+        >
           <main className="kn-main">{children}</main>
           {footerHtml ? (
             <div dangerouslySetInnerHTML={{ __html: footerHtml }} />
@@ -94,6 +114,7 @@ export function StoreLayoutRouter({
             <StoreFooter siteName={siteName} messages={messages.footer} socialLinks={socialLinks} />
           )}
         </StoreShell>
+        <ThemeShellScrollTop />
       </>
     );
   }

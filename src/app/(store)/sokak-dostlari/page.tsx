@@ -1,13 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { MirrorVitrinFrame } from "@/components/store/MirrorVitrinFrame";
+import { ThemeShellSectionsView } from "@/components/store/ThemeShellSectionsView";
 import { getStoreLocale } from "@/lib/i18n/server";
 import { buildStreetFoodFundPublicPayload } from "@/lib/street-food-fund/campaign";
 import { listPublishedStreetFoodDonations } from "@/lib/street-food-fund/donations";
 import { getStreetFoodFundSettings, streetFoodTexts } from "@/lib/street-food-fund/settings";
 import { getHomepageMode, getSiteSettings } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
-import { notFound } from "next/navigation";
+import { resolveThemeShellVitrinRouteContent } from "@/lib/theme-shell-vitrin-route-content";
+import { ensureStoreTenant } from "@/lib/store-tenant";
+import {
+  isThemeShellEnabledForVitrinRoutePath,
+  type ThemeShellPilotQuery,
+} from "@/lib/theme-shell-pilot";
 
 export async function generateMetadata(): Promise<Metadata> {
   const site = await getDefaultSite();
@@ -19,7 +26,11 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function StreetFoodFundPublicPage() {
+export default async function StreetFoodFundPublicPage({
+  searchParams,
+}: {
+  searchParams: Promise<ThemeShellPilotQuery>;
+}) {
   const site = await getDefaultSite();
   const locale = await getStoreLocale();
   const settings = await getSiteSettings(site.id);
@@ -27,6 +38,25 @@ export default async function StreetFoodFundPublicPage() {
   if (!cfg.enabled) notFound();
 
   const homepageMode = getHomepageMode(settings);
+  const query = await searchParams;
+  const themeShellLive = process.env.THEME_SHELL_PILOT_LIVE === "1";
+  const useThemeShell =
+    homepageMode === "mirror" &&
+    isThemeShellEnabledForVitrinRoutePath("/sokak-dostlari", query, themeShellLive);
+
+  if (useThemeShell) {
+    const tenant = await ensureStoreTenant();
+    const content = await resolveThemeShellVitrinRouteContent(
+      site.id,
+      site.name,
+      tenant.slug,
+      "/sokak-dostlari",
+      locale,
+    );
+    if (!content) notFound();
+    return <ThemeShellSectionsView content={content} withVitrinBoot />;
+  }
+
   if (homepageMode === "mirror") {
     return <MirrorVitrinFrame pageKey="sokak-dostlari" />;
   }

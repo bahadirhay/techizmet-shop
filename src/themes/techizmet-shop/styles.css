@@ -854,28 +854,86 @@ html.kn-scroll-locked body {
   font-size: 0.875rem;
   color: var(--kn-text);
 }
+/* Mirror'ın global çıplak `button`/`a` stillerinin sızmasını engelle (renk/boyut/pointer) */
+.kn-mini-cart button,
+.kn-mini-cart .kn-btn {
+  box-sizing: border-box;
+  font-family: inherit;
+  line-height: 1.2;
+  -webkit-appearance: none;
+  appearance: none;
+  text-transform: none;
+  letter-spacing: normal;
+  pointer-events: auto;
+}
 .kn-mini-cart__qty {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: space-between;
+  gap: 0.75rem;
   margin-top: 0.5rem;
   font-size: 0.8125rem;
 }
-.kn-mini-cart__qty button {
-  width: 28px;
-  height: 28px;
+.kn-mini-cart__stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
   border: 1px solid var(--kn-border);
-  border-radius: 6px;
-  background: var(--kn-surface);
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.kn-mini-cart__step {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: var(--kn-surface, #fff);
+  color: var(--kn-text, #1a1a1a);
+  font-size: 1rem;
+  font-weight: 600;
   cursor: pointer;
+  padding: 0;
+}
+.kn-mini-cart__step:hover:not(:disabled) {
+  background: var(--kn-border, #e8e4df);
+}
+.kn-mini-cart__step:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.kn-mini-cart__qty-val {
+  min-width: 32px;
+  text-align: center;
+  font-weight: 600;
+  color: var(--kn-text, #1a1a1a);
+  font-size: 0.875rem;
 }
 .kn-mini-cart__remove {
-  margin-left: auto;
   border: none;
   background: none;
   color: #b91c1c;
   cursor: pointer;
   font-size: 0.75rem;
+  white-space: nowrap;
+  padding: 0.25rem 0;
+  flex-shrink: 0;
+}
+.kn-mini-cart__remove:hover {
+  text-decoration: underline;
+}
+/* CTA'lar site aksanıyla eşleşsin (mirror scheme dışı → header_hover fallback) */
+.kn-mini-cart__foot .kn-btn--primary {
+  background: var(--button_background, var(--header_hover_color, var(--kn-brand)));
+  color: var(--button_text, #ffffff);
+  border: 1px solid transparent;
+}
+.kn-mini-cart__foot .kn-btn--outline {
+  background: transparent;
+  border: 1px solid var(--button_background, var(--header_hover_color, var(--kn-brand)));
+  color: var(--button_background, var(--header_hover_color, var(--kn-brand)));
 }
 .kn-mini-cart__foot {
   padding: 1rem 1.25rem;
@@ -922,6 +980,10 @@ html.kn-scroll-locked body {
   border: none;
   cursor: pointer;
 }
+/* Ürün tema kabuğu: zoom CSS için kn-mirror-embed header'ı 250 yapar; çekmece üstte kalsın */
+html.kn-theme-shell-product-active .kn-account-overlay {
+  z-index: 280 !important;
+}
 .kn-account-drawer {
   position: fixed;
   top: 12px;
@@ -936,6 +998,9 @@ html.kn-scroll-locked body {
   display: flex;
   flex-direction: column;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.22);
+}
+html.kn-theme-shell-product-active .kn-account-drawer {
+  z-index: 290 !important;
 }
 .kn-account-drawer__head {
   display: flex;
@@ -1057,10 +1122,84 @@ button.header--icon-link-text {
   display: flex;
   align-items: center;
 }
-/* Mobilde header'da devasa locale görünmesin — mobil menüde zaten var */
+
+/* Header TR/EN — mirror kn-iframe-locale (tema kabuğu) */
+.kn-theme-shell-header .header--icons-list .kn-iframe-locale {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  font-size: 0;
+  line-height: 1;
+}
+.kn-theme-shell-header .header--icons-list .kn-iframe-locale button {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  color: transparent;
+  font-size: 0;
+}
+.kn-theme-shell-header .header--icons-list .kn-iframe-locale button[data-locale="tr"]::before {
+  content: "TR";
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  color: #111;
+}
+.kn-theme-shell-header .header--icons-list .kn-iframe-locale button[data-locale="en"]::before {
+  content: "EN";
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  color: #111;
+}
+.kn-theme-shell-header .header--icons-list .kn-iframe-locale button.is-active {
+  background: #111;
+  border-radius: 4px;
+}
+.kn-theme-shell-header .header--icons-list .kn-iframe-locale button.is-active::before {
+  color: #fff;
+}
+
 @media (max-width: 1024px) {
-  .header--icons-list .kn-locale-icon-item {
-    display: none;
+  html.kn-mobile-header .kn-theme-shell-header .header--icons-list .kn-locale-icon-item {
+    display: flex !important;
+    align-items: center !important;
+  }
+
+  html.kn-mobile-header .kn-theme-shell-header .header--wrapper:not(.half-width-menu) .header--icon-item {
+    border-right: none !important;
+    padding: 0 1px !important;
+    flex: 0 0 auto !important;
+  }
+
+  html.kn-mobile-header .kn-theme-shell-header .header--icons-list {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    justify-content: flex-end !important;
+    width: auto !important;
+  }
+
+  html.kn-mobile-header .kn-theme-shell-header .header--right {
+    width: auto !important;
+    max-width: none !important;
+  }
+
+  html.kn-mobile-header .kn-theme-shell-header .header--icons-list .header--icon-link-text {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    background: transparent !important;
+    box-shadow: none !important;
   }
 }
 
@@ -1837,6 +1976,14 @@ button.header--icon-link-text {
   gap: 1rem;
   padding: 0.35rem 0;
 }
+.kn-checkout__items li > span:first-child {
+  flex: 1;
+  min-width: 0;
+}
+.kn-checkout__items li > span:last-child {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
 .kn-checkout__terms {
   display: flex;
   gap: 0.5rem;
@@ -2446,19 +2593,34 @@ button.header--icon-link-text {
 }
 .kn-dsa-title {
   text-align: center;
-  font-size: 1.35rem;
+  font-family: inherit;
+  font-size: 1.15rem;
+  font-weight: 600;
   margin: 0 0 1rem;
 }
 .kn-dsa-meta {
   margin: 0 0 1.5rem;
 }
-.kn-distance-sales-agreement h2 {
-  font-size: 1.05rem;
-  margin: 1.75rem 0 0.75rem;
+.kn-distance-sales-page .kn-distance-sales-agreement h1.kn-dsa-title {
+  font-family: inherit !important;
+  font-size: 1.15rem !important;
+  font-weight: 600 !important;
 }
-.kn-distance-sales-agreement h3 {
-  font-size: 0.98rem;
-  margin: 1rem 0 0.5rem;
+.kn-distance-sales-page .kn-distance-sales-agreement h2,
+.kn-distance-sales-page .kn-distance-sales-agreement h2.kn-dsa-h2 {
+  font-family: inherit !important;
+  font-size: 0.95rem !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+  margin: 1.25rem 0 0.5rem !important;
+}
+.kn-distance-sales-page .kn-distance-sales-agreement h3,
+.kn-distance-sales-page .kn-distance-sales-agreement h3.kn-dsa-h3 {
+  font-family: inherit !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+  margin: 0.75rem 0 0.35rem !important;
 }
 .kn-dsa-table {
   width: 100%;

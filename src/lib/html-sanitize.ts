@@ -45,6 +45,7 @@ const PUBLIC_TAGS = [
   "li",
   "a",
   "blockquote",
+  "article",
   "table",
   "thead",
   "tbody",

@@ -34,6 +34,11 @@ function embedSrcWithOrder(order?: string): string {
   return `${base}?order=${encodeURIComponent(order.trim())}`;
 }
 
+export const ORDER_TRACK_EMBED_BRIDGE_JS = ORDER_TRACK_EMBED_BRIDGE_SCRIPT.replace(
+  /^<script id="kn-order-track-embed-bridge">/,
+  "",
+).replace(/<\/script>\s*$/i, "");
+
 export function applyOrderTrackPageToMirrorHtml(html: string, orderNumber?: string): string {
   let out = html;
   out = out.replace(/kn-order-track-embed\.css\?v=\d+/g, "kn-order-track-embed.css?v=1");

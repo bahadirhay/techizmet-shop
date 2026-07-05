@@ -13,6 +13,8 @@ import { getDefaultSite } from "@/lib/site";
 import { detectSocialLinks } from "@/lib/social-links";
 import { buildThemeColorsOverrideCss } from "@/lib/theme-colors";
 import { resolveThemeShellChrome } from "@/lib/theme-shell-chrome";
+import type { ThemeShellDrawers } from "@/lib/theme-shell-drawers";
+import { resolveThemeShellDrawers } from "@/lib/theme-shell-drawers";
 
 export default async function StoreLayout({ children }: { children: React.ReactNode }) {
   const site = await getDefaultSite();
@@ -24,6 +26,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
   const socialLinks = detectSocialLinks(settings.seo?.organizationSameAs);
 
   const chrome = await resolveThemeShellChrome(site.id, locale, branding.logoUrlLight);
+  const drawers: ThemeShellDrawers | null = await resolveThemeShellDrawers(site.id, locale);
 
   // Duyuru şeridi — admin ayarından (yoksa mirror'dan çıkarılan slaytlara düş)
   const annBar = getAnnouncementBarSettings(settings, locale);
@@ -58,6 +61,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
         footerHtml={chrome.footerHtml}
         schemeCss={chrome.schemeCss}
         themeColorsCss={themeColorsCss}
+        mirrorDrawers={drawers}
       >
         {children}
       </StoreLayoutRouter>

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { TurkeyAddressFields } from "@/components/address/TurkeyAddressFields";
+import { TurkeyAddressFields, type TrAddressBootstrap } from "@/components/address/TurkeyAddressFields";
 import { useCart } from "@/components/cart/CartContext";
 import { formatPrice } from "@/lib/currency/format-price";
 import type { ShopLocale } from "@/lib/i18n/locale";
@@ -64,6 +64,7 @@ export function CheckoutForm({
   locale,
   usdRate,
   sellerProfile,
+  trAddress,
 }: {
   payment: CheckoutPaymentContext;
   prefill?: CheckoutPrefill | null;
@@ -73,6 +74,7 @@ export function CheckoutForm({
   locale?: ShopLocale;
   usdRate?: number | null;
   sellerProfile?: LegalSellerProfile;
+  trAddress?: TrAddressBootstrap;
 }) {
   const router = useRouter();
   const { cart, refresh, loading: cartLoading, removeCoupon } = useCart();
@@ -583,6 +585,7 @@ export function CheckoutForm({
               </div>
               <TurkeyAddressFields
                 idPrefix="kn-checkout"
+                bootstrap={trAddress}
                 value={{
                   city: form.city,
                   district: form.district,
@@ -683,6 +686,7 @@ export function CheckoutForm({
                   </div>
                   <TurkeyAddressFields
                     idPrefix="kn-checkout-bill"
+                    bootstrap={trAddress ? { cities: trAddress.cities } : undefined}
                     value={{
                       city: form.billingCity,
                       district: form.billingDistrict,

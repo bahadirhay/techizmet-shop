@@ -4,12 +4,22 @@ import Link from "next/link";
 import type { ResolvedNavItem } from "@/lib/mirror-nav-resolve";
 
 /** Mirror header navigasyonu — birebir class'lar (header38c6.css tarafından biçimlenir) */
-export function StoreHeaderNav({ items }: { items: ResolvedNavItem[] }) {
+export function StoreHeaderNav({
+  items,
+  serverRendered = false,
+}: {
+  items: ResolvedNavItem[];
+  /** Tema kabuğu — kn-store-bridge applyNav devre dışı */
+  serverRendered?: boolean;
+}) {
   return (
     <div className="header--navigation-main" data-menus-container>
       <div className="header--navigation">
         <div className="header--navigation-inner">
-          <ul className="d-flex width-100 header--navigation-list">
+          <ul
+            className="d-flex width-100 header--navigation-list"
+            {...(serverRendered ? { "data-kn-nav-injected": "1" } : {})}
+          >
             {items.map((item) => {
               const hasDropdown = Boolean(item.columns?.length || item.children?.length);
               if (!hasDropdown) {

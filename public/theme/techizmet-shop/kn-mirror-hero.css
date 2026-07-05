@@ -61,3 +61,28 @@ html.kn-mirror-embed .section-media-grid:first-of-type img.media_image {
   max-height: 100% !important;
   object-fit: cover !important;
 }
+
+/* Tema kabuğu ana sayfa — hero grid (iframe kn-mirror-embed eşdeğeri) */
+.kn-theme-shell-home .section-media-grid:first-of-type .media-grid--image {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.kn-theme-shell-home .section-media-grid:first-of-type .media-grid--image .media,
+.kn-theme-shell-home .section-media-grid:first-of-type .media-grid--image .media-fixed {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.kn-theme-shell-home .section-media-grid:first-of-type img.media_image {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: cover !important;
+}

@@ -350,8 +350,85 @@ input[type="checkbox"]:not(.checkmark-input) {
 }
 
 /* Hesap çekmecesi — header içinden taşındıktan sonra üstte görünsün */
+/* React hesap çekmecesi — mirror side-drawer ile aynı görünüm */
+aside.kn-react-account-drawer.side-drawer {
+  z-index: 999 !important;
+}
+
+aside.kn-react-account-drawer.side-drawer.show {
+  display: flex !important;
+}
+
+aside.kn-react-account-drawer .side--drawer-panel {
+  position: relative;
+  z-index: 1;
+}
+
+aside.kn-react-account-drawer .kn-form-error {
+  color: #b91c1c;
+  font-size: 0.85rem;
+  margin: 0 0 0.5rem;
+}
+
+aside.kn-react-account-drawer .text-underline.cursor-pointer,
+aside.kn-react-account-drawer button.text-underline {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+aside.kn-react-account-drawer .kn-account-logged-in__links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin: 1rem 0 1.25rem;
+}
+
+aside.kn-react-account-drawer .kn-account-logged-in__links a {
+  font-size: 0.95rem;
+}
+
+aside.kn-react-account-drawer .kn-account__social {
+  margin-top: 1rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border_color, #e5e5e5);
+}
+
+aside.kn-react-account-drawer .kn-account__social .button {
+  margin-top: 0.5rem;
+}
+
 account-drawer.side-drawer {
   z-index: 999 !important;
+}
+
+/* Tema kabuğu — çekmeceler body'de; mirror inline + theme9bdd .show display eksik */
+cart-drawer.side-drawer,
+search-drawer.side-drawer,
+account-drawer.side-drawer {
+  position: fixed !important;
+  inset: 0 !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  transform: none !important;
+}
+
+.side-drawer.show,
+cart-drawer.side-drawer.show,
+search-drawer.side-drawer.show,
+account-drawer.side-drawer.show {
+  display: flex !important;
+  pointer-events: all !important;
 }
 
 account-drawer.side-drawer.show {
@@ -407,8 +484,8 @@ sticky-on-scroll.header {
   --logo_width: 320px !important;
 }
 
-/* Sticky header — mama fonu şeridi ve hero kartının üstünde */
-html.kn-mirror-embed .section-header {
+/* Sticky header — mama fonu şeridi ve hero kartının üstünde (iframe mirror; tema kabuğu hariç) */
+html.kn-mirror-embed:not(.kn-theme-shell-product-active) .section-header {
   z-index: 250 !important;
   isolation: isolate;
 }
@@ -593,15 +670,15 @@ html.kn-mirror-embed #kn-street-food-hero {
   }
 
   .section-announcement-bar,
-  .announcement-bar--main,
-  .announcement-bar--wrapper,
-  .announcement-bar--middle,
-  .announcement-bar--slide-outer {
+  html.kn-mirror-embed .announcement-bar--main,
+  html.kn-mirror-embed .announcement-bar--wrapper,
+  html.kn-mirror-embed .announcement-bar--middle,
+  html.kn-mirror-embed .announcement-bar--slide-outer {
     overflow: hidden !important;
     max-width: 100% !important;
   }
 
-  .announcement-bar--text {
+  html.kn-mirror-embed .announcement-bar--text {
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     white-space: nowrap !important;
@@ -634,7 +711,7 @@ html.kn-mirror-embed #kn-street-food-hero {
     opacity: 1 !important;
   }
 
-  html.kn-mirror-embed.kn-mobile-header .section-header {
+  html.kn-mirror-embed.kn-mobile-header:not(.kn-theme-shell-product-active) .section-header {
     z-index: 250 !important;
   }
 
@@ -790,6 +867,17 @@ html.kn-mirror-embed.kn-product-zoom-open body {
   flex-shrink: 0;
 }
 
+/* Müşteri yorumları — admin limitinin üstündeki kartlar (swiper inline style'ı ezer) */
+.section-testimonial .testimonial--item[data-kn-hidden="1"] {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
 /* Müşteri yorumları — az kart varken ortala, kaydırma yok (geniş ekran) */
 @media (min-width: 1025px) {
   .section-testimonial.kn-testimonial-fits .testimonial--outer .swiper-wrapper {
@@ -816,6 +904,35 @@ html.kn-mirror-embed.kn-product-zoom-open body {
 }
 
 /* İndirim şeridi — kayan + okunabilir (uzun metin / kontur sorunu) */
+.section-marquee .marquee--block-node {
+  --marque_text_size: clamp(16px, 3.2vw, 42px);
+}
+
+@media (max-width: 767px) {
+  .section-marquee .marquee--block-node {
+    --marque_text_size: clamp(13px, 4.2vw, 22px) !important;
+  }
+}
+
+.section-marquee .marquee--block-node .marquee--block {
+  animation: text-marque var(--marquee_speed, 45s) linear infinite;
+}
+
+.section-marquee .marquee-text .outline--filled {
+  color: var(--highlight_color, var(--node_color, #111)) !important;
+  -webkit-text-stroke: 0;
+  background: none !important;
+}
+
+.section-marquee .marquee-text .kn-marquee-solid {
+  color: var(--node_color, #111) !important;
+}
+
+.section-marquee .marquee--block-node-inner {
+  width: max-content;
+  min-width: 100%;
+}
+
 .section-marquee.kn-marquee-readable #marqueBlock-marque_34RhxW,
 .section-marquee.kn-marquee-readable .marquee--block-node {
   --marque_text_size: clamp(18px, 3.2vw, 42px);
@@ -875,4 +992,316 @@ html.kn-mirror-embed.kn-product-zoom-open body {
 
 #MainContent .product--pricing .product--cut-price {
   margin-left: 0.5rem;
+}
+
+/* Tema kabuğu duyuru şeridi — metin kadar yükseklik */
+.kn-theme-shell-announcement {
+  min-height: 0 !important;
+}
+
+.kn-theme-shell-announcement .announcement-bar--wrapper {
+  padding-top: 6px !important;
+  padding-bottom: 6px !important;
+}
+
+.kn-theme-shell-announcement .announcement-bar--text {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: unset !important;
+  line-height: 1.35 !important;
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
+  font-size: clamp(0.75rem, 2.8vw, 0.8125rem) !important;
+}
+
+.kn-theme-shell-announcement .announcement-bar--middle {
+  max-width: min(100%, 36rem) !important;
+}
+
+/* Tema kabuğunda JS şeridi yok — yalnızca React StreetFoodFundBar */
+html:has(.kn-theme-shell-announcement) #kn-street-food-bar {
+  display: none !important;
+}
+
+/* Revealing text — statik metin görünür, bölüm kompakt */
+.kn-theme-shell-sections #MainContent .section-revealing-text reveal-text,
+.kn-theme-shell-sections #MainContent .section-revealing-text .revealing-text-line,
+.kn-theme-shell-sections #MainContent .section-revealing-text .revealing-text-char {
+  display: none !important;
+}
+
+.kn-theme-shell-sections #MainContent .section-revealing-text .kn-revealing-static-text,
+.kn-theme-shell-sections #MainContent .section-revealing-text .revealing-text--content {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  color: rgb(var(--text_color, 0, 0, 0)) !important;
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: currentColor !important;
+  max-width: min(920px, 92vw);
+  margin: 0 auto;
+  line-height: 1.4 !important;
+  font-size: clamp(1.05rem, 2.2vw, 1.75rem) !important;
+  text-align: center;
+}
+
+.kn-theme-shell-sections #MainContent .section-revealing-text .section-wrapper {
+  padding-top: 1.75rem !important;
+  padding-bottom: 1.75rem !important;
+}
+
+.kn-theme-shell-sections #MainContent .section-revealing-text .background--overlay-image {
+  opacity: 0.12;
+  max-height: 12rem;
+  overflow: hidden;
+}
+
+.kn-theme-shell-sections #MainContent .section-revealing-text .container-fullwidth,
+.kn-theme-shell-sections #MainContent .section-revealing-text .revealing-text--wrapper {
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+.kn-theme-shell-sections #MainContent .section-revealing-text .kn-revealing-static {
+  position: relative !important;
+  z-index: 3 !important;
+  display: block !important;
+  width: 100%;
+  padding: 0.5rem 1rem;
+}
+
+/* WhatsApp bot — base2ff2 input min-height:62px çakışması */
+.kn-whatsapp-widgets input:not([type="radio"]):not([type="checkbox"]),
+.kn-whatsapp-widgets textarea,
+.kn-whatsapp-widgets select {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  height: auto !important;
+  font-size: 16px !important;
+  line-height: 1.35 !important;
+}
+
+.kn-whatsapp-widgets input::placeholder,
+.kn-whatsapp-widgets textarea::placeholder {
+  font-size: 0.8125rem !important;
+  line-height: 1.3 !important;
+  opacity: 0.72;
+}
+
+.kn-whatsapp-widgets button {
+  box-sizing: border-box !important;
+  width: auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-width: 100% !important;
+  height: auto !important;
+  padding: inherit;
+  font-family: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+  text-transform: none;
+  appearance: none;
+}
+
+/* Ürün tema kabuğu — tam genişlik + galeri/bilgi kartı düzeni */
+html.kn-theme-shell-product-active,
+html.kn-theme-shell-product-active body {
+  overflow-x: visible !important;
+  width: 100% !important;
+  max-width: none !important;
+}
+
+html.kn-theme-shell-product-active .kn-main,
+html.kn-theme-shell-product-active .kn-theme-shell-product,
+html.kn-theme-shell-product-active .kn-theme-shell-product__main,
+html.kn-theme-shell-product-active #MainContent,
+html.kn-theme-shell-product-active .section-header,
+html.kn-theme-shell-product-active .section-header .header,
+html.kn-theme-shell-product-active .container-fullwidth,
+html.kn-theme-shell-product-active #MainContent .section-main-product,
+html.kn-theme-shell-product-active #MainContent .section-main-product .section-wrapper,
+html.kn-theme-shell-product-active #MainContent .product--wrapper,
+html.kn-theme-shell-product-active #MainContent .section-marquee .section-wrapper,
+html.kn-theme-shell-product-active #MainContent .product--detail-bottom-content {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+html.kn-theme-shell-product-active #MainContent .section-main-product .section-wrapper {
+  position: relative !important;
+  overflow: visible !important;
+}
+
+/* layout_1: ürün kartı galeri üzerinde sağda (orijinal tema düzeni) */
+html.kn-theme-shell-product-active #MainContent .product--wrapper.layout_1 {
+  position: relative !important;
+  min-height: min(100vh, 2160px) !important;
+}
+
+html.kn-theme-shell-product-active #MainContent .product--wrapper.layout_1 .main--product-content-wrapper {
+  position: absolute !important;
+  top: calc(var(--desktop_transparent_header_height, 0px) + 3rem) !important;
+  right: 2rem !important;
+  left: auto !important;
+  width: 100% !important;
+  max-width: min(40vw, 560px) !important;
+  height: auto !important;
+  max-height: calc(100vh - calc(var(--header_height, 114px) + 8rem)) !important;
+  margin-top: 0 !important;
+  justify-content: flex-end !important;
+  z-index: 2 !important;
+}
+
+html.kn-theme-shell-product-active #MainContent .product--wrapper.layout_1 .main--product-content {
+  max-width: none !important;
+}
+
+html.kn-theme-shell-product-active #MainContent .product--detail-bottom-content {
+  max-width: none !important;
+  padding-top: 2rem !important;
+}
+
+html.kn-theme-shell-product-active #MainContent .main--product-content-inner {
+  color: var(--text_color, #212121) !important;
+}
+
+html.kn-theme-shell-product-active #MainContent .main--product-content-inner .product-title-heading,
+html.kn-theme-shell-product-active #MainContent .main--product-content-inner .heading-font,
+html.kn-theme-shell-product-active #MainContent .main--product-content-inner .product--actual-price,
+html.kn-theme-shell-product-active #MainContent .main--product-content-inner .product--variants-title,
+html.kn-theme-shell-product-active #MainContent .main--product-content-inner label,
+html.kn-theme-shell-product-active #MainContent .main--product-content-inner p,
+html.kn-theme-shell-product-active #MainContent .main--product-content-inner .button {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+html.kn-theme-shell-product-active #MainContent .main--product-content-inner .product-title-heading,
+html.kn-theme-shell-product-active #MainContent .main--product-content-inner .heading-font {
+  color: var(--heading_color, #000) !important;
+}
+
+html.kn-theme-shell-product-active #MainContent .main--product-image-slider-outer {
+  opacity: 1 !important;
+  width: 100% !important;
+}
+
+html.kn-theme-shell-product-active #MainContent .main--product-image-slider-outer:not(.swiper-initialized) .main--product-image-slider {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  scroll-snap-type: x mandatory;
+  gap: 2px;
+}
+
+html.kn-theme-shell-product-active #MainContent .main--product-image-slider-outer:not(.swiper-initialized) .swiper-slide {
+  flex: 0 0 100% !important;
+  max-width: 100% !important;
+  scroll-snap-align: start;
+}
+
+/* Tema kabuğu ana sayfa — hero media-grid + sol alt mama fonu kartı */
+.kn-theme-shell-home #MainContent > .section-media-grid:first-of-type .media-grid--wrapper {
+  position: relative !important;
+}
+
+.kn-theme-shell-home #kn-street-food-hero {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  z-index: 5;
+  pointer-events: none;
+  max-width: 420px;
+}
+
+.kn-theme-shell-home #kn-street-food-hero[hidden] {
+  display: none !important;
+}
+
+.kn-theme-shell-home .kn-street-food-hero__card {
+  pointer-events: auto;
+  border-radius: 14px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(31, 77, 58, 0.94) 0%, rgba(45, 106, 79, 0.92) 100%);
+  color: #fff;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(6px);
+}
+
+.kn-theme-shell-home .kn-street-food-hero__title {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.kn-theme-shell-home .kn-street-food-hero__slogan {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.4;
+  opacity: 0.95;
+}
+
+.kn-theme-shell-home .kn-street-food-hero__counts {
+  margin-top: 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.kn-theme-shell-home .kn-street-food-hero__track {
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.25);
+  margin-top: 6px;
+  overflow: hidden;
+}
+
+.kn-theme-shell-home .kn-street-food-hero__fill {
+  height: 100%;
+  border-radius: 999px;
+  background: #b7e4c7;
+  transition: width 0.35s ease;
+}
+
+.kn-theme-shell-home .kn-street-food-hero__sub {
+  margin-top: 8px;
+  font-size: 11px;
+  opacity: 0.9;
+}
+
+.kn-theme-shell-home .kn-street-food-hero__link {
+  display: inline-block;
+  margin-top: 8px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+@media (min-width: 768px) {
+  .kn-theme-shell-home #kn-street-food-hero {
+    left: 24px;
+    right: auto;
+    bottom: 24px;
+    max-width: 380px;
+  }
+}
+
+@media (max-width: 640px) {
+  .kn-theme-shell-home #kn-street-food-hero {
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    max-width: none;
+  }
+
+  .kn-theme-shell-home .kn-street-food-hero__card {
+    padding: 12px 14px;
+  }
 }

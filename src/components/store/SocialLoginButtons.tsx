@@ -23,20 +23,18 @@ export function SocialLoginButtons() {
   const q = `?next=${encodeURIComponent(returnTo)}`;
 
   return (
-    <div className="kn-account__social mt-4 space-y-2">
-      <p className="text-center text-xs text-zinc-500">veya</p>
+    <div className="kn-account__social">
+      <p className="account--text-info text-center text-small">veya</p>
       {providers.google ? (
-        <a
-          href={`/api/account/oauth/google${q}`}
-          className="kn-btn kn-btn--block flex items-center justify-center gap-2 border border-zinc-300 bg-white text-zinc-800 hover:bg-zinc-50"
-        >
+        <a href={`/api/account/oauth/google${q}`} className="button medium-button button-block">
           Google ile devam et
         </a>
       ) : null}
       {providers.apple ? (
         <a
           href={`/api/account/oauth/apple${q}`}
-          className="kn-btn kn-btn--block flex items-center justify-center gap-2 border border-zinc-900 bg-zinc-900 text-white hover:bg-zinc-800"
+          className="button medium-button button-block"
+          style={{ marginTop: "0.5rem" }}
         >
           Apple ile devam et
         </a>

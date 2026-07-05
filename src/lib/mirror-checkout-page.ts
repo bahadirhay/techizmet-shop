@@ -29,6 +29,11 @@ export const CHECKOUT_EMBED_BRIDGE_SCRIPT = `<script id="kn-checkout-embed-bridg
   iframe.addEventListener("load",fit);
 })();</script>`;
 
+export const CHECKOUT_EMBED_BRIDGE_JS = CHECKOUT_EMBED_BRIDGE_SCRIPT.replace(
+  /^<script id="kn-checkout-embed-bridge">/,
+  "",
+).replace(/<\/script>\s*$/i, "");
+
 export function applyCheckoutPageToMirrorHtml(html: string): string {
   let out = html;
   out = out.replace(/kn-checkout-embed\.css\?v=\d+/g, "kn-checkout-embed.css?v=4");

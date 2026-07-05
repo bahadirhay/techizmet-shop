@@ -46,7 +46,7 @@ function cmsBlocksToHtml(blocks: ShopBlock[]): string {
   return parts.join("\n");
 }
 
-const CMS_PAGE_STYLE = `<style id="kn-cms-page-css">
+export const THEME_SHELL_CMS_PAGE_STYLE = `<style id="kn-cms-page-css">
 .kn-cms-page {
   padding: 2.5rem 0 4rem;
 }
@@ -71,10 +71,30 @@ const CMS_PAGE_STYLE = `<style id="kn-cms-page-css">
   border-radius: 8px;
 }
 .kn-distance-sales-agreement { font-size: 0.9375rem; line-height: 1.65; }
-.kn-dsa-title { text-align: center; font-size: 1.35rem; margin: 0 0 1rem; }
-.kn-dsa-meta { margin: 0 0 1.5rem; }
-.kn-distance-sales-agreement h2 { font-size: 1.05rem; margin: 1.75rem 0 0.75rem; }
-.kn-distance-sales-agreement h3 { font-size: 0.98rem; margin: 1rem 0 0.5rem; }
+.kn-cms-page .kn-distance-sales-agreement h1.kn-dsa-title {
+  text-align: center;
+  font-family: inherit !important;
+  font-size: 1.15rem !important;
+  font-weight: 600 !important;
+  margin: 0 0 1rem;
+}
+.kn-cms-page .kn-distance-sales-agreement .kn-dsa-meta { margin: 0 0 1.5rem; }
+.kn-cms-page .kn-distance-sales-agreement h2,
+.kn-cms-page .kn-distance-sales-agreement h2.kn-dsa-h2 {
+  font-family: inherit !important;
+  font-size: 0.95rem !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+  margin: 1.25rem 0 0.5rem !important;
+}
+.kn-cms-page .kn-distance-sales-agreement h3,
+.kn-cms-page .kn-distance-sales-agreement h3.kn-dsa-h3 {
+  font-family: inherit !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+  margin: 0.75rem 0 0.35rem !important;
+}
 .kn-dsa-table { width: 100%; border-collapse: collapse; margin: 0.5rem 0 1rem; font-size: 0.875rem; }
 .kn-dsa-table th, .kn-dsa-table td { border: 1px solid rgba(0,0,0,.12); padding: 0.5rem 0.65rem; text-align: left; vertical-align: top; }
 .kn-dsa-table th { width: 38%; background: rgba(0,0,0,.04); font-weight: 600; }
@@ -126,7 +146,7 @@ export function applyCmsPageToMirrorHtml(html: string, payload: MirrorCmsPagePay
 
   if (!document.getElementById("kn-cms-page-css")) {
     const head = document.head;
-    if (head) head.insertAdjacentHTML("beforeend", CMS_PAGE_STYLE);
+    if (head) head.insertAdjacentHTML("beforeend", THEME_SHELL_CMS_PAGE_STYLE);
   }
 
   const doctype = html.match(/^<!DOCTYPE[^>]*>/i)?.[0] ?? "<!DOCTYPE html>";

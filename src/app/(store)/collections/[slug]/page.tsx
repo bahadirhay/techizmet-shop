@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MirrorCollectionFrame } from "@/components/store/MirrorCollectionFrame";
+import { ThemeShellSectionsView } from "@/components/store/ThemeShellSectionsView";
 import { JsonLdScript } from "@/components/store/JsonLdScript";
 import { ProductGridBlock } from "@/components/store/ProductGridBlock";
 import { CollectionSeoContent } from "@/components/store/CollectionSeoContent";
@@ -18,15 +20,61 @@ import { buildPageMetadata } from "@/lib/seo/metadata";
 import { buildSiteMetadata } from "@/lib/site-metadata";
 import { getStoreHomepageMode } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
+import { ensureStoreTenant } from "@/lib/store-tenant";
+import { resolveThemeShellCollectionContent } from "@/lib/theme-shell-collection-content";
+import {
+  isThemeShellEnabledForCollectionSlug,
+  type ThemeShellPilotQuery,
+} from "@/lib/theme-shell-pilot";
 
 export const revalidate = 300;
+
+async function renderThemeShellCollection(
+  siteId: string,
+  databaseUrl: string,
+  locale: Awaited<ReturnType<typeof getStoreLocale>>,
+  slug: string,
+  page: number,
+  categorySlug: string | undefined,
+  activeFilters: ReturnType<typeof parseCollectionFilterParams>,
+  jsonLdNode: ReactNode,
+) {
+  const content = await resolveThemeShellCollectionContent(
+    siteId,
+    databaseUrl,
+    locale,
+    slug,
+    page,
+    categorySlug,
+    activeFilters,
+  );
+  if (!content) notFound();
+  return (
+    <>
+      {jsonLdNode}
+      <ThemeShellSectionsView content={content} withCartBridge />
+    </>
+  );
+}
 
 export async function generateMetadata({
   params,
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ category?: string; page?: string; brand?: string; volume?: string; tone?: string; quantity?: string; stock?: string; price_min?: string; price_max?: string }>;
+  searchParams: Promise<
+    ThemeShellPilotQuery & {
+      category?: string;
+      page?: string;
+      brand?: string;
+      volume?: string;
+      tone?: string;
+      quantity?: string;
+      stock?: string;
+      price_min?: string;
+      price_max?: string;
+    }
+  >;
 }): Promise<Metadata> {
   const { slug } = await params;
   const { category } = await searchParams;
@@ -47,13 +95,25 @@ export default async function CollectionPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ category?: string; page?: string; brand?: string; volume?: string; tone?: string; quantity?: string; stock?: string; price_min?: string; price_max?: string }>;
+  searchParams: Promise<
+    ThemeShellPilotQuery & {
+      category?: string;
+      page?: string;
+      brand?: string;
+      volume?: string;
+      tone?: string;
+      quantity?: string;
+      stock?: string;
+      price_min?: string;
+      price_max?: string;
+    }
+  >;
 }) {
   const { slug } = await params;
   const sp = await searchParams;
-  const { category: categorySlug, page: pageParam } = sp;
+  const { category: categorySlug, page: pageParam, themeShell, mirror, ...filterSp } = sp;
   const page = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
-  const activeFilters = parseCollectionFilterParams(sp);
+  const activeFilters = parseCollectionFilterParams(filterSp);
   const site = await getDefaultSite();
   const homepageMode = await getStoreHomepageMode(site.id);
   const locale = await getStoreLocale();
@@ -91,12 +151,34 @@ export default async function CollectionPage({
     );
   }
 
+  const themeShellCollectionActive =
+    homepageMode === "mirror" &&
+    isThemeShellEnabledForCollectionSlug(
+      slug,
+      { themeShell, mirror },
+      process.env.THEME_SHELL_PILOT_LIVE === "1",
+    );
+
   if (categorySlug?.trim()) {
     const cat = await prisma.storeCategory.findFirst({
       where: { siteId: site.id, slug: categorySlug.trim(), active: true },
     });
     if (!cat) notFound();
     const title = cat.title;
+
+    if (themeShellCollectionActive) {
+      const tenant = await ensureStoreTenant();
+      return renderThemeShellCollection(
+        site.id,
+        tenant.databaseUrl,
+        locale,
+        "all",
+        page,
+        categorySlug.trim(),
+        activeFilters,
+        jsonLdNode,
+      );
+    }
 
     if (homepageMode === "mirror") {
       return (
@@ -129,6 +211,20 @@ export default async function CollectionPage({
   }
 
   if (homepageMode === "mirror" && slug === "all") {
+    if (themeShellCollectionActive) {
+      const tenant = await ensureStoreTenant();
+      return renderThemeShellCollection(
+        site.id,
+        tenant.databaseUrl,
+        locale,
+        "all",
+        page,
+        undefined,
+        activeFilters,
+        jsonLdNode,
+      );
+    }
+
     // SEO metin bloğu (Köpek Ödülü açıklaması, SSS, ilgili sayfalar) burada
     // gösterilmez — adanmış landing sayfalarında (findLandingIntentBySlug) yer alır.
     // JSON-LD yapısal veri korunur (görünmez, SEO için).
@@ -146,6 +242,19 @@ export default async function CollectionPage({
 
   if (homepageMode === "mirror") {
     if (collection) {
+      if (themeShellCollectionActive) {
+        const tenant = await ensureStoreTenant();
+        return renderThemeShellCollection(
+          site.id,
+          tenant.databaseUrl,
+          locale,
+          slug,
+          page,
+          undefined,
+          activeFilters,
+          jsonLdNode,
+        );
+      }
       return (
         <>
           {jsonLdNode}

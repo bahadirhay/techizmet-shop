@@ -1,6 +1,7 @@
 /** Ana sayfa / koleksiyon kartları — sepete ekle (Shopify tema formu yerine /api/cart/items) */
 
-export const MIRROR_LISTING_CART_BRIDGE_SCRIPT = `<script id="kn-listing-cart-bridge">(function(){
+/** Sadece IIFE gövdesi (<script> sarmalayıcısı olmadan) — React inline script için */
+export const MIRROR_LISTING_CART_BRIDGE_JS = `(function(){
   function tr(){return document.documentElement.lang&&document.documentElement.lang.indexOf("tr")===0;}
   function elFrom(e){var t=e.target;if(t instanceof Element)return t;if(t&&t.parentElement)return t.parentElement;return null;}
   function normalizeSlug(raw){
@@ -186,7 +187,9 @@ export const MIRROR_LISTING_CART_BRIDGE_SCRIPT = `<script id="kn-listing-cart-br
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot);
   else boot();
-})();</script>`;
+})();`;
+
+export const MIRROR_LISTING_CART_BRIDGE_SCRIPT = `<script id="kn-listing-cart-bridge">${MIRROR_LISTING_CART_BRIDGE_JS}</script>`;
 
 export function injectMirrorListingCartBridge(html: string): string {
   if (html.includes('id="kn-listing-cart-bridge"')) return html;

@@ -1,12 +1,20 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useCart } from "@/components/cart/CartContext";
 import { formatTry } from "@/lib/format";
 
 export function MiniCart() {
-  const { cart, isOpen, closeCart, setQty, removeItem, loading } = useCart();
+  const { cart, isOpen, closeCart, setQty, removeItem, flushQty, loading } = useCart();
+  const router = useRouter();
+
+  const navigateWithFlush = async (href: string) => {
+    await flushQty();
+    closeCart();
+    router.push(href);
+  };
 
   useEffect(() => {
     if (!isOpen) return;
@@ -51,27 +59,40 @@ export function MiniCart() {
                     <div className="kn-mini-cart__thumb kn-mini-cart__thumb--ph" />
                   )}
                   <div className="kn-mini-cart__info">
-                    <Link href={`/products/${line.slug}`} onClick={closeCart} className="kn-mini-cart__title">
+                    <Link
+                      href={`/products/${line.slug}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        void navigateWithFlush(`/products/${line.slug}`);
+                      }}
+                      className="kn-mini-cart__title"
+                    >
                       {line.title}
                     </Link>
                     <p className="kn-mini-cart__price">
                       {line.discountMinor > 0 ? formatTry(line.lineTotalMinor) : formatTry(line.lineMinor)}
                     </p>
                     <div className="kn-mini-cart__qty">
-                      <button
-                        type="button"
-                        onClick={() => setQty(line.productId, line.qty - 1, line.variantId)}
-                      >
-                        −
-                      </button>
-                      <span>{line.qty}</span>
-                      <button
-                        type="button"
-                        onClick={() => setQty(line.productId, line.qty + 1, line.variantId)}
-                        disabled={line.qty >= line.maxQty}
-                      >
-                        +
-                      </button>
+                      <div className="kn-mini-cart__stepper">
+                        <button
+                          type="button"
+                          className="kn-mini-cart__step"
+                          aria-label="Adet azalt"
+                          onClick={() => setQty(line.productId, line.qty - 1, line.variantId)}
+                        >
+                          −
+                        </button>
+                        <span className="kn-mini-cart__qty-val">{line.qty}</span>
+                        <button
+                          type="button"
+                          className="kn-mini-cart__step"
+                          aria-label="Adet artır"
+                          onClick={() => setQty(line.productId, line.qty + 1, line.variantId)}
+                          disabled={line.qty >= line.maxQty}
+                        >
+                          +
+                        </button>
+                      </div>
                       <button
                         type="button"
                         className="kn-mini-cart__remove"
@@ -98,10 +119,24 @@ export function MiniCart() {
               <span>Ara toplam</span>
               <strong>{formatTry(cart.totalMinor)}</strong>
             </p>
-            <Link href="/cart" className="kn-btn kn-btn--outline kn-btn--block" onClick={closeCart}>
+            <Link
+              href="/cart"
+              className="kn-btn kn-btn--outline kn-btn--block"
+              onClick={(e) => {
+                e.preventDefault();
+                void navigateWithFlush("/cart");
+              }}
+            >
               Sepeti görüntüle
             </Link>
-            <Link href="/checkout" className="kn-btn kn-btn--primary kn-btn--block" onClick={closeCart}>
+            <Link
+              href="/checkout"
+              className="kn-btn kn-btn--primary kn-btn--block"
+              onClick={(e) => {
+                e.preventDefault();
+                void navigateWithFlush("/checkout");
+              }}
+            >
               Ödemeye geç
             </Link>
           </div>

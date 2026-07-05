@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { MirrorAccountFrame } from "@/components/store/MirrorAccountFrame";
+import { ThemeShellCommerceView } from "@/components/store/ThemeShellCommerceView";
 import { accountLoginPath } from "@/lib/account-return-path";
 import { AccountDashboard } from "@/components/store/AccountDashboard";
 import {
@@ -15,8 +17,19 @@ import { getCustomerSession } from "@/lib/customer-session";
 import { getStoreHomepageMode } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
 import { prisma } from "@/lib/prisma";
+import { getStoreLocale } from "@/lib/i18n/server";
+import { ACCOUNT_DASHBOARD_BRIDGE_JS } from "@/lib/mirror-account-dashboard";
+import { resolveThemeShellAccountDashboardContent } from "@/lib/theme-shell-commerce-content";
+import {
+  isThemeShellEnabledForCommercePath,
+  type ThemeShellPilotQuery,
+} from "@/lib/theme-shell-pilot";
 
-export default async function AccountPage() {
+export default async function AccountPage({
+  searchParams,
+}: {
+  searchParams: Promise<ThemeShellPilotQuery>;
+}) {
   const session = await getCustomerSession();
   if (!session.isLoggedIn || !session.customerId) {
     redirect(accountLoginPath("/account"));
@@ -24,6 +37,24 @@ export default async function AccountPage() {
 
   const site = await getDefaultSite();
   const homepageMode = await getStoreHomepageMode(site.id);
+  const query = await searchParams;
+  const themeShellLive = process.env.THEME_SHELL_PILOT_LIVE === "1";
+  const useThemeShell =
+    homepageMode === "mirror" &&
+    isThemeShellEnabledForCommercePath("/account", query, themeShellLive);
+
+  if (useThemeShell) {
+    const locale = await getStoreLocale();
+    const content = await resolveThemeShellAccountDashboardContent(session.customerId, locale);
+    if (!content) notFound();
+    return (
+      <ThemeShellCommerceView
+        content={content}
+        bridgeScripts={[ACCOUNT_DASHBOARD_BRIDGE_JS]}
+      />
+    );
+  }
+
   if (homepageMode === "mirror") {
     return <MirrorAccountFrame />;
   }

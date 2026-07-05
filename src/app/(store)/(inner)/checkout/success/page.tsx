@@ -1,18 +1,25 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { MirrorCheckoutSuccessFrame } from "@/components/store/MirrorCheckoutSuccessFrame";
+import { ThemeShellCommerceView } from "@/components/store/ThemeShellCommerceView";
 import { getCustomerSession } from "@/lib/customer-session";
 import { prisma } from "@/lib/prisma";
 import { getDefaultSite } from "@/lib/site";
 import { getStoreHomepageMode } from "@/lib/site-settings";
 import { getStoreLocale } from "@/lib/i18n/server";
 import { getStreetFoodContributionForOrder } from "@/lib/street-food-fund/order-contribution-message";
+import { resolveThemeShellCheckoutSuccessContent } from "@/lib/theme-shell-commerce-content";
+import {
+  isThemeShellEnabledForCommercePath,
+  type ThemeShellPilotQuery,
+} from "@/lib/theme-shell-pilot";
 
 export default async function CheckoutSuccessPage({
   searchParams,
 }: {
-  searchParams: Promise<{ order?: string; account?: string }>;
+  searchParams: Promise<ThemeShellPilotQuery & { order?: string; account?: string }>;
 }) {
-  const { order: orderNumber, account } = await searchParams;
+  const { order: orderNumber, account, ...query } = await searchParams;
   const accountCreated = account === "1";
   const session = await getCustomerSession();
   const loggedIn = Boolean(session.isLoggedIn);
@@ -39,6 +46,24 @@ export default async function CheckoutSuccessPage({
   }
 
   const homepageMode = await getStoreHomepageMode(site.id);
+  const themeShellLive = process.env.THEME_SHELL_PILOT_LIVE === "1";
+  const useThemeShell =
+    homepageMode === "mirror" &&
+    isThemeShellEnabledForCommercePath("/checkout/success", query, themeShellLive);
+
+  if (useThemeShell) {
+    const content = resolveThemeShellCheckoutSuccessContent({
+      locale,
+      orderNumber,
+      paid,
+      accountCreated,
+      loggedIn,
+      streetFoodContributionMessage,
+    });
+    if (!content) notFound();
+    return <ThemeShellCommerceView content={content} />;
+  }
+
   if (homepageMode === "mirror") {
     return (
       <MirrorCheckoutSuccessFrame

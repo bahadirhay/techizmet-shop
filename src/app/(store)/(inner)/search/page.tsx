@@ -1,7 +1,6 @@
-import Link from "next/link";
-import { Suspense } from "react";
-import { ProductCard } from "@/components/store/ProductCard";
+import { notFound } from "next/navigation";
 import { MirrorSearchFrame } from "@/components/store/MirrorSearchFrame";
+import { ThemeShellCommerceView } from "@/components/store/ThemeShellCommerceView";
 import { SearchQueryTracker } from "@/components/store/SearchQueryTracker";
 import { StoreSearchForm } from "@/components/store/StoreSearchForm";
 import { prisma } from "@/lib/prisma";
@@ -9,6 +8,15 @@ import { getLoggedInCustomerPricing } from "@/lib/store/customer-pricing";
 import { getStoreHomepageMode } from "@/lib/site-settings";
 import { formatProductDisplayTitle } from "@/lib/product-display-title";
 import { getDefaultSite } from "@/lib/site";
+import { getStoreLocale } from "@/lib/i18n/server";
+import { resolveThemeShellSearchContent } from "@/lib/theme-shell-commerce-content";
+import {
+  isThemeShellEnabledForCommercePath,
+  type ThemeShellPilotQuery,
+} from "@/lib/theme-shell-pilot";
+import Link from "next/link";
+import { Suspense } from "react";
+import { ProductCard } from "@/components/store/ProductCard";
 
 async function SearchResults({ q }: { q: string }) {
   const site = await getDefaultSite();
@@ -85,11 +93,44 @@ async function SearchResults({ q }: { q: string }) {
 export default async function SearchPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<ThemeShellPilotQuery & { q?: string }>;
 }) {
-  const { q = "" } = await searchParams;
+  const { q = "", ...query } = await searchParams;
   const site = await getDefaultSite();
   const homepageMode = await getStoreHomepageMode(site.id);
+  const themeShellLive = process.env.THEME_SHELL_PILOT_LIVE === "1";
+  const useThemeShell =
+    homepageMode === "mirror" &&
+    isThemeShellEnabledForCommercePath("/search", query, themeShellLive);
+
+  if (useThemeShell) {
+    const locale = await getStoreLocale();
+    const content = await resolveThemeShellSearchContent(site.id, locale, q);
+    if (!content) notFound();
+    const term = q.trim();
+    const resultCount =
+      term.length >= 2
+        ? await prisma.storeProduct.count({
+            where: {
+              siteId: site.id,
+              published: true,
+              OR: [
+                { title: { contains: term, mode: "insensitive" } },
+                { description: { contains: term, mode: "insensitive" } },
+                { sku: { contains: term, mode: "insensitive" } },
+                { slug: { contains: term, mode: "insensitive" } },
+                { barcode: { contains: term, mode: "insensitive" } },
+              ],
+            },
+          })
+        : undefined;
+    return (
+      <>
+        <SearchQueryTracker query={term} resultCount={resultCount} />
+        <ThemeShellCommerceView content={content} withListingCart />
+      </>
+    );
+  }
 
   if (homepageMode === "mirror") {
     return <MirrorSearchFrame q={q} />;

@@ -1,16 +1,8 @@
 /** Mirror iframe — il / ilçe / mahalle cascade (vanilla) */
 
-type CityRow = { code: string; name: string };
+import { fetchTrAddressJson } from "@/lib/tr-address/client-fetch";
 
-async function fetchJson<T>(url: string): Promise<T | null> {
-  try {
-    const res = await fetch(url, { credentials: "same-origin" });
-    if (!res.ok) return null;
-    return (await res.json()) as T;
-  } catch {
-    return null;
-  }
-}
+type CityRow = { code: string; name: string };
 
 function fillSelect(
   sel: HTMLSelectElement,
@@ -46,7 +38,7 @@ async function loadPostal(
   postalInput: HTMLInputElement | null,
 ) {
   if (!postalInput || !city || !district) return;
-  const j = await fetchJson<{ postalCode?: string }>(
+  const j = await fetchTrAddressJson<{ postalCode?: string }>(
     `/api/address/tr/postal-code?city=${encodeURIComponent(city)}&district=${encodeURIComponent(district)}`,
   );
   const code = j?.postalCode?.trim() ?? "";
@@ -71,7 +63,7 @@ async function initTrAddressBlock(block: Element) {
   const savedDistrict = distSelect.value;
   const savedHood = hoodSelect.value;
 
-  const citiesRes = await fetchJson<{ cities: CityRow[] }>("/api/address/tr/cities");
+  const citiesRes = await fetchTrAddressJson<{ cities: CityRow[] }>("/api/address/tr/cities");
   const cities = citiesRes?.cities ?? [];
   fillSelect(
     citySelect,
@@ -89,7 +81,7 @@ async function initTrAddressBlock(block: Element) {
       distSelect.disabled = true;
       return;
     }
-    const j = await fetchJson<{ districts: string[] }>(
+    const j = await fetchTrAddressJson<{ districts: string[] }>(
       `/api/address/tr/districts?city=${encodeURIComponent(city)}`,
     );
     const districts = j?.districts ?? [];
@@ -105,7 +97,7 @@ async function initTrAddressBlock(block: Element) {
       hoodSelect.disabled = true;
       return;
     }
-    const j = await fetchJson<{ neighborhoods: string[] }>(
+    const j = await fetchTrAddressJson<{ neighborhoods: string[] }>(
       `/api/address/tr/neighborhoods?city=${encodeURIComponent(city)}&district=${encodeURIComponent(district)}`,
     );
     const neighborhoods = j?.neighborhoods ?? [];

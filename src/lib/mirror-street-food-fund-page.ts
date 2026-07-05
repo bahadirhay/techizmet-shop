@@ -6,7 +6,7 @@ const STYLE_ID = "kn-street-food-page-styles";
 const FUND_API = "/api/vitrin/street-food-fund";
 const DONATIONS_API = "/api/vitrin/street-food-fund/donations";
 
-const PAGE_STYLES = `
+export const STREET_FOOD_PAGE_STYLES = `
 .kn-street-food-stats__card {
   text-align: center;
   padding: 24px 20px;
@@ -24,7 +24,7 @@ const PAGE_STYLES = `
 }
 .kn-street-food-stats__fill { height: 100%; border-radius: 999px; background: #059669; transition: width .4s ease; }
 .kn-street-food-stats__sub { margin: 0; font-size: .9rem; color: color-mix(in srgb, var(--text_color, #111) 65%, transparent); }
-.kn-street-food-donations__title { font-size: 1.15rem; font-weight: 600; margin: 0 0 16px; }
+.kn-street-food-donations__title { font-size: 1.15rem; font-weight: 600; margin: 0 0 16px; text-align: center; }
 .kn-street-food-donation {
   padding: 20px; margin-bottom: 16px; border-radius: var(--product_card_radius, 12px);
   background: var(--body_background, #fff);
@@ -35,6 +35,11 @@ const PAGE_STYLES = `
 .kn-street-food-donation__meta { font-size: .85rem; color: color-mix(in srgb, var(--text_color, #111) 60%, transparent); }
 .kn-street-food-donation__photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-top: 12px; }
 .kn-street-food-donation__photos img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; }
+#kn-mirror-section-template--street_food_fund__stats .container-narrow {
+  max-width: 48rem;
+  margin-left: auto;
+  margin-right: auto;
+}
 #kn-mirror-section-template--street_food_fund__richtext .richtext--content {
   text-align: center;
   margin-left: auto;
@@ -51,6 +56,10 @@ const PAGE_STYLES = `
 }
 `;
 
+/** Tema kabuğu — stiller head yerine MainContent içinde */
+export function streetFoodFundPageStyleTag(): string {
+  return `<style id="${STYLE_ID}">${STREET_FOOD_PAGE_STYLES}</style>`;
+}
 function escHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
@@ -63,7 +72,7 @@ function ensureStyles(doc: Document) {
   if (doc.getElementById(STYLE_ID)) return;
   const style = doc.createElement("style");
   style.id = STYLE_ID;
-  style.textContent = PAGE_STYLES;
+  style.textContent = STREET_FOOD_PAGE_STYLES;
   doc.head.appendChild(style);
 }
 

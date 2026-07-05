@@ -213,3 +213,8 @@ export function injectMirrorCartBridge(html: string): string {
   let out = html.replace(/<script id="kn-cart-bridge">[\s\S]*?<\/script>/i, "");
   return out.replace(/<\/body>/i, `${CART_BRIDGE_SCRIPT}</body>`);
 }
+
+export const MIRROR_CART_BRIDGE_JS = CART_BRIDGE_SCRIPT.replace(
+  /^<script id="kn-cart-bridge">/,
+  "",
+).replace(/<\/script>\s*$/i, "");

@@ -61,6 +61,7 @@ import {
   injectVideoPromoMirrorHtml,
   injectVideoSectionCollapseCss,
 } from "@/lib/product-page-bottom";
+import { enhanceMarqueeSectionsInHtml } from "@/lib/marquee-section-enhance";
 import { injectPublishedProductIntoMirrorHtml } from "@/lib/mirror-product-detail-load";
 import { injectMirrorQuickviewBridge } from "@/lib/mirror-quickview-bridge";
 import { injectMirrorSearchBridge } from "@/lib/mirror-search-bridge";
@@ -326,5 +327,6 @@ export async function buildMirrorHtmlCore(params: MirrorHtmlBuildParams): Promis
 
   localized = await syncMirrorListingPricesInHtml(localized, siteId);
   localized = patchMirrorCriticalImageLoading(localized);
+  localized = enhanceMarqueeSectionsInHtml(localized);
   return rewriteLegacyThemePaths(localized);
 }

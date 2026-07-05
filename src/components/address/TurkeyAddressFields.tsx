@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { fetchTrAddressJson, primeTrAddressCache } from "@/lib/tr-address/client-fetch";
 
 export type TurkeyAddressValue = {
   city: string;
@@ -10,40 +11,64 @@ export type TurkeyAddressValue = {
   line1: string;
 };
 
+type CityRow = { code: string; name: string };
+
+export type TrAddressBootstrap = {
+  cities?: CityRow[];
+  city?: string;
+  districts?: string[];
+  district?: string;
+  neighborhoods?: string[];
+};
+
 type Props = {
   value: TurkeyAddressValue;
   onChange: (patch: Partial<TurkeyAddressValue>) => void;
   idPrefix?: string;
   disabled?: boolean;
+  bootstrap?: TrAddressBootstrap;
 };
 
-type CityRow = { code: string; name: string };
-
-async function fetchJson<T>(url: string): Promise<T | null> {
-  try {
-    const res = await fetch(url, { credentials: "same-origin" });
-    if (!res.ok) return null;
-    return (await res.json()) as T;
-  } catch {
-    return null;
-  }
+function districtsUrl(city: string) {
+  return `/api/address/tr/districts?city=${encodeURIComponent(city)}`;
 }
 
-export function TurkeyAddressFields({ value, onChange, idPrefix = "kn-addr", disabled = false }: Props) {
+function neighborhoodsUrl(city: string, district: string) {
+  return `/api/address/tr/neighborhoods?city=${encodeURIComponent(city)}&district=${encodeURIComponent(district)}`;
+}
+
+export function TurkeyAddressFields({
+  value,
+  onChange,
+  idPrefix = "kn-addr",
+  disabled = false,
+  bootstrap,
+}: Props) {
   const uid = useId();
   const prefix = idPrefix || uid.replace(/:/g, "");
-  const [cities, setCities] = useState<CityRow[]>([]);
-  const [districts, setDistricts] = useState<string[]>([]);
-  const [neighborhoods, setNeighborhoods] = useState<string[]>([]);
+  const [cities, setCities] = useState<CityRow[]>(bootstrap?.cities ?? []);
+  const [districts, setDistricts] = useState<string[]>(
+    bootstrap?.districts && value.city ? bootstrap.districts : [],
+  );
+  const [neighborhoods, setNeighborhoods] = useState<string[]>(
+    bootstrap?.neighborhoods && value.city && value.district ? bootstrap.neighborhoods : [],
+  );
   const [loadingDistricts, setLoadingDistricts] = useState(false);
   const [loadingNeighborhoods, setLoadingNeighborhoods] = useState(false);
   const postalReq = useRef(0);
+  const bootstrapApplied = useRef(false);
 
   useEffect(() => {
-    fetchJson<{ cities: CityRow[] }>("/api/address/tr/cities").then((j) => {
+    primeTrAddressCache("/api/address/tr/cities", { cities: bootstrap?.cities ?? cities });
+    if (bootstrap?.cities?.length) {
+      setCities(bootstrap.cities);
+      return;
+    }
+    if (cities.length) return;
+    fetchTrAddressJson<{ cities: CityRow[] }>("/api/address/tr/cities").then((j) => {
       if (j?.cities) setCities(j.cities);
     });
-  }, []);
+  }, [bootstrap?.cities, cities.length]);
 
   useEffect(() => {
     if (!value.city) {
@@ -51,11 +76,27 @@ export function TurkeyAddressFields({ value, onChange, idPrefix = "kn-addr", dis
       setNeighborhoods([]);
       return;
     }
+
+    if (
+      !bootstrapApplied.current &&
+      bootstrap?.city === value.city &&
+      bootstrap.districts?.length
+    ) {
+      bootstrapApplied.current = true;
+      primeTrAddressCache(districtsUrl(value.city), { districts: bootstrap.districts });
+      setDistricts(bootstrap.districts);
+      if (bootstrap.district === value.district && bootstrap.neighborhoods?.length) {
+        primeTrAddressCache(neighborhoodsUrl(value.city, value.district), {
+          neighborhoods: bootstrap.neighborhoods,
+        });
+        setNeighborhoods(bootstrap.neighborhoods);
+      }
+      return;
+    }
+
     let cancelled = false;
     setLoadingDistricts(true);
-    fetchJson<{ districts: string[] }>(
-      `/api/address/tr/districts?city=${encodeURIComponent(value.city)}`,
-    ).then((j) => {
+    fetchTrAddressJson<{ districts: string[] }>(districtsUrl(value.city)).then((j) => {
       if (cancelled) return;
       setDistricts(j?.districts ?? []);
       setLoadingDistricts(false);
@@ -63,17 +104,26 @@ export function TurkeyAddressFields({ value, onChange, idPrefix = "kn-addr", dis
     return () => {
       cancelled = true;
     };
-  }, [value.city]);
+  }, [value.city, bootstrap?.city, bootstrap?.district, bootstrap?.districts, bootstrap?.neighborhoods, value.district]);
 
   useEffect(() => {
     if (!value.city || !value.district) {
       setNeighborhoods([]);
       return;
     }
+    if (
+      bootstrapApplied.current &&
+      bootstrap?.city === value.city &&
+      bootstrap?.district === value.district &&
+      bootstrap.neighborhoods?.length
+    ) {
+      return;
+    }
+
     let cancelled = false;
     setLoadingNeighborhoods(true);
-    fetchJson<{ neighborhoods: string[] }>(
-      `/api/address/tr/neighborhoods?city=${encodeURIComponent(value.city)}&district=${encodeURIComponent(value.district)}`,
+    fetchTrAddressJson<{ neighborhoods: string[] }>(
+      neighborhoodsUrl(value.city, value.district),
     ).then((j) => {
       if (cancelled) return;
       setNeighborhoods(j?.neighborhoods ?? []);
@@ -82,12 +132,12 @@ export function TurkeyAddressFields({ value, onChange, idPrefix = "kn-addr", dis
     return () => {
       cancelled = true;
     };
-  }, [value.city, value.district]);
+  }, [value.city, value.district, bootstrap?.city, bootstrap?.district, bootstrap?.neighborhoods]);
 
   useEffect(() => {
     if (!value.city || !value.district || !value.neighborhood) return;
     const reqId = ++postalReq.current;
-    fetchJson<{ postalCode: string }>(
+    fetchTrAddressJson<{ postalCode: string }>(
       `/api/address/tr/postal-code?city=${encodeURIComponent(value.city)}&district=${encodeURIComponent(value.district)}`,
     ).then((j) => {
       if (reqId !== postalReq.current) return;
@@ -97,6 +147,7 @@ export function TurkeyAddressFields({ value, onChange, idPrefix = "kn-addr", dis
   }, [value.city, value.district, value.neighborhood, onChange]);
 
   function onCityChange(city: string) {
+    bootstrapApplied.current = false;
     onChange({
       city,
       district: "",

@@ -160,3 +160,5 @@ export function injectFavoritesPageBridge(html: string): string {
   if (html.includes('id="kn-favorites-page-bridge"')) return html;
   return html.replace(/<\/body>/i, `${script}</body>`);
 }
+
+export const FAVORITES_PAGE_BRIDGE_JS = buildFavoritesPageBridgeScript();

@@ -97,11 +97,51 @@ export function blogArticleMirrorFileRel(slug: string, locale: ShopLocale): stri
     : `theme/techizmet-shop/mirror/blogs/news/${slug}.html`;
 }
 
-/** Blog yazısı iframe — prod: slug başına prebuilt; dev: şablon + blogSlug */
+/** Ürün PDP iframe — prod: slug başına prebuilt */
 export function productMirrorFileRel(slug: string, locale: ShopLocale): string {
   return locale === "tr"
     ? `theme/techizmet-shop/mirror/products/${slug}-tr.html`
     : `theme/techizmet-shop/mirror/products/${slug}.html`;
+}
+
+/** Locale'e göre mirror PDP dosyası diskte var mı */
+export function productMirrorHtmlFileExists(slug: string, locale: ShopLocale): boolean {
+  return existsSync(join(process.cwd(), "public", productMirrorFileRel(slug, locale)));
+}
+
+/**
+ * Ürün PDP kaynak dosyası — slug dosyası yoksa şablon + locale yedeği (iframe ile aynı).
+ * `templateSlug` yalnızca gerçek ürün slug'ından farklıysa döner.
+ */
+export function resolveProductMirrorSourceRel(
+  slug: string,
+  locale: ShopLocale,
+): { rel: string; templateSlug: string | null } | null {
+  const productSlug = slug.trim();
+  if (!productSlug) return null;
+
+  if (productMirrorHtmlFileExists(productSlug, locale)) {
+    return { rel: productMirrorFileRel(productSlug, locale), templateSlug: null };
+  }
+
+  if (locale === "tr" && productMirrorHtmlFileExists(productSlug, "en")) {
+    return { rel: productMirrorFileRel(productSlug, "en"), templateSlug: null };
+  }
+
+  const templateSlug = resolveMirrorProductTemplateSlug(productSlug);
+  if (!templateSlug) return null;
+
+  const aliased = templateSlug.toLowerCase() !== productSlug.toLowerCase() ? templateSlug : null;
+
+  if (productMirrorHtmlFileExists(templateSlug, locale)) {
+    return { rel: productMirrorFileRel(templateSlug, locale), templateSlug: aliased };
+  }
+
+  if (locale === "tr" && productMirrorHtmlFileExists(templateSlug, "en")) {
+    return { rel: productMirrorFileRel(templateSlug, "en"), templateSlug: aliased };
+  }
+
+  return null;
 }
 
 /** Ürün PDP iframe — prod: slug başına prebuilt */

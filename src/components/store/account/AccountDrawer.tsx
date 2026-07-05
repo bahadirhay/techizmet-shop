@@ -21,10 +21,10 @@ const TR: Strings = {
   password: "Şifre",
   firstName: "Ad",
   lastName: "Soyad",
-  signIn: "Giriş",
+  signIn: "Giriş yap",
   register: "Kayıt ol",
   sendReset: "Sıfırlama bağlantısı gönder",
-  forgotLink: "Şifremi unuttum",
+  forgotLink: "Şifremi unuttum?",
   toRegister: "Hesabınız yok mu? Kayıt olun",
   toLogin: "Zaten üye misiniz? Giriş yapın",
   backToLogin: "Girişe dön",
@@ -53,7 +53,7 @@ const EN: Strings = {
   signIn: "Sign in",
   register: "Register",
   sendReset: "Send reset link",
-  forgotLink: "Forgot password",
+  forgotLink: "Forgot password?",
   toRegister: "No account? Register",
   toLogin: "Already a member? Sign in",
   backToLogin: "Back to sign in",
@@ -70,6 +70,17 @@ const EN: Strings = {
   b2bPending: "Registration received. Your dealer application is pending approval.",
 };
 
+function DrawerCloseIcon() {
+  return (
+    <svg className="close-icon" width="20" height="20" viewBox="0 0 23.691 22.723" aria-hidden>
+      <g transform="translate(-126.154 -143.139)">
+        <line x2="23" y2="22" transform="translate(126.5 143.5)" fill="none" stroke="currentColor" strokeWidth="2" />
+        <path d="M0,22,23,0" transform="translate(126.5 143.5)" fill="none" stroke="currentColor" strokeWidth="2" />
+      </g>
+    </svg>
+  );
+}
+
 export function AccountDrawer({ locale }: { locale: ShopLocale }) {
   const { customer, isOpen, mode, setMode, closeAccount, refreshSession } = useAccount();
   const router = useRouter();
@@ -81,10 +92,12 @@ export function AccountDrawer({ locale }: { locale: ShopLocale }) {
       if (e.key === "Escape") closeAccount();
     };
     document.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
+    document.body.classList.add("overflow-hidden");
+    document.documentElement.classList.add("overflow-hidden");
     return () => {
       document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
+      document.body.classList.remove("overflow-hidden");
+      document.documentElement.classList.remove("overflow-hidden");
     };
   }, [isOpen, closeAccount]);
 
@@ -105,34 +118,33 @@ export function AccountDrawer({ locale }: { locale: ShopLocale }) {
 
   return (
     <>
-      <button
-        type="button"
-        className="kn-account-overlay"
-        aria-label={t.close}
-        onClick={closeAccount}
-      />
-      <aside className="kn-account-drawer" role="dialog" aria-label={title}>
-        <div className="kn-account-drawer__head">
-          <h2>{title}</h2>
-          <button
-            type="button"
-            className="kn-account-drawer__close"
-            onClick={closeAccount}
-            aria-label={t.close}
-          >
-            ×
-          </button>
-        </div>
-        <div className="kn-account-drawer__body">
-          {customer ? (
-            <LoggedInView t={t} customer={customer} onClose={closeAccount} onAuthed={onAuthed} />
-          ) : mode === "register" ? (
-            <RegisterView t={t} setMode={setMode} onAuthed={onAuthed} />
-          ) : mode === "forgot" ? (
-            <ForgotView t={t} setMode={setMode} />
-          ) : (
-            <LoginView t={t} setMode={setMode} onAuthed={onAuthed} />
-          )}
+      <button type="button" className="close-fullwidth" aria-label={t.close} onClick={closeAccount} />
+      <aside
+        className="side-drawer account--side-drawer scheme-primary kn-react-account-drawer show"
+        role="dialog"
+        aria-label={title}
+        data-drawer="account-drawer"
+      >
+        <div className="side--drawer-panel">
+          <div className="side--drawer-inner">
+            <div className="side--drawer-header">
+              <h5 className="account--drawer-heading heading-font h5">{title}</h5>
+              <button type="button" className="drawer-close" onClick={closeAccount} aria-label={t.close}>
+                <DrawerCloseIcon />
+              </button>
+            </div>
+            <div className="side--drawer-body" data-drawer-body="drawer-body">
+              {customer ? (
+                <LoggedInView t={t} customer={customer} onClose={closeAccount} onAuthed={onAuthed} />
+              ) : mode === "register" ? (
+                <RegisterView t={t} setMode={setMode} onAuthed={onAuthed} />
+              ) : mode === "forgot" ? (
+                <ForgotView t={t} setMode={setMode} />
+              ) : (
+                <LoginView t={t} setMode={setMode} onAuthed={onAuthed} />
+              )}
+            </div>
+          </div>
         </div>
       </aside>
     </>
@@ -176,38 +188,55 @@ function LoginView({
   }
 
   return (
-    <div className="kn-account-drawer__form">
+    <div className="account--login-form" data-form="login">
       <form onSubmit={submit}>
-        <label>
-          {t.email}
-          <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-        </label>
-        <label>
-          {t.password}
+        <div className="form-group">
+          <label htmlFor="kn-account-email">{t.email}</label>
           <input
+            id="kn-account-email"
+            className="form-control"
+            type="email"
+            required
+            autoComplete="email"
+            placeholder={t.email}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="kn-account-password">{t.password}</label>
+          <input
+            id="kn-account-password"
+            className="form-control"
             type="password"
             required
             minLength={6}
+            autoComplete="current-password"
+            placeholder={t.password}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-        </label>
-        <p className="kn-account-drawer__hint">
-          <button type="button" className="kn-account-drawer__link" onClick={() => setMode("forgot")}>
+        </div>
+        <div className="form-group forgot-password text-right">
+          <button
+            type="button"
+            className="text-underline text-small cursor-pointer"
+            onClick={() => setMode("forgot")}
+          >
             {t.forgotLink}
           </button>
-        </p>
+        </div>
         {err ? <p className="kn-form-error">{err}</p> : null}
-        <button type="submit" className="kn-btn kn-btn--primary kn-btn--block" disabled={busy}>
+        <button type="submit" className="button medium-button button-block" disabled={busy}>
           {busy ? t.loading : t.signIn}
         </button>
+        <p className="account--text-info text-center text-medium">
+          <button type="button" className="text-underline cursor-pointer" onClick={() => setMode("register")}>
+            {t.toRegister}
+          </button>
+        </p>
       </form>
       <SocialLoginButtons />
-      <p className="kn-account-drawer__footer">
-        <button type="button" className="kn-account-drawer__link" onClick={() => setMode("register")}>
-          {t.toRegister}
-        </button>
-      </p>
     </div>
   );
 }
@@ -256,44 +285,75 @@ function RegisterView({
   }
 
   if (notice) {
-    return <p className="kn-account-drawer__notice">{notice}</p>;
+    return <p className="account--text-info text-medium">{notice}</p>;
   }
 
   return (
-    <div className="kn-account-drawer__form">
+    <div className="account--register-form" data-form="create">
       <form onSubmit={submit}>
-        <label>
-          {t.firstName}
-          <input value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-        </label>
-        <label>
-          {t.lastName}
-          <input value={lastName} onChange={(e) => setLastName(e.target.value)} />
-        </label>
-        <label>
-          {t.email}
-          <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-        </label>
-        <label>
-          {t.password}
+        <div className="input-form--fields">
+          <div className="form-group">
+            <label htmlFor="kn-register-first">{t.firstName}</label>
+            <input
+              id="kn-register-first"
+              className="form-control"
+              type="text"
+              autoComplete="given-name"
+              placeholder={t.firstName}
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="kn-register-last">{t.lastName}</label>
+            <input
+              id="kn-register-last"
+              className="form-control"
+              type="text"
+              autoComplete="family-name"
+              placeholder={t.lastName}
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="form-group">
+          <label htmlFor="kn-register-email">{t.email}</label>
           <input
+            id="kn-register-email"
+            className="form-control"
+            type="email"
+            required
+            autoComplete="email"
+            placeholder={t.email}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="kn-register-password">{t.password}</label>
+          <input
+            id="kn-register-password"
+            className="form-control"
             type="password"
             required
             minLength={6}
+            autoComplete="new-password"
+            placeholder={t.password}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-        </label>
+        </div>
         {err ? <p className="kn-form-error">{err}</p> : null}
-        <button type="submit" className="kn-btn kn-btn--primary kn-btn--block" disabled={busy}>
+        <button type="submit" className="button medium-button button-block" disabled={busy}>
           {busy ? t.loading : t.register}
         </button>
+        <p className="account--text-info text-medium text-center">
+          <button type="button" className="text-underline cursor-pointer" onClick={() => setMode("login")}>
+            {t.toLogin}
+          </button>
+        </p>
       </form>
-      <p className="kn-account-drawer__footer">
-        <button type="button" className="kn-account-drawer__link" onClick={() => setMode("login")}>
-          {t.toLogin}
-        </button>
-      </p>
     </div>
   );
 }
@@ -321,13 +381,9 @@ function ForgotView({ t, setMode }: { t: Strings; setMode: (m: AccountDrawerMode
 
   if (done) {
     return (
-      <div className="kn-account-drawer__form">
-        <p className="kn-account-drawer__notice">{t.forgotDone}</p>
-        <button
-          type="button"
-          className="kn-btn kn-btn--outline kn-btn--block"
-          onClick={() => setMode("login")}
-        >
+      <div className="account--recover-password-form" data-form="reset">
+        <p className="account--text-info text-medium">{t.forgotDone}</p>
+        <button type="button" className="button medium-button button-block" onClick={() => setMode("login")}>
           {t.backToLogin}
         </button>
       </div>
@@ -335,21 +391,30 @@ function ForgotView({ t, setMode }: { t: Strings; setMode: (m: AccountDrawerMode
   }
 
   return (
-    <div className="kn-account-drawer__form">
+    <div className="account--recover-password-form" data-form="reset">
       <form onSubmit={submit}>
-        <label>
-          {t.email}
-          <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-        </label>
-        <button type="submit" className="kn-btn kn-btn--primary kn-btn--block" disabled={busy}>
+        <div className="form-group">
+          <label htmlFor="kn-forgot-email">{t.email}</label>
+          <input
+            id="kn-forgot-email"
+            className="form-control"
+            type="email"
+            required
+            autoComplete="email"
+            placeholder={t.email}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
+        <button type="submit" className="button medium-button button-block" disabled={busy}>
           {busy ? t.loading : t.sendReset}
         </button>
+        <div className="account--text-info text-medium text-center">
+          <button type="button" className="text-underline cursor-pointer" onClick={() => setMode("login")}>
+            {t.backToLogin}
+          </button>
+        </div>
       </form>
-      <p className="kn-account-drawer__footer">
-        <button type="button" className="kn-account-drawer__link" onClick={() => setMode("login")}>
-          {t.backToLogin}
-        </button>
-      </p>
     </div>
   );
 }
@@ -380,27 +445,22 @@ function LoggedInView({
   }
 
   return (
-    <div className="kn-account-drawer__panel">
-      <p className="kn-account-drawer__welcome">
+    <div className="kn-account-logged-in">
+      <p className="account--text-info text-medium">
         {t.welcome}, <strong>{name}</strong>
       </p>
-      <nav className="kn-account-drawer__links">
-        <Link href="/account" onClick={onClose}>
+      <nav className="kn-account-logged-in__links">
+        <Link href="/account" className="text-underline" onClick={onClose}>
           {t.dashboard}
         </Link>
-        <Link href="/account/favorites" onClick={onClose}>
+        <Link href="/account/favorites" className="text-underline" onClick={onClose}>
           {t.favorites}
         </Link>
-        <Link href="/orders/track" onClick={onClose}>
+        <Link href="/orders/track" className="text-underline" onClick={onClose}>
           {t.trackOrder}
         </Link>
       </nav>
-      <button
-        type="button"
-        className="kn-btn kn-btn--outline kn-btn--block"
-        onClick={logout}
-        disabled={busy}
-      >
+      <button type="button" className="button medium-button button-block kn-account-logout" onClick={logout} disabled={busy}>
         {busy ? t.loading : t.logout}
       </button>
     </div>

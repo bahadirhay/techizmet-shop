@@ -353,3 +353,8 @@ export function injectMirrorAccountBridge(html: string): string {
   out = out.replace(/<script id="kn-account-bridge">[\s\S]*?<\/script>\s*/i, "");
   return out.replace(/<\/body>/i, `${BRIDGE_SCRIPT}</body>`);
 }
+
+export const MIRROR_ACCOUNT_BRIDGE_JS = BRIDGE_SCRIPT.replace(
+  /^<script id="kn-account-bridge">/,
+  "",
+).replace(/<\/script>\s*$/i, "");

@@ -8,6 +8,7 @@ import {
   plainTextToSimpleHtml,
 } from "@/lib/html-plain-text";
 import { applyMirrorTrReplacements } from "@/lib/mirror-html-locale";
+import { enhanceMarqueeSection } from "@/lib/mirror-element-edits";
 
 export const DEFAULT_PRODUCT_MARQUEE_PLAIN_EN = "Up to *40% Off* Bestsellers";
 export const DEFAULT_PRODUCT_MARQUEE_PLAIN_TR = "En çok satanlarda *%40'a varan* indirim";
@@ -238,6 +239,24 @@ export function injectSiteMarqueeMirrorHtml(
   if (marquee.html) {
     out = out.replace(/<p class="marquee-text[^"]*">[\s\S]*?<\/p>/gi, `<p class="marquee-text ">${marquee.html}</p>`);
   }
+  out = out.replace(
+    /(<section\b[^>]*\bsection-marquee\b[^>]*\bclass=")([^"]*)(")/i,
+    (_, open, classes, close) => {
+      const next = classes.includes("kn-marquee-readable")
+        ? classes
+        : `${classes} kn-marquee-readable`.trim();
+      return `${open}${next}${close}`;
+    },
+  );
+  out = out.replace(
+    /(<marquee-on-scroll\b[^>]*\bclass=")([^"]*)(")/gi,
+    (_, open, classes, close) => {
+      const next = classes.includes("autoplay--infinite")
+        ? classes
+        : `${classes} autoplay--infinite`.trim();
+      return `${open}${next}${close}`;
+    },
+  );
   return out.replace(
     /(<section\b[^>]*\bsection-marquee\b[^>]*)\sdata-kn-pdp-hidden="1"[^>]*/i,
     "$1",
@@ -265,6 +284,7 @@ export function applySiteMarqueeOverlay(
       el.innerHTML = marquee.html;
     });
   }
+  if (section) enhanceMarqueeSection(section);
 }
 
 /**
@@ -411,6 +431,7 @@ export function applyProductPageBottomOverlay(doc: Document, config: ProductPage
     main.querySelectorAll(".section-marquee .marquee-text").forEach((el) => {
       el.innerHTML = config.marquee.html;
     });
+    if (marqueeSection) enhanceMarqueeSection(marqueeSection);
   } else {
     setSectionVisible(marqueeSection, false);
   }

@@ -102,8 +102,7 @@ export const DIRECT_WHATSAPP_LABEL = "Doğrudan WhatsApp'tan yaz";
 export const DEFAULT_DIRECT_MESSAGE = "Merhaba, size ulaşmak istiyorum.";
 
 export const ORDER_FORM_TITLE = "Sipariş bilgileri";
-export const ORDER_FORM_HINT =
-  "Sipariş numaranızı ve e-postanızı girin; durum bilgisini anında gösterelim.";
+export const ORDER_FORM_HINT = "Sipariş numarası ve e-posta ile sorgulayın";
 
 export const RECOMMEND_FORM_TITLE = "Ürün önerisi";
 export const RECOMMEND_FORM_HINT =

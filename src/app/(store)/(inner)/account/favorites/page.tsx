@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { MirrorFavoritesFrame } from "@/components/store/MirrorFavoritesFrame";
+import { ThemeShellCommerceView } from "@/components/store/ThemeShellCommerceView";
 import { accountLoginPath } from "@/lib/account-return-path";
 import { formatTry } from "@/lib/format";
 import { formatProductDisplayTitle } from "@/lib/product-display-title";
@@ -9,15 +11,44 @@ import { getStoreHomepageMode } from "@/lib/site-settings";
 import { prisma } from "@/lib/prisma";
 import { getDefaultSite } from "@/lib/site";
 import { FavoriteButton } from "@/components/store/FavoriteButton";
+import { getStoreLocale } from "@/lib/i18n/server";
+import { FAVORITES_PAGE_BRIDGE_JS } from "@/lib/mirror-favorites-page";
+import { resolveThemeShellFavoritesContent } from "@/lib/theme-shell-commerce-content";
+import {
+  isThemeShellEnabledForCommercePath,
+  type ThemeShellPilotQuery,
+} from "@/lib/theme-shell-pilot";
 
-export default async function FavoritesPage() {
+export default async function FavoritesPage({
+  searchParams,
+}: {
+  searchParams: Promise<ThemeShellPilotQuery>;
+}) {
   const site = await getDefaultSite();
   const session = await getCustomerSession();
   if (!session.isLoggedIn || !session.customerId) {
     redirect(accountLoginPath("/account/favorites"));
   }
 
+  const query = await searchParams;
   const homepageMode = await getStoreHomepageMode(site.id);
+  const themeShellLive = process.env.THEME_SHELL_PILOT_LIVE === "1";
+  const useThemeShell =
+    homepageMode === "mirror" &&
+    isThemeShellEnabledForCommercePath("/account/favorites", query, themeShellLive);
+
+  if (useThemeShell) {
+    const locale = await getStoreLocale();
+    const content = await resolveThemeShellFavoritesContent(session.customerId, locale);
+    if (!content) notFound();
+    return (
+      <ThemeShellCommerceView
+        content={content}
+        bridgeScripts={[FAVORITES_PAGE_BRIDGE_JS]}
+      />
+    );
+  }
+
   if (homepageMode === "mirror") {
     return <MirrorFavoritesFrame />;
   }
