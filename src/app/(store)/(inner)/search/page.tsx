@@ -1,3 +1,4 @@
+import { readThemeShellPilotLive } from "@/lib/theme-shell-pilot-live";
 import { notFound } from "next/navigation";
 import { MirrorSearchFrame } from "@/components/store/MirrorSearchFrame";
 import { ThemeShellCommerceView } from "@/components/store/ThemeShellCommerceView";
@@ -98,7 +99,7 @@ export default async function SearchPage({
   const { q = "", ...query } = await searchParams;
   const site = await getDefaultSite();
   const homepageMode = await getStoreHomepageMode(site.id);
-  const themeShellLive = process.env.THEME_SHELL_PILOT_LIVE === "1";
+  const themeShellLive = readThemeShellPilotLive();
   const useThemeShell =
     homepageMode === "mirror" &&
     isThemeShellEnabledForCommercePath("/search", query, themeShellLive);

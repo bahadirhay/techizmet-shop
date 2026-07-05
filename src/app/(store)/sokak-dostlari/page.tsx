@@ -1,3 +1,4 @@
+import { readThemeShellPilotLive } from "@/lib/theme-shell-pilot-live";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -39,7 +40,7 @@ export default async function StreetFoodFundPublicPage({
 
   const homepageMode = getHomepageMode(settings);
   const query = await searchParams;
-  const themeShellLive = process.env.THEME_SHELL_PILOT_LIVE === "1";
+  const themeShellLive = readThemeShellPilotLive();
   const useThemeShell =
     homepageMode === "mirror" &&
     isThemeShellEnabledForVitrinRoutePath("/sokak-dostlari", query, themeShellLive);

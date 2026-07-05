@@ -1,3 +1,4 @@
+import { readThemeShellPilotLive } from "@/lib/theme-shell-pilot-live";
 import { redirect } from "next/navigation";
 import { notFound } from "next/navigation";
 import { MirrorAccountFrame } from "@/components/store/MirrorAccountFrame";
@@ -38,7 +39,7 @@ export default async function AccountPage({
   const site = await getDefaultSite();
   const homepageMode = await getStoreHomepageMode(site.id);
   const query = await searchParams;
-  const themeShellLive = process.env.THEME_SHELL_PILOT_LIVE === "1";
+  const themeShellLive = readThemeShellPilotLive();
   const useThemeShell =
     homepageMode === "mirror" &&
     isThemeShellEnabledForCommercePath("/account", query, themeShellLive);

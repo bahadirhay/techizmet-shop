@@ -1,3 +1,4 @@
+import { readThemeShellPilotLive } from "@/lib/theme-shell-pilot-live";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { parseBlocks } from "@/lib/blocks/schema";
@@ -73,7 +74,7 @@ export default async function CmsPage({
   const locale = await getStoreLocale();
   const settings = await getSiteSettings(site.id);
   const homepageMode = getHomepageMode(settings);
-  const themeShellLive = process.env.THEME_SHELL_PILOT_LIVE === "1";
+  const themeShellLive = readThemeShellPilotLive();
   const useThemeShell =
     homepageMode === "mirror" &&
     isThemeShellEnabledForPagesPath(`/pages/${slug}`, query, themeShellLive);

@@ -166,7 +166,51 @@
     mountBar(bar);
     bar.removeAttribute("hidden");
     bar.innerHTML = renderBar(p);
+    applyHero(p);
     syncHeroUnderHeader();
+  }
+  function renderHero(p) {
+    var pct = Math.max(0, Math.min(100, Number(p.progressPercent) || 0));
+    var href = p.detailHref || "/sokak-dostlari";
+    return (
+      '<div class="kn-street-food-hero__card"><div class="kn-street-food-hero__title">🐾 ' +
+      (p.title || "") +
+      '</div><p class="kn-street-food-hero__slogan">' +
+      (p.slogan || "") +
+      '</p><div class="kn-street-food-hero__counts">Toplanan Mama: ' +
+      (p.collectedLabel || "0 kg") +
+      " / " +
+      (p.targetLabel || "50 kg") +
+      '</div><div class="kn-street-food-hero__track" aria-hidden="true"><div class="kn-street-food-hero__fill" style="width:' +
+      pct +
+      '%"></div></div><p class="kn-street-food-hero__sub">' +
+      (p.counterSubtext || "") +
+      '</p><a class="kn-street-food-hero__link" href="' +
+      href +
+      '">Detaylar →</a></div>'
+    );
+  }
+  function applyHero(p) {
+    if (!p || !p.enabled) return;
+    var host =
+      qs("#MainContent > .section-media-grid:first-of-type .media-grid--wrapper") ||
+      qs("#MainContent .section-media-grid:first-of-type .media-grid--wrapper");
+    if (!host) return;
+    if (!qs("#kn-street-food-hero-styles")) {
+      var st = document.createElement("style");
+      st.id = "kn-street-food-hero-styles";
+      st.textContent =
+        "#MainContent>.section-media-grid:first-of-type .media-grid--wrapper,#MainContent .section-media-grid:first-of-type .media-grid--wrapper{position:relative}#kn-street-food-hero{position:absolute;left:16px;right:16px;bottom:16px;z-index:2;pointer-events:none;max-width:420px}#kn-street-food-hero[hidden]{display:none!important}.kn-street-food-hero__card{pointer-events:auto;border-radius:14px;padding:14px 16px;background:linear-gradient(135deg,rgba(31,77,58,.94) 0%,rgba(45,106,79,.92) 100%);color:#fff;box-shadow:0 10px 28px rgba(0,0,0,.22);backdrop-filter:blur(6px)}.kn-street-food-hero__title{font-size:14px;font-weight:700;line-height:1.3}.kn-street-food-hero__slogan{margin-top:6px;font-size:12px;line-height:1.4;opacity:.95}.kn-street-food-hero__counts{margin-top:10px;font-size:12px;font-weight:600}.kn-street-food-hero__track{height:5px;border-radius:999px;background:rgba(255,255,255,.25);margin-top:6px;overflow:hidden}.kn-street-food-hero__fill{height:100%;border-radius:999px;background:#b7e4c7;transition:width .35s ease}.kn-street-food-hero__sub{margin-top:8px;font-size:11px;opacity:.9}.kn-street-food-hero__link{display:inline-block;margin-top:8px;color:#fff;font-size:11px;font-weight:600;text-decoration:underline;text-underline-offset:2px}@media(min-width:768px){#kn-street-food-hero{left:24px;right:auto;bottom:24px;max-width:380px}}@media(max-width:640px){#kn-street-food-hero{left:10px;right:10px;bottom:10px;max-width:none}.kn-street-food-hero__card{padding:12px 14px}}";
+      document.head.appendChild(st);
+    }
+    var hero = qs("#kn-street-food-hero");
+    if (!hero) {
+      hero = document.createElement("div");
+      hero.id = "kn-street-food-hero";
+      host.appendChild(hero);
+    }
+    hero.removeAttribute("hidden");
+    hero.innerHTML = renderHero(p);
   }
   function refreshBar() {
     if (document.querySelector(".kn-street-food-fund-bar, #kn-street-food-bar")) return;

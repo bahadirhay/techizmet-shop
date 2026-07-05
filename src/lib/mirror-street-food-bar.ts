@@ -299,6 +299,13 @@ function isThemeShellContext(doc: Document): boolean {
   );
 }
 
+/** Ana sayfa hero kartı — tema kabuğu veya mirror iframe ana sayfa */
+function shouldMountStreetFoodHero(doc: Document): boolean {
+  if (doc.querySelector("[data-kn-street-food-fund-page]")) return false;
+  if (doc.querySelector(".kn-theme-shell-home")) return true;
+  return Boolean(doc.querySelector("#MainContent .section-media-grid .media-grid--wrapper"));
+}
+
 export function installMirrorStreetFoodBar(doc: Document) {
   if (doc.querySelector("[data-kn-street-food-fund-page]")) return;
   if (doc.documentElement.getAttribute("data-kn-street-food-bar") === "1") return;
@@ -313,7 +320,7 @@ export function installMirrorStreetFoodBar(doc: Document) {
     } else if (!doc.querySelector(".kn-street-food-fund-bar")) {
       applyStreetFoodFundBar(doc, payload);
     }
-    if (doc.querySelector(".kn-theme-shell-home")) {
+    if (shouldMountStreetFoodHero(doc)) {
       applyStreetFoodFundHero(doc, payload);
     }
     syncHeroUnderHeader(doc);

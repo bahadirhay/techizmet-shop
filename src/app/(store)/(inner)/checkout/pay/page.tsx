@@ -1,3 +1,4 @@
+import { readThemeShellPilotLive } from "@/lib/theme-shell-pilot-live";
 import { redirect } from "next/navigation";
 import { PaytrCheckout } from "@/components/cart/PaytrCheckout";
 import { CheckoutEmbedStyles } from "@/components/store/CheckoutEmbedStyles";
@@ -16,7 +17,7 @@ export default async function CheckoutPayPage({
   if (!order?.trim() || !token?.trim()) redirect("/checkout");
 
   const homepageMode = await getStoreHomepageMode();
-  const themeShellLive = process.env.THEME_SHELL_PILOT_LIVE === "1";
+  const themeShellLive = readThemeShellPilotLive();
   const useThemeShell =
     homepageMode === "mirror" &&
     isThemeShellEnabledForCommercePath("/checkout/pay", query, themeShellLive);

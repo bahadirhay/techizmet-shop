@@ -21,6 +21,8 @@ import {
   type ThemeShellProductScript,
 } from "@/lib/theme-shell-product-content";
 import { mergeThemeShellVitrinEngineScripts } from "@/lib/theme-shell-vitrin-engine";
+import { applyStreetFoodFundHero } from "@/lib/mirror-street-food-bar";
+import { buildStreetFoodFundPublicPayload } from "@/lib/street-food-fund/campaign";
 
 export type ThemeShellHomeContent = ThemeShellSectionsContent & {
   scripts: ThemeShellProductScript[];
@@ -50,6 +52,14 @@ async function buildThemeShellHomeContent(
     html = `${doctype}\n${document.documentElement.outerHTML}`;
   }
 
+  const fund = await buildStreetFoodFundPublicPayload(siteId, locale);
+  if (fund?.enabled) {
+    const { document } = parseHTML(html);
+    applyStreetFoodFundHero(document, fund);
+    const doctype = html.match(/^<!DOCTYPE[^>]*>/i)?.[0] ?? "<!DOCTYPE html>";
+    html = `${doctype}\n${document.documentElement.outerHTML}`;
+  }
+
   const sections = buildThemeShellMainContentFromHtml(html);
   if (!sections) return null;
 
@@ -68,7 +78,7 @@ export function resolveThemeShellHomeContent(
 ): Promise<ThemeShellHomeContent | null> {
   return unstable_cache(
     () => buildThemeShellHomeContent(siteId, siteName, tenantSlug, locale),
-    ["theme-shell-home-v3", siteId, tenantSlug, locale],
+    ["theme-shell-home-v4", siteId, tenantSlug, locale],
     {
       revalidate: STORE_PUBLIC_REVALIDATE_SEC,
       tags: [storeSettingsTag(siteId), storeMirrorTag(siteId), "store-products"],

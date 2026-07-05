@@ -1,3 +1,4 @@
+import { readThemeShellPilotLive } from "@/lib/theme-shell-pilot-live";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
@@ -156,7 +157,7 @@ export default async function CollectionPage({
     isThemeShellEnabledForCollectionSlug(
       slug,
       { themeShell, mirror },
-      process.env.THEME_SHELL_PILOT_LIVE === "1",
+      readThemeShellPilotLive(),
     );
 
   if (categorySlug?.trim()) {

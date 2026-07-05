@@ -1,3 +1,4 @@
+import { readThemeShellPilotLive } from "@/lib/theme-shell-pilot-live";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { MirrorOrderTrackFrame } from "@/components/store/MirrorOrderTrackFrame";
@@ -21,7 +22,7 @@ export default async function OrderTrackPage({ searchParams }: Props) {
   const { order, ...query } = await searchParams;
   const site = await getDefaultSite();
   const homepageMode = await getStoreHomepageMode(site.id);
-  const themeShellLive = process.env.THEME_SHELL_PILOT_LIVE === "1";
+  const themeShellLive = readThemeShellPilotLive();
   const useThemeShell =
     homepageMode === "mirror" &&
     isThemeShellEnabledForCommercePath("/orders/track", query, themeShellLive);

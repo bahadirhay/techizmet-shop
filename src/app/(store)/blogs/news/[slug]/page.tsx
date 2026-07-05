@@ -1,3 +1,4 @@
+import { readThemeShellPilotLive } from "@/lib/theme-shell-pilot-live";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { BlogArticlePageView } from "@/components/store/BlogArticlePageView";
@@ -64,7 +65,7 @@ export default async function BlogArticlePage({
   const settings = await getSiteSettings(site.id);
   const homepageMode = getHomepageMode(settings);
   const locale = await getStoreLocale();
-  const themeShellLive = process.env.THEME_SHELL_PILOT_LIVE === "1";
+  const themeShellLive = readThemeShellPilotLive();
   const useThemeShell =
     homepageMode === "mirror" &&
     isThemeShellEnabledForBlogArticlePath(`/blogs/news/${slug}`, query, themeShellLive);

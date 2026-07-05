@@ -15,6 +15,10 @@ import { buildThemeColorsOverrideCss } from "@/lib/theme-colors";
 import { resolveThemeShellChrome } from "@/lib/theme-shell-chrome";
 import type { ThemeShellDrawers } from "@/lib/theme-shell-drawers";
 import { resolveThemeShellDrawers } from "@/lib/theme-shell-drawers";
+import { readThemeShellPilotLive } from "@/lib/theme-shell-pilot-live";
+
+/** Vercel runtime env — build zamanında gömülmesin */
+export const dynamic = "force-dynamic";
 
 export default async function StoreLayout({ children }: { children: React.ReactNode }) {
   const site = await getDefaultSite();
@@ -55,7 +59,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
         messages={messages}
         nav={nav}
         socialLinks={socialLinks}
-        themeShellPilotLive={process.env.THEME_SHELL_PILOT_LIVE === "1"}
+        themeShellPilotLive={readThemeShellPilotLive()}
         announcementSlides={announcementSlides}
         announcementScheme={chrome.announcementScheme}
         footerHtml={chrome.footerHtml}

@@ -1,3 +1,4 @@
+import { readThemeShellPilotLive } from "@/lib/theme-shell-pilot-live";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MirrorVitrinFrame } from "@/components/store/MirrorVitrinFrame";
@@ -49,7 +50,7 @@ export default async function HomePage({
   const settings = await getCachedParsedSiteSettings(site.id);
   const homepageMode = getHomepageMode(settings);
   const query = await searchParams;
-  const themeShellLive = process.env.THEME_SHELL_PILOT_LIVE === "1";
+  const themeShellLive = readThemeShellPilotLive();
   const useThemeShell =
     homepageMode === "mirror" &&
     isThemeShellEnabledForHomePath("/", query, themeShellLive);

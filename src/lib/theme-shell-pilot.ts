@@ -2,6 +2,7 @@ import {
   MIRROR_CONTENT_PAGE_SLUGS,
   type VitrinPageKey,
 } from "@/lib/mirror-vitrin-pages";
+import { readThemeShellPilotLive } from "@/lib/theme-shell-pilot-live";
 
 /** Tema kabuğu — mirror iframe yerine React header/footer + vitrin içeriği */
 export const THEME_SHELL_PILOT_PAGE_SLUGS = MIRROR_CONTENT_PAGE_SLUGS;
@@ -85,7 +86,7 @@ export function isThemeShellBlogArticlePath(pathname: string): boolean {
 export function isThemeShellEnabledForBlogArticlePath(
   pathname: string,
   query?: ThemeShellPilotQuery,
-  pilotLive = process.env.THEME_SHELL_PILOT_LIVE === "1",
+  pilotLive = readThemeShellPilotLive(),
 ): boolean {
   if (!isThemeShellBlogArticlePath(pathname)) return false;
   return themeShellOptIn(query, pilotLive);
@@ -153,7 +154,7 @@ function themeShellOptIn(query: ThemeShellPilotQuery | undefined, pilotLive: boo
 export function isThemeShellEnabledForPagesPath(
   pathname: string,
   query?: ThemeShellPilotQuery,
-  pilotLive = process.env.THEME_SHELL_PILOT_LIVE === "1",
+  pilotLive = readThemeShellPilotLive(),
 ): boolean {
   if (!themeShellSlugFromPath(pathname)) return false;
   return themeShellOptIn(query, pilotLive);
@@ -163,7 +164,7 @@ export function isThemeShellEnabledForPagesPath(
 export function isThemeShellEnabledForSlug(
   slug: string,
   query?: ThemeShellPilotQuery,
-  pilotLive = process.env.THEME_SHELL_PILOT_LIVE === "1",
+  pilotLive = readThemeShellPilotLive(),
 ): boolean {
   if (!isThemeShellPilotPageSlug(slug)) return false;
   return themeShellOptIn(query, pilotLive);
@@ -172,7 +173,7 @@ export function isThemeShellEnabledForSlug(
 export function isThemeShellEnabledForCollectionSlug(
   slug: string,
   query?: ThemeShellPilotQuery,
-  pilotLive = process.env.THEME_SHELL_PILOT_LIVE === "1",
+  pilotLive = readThemeShellPilotLive(),
 ): boolean {
   if (!isThemeShellPilotCollectionSlug(slug)) return false;
   return themeShellOptIn(query, pilotLive);
@@ -181,7 +182,7 @@ export function isThemeShellEnabledForCollectionSlug(
 export function isThemeShellEnabledForCollectionPath(
   pathname: string,
   query?: ThemeShellPilotQuery,
-  pilotLive = process.env.THEME_SHELL_PILOT_LIVE === "1",
+  pilotLive = readThemeShellPilotLive(),
 ): boolean {
   const slug = themeShellCollectionSlugFromPath(pathname);
   if (!slug) return false;
@@ -191,7 +192,7 @@ export function isThemeShellEnabledForCollectionPath(
 export function isThemeShellEnabledForVitrinRoutePath(
   pathname: string,
   query?: ThemeShellPilotQuery,
-  pilotLive = process.env.THEME_SHELL_PILOT_LIVE === "1",
+  pilotLive = readThemeShellPilotLive(),
 ): boolean {
   if (!isThemeShellVitrinRoutePath(pathname)) return false;
   return themeShellOptIn(query, pilotLive);
@@ -200,7 +201,7 @@ export function isThemeShellEnabledForVitrinRoutePath(
 export function isThemeShellEnabledForCommercePath(
   pathname: string,
   query?: ThemeShellPilotQuery,
-  pilotLive = process.env.THEME_SHELL_PILOT_LIVE === "1",
+  pilotLive = readThemeShellPilotLive(),
 ): boolean {
   if (!isThemeShellCommercePath(pathname)) return false;
   return themeShellOptIn(query, pilotLive);
@@ -210,7 +211,7 @@ export function isThemeShellEnabledForCommercePath(
 export function isThemeShellEnabledForHomePath(
   pathname: string,
   query?: ThemeShellPilotQuery,
-  pilotLive = process.env.THEME_SHELL_PILOT_LIVE === "1",
+  pilotLive = readThemeShellPilotLive(),
 ): boolean {
   if (!isThemeShellHomePath(pathname)) return false;
   return themeShellOptIn(query, pilotLive);
@@ -220,7 +221,7 @@ export function isThemeShellEnabledForHomePath(
 export function isThemeShellEnabledForProductPath(
   pathname: string,
   query?: ThemeShellPilotQuery,
-  pilotLive = process.env.THEME_SHELL_PILOT_LIVE === "1",
+  pilotLive = readThemeShellPilotLive(),
 ): boolean {
   if (!isThemeShellProductPath(pathname)) return false;
   return themeShellOptIn(query, pilotLive);
@@ -229,7 +230,7 @@ export function isThemeShellEnabledForProductPath(
 export function isThemeShellEnabledForPath(
   pathname: string,
   query?: ThemeShellPilotQuery,
-  pilotLive = process.env.THEME_SHELL_PILOT_LIVE === "1",
+  pilotLive = readThemeShellPilotLive(),
 ): boolean {
   if (isThemeShellMinimalChromePath(pathname)) return false;
   if (isThemeShellEnabledForHomePath(pathname, query, pilotLive)) return true;

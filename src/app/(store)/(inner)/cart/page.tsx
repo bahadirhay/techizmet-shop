@@ -1,3 +1,4 @@
+import { readThemeShellPilotLive } from "@/lib/theme-shell-pilot-live";
 import { notFound } from "next/navigation";
 import { CartPageClient } from "@/components/cart/CartPageClient";
 import { MirrorCartFrame } from "@/components/store/MirrorCartFrame";
@@ -20,7 +21,7 @@ export default async function CartPage({
   const site = await getDefaultSite();
   const homepageMode = await getStoreHomepageMode(site.id);
   const query = await searchParams;
-  const themeShellLive = process.env.THEME_SHELL_PILOT_LIVE === "1";
+  const themeShellLive = readThemeShellPilotLive();
   const useThemeShell =
     homepageMode === "mirror" &&
     isThemeShellEnabledForCommercePath("/cart", query, themeShellLive);

@@ -1,3 +1,4 @@
+import { readThemeShellPilotLive } from "@/lib/theme-shell-pilot-live";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -63,7 +64,7 @@ export default async function ProductPage({
   const site = await getDefaultSite();
   const settings = await getSiteSettings(site.id);
   const homepageMode = getHomepageMode(settings);
-  const themeShellLive = process.env.THEME_SHELL_PILOT_LIVE === "1";
+  const themeShellLive = readThemeShellPilotLive();
   const seoCtx = await loadPublishedProductSeo(slug);
   const jsonLd = await buildProductPageJsonLd(slug);
 

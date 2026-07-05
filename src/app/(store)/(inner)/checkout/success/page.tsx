@@ -1,3 +1,4 @@
+import { readThemeShellPilotLive } from "@/lib/theme-shell-pilot-live";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MirrorCheckoutSuccessFrame } from "@/components/store/MirrorCheckoutSuccessFrame";
@@ -46,7 +47,7 @@ export default async function CheckoutSuccessPage({
   }
 
   const homepageMode = await getStoreHomepageMode(site.id);
-  const themeShellLive = process.env.THEME_SHELL_PILOT_LIVE === "1";
+  const themeShellLive = readThemeShellPilotLive();
   const useThemeShell =
     homepageMode === "mirror" &&
     isThemeShellEnabledForCommercePath("/checkout/success", query, themeShellLive);

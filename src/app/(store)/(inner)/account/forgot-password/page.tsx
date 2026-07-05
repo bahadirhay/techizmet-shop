@@ -1,3 +1,4 @@
+import { readThemeShellPilotLive } from "@/lib/theme-shell-pilot-live";
 import { notFound } from "next/navigation";
 import { MirrorAccountAuthFrame } from "@/components/store/MirrorAccountAuthFrame";
 import { ThemeShellCommerceView } from "@/components/store/ThemeShellCommerceView";
@@ -20,7 +21,7 @@ export default async function AccountForgotPasswordPage({
   const query = await searchParams;
   const site = await getDefaultSite();
   const homepageMode = await getStoreHomepageMode(site.id);
-  const themeShellLive = process.env.THEME_SHELL_PILOT_LIVE === "1";
+  const themeShellLive = readThemeShellPilotLive();
   const useThemeShell =
     homepageMode === "mirror" &&
     isThemeShellEnabledForCommercePath("/account/forgot-password", query, themeShellLive);

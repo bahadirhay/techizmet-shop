@@ -1,3 +1,4 @@
+import { readThemeShellPilotLive } from "@/lib/theme-shell-pilot-live";
 import { CheckoutForm } from "@/components/cart/CheckoutForm";
 import { MirrorCheckoutFrame } from "@/components/store/MirrorCheckoutFrame";
 import { ThemeShellCheckoutForm } from "@/components/store/ThemeShellCheckoutForm";
@@ -22,7 +23,7 @@ export default async function CheckoutPage({
   const site = await getDefaultSite();
   const homepageMode = await getStoreHomepageMode(site.id);
   const query = await searchParams;
-  const themeShellLive = process.env.THEME_SHELL_PILOT_LIVE === "1";
+  const themeShellLive = readThemeShellPilotLive();
   const useThemeShell =
     homepageMode === "mirror" &&
     isThemeShellEnabledForCommercePath("/checkout", query, themeShellLive);
