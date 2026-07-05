@@ -1,5 +1,10 @@
 import { plainTextToSimpleHtml } from "@/lib/html-plain-text";
 import { isAnchorNode } from "@/lib/mirror-dom-node";
+import {
+  MIRROR_HERO_TILE_WIDTH,
+  MIRROR_MOBILE_LCP_WIDTH,
+  mirrorCdnImageUrl,
+} from "@/lib/mirror-cdn-image";
 import type { ShopLocale } from "@/lib/i18n/locale";
 
 /** Media grid — sunucu (HTML parse) + istemci (DOM overlay) */
@@ -93,19 +98,31 @@ export function extractMediaGridItemsFromHtml(
   return items;
 }
 
-function setItemImage(item: Element, url: string) {
+function setItemImage(item: Element, url: string, opts?: { isLcp?: boolean }) {
+  const width = opts?.isLcp ? MIRROR_MOBILE_LCP_WIDTH : MIRROR_HERO_TILE_WIDTH;
+  const sized = mirrorCdnImageUrl(url, width);
+  const base = url.split("?")[0] ?? url;
   item.querySelectorAll("img.media_image, img").forEach((img) => {
     const el = img as HTMLImageElement;
     el.classList.remove("lazyload", "lazyloading", "lazyloaded");
-    el.removeAttribute("loading");
-    el.src = url;
-    el.setAttribute("data-src", url);
-    el.setAttribute("data-original", url);
+    el.removeAttribute("lazyload");
+    el.src = sized;
+    el.setAttribute("data-src", sized);
+    el.setAttribute("data-original", base);
+    el.setAttribute("data-kn-sized", "1");
+    if (opts?.isLcp) {
+      el.setAttribute("fetchpriority", "high");
+      el.setAttribute("loading", "eager");
+      el.setAttribute("elementtiming", "kn-hero-lcp");
+    } else {
+      el.setAttribute("loading", "lazy");
+      el.removeAttribute("fetchpriority");
+    }
     if (el.closest("noscript")) return;
   });
   const noscript = item.querySelector("noscript img");
   if (noscript) {
-    (noscript as HTMLImageElement).src = url;
+    (noscript as HTMLImageElement).src = sized;
   }
 }
 
@@ -115,11 +132,12 @@ export function applyMediaGridItemsToSection(
   edits: MediaGridItemEdit[],
   locale: ShopLocale = "tr",
 ) {
-  for (const edit of edits) {
+  for (let i = 0; i < edits.length; i++) {
+    const edit = edits[i]!;
     const item = mediaGridItemEl(section, edit.itemId);
     if (!item) continue;
 
-    if (edit.imageUrl?.trim()) setItemImage(item, edit.imageUrl.trim());
+    if (edit.imageUrl?.trim()) setItemImage(item, edit.imageUrl.trim(), { isLcp: i === 0 });
 
     // Başlık: EN'de headingHtmlEn varsa onu kullan; yoksa EN'de atla (TR override'ı gösterme)
     const effectiveHeading =

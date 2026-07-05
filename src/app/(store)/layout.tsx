@@ -16,6 +16,7 @@ import { resolveThemeShellChrome } from "@/lib/theme-shell-chrome";
 import type { ThemeShellDrawers } from "@/lib/theme-shell-drawers";
 import { resolveThemeShellDrawers } from "@/lib/theme-shell-drawers";
 import { readThemeShellPilotLive } from "@/lib/theme-shell-pilot-live";
+import { optimizeStoreLogoUrl } from "@/lib/mirror-cdn-image";
 
 /** Vercel runtime env — build zamanında gömülmesin */
 export const dynamic = "force-dynamic";
@@ -55,7 +56,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
         homepageMode={getHomepageMode(settings)}
         locale={locale}
         siteName={site.name}
-        logoSrc={branding.logoUrl}
+        logoSrc={optimizeStoreLogoUrl(branding.logoUrl) ?? branding.logoUrl}
         messages={messages}
         nav={nav}
         socialLinks={socialLinks}

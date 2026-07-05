@@ -1,4 +1,5 @@
 import type { ThemeShellHomeContent } from "@/lib/theme-shell-home-content";
+import { ThemeShellDeferredStyles } from "@/components/store/ThemeShellDeferredStyles";
 import { ThemeShellInjectedStyles } from "@/components/store/ThemeShellInjectedStyles";
 import { StreetFoodFundHero } from "@/components/store/StreetFoodFundHero";
 import { ThemeShellListingCartBridge } from "@/components/store/ThemeShellListingCartBridge";
@@ -12,9 +13,7 @@ export function ThemeShellHomeView({ content }: { content: ThemeShellHomeContent
   return (
     <>
       <ThemeShellInjectedStyles />
-      {content.stylesheets.map((href) => (
-        <link key={href} rel="stylesheet" href={href} />
-      ))}
+      <ThemeShellDeferredStyles hrefs={content.stylesheets} />
       <link rel="stylesheet" href={MIRROR_HERO_CSS} />
       <div className="kn-theme-shell-sections kn-theme-shell-home">
         <main

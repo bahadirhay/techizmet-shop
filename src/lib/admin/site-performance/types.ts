@@ -11,7 +11,7 @@ export type SitePerfCheck = {
   detail: string;
   fixLabel?: string;
   fixHref?: string;
-  fixAction?: "revalidate-cache" | "seo-optimize" | "seo-dashboard-fix";
+  fixAction?: "revalidate-cache" | "seo-optimize" | "seo-dashboard-fix" | "perf-apply-fixes";
 };
 
 export type SitePerfPsiScore = {

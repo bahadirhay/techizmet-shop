@@ -8,6 +8,7 @@ import {
   readCatalogPriceMapFromDocument,
 } from "@/lib/mirror-listing-prices";
 import { readShopLocaleFromDocument } from "@/lib/i18n/locale";
+import { forceMirrorResponsiveImagesInDocument } from "@/lib/mirror-image-reveal";
 import {
   applyLiveStoreCatalogToDocument,
   fetchLiveStoreCatalog,
@@ -67,6 +68,7 @@ export function ThemeShellVitrinBoot() {
   useEffect(() => {
     const run = () => {
       bootThemeShellVitrinFeatures();
+      forceMirrorResponsiveImagesInDocument(document);
       void hydrateThemeShellCatalog(document);
     };
     run();

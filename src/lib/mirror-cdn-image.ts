@@ -14,6 +14,7 @@ export function isResizableMirrorImageUrl(url: string): boolean {
   const path = url.split("?")[0]?.trim() ?? "";
   if (!path || path.startsWith("data:")) return false;
   if (/\.svg$/i.test(path)) return false;
+  if (/^\/api\/media\/[^/]+$/i.test(path)) return true;
   return normalizeMirrorResizeSrc(path) !== null;
 }
 
@@ -62,4 +63,16 @@ export function mirrorImageNeedsResize(img: Pick<HTMLImageElement, "src" | "getA
   const path = src.split("?")[0] ?? "";
   if (/^\/api\/media\/[^/]+$/i.test(path) && !/[?&]width=\d+/i.test(src)) return true;
   return false;
+}
+
+export const STORE_LOGO_RESIZE_WIDTH = 180;
+
+/** Header logosu — PNG/JPG küçült, SVG olduğu gibi */
+export function optimizeStoreLogoUrl(url: string | undefined | null): string | undefined {
+  const trimmed = url?.trim();
+  if (!trimmed) return undefined;
+  const path = trimmed.split("?")[0] ?? trimmed;
+  if (/\.svg$/i.test(path)) return trimmed;
+  if (!isResizableMirrorImageUrl(trimmed)) return trimmed;
+  return mirrorCdnImageUrl(trimmed, STORE_LOGO_RESIZE_WIDTH);
 }

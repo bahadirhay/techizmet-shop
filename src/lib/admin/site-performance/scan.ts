@@ -1,5 +1,6 @@
 import "server-only";
 
+import { probeHomeLcpFromOrigin } from "@/lib/admin/site-performance/home-lcp-probe";
 import { scanSeoDashboard } from "@/lib/admin/seo-dashboard/scan";
 import { scanSearchIntents } from "@/lib/admin/search-intent/scan";
 import { seoAiAvailable, getSeoAiConfig } from "@/lib/admin/product-seo/ai-settings";
@@ -126,6 +127,7 @@ export async function scanSitePerformance(siteId: string): Promise<SitePerforman
       ? sampleMedia.url.split("?")[0]!
       : "/theme/techizmet-shop/cdn/shop/files/18af34f.jpg";
   const resizeOk = await probeResizeApi(origin, resizeProbePath);
+  const homeLcp = await probeHomeLcpFromOrigin(origin);
 
   const checks: SitePerfCheck[] = [
     {
@@ -133,12 +135,12 @@ export async function scanSitePerformance(siteId: string): Promise<SitePerforman
       lighthouseId: "render-blocking-resources",
       label: "Oluşturma engelleyen CSS",
       explanation:
-        "Ana sayfa kabuğunun indirdiği CSS, tarayıcı ilk çizimi yapmadan önce bekletir. Mirror vitrinde tam tema CSS'i gereksiz yere yüklenmemeli.",
+        "Ana sayfa kabuğunun indirdiği CSS, tarayıcı ilk çizimi yapmadan önce bekletir. Kritik dışı bölüm CSS'i ertelenmeli.",
       status: "pass",
       detail:
-        "Mirror sayfalarında yalnızca iframe kabuğu CSS'i yüklenir; tam tema CSS'i React shell rotalarında ayrı chunk olarak gelir.",
-      fixLabel: "Vitrin önbelleğini temizle",
-      fixAction: "revalidate-cache",
+        "Theme shell: media-grid ve featured-collection CSS öncelikli; diğer bölüm stilleri deferred yüklenir.",
+      fixLabel: "Performans düzeltmelerini uygula",
+      fixAction: "perf-apply-fixes",
     },
     {
       id: "legacy-js",
@@ -150,6 +152,17 @@ export async function scanSitePerformance(siteId: string): Promise<SitePerforman
       detail: "Modern tarayıcı hedefi ve polyfill modülü devre dışı (Chrome 111+, Safari 16.4+).",
     },
     {
+      id: "lcp-hero-image",
+      lighthouseId: "largest-contentful-paint",
+      label: "LCP hero görseli",
+      explanation:
+        "Ana sayfadaki ilk media-grid görseli LCP adayıdır; lazy olmamalı, küçültülmüş ve fetchpriority=high ile sunulmalı.",
+      status: homeLcp.ok ? "pass" : "fail",
+      detail: homeLcp.detail,
+      fixLabel: "Performans düzeltmelerini uygula",
+      fixAction: "perf-apply-fixes",
+    },
+    {
       id: "image-delivery",
       lighthouseId: "uses-optimized-images",
       label: "Görsel boyutlandırma (resize API)",
@@ -159,8 +172,8 @@ export async function scanSitePerformance(siteId: string): Promise<SitePerforman
       detail: resizeOk
         ? `Resize API çalışıyor (${resizeProbePath})`
         : `Resize API yanıt vermiyor — görseller kırık veya yavaş olabilir (${resizeProbePath})`,
-      fixLabel: "Görsel boyutları rehberi",
-      fixHref: "/admin/settings/image-guide",
+      fixLabel: "Performans düzeltmelerini uygula",
+      fixAction: "perf-apply-fixes",
     },
     {
       id: "iframe-architecture",

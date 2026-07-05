@@ -17,10 +17,10 @@ export async function POST(req: Request) {
   if (auth instanceof NextResponse) return auth;
 
   const body = (await req.json()) as {
-    action?: "revalidate-cache" | "seo-optimize" | "seo-dashboard-fix";
+    action?: "revalidate-cache" | "seo-optimize" | "seo-dashboard-fix" | "perf-apply-fixes";
   };
 
-  if (body.action === "revalidate-cache") {
+  if (body.action === "revalidate-cache" || body.action === "perf-apply-fixes") {
     revalidateStorePublicCache(auth.siteId);
     return NextResponse.json({ ok: true, scan: await scanSitePerformance(auth.siteId) });
   }

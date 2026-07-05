@@ -93,6 +93,7 @@ function patchImgTagAttrs(
   }
 
   // LCP loading ayarları
+  next = next.replace(/\slazyload=["'][^"']*["']/gi, "");
   if (opts?.isFirstHero) {
     next = next.replace(/\sloading=["']lazy["']/gi, "");
     if (!/fetchpriority=/i.test(next)) next += ' fetchpriority="high"';
@@ -151,19 +152,22 @@ export function patchMirrorCriticalImageLoading(html: string): string {
 
   out = patchMirrorResponsiveUploadImages(out);
 
-  // LCP hero preload — ilk hero'nun 640px versiyonunu önceden yükle
-  const marker = 'class="lazyload no-js-hidden media_image"';
-  const idx = out.indexOf(marker);
-  if (idx === -1) return out;
-
-  const heroChunk = out.slice(idx, idx + 1400);
-  const originalMatch = heroChunk.match(/data-original="([^"]+)"/i);
-
-  if (originalMatch && !/rel="preload"\s+as="image"/i.test(out)) {
-    const heroUrl = originalMatch[1].replace(/&amp;/g, "&");
-    const sized = mirrorCdnImageUrl(heroUrl, MIRROR_MOBILE_LCP_WIDTH);
-    const preload = `<link rel="preload" as="image" href="${escapeHtmlAttr(sized)}" fetchpriority="high">`;
-    out = out.replace(/<head(\b[^>]*)>/i, `<head$1>\n${preload}`);
+  // LCP hero preload — ilk media_image (overlay sonrası da çalışır)
+  if (!/rel="preload"\s+as="image"/i.test(out)) {
+    const heroMatch = out.match(
+      /<section[^>]*section-media-grid[^>]*>[\s\S]{0,12000}?<img\b([^>]*class="[^"]*media_image[^"]*"[^>]*)>/i,
+    );
+    const attrs = heroMatch?.[1] ?? "";
+    const originalMatch =
+      attrs.match(/data-original="([^"]+)"/i) ?? attrs.match(/(?<![a-z-])src="([^"]+)"/i);
+    if (originalMatch?.[1]) {
+      const heroUrl = originalMatch[1].replace(/&amp;/g, "&");
+      if (isResizableMirrorImageUrl(heroUrl)) {
+        const sized = mirrorCdnImageUrl(heroUrl, MIRROR_MOBILE_LCP_WIDTH);
+        const preload = `<link rel="preload" as="image" href="${escapeHtmlAttr(sized)}" fetchpriority="high">`;
+        out = out.replace(/<head(\b[^>]*)>/i, `<head$1>\n${preload}`);
+      }
+    }
   }
 
   return out;

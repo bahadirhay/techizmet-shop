@@ -46,6 +46,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const isAdminOrApi = pathname.startsWith("/admin") || pathname.startsWith("/api");
   const homepageMode = getHomepageMode(settings);
   const themeShellLive = readThemeShellPilotLive();
+  const useThemeShellHome =
+    !isAdminOrApi && pathname === "/" && homepageMode === "mirror" && themeShellLive;
   const useMirrorIframeHome =
     !isAdminOrApi && pathname === "/" && homepageMode === "mirror" && !themeShellLive;
   const mirrorHomePreload = useMirrorIframeHome
@@ -54,12 +56,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         "home",
       )
     : null;
-  const isMirrorHome = useMirrorIframeHome;
-  const mirrorHeroPreload = isMirrorHome
+  const needsHomeHeroPreload = useMirrorIframeHome || useThemeShellHome;
+  const mirrorHeroPreload = needsHomeHeroPreload
     ? await getMirrorHomeHeroPreloadHref(site.id, locale)
     : null;
   const mirrorShell =
     !isAdminOrApi && homepageMode === "mirror" && isMirrorShellPath(pathname) && !themeShellLive;
+  const skipGoogleFontsPreconnect = mirrorShell || themeShellLive;
 
   // Mirror shell sayfalarında Poppins kullanılmıyor — font variable class'ı ekleme
   const bodyClass = mirrorShell ? "antialiased" : `${poppins.variable} antialiased`;
@@ -68,8 +71,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang={locale} data-shop-locale={locale}>
       <head>
         {/* Kritik dış domain'lere erken bağlantı — DNS+TCP+TLS maliyeti ~150-300ms azalır */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {!skipGoogleFontsPreconnect ? (
+          <>
+            <link rel="preconnect" href="https://fonts.googleapis.com" />
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+          </>
+        ) : null}
         {gaId ? <link rel="preconnect" href="https://www.googletagmanager.com" /> : null}
         {gaId ? <link rel="dns-prefetch" href="https://www.google-analytics.com" /> : null}
 

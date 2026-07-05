@@ -86,8 +86,12 @@ export function SitePerformancePanel() {
         );
       } else if (action === "seo-optimize" && j.optimize) {
         setMsg(`${j.optimize.updated} sayfa/ayar güncellendi.`);
-      } else if (action === "revalidate-cache") {
-        setMsg("Vitrin önbelleği temizlendi.");
+      } else if (action === "revalidate-cache" || action === "perf-apply-fixes") {
+        setMsg(
+          action === "perf-apply-fixes"
+            ? "Performans düzeltmeleri uygulandı — vitrin önbelleği temizlendi, yeni HTML üretilecek."
+            : "Vitrin önbelleği temizlendi.",
+        );
       } else {
         setMsg(`${label} tamamlandı.`);
       }
@@ -131,6 +135,14 @@ export function SitePerformancePanel() {
       <div className="flex flex-wrap gap-2">
         <button type="button" className={btnSecondary} disabled={!!busy} onClick={() => void load()}>
           {busy === "scan" ? "Taranıyor…" : "Yeniden tara"}
+        </button>
+        <button
+          type="button"
+          className={btnPrimary}
+          disabled={!!busy}
+          onClick={() => void runAction("perf-apply-fixes", "Analiz et ve düzelt")}
+        >
+          {busy === "perf-apply-fixes" ? "Uygulanıyor…" : "Analiz et ve düzelt"}
         </button>
         <Link href="/admin/settings/seo-dashboard" className={btnSecondary}>
           SEO Komuta Merkezi
@@ -215,7 +227,11 @@ export function SitePerformancePanel() {
                       {check.fixAction ? (
                         <button
                           type="button"
-                          className={check.fixAction === "seo-dashboard-fix" ? btnPrimary : btnSecondary}
+                          className={
+                            check.fixAction === "seo-dashboard-fix" || check.fixAction === "perf-apply-fixes"
+                              ? btnPrimary
+                              : btnSecondary
+                          }
                           disabled={!!busy || (check.fixAction === "seo-dashboard-fix" && !report.aiEnabled)}
                           onClick={() => void runAction(check.fixAction!, check.fixLabel ?? check.label)}
                         >

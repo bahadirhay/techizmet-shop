@@ -19,6 +19,10 @@ function heroFromHtmlSnippet(html: string): string | null {
 /** Admin hero düzenlemesi varsa öncelikli */
 function heroFromPageConfig(settings: ReturnType<typeof parseSiteSettings>): string | null {
   const config = getMirrorPageConfig(settings, "home");
+
+  const mediaGrid = config.sections?.media_grid_bGXVTf?.mediaGridItems?.[0]?.imageUrl?.trim();
+  if (mediaGrid) return mirrorCdnImageUrl(mediaGrid, MIRROR_MOBILE_LCP_WIDTH);
+
   for (const edit of Object.values(config.elements ?? {})) {
     if (edit.kind !== "image") continue;
     const url = edit.imageUrl?.trim();

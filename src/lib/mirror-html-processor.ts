@@ -352,5 +352,6 @@ export async function buildMirrorHtmlCore(params: MirrorHtmlBuildParams): Promis
   if (isHomeMirror) {
     localized = repairFeaturedBlogSectionInHtml(localized);
   }
+  localized = patchMirrorCriticalImageLoading(localized);
   return rewriteLegacyThemePaths(localized);
 }
