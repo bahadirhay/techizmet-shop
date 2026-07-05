@@ -287,7 +287,7 @@ export function applyMirrorPageOverlay(
     applyMirrorSectionLayout(doc, config, locale);
   }
   if (config.customBlocks?.length) {
-    applyCustomBlocksInject(doc, config.customBlocks);
+    applyCustomBlocksInject(doc, config.customBlocks, locale);
     if (config.order.length) {
       injectMirrorSectionOrderStylesheet(doc, config.order);
     }

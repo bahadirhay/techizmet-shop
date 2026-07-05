@@ -328,7 +328,7 @@ export async function buildMirrorHtmlCore(params: MirrorHtmlBuildParams): Promis
       localized = applyCmsPageToMirrorHtml(localized, {
         title: "Mesafeli Satış Sözleşmesi",
         bodyHtml: buildDistanceSalesAgreementHtml(profile),
-      });
+      }, locale);
     } else {
       const cmsPage = await prisma.shopPage.findUnique({
         where: { siteId_slug: { siteId, slug } },
@@ -337,7 +337,7 @@ export async function buildMirrorHtmlCore(params: MirrorHtmlBuildParams): Promis
         localized = applyCmsPageToMirrorHtml(localized, {
           title: cmsPage.title,
           blocks: parseBlocks(cmsPage.blocks),
-        });
+        }, locale);
       }
     }
   }

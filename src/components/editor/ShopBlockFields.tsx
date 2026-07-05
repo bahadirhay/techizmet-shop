@@ -9,6 +9,35 @@ import { SHOP_BLOCK_LABELS, type ShopBlock } from "@/lib/blocks/schema";
 const inp = "ed-input";
 const lbl = "grid gap-1.5";
 
+function EnField({
+  label,
+  value,
+  onChange,
+  multiline,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  multiline?: boolean;
+}) {
+  return (
+    <label className={lbl}>
+      <span className="text-xs font-medium text-sky-300/90">{label}</span>
+      {multiline ? (
+        <textarea
+          className={inp}
+          rows={multiline === true ? 3 : 2}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="English"
+        />
+      ) : (
+        <input className={inp} value={value} onChange={(e) => onChange(e.target.value)} placeholder="English" />
+      )}
+    </label>
+  );
+}
+
 export function ShopBlockFields({
   block,
   onChange,
@@ -26,10 +55,20 @@ export function ShopBlockFields({
             Metin
             <input className={inp} value={block.props.text} onChange={(e) => set({ ...block, props: { ...block.props, text: e.target.value } })} />
           </label>
+          <EnField
+            label="Metin (English)"
+            value={block.props.textEn ?? ""}
+            onChange={(textEn) => set({ ...block, props: { ...block.props, textEn: textEn || undefined } })}
+          />
           <label className={lbl}>
             Link metni
             <input className={inp} value={block.props.linkLabel ?? ""} onChange={(e) => set({ ...block, props: { ...block.props, linkLabel: e.target.value } })} />
           </label>
+          <EnField
+            label="Link metni (English)"
+            value={block.props.linkLabelEn ?? ""}
+            onChange={(linkLabelEn) => set({ ...block, props: { ...block.props, linkLabelEn: linkLabelEn || undefined } })}
+          />
           <label className={lbl}>
             Link URL
             <input className={inp} value={block.props.linkHref ?? ""} onChange={(e) => set({ ...block, props: { ...block.props, linkHref: e.target.value } })} />
@@ -77,14 +116,29 @@ export function ShopBlockFields({
                 Başlık
                 <input className={inp} value={s.headline} onChange={(e) => patchSlides(slides.map((x) => (x.id === s.id ? { ...x, headline: e.target.value } : x)))} />
               </label>
+              <EnField
+                label="Başlık (English)"
+                value={s.headlineEn ?? ""}
+                onChange={(headlineEn) => patchSlides(slides.map((x) => (x.id === s.id ? { ...x, headlineEn: headlineEn || undefined } : x)))}
+              />
               <label className={lbl}>
                 Alt metin
                 <input className={inp} value={s.subline ?? ""} onChange={(e) => patchSlides(slides.map((x) => (x.id === s.id ? { ...x, subline: e.target.value } : x)))} />
               </label>
+              <EnField
+                label="Alt metin (English)"
+                value={s.sublineEn ?? ""}
+                onChange={(sublineEn) => patchSlides(slides.map((x) => (x.id === s.id ? { ...x, sublineEn: sublineEn || undefined } : x)))}
+              />
               <label className={lbl}>
                 Buton metni
                 <input className={inp} value={s.ctaLabel ?? ""} onChange={(e) => patchSlides(slides.map((x) => (x.id === s.id ? { ...x, ctaLabel: e.target.value } : x)))} />
               </label>
+              <EnField
+                label="Buton metni (English)"
+                value={s.ctaLabelEn ?? ""}
+                onChange={(ctaLabelEn) => patchSlides(slides.map((x) => (x.id === s.id ? { ...x, ctaLabelEn: ctaLabelEn || undefined } : x)))}
+              />
               <label className={lbl}>
                 Buton linki
                 <input className={inp} value={s.ctaHref ?? ""} onChange={(e) => patchSlides(slides.map((x) => (x.id === s.id ? { ...x, ctaHref: e.target.value } : x)))} />
@@ -115,6 +169,11 @@ export function ShopBlockFields({
             Buton yazısı
             <input className={inp} value={block.props.label} onChange={(e) => set({ ...block, props: { ...block.props, label: e.target.value } })} />
           </label>
+          <EnField
+            label="Buton yazısı (English)"
+            value={block.props.labelEn ?? ""}
+            onChange={(labelEn) => set({ ...block, props: { ...block.props, labelEn: labelEn || undefined } })}
+          />
           <label className={lbl}>
             Link
             <input className={inp} value={block.props.href} onChange={(e) => set({ ...block, props: { ...block.props, href: e.target.value } })} placeholder="/collections/all" />
@@ -167,6 +226,12 @@ export function ShopBlockFields({
             İçerik
             <textarea className={inp} rows={4} value={block.props.content} onChange={(e) => set({ ...block, props: { ...block.props, content: e.target.value } })} />
           </label>
+          <EnField
+            label="İçerik (English)"
+            value={block.props.contentEn ?? ""}
+            onChange={(contentEn) => set({ ...block, props: { ...block.props, contentEn: contentEn || undefined } })}
+            multiline
+          />
           <label className={lbl}>
             Etiket
             <select className={inp} value={block.props.as ?? "p"} onChange={(e) => set({ ...block, props: { ...block.props, as: e.target.value as "p" | "h1" | "h2" | "h3" } })}>
@@ -402,10 +467,21 @@ export function ShopBlockFields({
             Bölüm başlığı
             <input className={inp} value={block.props.title} onChange={(e) => set({ ...block, props: { ...block.props, title: e.target.value } })} />
           </label>
+          <EnField
+            label="Bölüm başlığı (English)"
+            value={block.props.titleEn ?? ""}
+            onChange={(titleEn) => set({ ...block, props: { ...block.props, titleEn: titleEn || undefined } })}
+          />
           <label className={lbl}>
             Alt başlık / açıklama
             <textarea className={inp} rows={3} value={block.props.subtitle ?? ""} onChange={(e) => set({ ...block, props: { ...block.props, subtitle: e.target.value } })} />
           </label>
+          <EnField
+            label="Alt başlık (English)"
+            value={block.props.subtitleEn ?? ""}
+            onChange={(subtitleEn) => set({ ...block, props: { ...block.props, subtitleEn: subtitleEn || undefined } })}
+            multiline
+          />
           <label className={lbl}>
             Arka plan rengi
             <input className={inp} type="color" value={block.props.backgroundColor ?? "#faf7f2"} onChange={(e) => set({ ...block, props: { ...block.props, backgroundColor: e.target.value } })} />
@@ -462,10 +538,21 @@ export function ShopBlockFields({
                 Kart başlığı
                 <input className={inp} value={it.heading} onChange={(e) => patchItems(items.map((x) => (x.id === it.id ? { ...x, heading: e.target.value } : x)))} />
               </label>
+              <EnField
+                label="Kart başlığı (English)"
+                value={it.headingEn ?? ""}
+                onChange={(headingEn) => patchItems(items.map((x) => (x.id === it.id ? { ...x, headingEn: headingEn || undefined } : x)))}
+              />
               <label className={lbl}>
                 Açıklama
                 <textarea className={inp} rows={3} value={it.description} onChange={(e) => patchItems(items.map((x) => (x.id === it.id ? { ...x, description: e.target.value } : x)))} />
               </label>
+              <EnField
+                label="Açıklama (English)"
+                value={it.descriptionEn ?? ""}
+                onChange={(descriptionEn) => patchItems(items.map((x) => (x.id === it.id ? { ...x, descriptionEn: descriptionEn || undefined } : x)))}
+                multiline
+              />
               <label className={lbl}>
                 Link (isteğe bağlı)
                 <input className={inp} value={it.linkHref ?? ""} onChange={(e) => patchItems(items.map((x) => (x.id === it.id ? { ...x, linkHref: e.target.value || undefined } : x)))} placeholder="/collections/all" />

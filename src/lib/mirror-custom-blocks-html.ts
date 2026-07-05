@@ -1,4 +1,6 @@
 import type { ShopBlock } from "@/lib/blocks/schema";
+import { resolveShopBlockForLocale } from "@/lib/blocks/locale";
+import type { ShopLocale } from "@/lib/i18n/locale";
 import {
   MIRROR_WIDGET_TOP,
   type MirrorCustomBlockEntry,
@@ -173,12 +175,17 @@ function createWidgetElement(doc: Document, entry: MirrorCustomBlockEntry): Elem
   if (!section) return null;
   section.classList.add("kn-custom-block-root");
   section.setAttribute("data-kn-custom-block", entry.id);
+  section.setAttribute("data-kn-no-translate", "1");
   if (entry.hidden) section.classList.add("kn-cb-hidden");
   return section;
 }
 
 /** Widget'ları seçilen bölüm konumlarına göre enjekte eder */
-export function applyCustomBlocksInject(doc: Document, entries: MirrorCustomBlockEntry[]) {
+export function applyCustomBlocksInject(
+  doc: Document,
+  entries: MirrorCustomBlockEntry[],
+  locale: ShopLocale = "tr",
+) {
   const main = doc.getElementById("MainContent");
   if (!main) return;
 
@@ -193,7 +200,8 @@ export function applyCustomBlocksInject(doc: Document, entries: MirrorCustomBloc
   const chainAfter = new Map<string, Element>();
 
   for (const entry of entries) {
-    const el = createWidgetElement(doc, entry);
+    const resolved = resolveShopBlockForLocale(entry.block, locale);
+    const el = createWidgetElement(doc, { ...entry, block: resolved });
     if (!el) continue;
 
     const anchor = entry.insertAfterSection?.trim() || MIRROR_WIDGET_TOP;

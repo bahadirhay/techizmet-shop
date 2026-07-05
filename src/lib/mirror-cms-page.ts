@@ -1,5 +1,7 @@
 import { parseHTML } from "@/lib/linkedom-server";
+import { resolveShopBlockForLocale } from "@/lib/blocks/locale";
 import type { ShopBlock } from "@/lib/blocks/schema";
+import type { ShopLocale } from "@/lib/i18n/locale";
 
 function escapeHtml(s: string) {
   return s
@@ -9,37 +11,38 @@ function escapeHtml(s: string) {
     .replace(/"/g, "&quot;");
 }
 
-function cmsBlocksToHtml(blocks: ShopBlock[]): string {
+function cmsBlocksToHtml(blocks: ShopBlock[], locale: ShopLocale): string {
   const parts: string[] = [];
   for (const block of blocks) {
-    if (block.type === "text") {
-      const align = block.props.align ?? "left";
+    const b = resolveShopBlockForLocale(block, locale);
+    if (b.type === "text") {
+      const align = b.props.align ?? "left";
       const tag =
-        block.props.as === "h1"
+        b.props.as === "h1"
           ? "h1"
-          : block.props.as === "h2"
+          : b.props.as === "h2"
             ? "h2"
-            : block.props.as === "h3"
+            : b.props.as === "h3"
               ? "h3"
               : "p";
       parts.push(
-        `<div class="kn-cms-block kn-align-${align}"><${tag} class="kn-cms-text">${escapeHtml(block.props.content)}</${tag}></div>`,
+        `<div class="kn-cms-block kn-align-${align}" data-kn-no-translate="1"><${tag} class="kn-cms-text">${escapeHtml(b.props.content)}</${tag}></div>`,
       );
       continue;
     }
-    if (block.type === "button") {
-      const align = block.props.align ?? "center";
+    if (b.type === "button") {
+      const align = b.props.align ?? "center";
       parts.push(
-        `<div class="kn-cms-block kn-align-${align}"><a href="${escapeHtml(block.props.href)}" class="button medium-button">${escapeHtml(block.props.label)}</a></div>`,
+        `<div class="kn-cms-block kn-align-${align}" data-kn-no-translate="1"><a href="${escapeHtml(b.props.href)}" class="button medium-button">${escapeHtml(b.props.label)}</a></div>`,
       );
       continue;
     }
-    if (block.type === "image" && block.props.src?.trim()) {
-      const alt = escapeHtml(block.props.alt ?? "");
-      const src = escapeHtml(block.props.src.trim());
+    if (b.type === "image" && b.props.src?.trim()) {
+      const alt = escapeHtml(b.props.alt ?? "");
+      const src = escapeHtml(b.props.src.trim());
       const img = `<img src="${src}" alt="${alt}" loading="lazy">`;
       parts.push(
-        `<figure class="kn-cms-block kn-cms-figure">${block.props.href?.trim() ? `<a href="${escapeHtml(block.props.href.trim())}">${img}</a>` : img}</figure>`,
+        `<figure class="kn-cms-block kn-cms-figure">${b.props.href?.trim() ? `<a href="${escapeHtml(b.props.href.trim())}">${img}</a>` : img}</figure>`,
       );
     }
   }
@@ -110,7 +113,11 @@ export type MirrorCmsPagePayload = {
 };
 
 /** About kabuğu — banner başlığı + CMS blok içeriği */
-export function applyCmsPageToMirrorHtml(html: string, payload: MirrorCmsPagePayload): string {
+export function applyCmsPageToMirrorHtml(
+  html: string,
+  payload: MirrorCmsPagePayload,
+  locale: ShopLocale = "tr",
+): string {
   const { document } = parseHTML(html);
 
   document.title = payload.title.trim() || document.title;
@@ -131,7 +138,7 @@ export function applyCmsPageToMirrorHtml(html: string, payload: MirrorCmsPagePay
     const banner = main.querySelector("section.page-banner, .page-banner");
     const cmsSection = document.createElement("section");
     cmsSection.className = "kn-mirror-section kn-cms-page";
-    const inner = payload.bodyHtml?.trim() || cmsBlocksToHtml(payload.blocks ?? []);
+    const inner = payload.bodyHtml?.trim() || cmsBlocksToHtml(payload.blocks ?? [], locale);
     cmsSection.innerHTML = `<div class="section-wrapper section-spacing scheme-primary section-solid"><div class="container-narrow kn-cms-page-inner">${inner}</div></div>`;
 
     if (banner) {
