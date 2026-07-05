@@ -92,6 +92,7 @@ import {
 
 export type { MirrorElementEdit, MirrorElementKind, MirrorElementPick } from "@/lib/mirror-element-edits";
 
+import { CONTACT_FORM_CENTERED_CSS } from "@/lib/mirror-contact-form-styles";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import { applyCollectionsTabToSection } from "@/lib/mirror-collections-tab";
 import { applyCustomBlocksInject } from "@/lib/mirror-custom-blocks-html";
@@ -297,16 +298,7 @@ export function applyMirrorPageOverlay(
     if (!doc.getElementById(styleId)) {
       const s = doc.createElement("style");
       s.id = styleId;
-      s.textContent =
-        `.contact-form--wrapper,.contact-form--wrapper.style-both{display:block!important;grid-template-columns:none!important;flex-direction:column!important}` +
-        `.contact-form--map-box{display:none!important}` +
-        `.contact-form--content{max-width:720px!important;margin:0 auto!important;width:100%!important;float:none!important;flex:none!important}` +
-        `.contact-form--content-inner{padding:0!important;text-align:center}` +
-        `.contact-form--content-inner h2,.contact-form--content-inner .contact-form--title{text-align:center!important}` +
-        `.contact-form--box{margin:0 auto!important}` +
-        `.contact-form--fields{display:grid!important;grid-template-columns:1fr 1fr!important;gap:16px!important}` +
-        `.contact-form--fields .field{margin:0!important}` +
-        `[id*="contact_form"] .normal-button,[id*="contact_form"] .button{margin:0 auto!important;display:block!important;width:fit-content!important}`;
+      s.textContent = CONTACT_FORM_CENTERED_CSS;
       doc.head.appendChild(s);
     }
   } else {
