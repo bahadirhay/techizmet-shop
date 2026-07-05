@@ -5,7 +5,7 @@ const V = "?v=1";
 const SECTION_SHEETS = [
   `${BASE}/richtext5169.css${V}`,
   `${BASE}/componentcd23.css${V}`,
-  "/theme/techizmet-shop/kn-blog-cards.css?v=3",
+  "/theme/techizmet-shop/kn-blog-cards.css?v=4",
 ];
 
 export function ThemeShellSectionStyles() {

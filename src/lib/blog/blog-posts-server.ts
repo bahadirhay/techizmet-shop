@@ -1,4 +1,5 @@
 import type { ShopLocale } from "@/lib/i18n/locale";
+import { applyEnReplacementsToText } from "@/lib/mirror-en-locale";
 import {
   blogExcerpt,
   blogPostHref,
@@ -87,15 +88,19 @@ export async function listFeaturedBlogPostsForHome(
 }
 
 export function blogPostsToListCards(posts: BlogPostRecord[], locale: ShopLocale) {
-  return posts.map((p) => ({
-    slug: p.slug,
-    title: blogTitle(p, locale),
-    excerpt: blogExcerpt(p, locale),
-    imageUrl: resolveBlogFeaturedImageUrl(p.slug, p.imageUrl) ?? p.imageUrl ?? undefined,
-    dateLabel: formatBlogDateLabel(p.publishedAt, locale),
-    author: p.author ?? undefined,
-    href: blogPostHref(p.slug),
-  }));
+  return posts.map((p) => {
+    const title = blogTitle(p, locale);
+    const excerpt = blogExcerpt(p, locale);
+    return {
+      slug: p.slug,
+      title: locale === "en" ? applyEnReplacementsToText(title) : title,
+      excerpt: locale === "en" ? applyEnReplacementsToText(excerpt) : excerpt,
+      imageUrl: resolveBlogFeaturedImageUrl(p.slug, p.imageUrl) ?? p.imageUrl ?? undefined,
+      dateLabel: formatBlogDateLabel(p.publishedAt, locale),
+      author: p.author ?? undefined,
+      href: blogPostHref(p.slug),
+    };
+  });
 }
 
 export { blogPostHref };

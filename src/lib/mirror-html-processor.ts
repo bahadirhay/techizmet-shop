@@ -252,7 +252,7 @@ export async function buildMirrorHtmlCore(params: MirrorHtmlBuildParams): Promis
 
   if (normalized.includes("/mirror/blogs/news/index")) {
     const posts = await listPublishedBlogPosts(siteId);
-    localized = applyBlogCardsToHtml(localized, blogPostsToListCards(posts, locale));
+    localized = applyBlogCardsToHtml(localized, blogPostsToListCards(posts, locale), locale);
   }
 
   const isHomeMirror = /\/mirror\/index(-tr)?\.html$/i.test(normalized);

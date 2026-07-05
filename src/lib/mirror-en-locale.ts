@@ -207,6 +207,17 @@ const EN_UI_REPLACEMENTS: ReadonlyArray<readonly [string, string]> = [
   ["Sokak Dostları", "Street Friends"],
   ["Mama Fonu", "Food Fund"],
   ["Sokak Dostları Mama Fonu", "Street Friends Food Fund"],
+  // —— Blog ——
+  ["Devamını oku", "Read more"],
+  ["Köpek Bakımı Rehberi", "Dog Care Guide"],
+  [
+    "Sevimli dostlarınız için uzman tavsiyeleri, beslenme ipuçları ve eğitim rehberleri.",
+    "Expert tips, nutrition advice, and training guides for your beloved companions.",
+  ],
+  ["Ürün Bilgisi", "Product Info"],
+  ["Sağlık", "Health"],
+  ["Eğitim", "Training"],
+  ["Blog", "Blog"],
 ];
 
 function applyEnUiReplacements(text: string): string {
@@ -252,6 +263,12 @@ const EN_OVERLAY_TEXT_SELECTORS = [
   ".product-accordion--heading-text",
   ".footer--menu-link",
   ".section--heading",
+  ".section--description",
+  ".page--title",
+  ".page--desc",
+  ".blog--title",
+  ".blog--desc",
+  ".button--text",
   ".media-content-heading",
   ".kn-cms-text",
   "label",

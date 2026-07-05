@@ -7,8 +7,8 @@ export function normalizeBlogItemHtml(html: string): string {
   return html
     .replace(/<div\s+[\r\n\s]+class="blog--item/gi, "<div class=\"blog--item")
     .replace(/<\/div>\s*class="blog--item/gi, "</div><div class=\"blog--item")
-    // blog--content kapanışından sonra dış blog--item </div> eksikse ekle
-    .replace(/<\/div><div class="blog--item/gi, "</div></div><div class=\"blog--item");
+    // blog--content kapanışından sonra dış blog--item </div> eksikse ekle (zaten iki </div> varsa dokunma)
+    .replace(/(?<!<\/div>)<\/div>\s*<div class="blog--item/gi, "</div></div><div class=\"blog--item");
 }
 
 export function truncateBlogItemChunk(chunk: string): { item: string; suffix: string } {

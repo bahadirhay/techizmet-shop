@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { ShopLocale } from "@/lib/i18n/locale";
 
@@ -24,13 +23,17 @@ export function LocaleSwitcher({
   async function setLocale(next: ShopLocale) {
     if (next === locale || busy) return;
     setBusy(true);
-    await fetch("/api/locale", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ locale: next }),
-    });
-    router.refresh();
-    setBusy(false);
+    try {
+      await fetch("/api/locale", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ locale: next }),
+      });
+      const target = `${window.location.pathname}${window.location.search}`;
+      window.location.assign(target);
+    } catch {
+      setBusy(false);
+    }
   }
 
   if (compact) {

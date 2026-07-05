@@ -1,5 +1,6 @@
 import { htmlToPlainText } from "@/lib/html-plain-text";
 import type { ShopLocale } from "@/lib/i18n/locale";
+import { applyEnReplacementsToText } from "@/lib/mirror-en-locale";
 import { parseHTML } from "@/lib/linkedom-server";
 import {
   blogBody,
@@ -12,9 +13,13 @@ import {
 import type { FeaturedBlogPostEdit } from "@/lib/mirror-featured-blog";
 import {
   BLOG_ITEM_OPEN_TOKEN,
+  normalizeBlogItemHtml,
   patchBlogLinksInChunk,
   splitBlogItemHtmlParts,
 } from "@/lib/mirror-blog-item-html";
+
+const BLOG_CARDS_CSS = "/theme/techizmet-shop/kn-blog-cards.css?v=4";
+const BLOG_GRID_STYLE_TAG = `<style id="kn-blog-grid-css">.main-blog--items-wrapper{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;column-gap:30px!important;row-gap:60px!important}.main-blog--items-wrapper>.blog--item{min-width:0;width:100%}@media(max-width:991px){.main-blog--items-wrapper{grid-template-columns:repeat(2,minmax(0,1fr))!important}}@media(max-width:767px){.main-blog--items-wrapper{grid-template-columns:repeat(1,minmax(0,1fr))!important;row-gap:30px!important}}</style>`;
 
 function escapeHtml(s: string) {
   return s
@@ -64,6 +69,11 @@ export function setBlogImageInHtmlChunk(chunk: string, url: string, alt: string)
   return out;
 }
 
+function localizeBlogCardText(text: string, locale: ShopLocale): string {
+  if (locale !== "en" || !text.trim()) return text;
+  return applyEnReplacementsToText(text);
+}
+
 function patchBlogItemChunk(
   chunk: string,
   post: {
@@ -74,19 +84,23 @@ function patchBlogItemChunk(
     dateLabel?: string;
     author?: string;
   },
-  opts?: { openInNewTab?: boolean },
+  opts?: { openInNewTab?: boolean; locale?: ShopLocale },
 ) {
+  const locale = opts?.locale ?? "tr";
+  const title = localizeBlogCardText(post.title, locale);
+  const excerpt = localizeBlogCardText(post.excerpt, locale);
+  const readMore = locale === "en" ? "Read more" : "Devamını oku";
   const href = blogPostHref(post.slug);
   let out = patchBlogLinksInChunk(chunk, href, opts?.openInNewTab === true);
-  if (post.imageUrl?.trim()) out = setBlogImageInHtmlChunk(out, post.imageUrl.trim(), post.title);
+  if (post.imageUrl?.trim()) out = setBlogImageInHtmlChunk(out, post.imageUrl.trim(), title);
   out = out.replace(
     /class="blog--title[^"]*"[^>]*>[\s\S]*?<\/a>/i,
-    `class="blog--title h6 heading-font" aria-label="${escapeHtml(post.title)}">${escapeHtml(post.title)}</a>`,
+    `class="blog--title h6 heading-font" aria-label="${escapeHtml(title)}">${escapeHtml(title)}</a>`,
   );
-  if (post.excerpt) {
+  if (excerpt) {
     out = out.replace(
       /<p class="blog--desc">[\s\S]*?<\/p>/i,
-      `<p class="blog--desc">${escapeHtml(post.excerpt)}</p>`,
+      `<p class="blog--desc">${escapeHtml(excerpt)}</p>`,
     );
   }
   if (post.dateLabel) {
@@ -101,7 +115,20 @@ function patchBlogItemChunk(
       `<li class="blog--data text-large author--name">${escapeHtml(post.author)}</li>`,
     );
   }
+  out = out.replace(
+    /<span[^>]*class="button--text"[^>]*>[\s\S]*?<\/span>/i,
+    `<span class="button--text">${escapeHtml(readMore)}</span>`,
+  );
   return out;
+}
+
+function injectBlogListLayoutStyles(html: string): string {
+  if (html.includes("kn-blog-grid-css") || html.includes("kn-blog-cards.css")) return html;
+  const link = `<link rel="stylesheet" href="${BLOG_CARDS_CSS}" id="kn-blog-cards-css" />`;
+  const block = `${BLOG_GRID_STYLE_TAG}${link}`;
+  const marker = /<div class="main-blog--items-wrapper"/i;
+  if (marker.test(html)) return html.replace(marker, `${block}<div class="main-blog--items-wrapper"`);
+  return html.replace(/<section[^>]*class="[^"]*section-main-blog[^"]*"/i, (m) => `${m}${block}`);
 }
 
 /** Blog listesi + ana sayfa kartları */
@@ -115,18 +142,19 @@ export function applyBlogCardsToHtml(
     dateLabel?: string;
     author?: string;
   }>,
+  locale: ShopLocale = "tr",
 ) {
   if (!posts.length) return html;
 
   const { document } = parseHTML(html);
   const wrapper = document.querySelector(".main-blog--items-wrapper");
-  const templateEl = document.querySelector(".blog--item");
+  const templateEl = wrapper?.querySelector(".blog--item") ?? document.querySelector(".blog--item");
   if (wrapper && templateEl) {
     const templateOuter = templateEl.outerHTML;
     wrapper.querySelectorAll(".blog--item").forEach((el) => el.remove());
 
     for (const post of posts) {
-      const patched = patchBlogItemChunk(templateOuter, post, { openInNewTab: true });
+      const patched = patchBlogItemChunk(templateOuter, post, { openInNewTab: true, locale });
       const host = document.createElement("div");
       host.innerHTML = patched;
       const card = host.querySelector(".blog--item") ?? host.firstElementChild;
@@ -134,7 +162,8 @@ export function applyBlogCardsToHtml(
     }
 
     const doctype = html.match(/^<!DOCTYPE[^>]*>/i)?.[0] ?? "";
-    return `${doctype}\n${document.documentElement.outerHTML}`;
+    const out = `${doctype}\n${document.documentElement.outerHTML}`;
+    return injectBlogListLayoutStyles(out);
   }
 
   const { prefix, items, suffix } = splitBlogItemHtmlParts(html);
@@ -146,13 +175,13 @@ export function applyBlogCardsToHtml(
   for (let i = 0; i < posts.length; i++) {
     const chunk = items[i] ?? template;
     const raw = chunk.startsWith("<div") ? chunk : BLOG_ITEM_OPEN_TOKEN + chunk;
-    patched.push(patchBlogItemChunk(raw, posts[i]!, { openInNewTab: true }));
+    patched.push(patchBlogItemChunk(raw, posts[i]!, { openInNewTab: true, locale }));
   }
 
   const inner = patched
     .map((item) => (item.startsWith("<div") ? item : BLOG_ITEM_OPEN_TOKEN + item))
     .join("");
-  return prefix + inner + suffix;
+  return injectBlogListLayoutStyles(normalizeBlogItemHtml(prefix + inner + suffix));
 }
 
 export function blogPostsToFeaturedEdits(
