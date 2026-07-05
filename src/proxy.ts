@@ -51,6 +51,9 @@ function attachLocale(
   }
   response.headers.set("x-shop-locale", locale);
   response.headers.set("x-pathname", pathname);
+  if (isVitrinShellPath(pathname)) {
+    response.headers.set("Vary", "Cookie");
+  }
   // Set-Cookie yoksa Vercel edge cache açılabilir (ilk ziyaret hariç)
   if (!localeCookieChanged && isVitrinShellPath(pathname)) {
     response.headers.set("Vercel-CDN-Cache-Control", VITRIN_SHELL_EDGE_CACHE);

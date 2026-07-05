@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { ShopLocale } from "@/lib/i18n/locale";
+import { writeShopLocaleCookie } from "@/lib/i18n/locale";
 
 export function LocaleSwitcher({
   locale,
@@ -19,20 +20,12 @@ export function LocaleSwitcher({
 }) {
   const [busy, setBusy] = useState(false);
 
-  async function setLocale(next: ShopLocale) {
+  function setLocale(next: ShopLocale) {
     if (next === locale || busy) return;
     setBusy(true);
-    try {
-      await fetch("/api/locale", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ locale: next }),
-      });
-      const target = `${window.location.pathname}${window.location.search}`;
-      window.location.assign(target);
-    } catch {
-      setBusy(false);
-    }
+    writeShopLocaleCookie(next);
+    const target = `${window.location.pathname}${window.location.search}`;
+    window.location.assign(target);
   }
 
   if (compact) {

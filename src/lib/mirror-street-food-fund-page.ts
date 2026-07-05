@@ -1,5 +1,6 @@
 /** Mirror vitrin — /sokak-dostlari sayfa içeriği (sayaç + bağış günlüğü) */
 
+import { readShopLocaleFromDocument } from "@/lib/i18n/locale";
 import type { StreetFoodDonationPublic, StreetFoodFundPublicPayload } from "@/lib/street-food-fund/types";
 
 const STYLE_ID = "kn-street-food-page-styles";
@@ -176,8 +177,7 @@ export function installMirrorStreetFoodFundPage(doc: Document) {
   if (doc.documentElement.getAttribute("data-kn-street-food-page") === "1") return;
   doc.documentElement.setAttribute("data-kn-street-food-page", "1");
 
-  const locale =
-    doc.documentElement.lang?.toLowerCase().startsWith("en") ? "en" : "tr";
+  const locale = readShopLocaleFromDocument(doc);
 
   const refresh = async () => {
     const [fund, donations] = await Promise.all([fetchFund(), fetchDonations()]);

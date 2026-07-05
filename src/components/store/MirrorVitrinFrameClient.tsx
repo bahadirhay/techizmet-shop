@@ -272,7 +272,7 @@ export function MirrorVitrinFrameClient({
 
     async function finishCatalogAndVisibility(doc: Document) {
       const catalogGen = liveCatalogGenRef.current;
-      const catalogHydrated = mirrorCatalogAlreadyHydrated(doc);
+      const catalogHydrated = mirrorCatalogAlreadyHydrated(doc, locale ?? "tr");
       try {
         if (!visualEditMode && !isCartOrCheckoutShell && !catalogHydrated) {
           let payload: LiveStoreCatalogPayload | null = null;
@@ -341,7 +341,7 @@ export function MirrorVitrinFrameClient({
       applyMirrorIframeHeight(frame);
 
       const serverReady = isMirrorServerReady(doc);
-      const catalogHydrated = mirrorCatalogAlreadyHydrated(doc);
+      const catalogHydrated = mirrorCatalogAlreadyHydrated(doc, locale ?? "tr");
       const navOnServer = doc.documentElement.getAttribute("data-kn-nav-server") === "1";
       const footerOnServer = doc.documentElement.getAttribute("data-kn-footer-server") === "1";
       const serverOverlay = doc.documentElement.getAttribute("data-kn-overlay-server") === "1";
@@ -496,7 +496,7 @@ export function MirrorVitrinFrameClient({
       const doc = iframeRef.current?.contentDocument;
       if (!doc?.getElementById("MainContent")) return;
 
-      const hydrated = mirrorCatalogAlreadyHydrated(doc);
+      const hydrated = mirrorCatalogAlreadyHydrated(doc, locale ?? "tr");
       const serverReady = isMirrorServerReady(doc);
       if (patchesCompleteRef.current && hydrated && serverReady) return;
 

@@ -30,3 +30,19 @@ export function resolveLocaleFromRequest(req: NextRequest): ShopLocale {
 export function localeFromCookieValue(raw: string | undefined): ShopLocale | null {
   return isShopLocale(raw) ? raw : null;
 }
+
+/** İstemci — SSR `lang` / `data-shop-locale` öncelikli */
+export function readShopLocaleFromDocument(doc: Document): ShopLocale {
+  const fromAttr = doc.documentElement.getAttribute("data-shop-locale");
+  if (isShopLocale(fromAttr)) return fromAttr;
+  const lang = doc.documentElement.lang?.toLowerCase() ?? "";
+  if (lang.startsWith("en")) return "en";
+  return "tr";
+}
+
+const LOCALE_COOKIE_MAX_AGE_SEC = 60 * 60 * 24 * 365;
+
+/** İstemci — dil çerezini anında yazar (API round-trip gerekmez) */
+export function writeShopLocaleCookie(locale: ShopLocale): void {
+  document.cookie = `${LOCALE_COOKIE}=${locale}; path=/; max-age=${LOCALE_COOKIE_MAX_AGE_SEC}; samesite=lax`;
+}

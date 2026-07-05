@@ -11,6 +11,7 @@ import type { VitrinCollectionProductCard } from "@/lib/mirror-collections-sync"
 import { applyHomeListingProductsToDocument } from "@/lib/mirror-home-products-inject";
 import type { MirrorPageConfig } from "@/lib/mirror-home-overlay";
 import type { ShopLocale } from "@/lib/i18n/locale";
+import { readShopLocaleFromDocument } from "@/lib/i18n/locale";
 import {
   applyCatalogPricesToDocument,
   type CatalogPriceMap,
@@ -29,9 +30,14 @@ export type LiveStoreCatalogPayload = {
  * prebuild stale olabilir (silinmiş görseller, güncellenen fiyatlar).
  * Yalnızca aynı oturumda zaten canlı fetch yapıldıysa atlanır.
  */
-export function mirrorCatalogAlreadyHydrated(doc: Document): boolean {
+export function mirrorCatalogAlreadyHydrated(doc: Document, locale?: ShopLocale): boolean {
   const root = doc.documentElement;
-  if (root.getAttribute("data-kn-catalog-live") === "1") return true;
+  const live = root.getAttribute("data-kn-catalog-live");
+  if (live === "tr" || live === "en") {
+    if (locale && live !== locale) return false;
+    return true;
+  }
+  if (live === "1") return !locale || locale === readShopLocaleFromDocument(doc);
   return Boolean(doc.getElementById("kn-catalog-prices")?.textContent?.trim());
 }
 
@@ -109,5 +115,5 @@ export function applyLiveStoreCatalogToDocument(
     patchedSections.add(sectionKey);
   });
 
-  doc.documentElement.setAttribute("data-kn-catalog-live", "1");
+  doc.documentElement.setAttribute("data-kn-catalog-live", locale);
 }

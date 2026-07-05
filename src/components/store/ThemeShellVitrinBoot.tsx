@@ -7,6 +7,7 @@ import {
   applyCatalogPricesToDocument,
   readCatalogPriceMapFromDocument,
 } from "@/lib/mirror-listing-prices";
+import { readShopLocaleFromDocument } from "@/lib/i18n/locale";
 import {
   applyLiveStoreCatalogToDocument,
   fetchLiveStoreCatalog,
@@ -47,12 +48,12 @@ export function bootThemeShellVitrinFeatures() {
 }
 
 async function hydrateThemeShellCatalog(doc: Document): Promise<void> {
-  if (mirrorCatalogAlreadyHydrated(doc)) {
+  const locale = readShopLocaleFromDocument(doc);
+  if (mirrorCatalogAlreadyHydrated(doc, locale)) {
     const map = readCatalogPriceMapFromDocument(doc);
     if (map) applyCatalogPricesToDocument(doc, map);
     return;
   }
-  const locale = doc.documentElement.lang?.toLowerCase().startsWith("en") ? "en" : "tr";
   const payload = await fetchLiveStoreCatalog();
   if (payload) {
     applyLiveStoreCatalogToDocument(doc, payload, locale);

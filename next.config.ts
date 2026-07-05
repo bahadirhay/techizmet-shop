@@ -115,6 +115,7 @@ const nextConfig: NextConfig = {
         key: "Vercel-CDN-Cache-Control",
         value: "s-maxage=60, stale-while-revalidate=86400",
       },
+      { key: "Vary", value: "Cookie" },
     ] as const;
     const securityHeaders = [
       { key: "X-Content-Type-Options", value: "nosniff" },

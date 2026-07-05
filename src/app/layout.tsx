@@ -10,6 +10,7 @@ import { safeGoogleAnalyticsId } from "@/lib/seo/google-analytics-id";
 import { getCachedParsedSiteSettings } from "@/lib/cache/store-cache";
 import { getMirrorHomeHeroPreloadHref } from "@/lib/mirror-home-hero-preload";
 import { resolveStoreMirrorIframeSrcForRequest } from "@/lib/mirror-prebuilt-resolve-server";
+import { localeFromCookieValue } from "@/lib/i18n/locale";
 import { getDefaultSite } from "@/lib/site";
 import { getHomepageMode, getSiteSeo } from "@/lib/site-settings";
 import { isMirrorShellPath } from "@/lib/store-mirror-paths";
@@ -38,7 +39,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const gaId = safeGoogleAnalyticsId(seo.googleAnalyticsId);
   const wa = getWhatsAppConfig(settings);
   const siteJsonLd = [buildOrganizationJsonLd(settings, site.name), buildWebSiteJsonLd(settings, site.name)];
-  const pathname = (await headers()).get("x-pathname") ?? "/";
+  const h = await headers();
+  const pathname = h.get("x-pathname") ?? "/";
+  const locale = localeFromCookieValue(h.get("x-shop-locale") ?? undefined) ?? "tr";
   const isAdminOrApi = pathname.startsWith("/admin") || pathname.startsWith("/api");
   const mirrorHomePreload = isAdminOrApi
     ? null
@@ -56,7 +59,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const bodyClass = mirrorShell ? "antialiased" : `${poppins.variable} antialiased`;
 
   return (
-    <html lang="tr">
+    <html lang={locale} data-shop-locale={locale}>
       <head>
         {/* Kritik dış domain'lere erken bağlantı — DNS+TCP+TLS maliyeti ~150-300ms azalır */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />

@@ -1,5 +1,6 @@
 import { formatTry } from "@/lib/format";
 import type { ShopLocale } from "@/lib/i18n/locale";
+import { readShopLocaleFromDocument } from "@/lib/i18n/locale";
 import { localizeMirrorTextForLocale } from "@/lib/mirror-en-locale";
 import {
   type ActiveCollectionFilters,
@@ -375,7 +376,7 @@ export function patchCollectionPagination(
       return;
     }
 
-    const isTr = doc.documentElement.lang?.toLowerCase().startsWith("tr") ?? true;
+    const isTr = readShopLocaleFromDocument(doc) === "tr";
     const prevLabel = isTr ? "Önceki" : "Previous";
     const nextLabel = isTr ? "Sonraki" : "Next";
 
