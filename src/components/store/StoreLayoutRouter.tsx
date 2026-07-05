@@ -28,6 +28,10 @@ const StoreThemeStyles = dynamic(
   { ssr: true },
 );
 
+function ThemeStylesForPath({ pathname }: { pathname: string }) {
+  return <StoreThemeStyles pathname={pathname} />;
+}
+
 /** Mirror / React shell ayrımı — client pathname ile (blog → vitrin geçişinde çift header önlenir) */
 export function StoreLayoutRouter({
   homepageMode,
@@ -122,7 +126,7 @@ export function StoreLayoutRouter({
   return (
     <>
       <HtmlLang locale={locale} />
-      <StoreThemeStyles />
+      <ThemeStylesForPath pathname={pathname} />
       {themeColorsCss ? <style dangerouslySetInnerHTML={{ __html: themeColorsCss }} /> : null}
       <StoreShell siteName={siteName} logoSrc={logoSrc} locale={locale} messages={messages} nav={nav}>
         <main className="kn-main">{children}</main>

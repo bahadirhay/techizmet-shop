@@ -2,6 +2,17 @@
 
 import { useLayoutEffect } from "react";
 
+const MOBILE_BP = 1024;
+
+function syncMobileHeaderClass() {
+  const root = document.documentElement;
+  if (window.matchMedia(`(max-width:${MOBILE_BP}px)`).matches) {
+    root.classList.add("kn-mobile-header");
+  } else {
+    root.classList.remove("kn-mobile-header");
+  }
+}
+
 function syncThemeShellHeaderMetrics() {
   const header =
     document.querySelector<HTMLElement>(".kn-theme-shell-header") ??
@@ -20,9 +31,13 @@ export function ThemeShellProductBoot() {
     root.setAttribute("data-kn-product-sync", "1");
     root.classList.add("js", "kn-mirror-embed", "kn-theme-shell-product-active");
     document.getElementById("kn-product-sync-guard")?.remove();
+    syncMobileHeaderClass();
     syncThemeShellHeaderMetrics();
 
-    const onResize = () => syncThemeShellHeaderMetrics();
+    const onResize = () => {
+      syncMobileHeaderClass();
+      syncThemeShellHeaderMetrics();
+    };
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
