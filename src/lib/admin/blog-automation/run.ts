@@ -120,7 +120,7 @@ export async function createBlogPostFromTopic(params: {
     },
   });
 
-  revalidateBlogPaths(post.slug, post.published);
+  revalidateBlogPaths(params.siteId, post.slug, post.published);
 
   return {
     ok: true,
@@ -269,7 +269,7 @@ export async function createBlogPostFromTitle(params: {
     },
   });
 
-  revalidateBlogPaths(post.slug, post.published);
+  revalidateBlogPaths(params.siteId, post.slug, post.published);
   if (post.published) notifySearchEnginesForBlogSlug(post.slug);
 
   const aiMessage = [copy.message, imageMessage].filter(Boolean).join(" · ");

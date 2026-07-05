@@ -1,4 +1,5 @@
 import type { ThemeShellHomeContent } from "@/lib/theme-shell-home-content";
+import { ThemeShellInjectedStyles } from "@/components/store/ThemeShellInjectedStyles";
 import { StreetFoodFundHero } from "@/components/store/StreetFoodFundHero";
 import { ThemeShellListingCartBridge } from "@/components/store/ThemeShellListingCartBridge";
 import { ThemeShellProductScripts } from "@/components/store/ThemeShellProductScripts";
@@ -10,6 +11,7 @@ const MIRROR_HERO_CSS = "/theme/techizmet-shop/kn-mirror-hero.css?v=2";
 export function ThemeShellHomeView({ content }: { content: ThemeShellHomeContent }) {
   return (
     <>
+      <ThemeShellInjectedStyles />
       {content.stylesheets.map((href) => (
         <link key={href} rel="stylesheet" href={href} />
       ))}

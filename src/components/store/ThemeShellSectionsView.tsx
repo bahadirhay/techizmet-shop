@@ -1,4 +1,5 @@
 import type { ThemeShellSectionsContent } from "@/lib/theme-shell-sections-content";
+import { ThemeShellInjectedStyles } from "@/components/store/ThemeShellInjectedStyles";
 import { ThemeShellListingCartBridge } from "@/components/store/ThemeShellListingCartBridge";
 import { ThemeShellProductScripts } from "@/components/store/ThemeShellProductScripts";
 import { ThemeShellSectionStyles } from "@/components/store/ThemeShellSectionStyles";
@@ -21,6 +22,7 @@ export function ThemeShellSectionsView({
 
   return (
     <>
+      <ThemeShellInjectedStyles />
       <ThemeShellSectionStyles />
       {content.stylesheets.map((href) => (
         <link key={href} rel="stylesheet" href={href} />

@@ -14,7 +14,8 @@ function esc(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
-const INJECT_STYLES = `
+/** Theme shell — iframe <head> yerine React kabuğunda yüklenir */
+export const MIRROR_CUSTOM_BLOCK_STYLES = `
 .kn-custom-block-root{position:relative;z-index:2}
 .kn-custom-block-root.kn-cb-text{color:#111!important}
 .kn-custom-block-root.kn-cb-text h1,.kn-custom-block-root.kn-cb-text h2,.kn-custom-block-root.kn-cb-text h3,.kn-custom-block-root.kn-cb-text p{color:inherit!important}
@@ -185,7 +186,7 @@ export function applyCustomBlocksInject(doc: Document, entries: MirrorCustomBloc
   if (!doc.getElementById("kn-custom-blocks-css")) {
     const style = doc.createElement("style");
     style.id = "kn-custom-blocks-css";
-    style.textContent = INJECT_STYLES;
+    style.textContent = MIRROR_CUSTOM_BLOCK_STYLES;
     doc.head.appendChild(style);
   }
 

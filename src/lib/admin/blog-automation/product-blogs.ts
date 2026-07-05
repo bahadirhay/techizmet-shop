@@ -138,7 +138,7 @@ export async function createBlogPostForProduct(params: {
         },
       });
 
-  revalidateBlogPaths(post.slug, post.published);
+  revalidateBlogPaths(params.siteId, post.slug, post.published);
 
   return {
     ok: true,

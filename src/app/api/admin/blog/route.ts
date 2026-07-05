@@ -66,7 +66,7 @@ export async function POST(req: Request) {
     },
   });
 
-  revalidateBlogPaths(post.slug, post.published);
+  revalidateBlogPaths(auth.siteId, post.slug, post.published);
   if (post.published) notifySearchEnginesForBlogSlug(post.slug);
   return NextResponse.json({ post });
 }
