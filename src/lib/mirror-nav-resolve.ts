@@ -1,4 +1,5 @@
 import type { ShopLocale } from "@/lib/i18n/locale";
+import { localizeMirrorTextForLocale } from "@/lib/mirror-en-locale";
 import type { NavMenuMegaMeta } from "@/lib/nav-menu-link";
 import {
   navItemLabel,
@@ -31,11 +32,13 @@ export type ResolvedNavItem = {
 export type StoreCollectionNav = { slug: string; title: string };
 
 function linkLabel(link: NavDropdownLink, locale: ShopLocale): string {
-  return locale === "tr" ? link.labelTr || link.labelEn : link.labelEn || link.labelTr;
+  const raw = locale === "tr" ? link.labelTr || link.labelEn : link.labelEn || link.labelTr;
+  return localizeMirrorTextForLocale(raw, locale);
 }
 
 function columnTitle(col: NavDropdownColumn, locale: ShopLocale): string {
-  return locale === "tr" ? col.titleTr || col.titleEn : col.titleEn || col.titleTr;
+  const raw = locale === "tr" ? col.titleTr || col.titleEn : col.titleEn || col.titleTr;
+  return localizeMirrorTextForLocale(raw, locale);
 }
 
 function mapColumns(cols: NavDropdownColumn[], locale: ShopLocale): ResolvedNavColumn[] {
@@ -62,7 +65,7 @@ function collectionsColumns(
       title: locale === "tr" ? "Koleksiyonlar" : "Collections",
       links: collections.map((c) => ({
         href: `/collections/${c.slug}`,
-        label: c.title,
+        label: localizeMirrorTextForLocale(c.title, locale),
       })),
     },
   ];

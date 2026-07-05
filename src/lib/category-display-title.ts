@@ -18,6 +18,10 @@ const CATEGORY_EN_BY_SLUG: Record<string, string> = {
   "ayak-bakimi": "Foot Care",
   "bacak-bakimi": "Leg Care",
   "karin-bakimi": "Abdominal Care",
+  "dog-treats": "Dog Treats",
+  "natural-dog-treats": "Natural Dog Treats",
+  all: "All Products",
+  kurutulmus: "Freeze-Dried",
 };
 
 /** Türkçe başlık → İngilizce (slug bilinmiyorsa) */
@@ -36,6 +40,10 @@ const CATEGORY_EN_BY_TITLE: Record<string, string> = {
   "Ayak Bakımı": "Foot Care",
   "Bacak Bakımı": "Leg Care",
   "Karın Bakımı": "Abdominal Care",
+  "Doğal Köpek Ödülleri": "Natural Dog Treats",
+  "Doğal Köpek Ödül Mamaları": "Natural Dog Treats",
+  "Köpek Ödül Mamaları": "Dog Treats",
+  "Tüm Ürünler": "All Products",
 };
 
 export function categoryDisplayTitle(

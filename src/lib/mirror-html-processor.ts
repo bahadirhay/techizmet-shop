@@ -99,6 +99,7 @@ import {
   getAnnouncementBarSettings,
   injectAnnouncementBarMirrorHtml,
 } from "@/lib/mirror-announcement-bar";
+import { applyMirrorEnLocaleToHtml } from "@/lib/mirror-en-locale-server";
 import { prisma } from "@/lib/prisma";
 
 export type MirrorHtmlBuildParams = {
@@ -328,5 +329,8 @@ export async function buildMirrorHtmlCore(params: MirrorHtmlBuildParams): Promis
   localized = await syncMirrorListingPricesInHtml(localized, siteId);
   localized = patchMirrorCriticalImageLoading(localized);
   localized = enhanceMarqueeSectionsInHtml(localized);
+  if (locale === "en") {
+    localized = applyMirrorEnLocaleToHtml(localized, locale);
+  }
   return rewriteLegacyThemePaths(localized);
 }

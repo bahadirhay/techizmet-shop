@@ -9,6 +9,7 @@ import {
 } from "@/lib/cache/store-cache";
 import { loadMirrorFooterData } from "@/lib/mirror-footer-server";
 import { injectFooterIntoMirrorHtml } from "@/lib/mirror-html-footer-inject";
+import { localizeMirrorHtmlChunkForLocale } from "@/lib/mirror-en-locale";
 import { readMirrorPageHtmlForLocale } from "@/lib/mirror-page-html";
 
 export type ThemeShellChrome = {
@@ -96,6 +97,8 @@ async function resolveThemeShellChromeUncached(
   if (!html) return { announcementSlides: [] };
 
   const { slides, scheme } = extractAnnouncementSlides(html);
+  const localizedSlides =
+    locale === "en" ? slides.map((slide) => localizeMirrorHtmlChunkForLocale(slide, locale)) : slides;
   const schemeCss = extractSchemeCss(html);
 
   let footerHtml: string | undefined;
@@ -112,7 +115,7 @@ async function resolveThemeShellChromeUncached(
   }
 
   return {
-    announcementSlides: slides,
+    announcementSlides: localizedSlides,
     announcementScheme: scheme,
     footerHtml,
     schemeCss: schemeCss || undefined,

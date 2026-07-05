@@ -8,6 +8,10 @@ import type { ProductContentOverlay } from "@/lib/mirror-product-overlay";
 import { productHighlightsForPatch } from "@/lib/product-highlights";
 import { getProductPageBottomSettings } from "@/lib/product-page-bottom";
 import type { ShopLocale } from "@/lib/i18n/locale";
+import {
+  localizeMirrorHtmlChunkForLocale,
+  localizeMirrorTextForLocale,
+} from "@/lib/mirror-en-locale";
 import type { SiteSettings } from "@/lib/site-settings";
 import { formatProductDisplayTitle } from "@/lib/product-display-title";
 import { orderMediaForDisplay, primaryProductImageUrl } from "@/lib/product-media";
@@ -46,6 +50,7 @@ type DbProduct = {
 export function vitrinProductDetailFromDb(
   product: DbProduct,
   bundleComponents?: VitrinProductDetail["bundleComponents"],
+  locale: ShopLocale = "tr",
 ): VitrinProductDetail {
   const mediaItems = orderMediaForDisplay(
     product.images.map((image) => ({
@@ -55,15 +60,19 @@ export function vitrinProductDetailFromDb(
   );
   const imageUrl = primaryProductImageUrl(mediaItems) ?? product.imageUrl;
 
+  const title = formatProductDisplayTitle({
+    title: product.title,
+    weightGrams: product.weightGrams,
+    pieceCount: product.pieceCount,
+  });
+
   return {
     productId: product.id,
     slug: product.slug,
-    title: formatProductDisplayTitle({
-      title: product.title,
-      weightGrams: product.weightGrams,
-      pieceCount: product.pieceCount,
-    }),
-    description: product.description,
+    title: localizeMirrorTextForLocale(title, locale),
+    description: product.description
+      ? localizeMirrorTextForLocale(product.description, locale)
+      : product.description,
     imageUrl,
     images: mediaItems.map((image, i) => ({
       url: image.url,
@@ -75,7 +84,7 @@ export function vitrinProductDetailFromDb(
     variantOptionName: product.variantOptionName,
     variants: product.variants.map((variant) => ({
       id: variant.id,
-      label: variant.label,
+      label: localizeMirrorTextForLocale(variant.label, locale),
       stockQty: variant.stockQty,
       isDefault: variant.isDefault,
     })),
@@ -83,12 +92,23 @@ export function vitrinProductDetailFromDb(
   };
 }
 
-export function productContentOverlayFromDb(product: DbProduct): ProductContentOverlay {
+export function productContentOverlayFromDb(
+  product: DbProduct,
+  locale: ShopLocale = "tr",
+): ProductContentOverlay {
   return {
-    description: product.description,
-    descriptionHtml: product.descriptionHtml,
-    keyFeaturesHtml: product.keyFeaturesHtml,
-    howToUseHtml: product.howToUseHtml,
+    description: product.description
+      ? localizeMirrorTextForLocale(product.description, locale)
+      : product.description,
+    descriptionHtml: product.descriptionHtml
+      ? localizeMirrorHtmlChunkForLocale(product.descriptionHtml, locale)
+      : product.descriptionHtml,
+    keyFeaturesHtml: product.keyFeaturesHtml
+      ? localizeMirrorHtmlChunkForLocale(product.keyFeaturesHtml, locale)
+      : product.keyFeaturesHtml,
+    howToUseHtml: product.howToUseHtml
+      ? localizeMirrorHtmlChunkForLocale(product.howToUseHtml, locale)
+      : product.howToUseHtml,
   };
 }
 
@@ -128,11 +148,15 @@ export async function loadPublishedProductMirrorPatch(
   const productBlog = await loadProductBlogBody(siteId, slug);
 
   return {
-    detail: vitrinProductDetailFromDb(product, bundleComponents),
+    detail: vitrinProductDetailFromDb(product, bundleComponents, locale),
     overlay: {
-      ...productContentOverlayFromDb(product),
-      productBlogHtml: productBlog?.bodyHtml ?? null,
-      productBlogTitle: productBlog?.title ?? null,
+      ...productContentOverlayFromDb(product, locale),
+      productBlogHtml: productBlog?.bodyHtml
+        ? localizeMirrorHtmlChunkForLocale(productBlog.bodyHtml, locale)
+        : null,
+      productBlogTitle: productBlog?.title
+        ? localizeMirrorTextForLocale(productBlog.title, locale)
+        : null,
       productBlogHref: productBlog?.href ?? null,
     },
     commerce,

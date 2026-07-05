@@ -1,5 +1,6 @@
 import type { ShopLocale } from "@/lib/i18n/locale";
 import { escapeHtml } from "@/lib/html-plain-text";
+import { localizeMirrorTextForLocale } from "@/lib/mirror-en-locale";
 import type { SiteSettings } from "@/lib/site-settings";
 
 export type AnnouncementBarSlide = {
@@ -78,6 +79,34 @@ export function freeShippingAnnouncementText(minor: number | undefined, locale: 
   return `Free shipping on orders over ${amount} TL`;
 }
 
+function isFreeShippingAnnouncementText(text: string): boolean {
+  return /ücretsiz\s*kargo|free\s*shipping/i.test(text);
+}
+
+function localizeAnnouncementSlide(
+  slide: AnnouncementBarSlide,
+  locale: ShopLocale,
+  autoFreeShipping: string | null,
+): AnnouncementBarSlide {
+  if (locale !== "en") return slide;
+
+  let text = slide.text.trim();
+  if (!text) {
+    return { ...slide, text: autoFreeShipping ?? "" };
+  }
+  if (autoFreeShipping && isFreeShippingAnnouncementText(text)) {
+    return { ...slide, text: autoFreeShipping };
+  }
+
+  return {
+    ...slide,
+    text: localizeMirrorTextForLocale(text, locale),
+    linkLabel: slide.linkLabel
+      ? localizeMirrorTextForLocale(slide.linkLabel, locale)
+      : slide.linkLabel,
+  };
+}
+
 export function getAnnouncementBarSettings(
   settings: SiteSettings | undefined,
   locale: ShopLocale = "tr",
@@ -86,30 +115,33 @@ export function getAnnouncementBarSettings(
   const autoFreeShipping = freeShippingAnnouncementText(settings?.store?.freeShippingOverMinor, locale);
 
   if (!raw) {
+    const slides: AnnouncementBarSlide[] = [
+      { text: autoFreeShipping || DEFAULT_ANNOUNCEMENT_SLIDES_TR[0]!.text },
+      { ...DEFAULT_ANNOUNCEMENT_SLIDES_TR[1]! },
+    ];
     return {
       enabled: true,
-      slides: [
-        { text: autoFreeShipping || DEFAULT_ANNOUNCEMENT_SLIDES_TR[0]!.text },
-        { ...DEFAULT_ANNOUNCEMENT_SLIDES_TR[1]! },
-      ],
+      slides: slides.map((slide) => localizeAnnouncementSlide(slide, locale, autoFreeShipping)),
     };
   }
 
   const slide0Text = raw.slides?.[0]?.text?.trim();
   const slide1Raw = raw.slides?.[1];
 
+  const slides: AnnouncementBarSlide[] = [
+    {
+      text: slide0Text || autoFreeShipping || DEFAULT_ANNOUNCEMENT_SLIDES_TR[0]!.text,
+    },
+    {
+      text: slide1Raw?.text?.trim() ?? "",
+      linkHref: slide1Raw?.linkHref?.trim() || undefined,
+      linkLabel: slide1Raw?.linkLabel?.trim() || undefined,
+    },
+  ];
+
   return {
     enabled: raw.enabled !== false,
-    slides: [
-      {
-        text: slide0Text || autoFreeShipping || DEFAULT_ANNOUNCEMENT_SLIDES_TR[0]!.text,
-      },
-      {
-        text: slide1Raw?.text?.trim() ?? "",
-        linkHref: slide1Raw?.linkHref?.trim() || undefined,
-        linkLabel: slide1Raw?.linkLabel?.trim() || undefined,
-      },
-    ],
+    slides: slides.map((slide) => localizeAnnouncementSlide(slide, locale, autoFreeShipping)),
   };
 }
 

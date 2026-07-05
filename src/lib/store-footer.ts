@@ -1,4 +1,8 @@
 import type { ShopLocale } from "@/lib/i18n/locale";
+import {
+  localizeMirrorHtmlChunkForLocale,
+  localizeMirrorTextForLocale,
+} from "@/lib/mirror-en-locale";
 import type { SiteSettings } from "@/lib/site-settings";
 
 export type FooterLinkItem = {
@@ -157,22 +161,29 @@ export function getStoreFooterConfig(settings: SiteSettings): StoreFooterConfig 
 }
 
 export function footerLinkLabel(item: FooterLinkItem, locale: ShopLocale): string {
-  return locale === "tr" ? item.labelTr : item.labelEn;
+  const raw = locale === "tr" ? item.labelTr : item.labelEn;
+  return localizeMirrorTextForLocale(raw, locale);
 }
 
 export function footerColumnTitle(col: FooterMenuColumn, locale: ShopLocale): string {
-  return locale === "tr" ? col.titleTr : col.titleEn;
+  const raw = locale === "tr" ? col.titleTr : col.titleEn;
+  return localizeMirrorTextForLocale(raw, locale);
 }
 
 export function footerIntroHtml(config: StoreFooterConfig, locale: ShopLocale): string {
-  const text = (locale === "tr" ? config.introTr : config.introEn) ?? "";
+  let text = (locale === "tr" ? config.introTr : config.introEn) ?? "";
+  if (locale === "en" && !text.trim()) text = config.introTr ?? "";
+  text = localizeMirrorHtmlChunkForLocale(text, locale);
   return text.replace(/\n/g, "<br />\n");
 }
 
 export function footerTaglineHtml(config: StoreFooterConfig, locale: ShopLocale): string {
-  return (locale === "tr" ? config.taglineTr : config.taglineEn) ?? "";
+  let text = (locale === "tr" ? config.taglineTr : config.taglineEn) ?? "";
+  if (locale === "en" && !text.trim()) text = config.taglineTr ?? "";
+  return localizeMirrorTextForLocale(text, locale);
 }
 
 export function footerBottomLinkLabel(item: FooterBottomLink, locale: ShopLocale): string {
-  return locale === "tr" ? item.labelTr : item.labelEn;
+  const raw = locale === "tr" ? item.labelTr : item.labelEn;
+  return localizeMirrorTextForLocale(raw, locale);
 }

@@ -1,6 +1,7 @@
 /** Ana sayfa vitrin bölümleri — DOM enjeksiyonu (istemci + sunucu güvenli) */
 
 import type { ShopLocale } from "@/lib/i18n/locale";
+import { localizeMirrorTextForLocale } from "@/lib/mirror-en-locale";
 import { applyProductPricingToRoot } from "@/lib/mirror-listing-prices";
 import {
   buildMirrorProductCardHtml,
@@ -81,7 +82,10 @@ function patchProductCardMedia(card: Element, product: VitrinCollectionProductCa
   });
 
   const titleEl = card.querySelector(".product--title");
-  if (titleEl) titleEl.textContent = product.title;
+  if (titleEl) {
+    const title = localizeMirrorTextForLocale(product.title, locale ?? "tr");
+    titleEl.textContent = title;
+  }
 
   applyProductPricingToRoot(card, {
     priceMinor: product.priceMinor,
@@ -100,7 +104,7 @@ function patchProductCardMedia(card: Element, product: VitrinCollectionProductCa
       el.src = primary;
       el.setAttribute("data-src", primary);
       el.setAttribute("data-original", primaryOriginal);
-      el.alt = product.title;
+      el.alt = localizeMirrorTextForLocale(product.title, locale ?? "tr");
       el.removeAttribute("srcset");
       el.setAttribute("loading", "lazy");
     });

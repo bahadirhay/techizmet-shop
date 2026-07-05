@@ -1,4 +1,5 @@
 import type { ShopLocale } from "@/lib/i18n/locale";
+import { localizeMirrorTextForLocale } from "@/lib/mirror-en-locale";
 import type { SiteSettings } from "@/lib/site-settings";
 
 export type NavDropdownLink = {
@@ -104,5 +105,6 @@ export function getStoreNavItems(settings: SiteSettings): StoreNavItem[] {
 }
 
 export function navItemLabel(item: StoreNavItem, locale: ShopLocale): string {
-  return locale === "tr" ? item.labelTr : item.labelEn;
+  const raw = locale === "tr" ? item.labelTr : item.labelEn;
+  return localizeMirrorTextForLocale(raw, locale);
 }
