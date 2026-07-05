@@ -1,7 +1,17 @@
 "use client";
 
 import { useEffect } from "react";
+import { bootCollectionsTabPriceHover } from "@/lib/mirror-collections-tab-hover";
 import { initProductCardGalleries } from "@/lib/mirror-product-card-gallery";
+import {
+  applyCatalogPricesToDocument,
+  readCatalogPriceMapFromDocument,
+} from "@/lib/mirror-listing-prices";
+import {
+  applyLiveStoreCatalogToDocument,
+  fetchLiveStoreCatalog,
+  mirrorCatalogAlreadyHydrated,
+} from "@/lib/mirror-live-catalog-client";
 import { installMirrorStreetFoodBar } from "@/lib/mirror-street-food-bar";
 import { installMirrorStreetFoodFundPage } from "@/lib/mirror-street-food-fund-page";
 import { bootTestimonialSections } from "@/lib/mirror-testimonial-section";
@@ -33,14 +43,33 @@ export function bootThemeShellVitrinFeatures() {
   installMirrorStreetFoodFundPage(document);
   bootRevealingTextSection();
   bootTestimonialSections(document);
+  bootCollectionsTabPriceHover(document);
+}
+
+async function hydrateThemeShellCatalog(doc: Document): Promise<void> {
+  if (mirrorCatalogAlreadyHydrated(doc)) {
+    const map = readCatalogPriceMapFromDocument(doc);
+    if (map) applyCatalogPricesToDocument(doc, map);
+    return;
+  }
+  const locale = doc.documentElement.lang?.toLowerCase().startsWith("en") ? "en" : "tr";
+  const payload = await fetchLiveStoreCatalog();
+  if (payload) {
+    applyLiveStoreCatalogToDocument(doc, payload, locale);
+  } else {
+    const map = readCatalogPriceMapFromDocument(doc);
+    if (map) applyCatalogPricesToDocument(doc, map);
+  }
 }
 
 export function ThemeShellVitrinBoot() {
   useEffect(() => {
-    bootThemeShellVitrinFeatures();
-    const timers = [120, 600, 2000, 5000].map((ms) =>
-      window.setTimeout(bootThemeShellVitrinFeatures, ms),
-    );
+    const run = () => {
+      bootThemeShellVitrinFeatures();
+      void hydrateThemeShellCatalog(document);
+    };
+    run();
+    const timers = [120, 600, 2000, 5000].map((ms) => window.setTimeout(run, ms));
     return () => timers.forEach((t) => window.clearTimeout(t));
   }, []);
 

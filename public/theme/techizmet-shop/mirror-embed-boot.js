@@ -226,4 +226,24 @@
     setInterval(refreshBar, 60000);
     window.addEventListener("scroll", syncHeroUnderHeader, { passive: true });
   }
+  function bootTabPriceHover() {
+    qsa("[data-content-item]").forEach(function (card) {
+      if (card.getAttribute("data-kn-tab-price-hover") === "1") return;
+      var infoBox = card.querySelector("[data-item-info]");
+      if (!infoBox) return;
+      card.setAttribute("data-kn-tab-price-hover", "1");
+      card.addEventListener("mousemove", function (e) {
+        var rect = card.getBoundingClientRect();
+        infoBox.style.transform =
+          "translate(" + (e.clientX - rect.left) + "px, " + (e.clientY - rect.top) + "px)";
+        infoBox.style.opacity = "1";
+      });
+      card.addEventListener("mouseleave", function () {
+        infoBox.style.opacity = "0";
+      });
+    });
+  }
+  bootTabPriceHover();
+  setTimeout(bootTabPriceHover, 500);
+  setTimeout(bootTabPriceHover, 2500);
 })();
