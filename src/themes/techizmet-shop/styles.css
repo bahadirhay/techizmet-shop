@@ -1124,15 +1124,16 @@ button.header--icon-link-text {
 }
 
 /* Header TR/EN — mirror kn-iframe-locale (tema kabuğu) */
-.kn-theme-shell-header .header--icons-list .kn-iframe-locale {
+.kn-theme-shell-header .header--icons-list .kn-iframe-locale,
+.header--icons-list .kn-locale-icon-item .kn-iframe-locale {
   display: inline-flex;
   align-items: center;
   gap: 0;
-  font-size: 0;
   line-height: 1;
+  flex: 0 0 auto;
 }
-.kn-theme-shell-header .header--icons-list .kn-iframe-locale button {
-  position: relative;
+.kn-theme-shell-header .header--icons-list .kn-iframe-locale button,
+.header--icons-list .kn-locale-icon-item .kn-iframe-locale button {
   width: 26px;
   height: 26px;
   min-width: 26px;
@@ -1143,33 +1144,130 @@ button.header--icon-link-text {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
-  color: transparent;
-  font-size: 0;
-}
-.kn-theme-shell-header .header--icons-list .kn-iframe-locale button[data-locale="tr"]::before {
-  content: "TR";
   font-size: 9px;
   font-weight: 700;
   line-height: 1;
   color: #111;
+  letter-spacing: 0.02em;
 }
-.kn-theme-shell-header .header--icons-list .kn-iframe-locale button[data-locale="en"]::before {
-  content: "EN";
-  font-size: 9px;
-  font-weight: 700;
-  line-height: 1;
-  color: #111;
-}
-.kn-theme-shell-header .header--icons-list .kn-iframe-locale button.is-active {
+.kn-theme-shell-header .header--icons-list .kn-iframe-locale button.is-active,
+.header--icons-list .kn-locale-icon-item .kn-iframe-locale button.is-active {
   background: #111;
   border-radius: 4px;
-}
-.kn-theme-shell-header .header--icons-list .kn-iframe-locale button.is-active::before {
   color: #fff;
 }
 
+/* Sokak dostları mama fonu — üst şerit (kumbara) */
+.kn-street-food-fund-bar {
+  width: 100%;
+  background: linear-gradient(90deg, #1f4d3a 0%, #2d6a4f 55%, #40916c 100%);
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.35;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.kn-street-food-fund-bar__inner {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 8px 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+.kn-street-food-fund-bar__title {
+  font-weight: 700;
+  white-space: nowrap;
+}
+.kn-street-food-fund-bar__meter {
+  flex: 1 1 180px;
+  min-width: 140px;
+}
+.kn-street-food-fund-bar__counts {
+  font-weight: 600;
+  white-space: nowrap;
+}
+.kn-street-food-fund-bar__track {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.25);
+  margin-top: 4px;
+  overflow: hidden;
+}
+.kn-street-food-fund-bar__fill {
+  height: 100%;
+  border-radius: 999px;
+  background: #b7e4c7;
+  transition: width 0.35s ease;
+}
+.kn-street-food-fund-bar__sub {
+  margin: 0;
+  opacity: 0.92;
+  font-size: 11px;
+}
+.kn-street-food-fund-bar__link {
+  color: #fff;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  white-space: nowrap;
+  font-size: 11px;
+}
+@media (max-width: 640px) {
+  .kn-street-food-fund-bar {
+    font-size: 11px;
+  }
+  .kn-street-food-fund-bar__inner {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "title link"
+      "meter meter"
+      "sub sub";
+    gap: 6px 10px;
+    padding: 8px 12px;
+    align-items: center;
+  }
+  .kn-street-food-fund-bar__title {
+    grid-area: title;
+    font-size: 11px;
+    white-space: normal;
+    line-height: 1.25;
+  }
+  .kn-street-food-fund-bar__meter {
+    grid-area: meter;
+    min-width: 0;
+    width: 100%;
+  }
+  .kn-street-food-fund-bar__counts {
+    font-size: 10px;
+    white-space: normal;
+  }
+  .kn-street-food-fund-bar__sub {
+    grid-area: sub;
+    font-size: 10px;
+    line-height: 1.3;
+  }
+  .kn-street-food-fund-bar__link {
+    grid-area: link;
+    justify-self: end;
+    font-size: 10px;
+  }
+}
+
 @media (max-width: 1024px) {
+  html.kn-mobile-header .kn-theme-shell-header .header--icons-list .kn-locale-icon-item .kn-iframe-locale button {
+    font-size: 9px !important;
+    font-weight: 700 !important;
+    color: #111 !important;
+    background: transparent !important;
+  }
+
+  html.kn-mobile-header .kn-theme-shell-header .header--icons-list .kn-locale-icon-item .kn-iframe-locale button.is-active {
+    background: #111 !important;
+    color: #fff !important;
+    border-radius: 4px !important;
+  }
+
   html.kn-mobile-header .kn-theme-shell-header .header--icons-list .kn-locale-icon-item {
     display: flex !important;
     align-items: center !important;

@@ -38,9 +38,9 @@ export function ThemeShellHeaderBoot() {
       style.textContent = HEADER_MOBILE_FIT_CSS;
       document.head.appendChild(style);
     }
-    if (!document.getElementById("kn-header-mobile-fit-script-v4")) {
+    if (!document.getElementById("kn-header-mobile-fit-script-v5")) {
       const script = document.createElement("script");
-      script.id = "kn-header-mobile-fit-script-v4";
+      script.id = "kn-header-mobile-fit-script-v5";
       script.textContent = buildHeaderMobileFitScript();
       document.body.appendChild(script);
     }

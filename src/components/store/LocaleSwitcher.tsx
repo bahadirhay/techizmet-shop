@@ -17,7 +17,6 @@ export function LocaleSwitcher({
   /** Header ikon çubuğu — mirror ile aynı TR/EN pill */
   compact?: boolean;
 }) {
-  const router = useRouter();
   const [busy, setBusy] = useState(false);
 
   async function setLocale(next: ShopLocale) {
@@ -46,7 +45,9 @@ export function LocaleSwitcher({
           disabled={busy}
           aria-label={trLabel}
           onClick={() => setLocale("tr")}
-        />
+        >
+          TR
+        </button>
         <button
           type="button"
           data-locale="en"
@@ -54,7 +55,9 @@ export function LocaleSwitcher({
           disabled={busy}
           aria-label={enLabel}
           onClick={() => setLocale("en")}
-        />
+        >
+          EN
+        </button>
       </div>
     );
   }

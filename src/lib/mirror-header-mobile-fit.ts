@@ -1,6 +1,6 @@
 /** Mobil header — logo alanı küçülür, görsel kalan alana sığar; TR/EN görünür kalır */
 
-export const HEADER_MOBILE_FIT_VERSION = 4;
+export const HEADER_MOBILE_FIT_VERSION = 5;
 const STYLE_ID = "kn-header-mobile-fit-style";
 const SCRIPT_ID = "kn-header-mobile-fit-script";
 const MOBILE_BP = 1024;
@@ -71,24 +71,29 @@ export const HEADER_MOBILE_FIT_CSS = `
     margin-right:0!important;
   }
   html.kn-mobile-header .header--icons-list .kn-locale-icon-item .kn-iframe-locale{
-    font-size:0!important;
-    line-height:1!important;
+    display:inline-flex!important;
+    align-items:center!important;
     gap:0!important;
+    flex:0 0 auto!important;
   }
   html.kn-mobile-header .header--icons-list .kn-locale-icon-item .kn-iframe-locale button{
     width:26px!important;
     height:26px!important;
     min-width:26px!important;
     padding:0!important;
-    font-size:0!important;
-    color:transparent!important;
-  }
-  html.kn-mobile-header .header--icons-list .kn-locale-icon-item .kn-iframe-locale button[data-locale="tr"]::before,
-  html.kn-mobile-header .header--icons-list .kn-locale-icon-item .kn-iframe-locale button[data-locale="en"]::before{
+    display:inline-flex!important;
+    align-items:center!important;
+    justify-content:center!important;
     font-size:9px!important;
     font-weight:700!important;
     line-height:1!important;
     color:#111!important;
+    background:transparent!important;
+  }
+  html.kn-mobile-header .header--icons-list .kn-locale-icon-item .kn-iframe-locale button.is-active{
+    background:#111!important;
+    border-radius:4px!important;
+    color:#fff!important;
   }
   html.kn-mobile-header .header--icons-list .header--icon-link-text{
     width:32px!important;
