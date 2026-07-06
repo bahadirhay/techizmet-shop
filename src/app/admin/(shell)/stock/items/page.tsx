@@ -18,7 +18,7 @@ export default async function StockItemsPage() {
       <AdminPageHeader
         breadcrumb={[{ label: "Stok", href: "/admin/stock" }, { label: "Kartlar" }]}
         title="Stok kartları"
-        description="Hammadde (kg), ambalaj (adet) ve mamul kartları. Manuel giriş, sayım ve düzeltmeler hareket defterine yazılır."
+        description="Hammadde, ambalaj ve mamul kartları. Barkod ve görsel; mamüller sitedeki ürünlerden aktarılır."
       />
       <StockItemsManager initialItems={items} />
     </div>

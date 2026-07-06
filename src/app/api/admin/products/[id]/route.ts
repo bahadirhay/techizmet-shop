@@ -265,6 +265,13 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       notifyPublishedProduct(nextSlug);
     }
 
+    try {
+      const { syncSingleProductToStock } = await import("@/lib/stock/sync-products");
+      await syncSingleProductToStock(prisma, auth.siteId, id, { staffUserId: auth.staffUserId });
+    } catch {
+      /* stok kartı senkronu isteğe bağlı */
+    }
+
     return NextResponse.json({ product });
   } catch (e) {
     return productAdminErrorResponse(e);

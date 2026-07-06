@@ -10,6 +10,8 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   const body = (await req.json()) as {
     name?: string;
     sku?: string;
+    barcode?: string | null;
+    imageUrl?: string | null;
     lowStockThreshold?: number;
     active?: boolean;
     adjustmentQty?: number;
@@ -35,6 +37,8 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       data: {
         name: body.name?.trim() || undefined,
         sku: body.sku !== undefined ? body.sku.trim() || null : undefined,
+        barcode: body.barcode !== undefined ? body.barcode?.trim() || null : undefined,
+        imageUrl: body.imageUrl !== undefined ? body.imageUrl?.trim() || null : undefined,
         lowStockThreshold:
           body.lowStockThreshold != null ? Math.max(0, Math.trunc(body.lowStockThreshold)) : undefined,
         active: body.active,

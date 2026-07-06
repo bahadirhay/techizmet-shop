@@ -1534,6 +1534,10 @@ model StockItem {
   site              StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
   name              String
   sku               String?
+  /** Opsiyonel barkod (EAN/UPC veya dahili) */
+  barcode           String?
+  /** Kart görseli — mamul için ürün görselinden kopyalanır, değiştirilebilir */
+  imageUrl          String?
   /** raw_material | packaging | finished */
   kind              String   @default("finished")
   /** kg | adet — bakiye: kg için gram, adet için parça */
@@ -1553,6 +1557,7 @@ model StockItem {
 
   @@index([siteId, kind, active])
   @@index([siteId, productId])
+  @@index([siteId, barcode])
   @@map("stock_item")
   @@schema("shop")
 }

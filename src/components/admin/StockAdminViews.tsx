@@ -1,14 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import Link from "next/link";
 import { formatStockBalance, formatLedgerQty, type StockUnit } from "@/lib/stock/units";
 import { btnPrimary, btnSecondary, inputClass } from "@/components/admin/AdminForm";
+import { ImageUploadField } from "@/components/admin/ImageUploadField";
 
 type ItemRow = {
   id: string;
   name: string;
   sku: string | null;
+  barcode: string | null;
+  imageUrl: string | null;
   kind: string;
   unit: string;
   balanceBase: number;
@@ -28,6 +31,7 @@ export function StockItemsManager({ initialItems }: { initialItems: ItemRow[] })
   const [form, setForm] = useState({
     name: "",
     sku: "",
+    barcode: "",
     kind: "raw_material",
     unit: "kg",
     lowStockThreshold: "0",
@@ -35,6 +39,55 @@ export function StockItemsManager({ initialItems }: { initialItems: ItemRow[] })
   });
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState({ barcode: "", imageUrl: "" });
+
+  async function reloadItems() {
+    const list = await fetch("/api/admin/stock/items").then((r) => r.json());
+    setItems(list.items);
+  }
+
+  async function syncFromCatalog() {
+    setBusy(true);
+    setMsg(null);
+    try {
+      const res = await fetch("/api/admin/stock/sync-products", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Senkron başarısız");
+      await reloadItems();
+      setMsg(
+        `${data.created} yeni mamul kartı eklendi, ${data.updated} kart güncellendi (${data.totalProducts} ürün tarandı).`,
+      );
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : "Hata");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function saveItemMeta(itemId: string) {
+    setBusy(true);
+    setMsg(null);
+    try {
+      const res = await fetch(`/api/admin/stock/items/${itemId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          barcode: editDraft.barcode,
+          imageUrl: editDraft.imageUrl,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Kayıt başarısız");
+      await reloadItems();
+      setEditingId(null);
+      setMsg("Kart güncellendi.");
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : "Hata");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function createItem(e: React.FormEvent) {
     e.preventDefault();
@@ -54,7 +107,7 @@ export function StockItemsManager({ initialItems }: { initialItems: ItemRow[] })
       if (!res.ok) throw new Error(data.error || "Kayıt başarısız");
       const list = await fetch("/api/admin/stock/items").then((r) => r.json());
       setItems(list.items);
-      setForm({ name: "", sku: "", kind: "raw_material", unit: "kg", lowStockThreshold: "0", initialBalance: "0" });
+      setForm({ name: "", sku: "", barcode: "", kind: "raw_material", unit: "kg", lowStockThreshold: "0", initialBalance: "0" });
       setMsg("Stok kartı oluşturuldu.");
     } catch (err) {
       setMsg(err instanceof Error ? err.message : "Hata");
@@ -100,6 +153,15 @@ export function StockItemsManager({ initialItems }: { initialItems: ItemRow[] })
 
   return (
     <div className="space-y-8">
+      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-sky-200 bg-sky-50/60 px-4 py-3">
+        <button type="button" className={btnPrimary} disabled={busy} onClick={syncFromCatalog}>
+          Sitedeki mamülleri stoka aktar
+        </button>
+        <p className="text-sm text-sky-900">
+          Tüm ürünler mamul kartı olarak eklenir; mevcut stok miktarları açılış bakiyesi yazılır. Barkod ve görsel üründen gelir, sonra değiştirebilirsiniz.
+        </p>
+      </div>
+
       {low.length > 0 ? (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           {low.length} kart eşik altında: {low.map((i) => i.name).join(", ")}
@@ -165,6 +227,15 @@ export function StockItemsManager({ initialItems }: { initialItems: ItemRow[] })
           <input className={inputClass} value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} />
         </label>
         <label className="block text-sm">
+          <span className="mb-1 block font-medium">Barkod</span>
+          <input
+            className={inputClass}
+            value={form.barcode}
+            onChange={(e) => setForm({ ...form, barcode: e.target.value })}
+            placeholder="Opsiyonel"
+          />
+        </label>
+        <label className="block text-sm">
           <span className="mb-1 block font-medium">Tür</span>
           <select className={inputClass} value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value })}>
             <option value="raw_material">Hammadde</option>
@@ -210,33 +281,95 @@ export function StockItemsManager({ initialItems }: { initialItems: ItemRow[] })
         <table className="min-w-full text-sm">
           <thead className="bg-zinc-50 text-left text-xs uppercase text-zinc-500">
             <tr>
+              <th className="px-3 py-2">Görsel</th>
               <th className="px-3 py-2">Ad</th>
+              <th className="px-3 py-2">Barkod</th>
               <th className="px-3 py-2">Tür</th>
               <th className="px-3 py-2">Bakiye</th>
-              <th className="px-3 py-2">Ürün bağlantısı</th>
-              <th className="px-3 py-2">Hızlı</th>
+              <th className="px-3 py-2">Ürün</th>
+              <th className="px-3 py-2">İşlem</th>
             </tr>
           </thead>
           <tbody>
             {items.map((i) => (
-              <tr key={i.id} className="border-t border-zinc-100">
-                <td className="px-3 py-2 font-medium">{i.name}</td>
-                <td className="px-3 py-2">{KIND_LABEL[i.kind] ?? i.kind}</td>
-                <td className="px-3 py-2">{formatStockBalance(i.balanceBase, i.unit as StockUnit)}</td>
-                <td className="px-3 py-2 text-zinc-600">{i.product?.title ?? "—"}</td>
-                <td className="px-3 py-2">
-                  <button
-                    type="button"
-                    className={btnSecondary}
-                    disabled={busy}
-                    onClick={() => {
-                      setManual({ stockItemId: i.id, qty: "1", note: "Hızlı giriş" });
-                    }}
-                  >
-                    +1
-                  </button>
-                </td>
-              </tr>
+              <Fragment key={i.id}>
+                <tr className="border-t border-zinc-100">
+                  <td className="px-3 py-2">
+                    {i.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={i.imageUrl} alt="" className="h-10 w-10 rounded object-cover" />
+                    ) : (
+                      <span className="inline-flex h-10 w-10 items-center justify-center rounded bg-zinc-100 text-xs text-zinc-400">
+                        —
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 font-medium">{i.name}</td>
+                  <td className="px-3 py-2 font-mono text-xs text-zinc-600">{i.barcode || "—"}</td>
+                  <td className="px-3 py-2">{KIND_LABEL[i.kind] ?? i.kind}</td>
+                  <td className="px-3 py-2">{formatStockBalance(i.balanceBase, i.unit as StockUnit)}</td>
+                  <td className="px-3 py-2 text-zinc-600">{i.product?.title ?? "—"}</td>
+                  <td className="px-3 py-2">
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        className={btnSecondary}
+                        disabled={busy}
+                        onClick={() => {
+                          setManual({ stockItemId: i.id, qty: "1", note: "Hızlı giriş" });
+                        }}
+                      >
+                        +1
+                      </button>
+                      <button
+                        type="button"
+                        className={btnSecondary}
+                        disabled={busy}
+                        onClick={() => {
+                          setEditingId(editingId === i.id ? null : i.id);
+                          setEditDraft({ barcode: i.barcode ?? "", imageUrl: i.imageUrl ?? "" });
+                        }}
+                      >
+                        {editingId === i.id ? "Kapat" : "Düzenle"}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                {editingId === i.id ? (
+                  <tr className="border-t border-zinc-100 bg-zinc-50/80">
+                    <td colSpan={7} className="px-3 py-4">
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <label className="block text-sm">
+                          <span className="mb-1 block font-medium">Barkod</span>
+                          <input
+                            className={inputClass}
+                            value={editDraft.barcode}
+                            onChange={(e) => setEditDraft({ ...editDraft, barcode: e.target.value })}
+                            placeholder="EAN / dahili kod"
+                          />
+                        </label>
+                        <ImageUploadField
+                          label="Görsel"
+                          value={editDraft.imageUrl}
+                          onChange={(url) => setEditDraft({ ...editDraft, imageUrl: url })}
+                          hint="Mamul kartlarında ürün görseli varsayılan gelir; buradan değiştirebilirsiniz."
+                          maxEdgePx={1200}
+                        />
+                      </div>
+                      <div className="mt-3 flex gap-2">
+                        <button
+                          type="button"
+                          className={btnPrimary}
+                          disabled={busy}
+                          onClick={() => saveItemMeta(i.id)}
+                        >
+                          Kaydet
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ) : null}
+              </Fragment>
             ))}
           </tbody>
         </table>

@@ -26,6 +26,8 @@ export async function POST(req: Request) {
   const body = (await req.json()) as {
     name?: string;
     sku?: string;
+    barcode?: string;
+    imageUrl?: string;
     kind?: string;
     unit?: string;
     productId?: string;
@@ -55,6 +57,8 @@ export async function POST(req: Request) {
         siteId: auth.siteId,
         name,
         sku: body.sku?.trim() || null,
+        barcode: body.barcode?.trim() || null,
+        imageUrl: body.imageUrl?.trim() || null,
         kind,
         unit,
         balanceBase: 0,

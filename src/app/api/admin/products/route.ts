@@ -139,6 +139,15 @@ export async function POST(req: Request) {
       notifyPublishedProduct(created.slug);
     }
 
+    try {
+      const { syncSingleProductToStock } = await import("@/lib/stock/sync-products");
+      await syncSingleProductToStock(prisma, auth.siteId, created.id, {
+        staffUserId: auth.staffUserId,
+      });
+    } catch {
+      /* stok kartı senkronu isteğe bağlı */
+    }
+
     return NextResponse.json({ product: created });
   } catch (e) {
     return productAdminErrorResponse(e);

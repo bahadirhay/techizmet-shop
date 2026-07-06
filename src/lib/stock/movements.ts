@@ -128,11 +128,21 @@ export async function ensureFinishedStockItemForProduct(
 ) {
   const product = await tx.storeProduct.findFirst({
     where: { id: productId, siteId },
-    select: { id: true, title: true, sku: true, stockQty: true, variants: { where: variantId ? { id: variantId } : { isDefault: true }, take: 1 } },
+    select: {
+      id: true,
+      title: true,
+      sku: true,
+      barcode: true,
+      imageUrl: true,
+      stockQty: true,
+      images: { orderBy: { sortOrder: "asc" }, take: 1, select: { url: true } },
+      variants: { where: variantId ? { id: variantId } : { isDefault: true }, take: 1 },
+    },
   });
   if (!product) throw new StockError("Ürün bulunamadı.");
 
   const variant = variantId ? product.variants[0] : product.variants[0] ?? null;
+  const imageUrl = product.images[0]?.url ?? product.imageUrl ?? null;
   const existing = await tx.stockItem.findFirst({
     where: {
       siteId,
@@ -151,6 +161,8 @@ export async function ensureFinishedStockItemForProduct(
       siteId,
       name: variant ? `${product.title} — ${variant.label}` : product.title,
       sku: variant?.sku ?? product.sku,
+      barcode: product.barcode?.trim() || null,
+      imageUrl,
       kind: "finished",
       unit: "adet",
       balanceBase: Math.max(0, balance),
