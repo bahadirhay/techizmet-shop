@@ -11,6 +11,35 @@ const EVA_STATUS: Record<string, { label: string; className: string }> = {
   variance: { label: "Fark var", className: "bg-red-100 text-red-800" },
 };
 
+function CostBreakdownCell({
+  qtySold,
+  productCostMinor,
+  operatingCostMinor,
+  costMinor,
+}: {
+  qtySold: number;
+  productCostMinor: number;
+  operatingCostMinor: number;
+  costMinor: number;
+}) {
+  if (costMinor <= 0) return <>—</>;
+  const unitProduct =
+    qtySold > 0 && productCostMinor > 0 ? Math.round(productCostMinor / qtySold) : null;
+
+  return (
+    <div className="text-right">
+      <div className="tabular-nums font-medium">{formatTry(costMinor)}</div>
+      {qtySold > 0 ? (
+        <div className="mt-0.5 text-xs text-zinc-500 tabular-nums">
+          {qtySold} adet
+          {unitProduct != null ? ` × ${formatTry(unitProduct)}` : null}
+          {operatingCostMinor > 0 ? ` + ${formatTry(operatingCostMinor)} gider` : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function FinanceProfitabilityView({ report }: { report: ProfitabilityReport }) {
   const periods = [7, 30, 90];
 
@@ -124,6 +153,7 @@ export function FinanceProfitabilityView({ report }: { report: ProfitabilityRepo
               <tr className="border-b text-left text-xs text-zinc-500">
                 <th className="pb-2">Kategori</th>
                 <th className="pb-2 text-right">Sipariş</th>
+                <th className="pb-2 text-right">Adet</th>
                 <th className="pb-2 text-right">Brüt</th>
                 <th className="pb-2 text-right">Kesinti</th>
                 <th className="pb-2 text-right">Toplam maliyet</th>
@@ -136,12 +166,18 @@ export function FinanceProfitabilityView({ report }: { report: ProfitabilityRepo
                 <tr key={c.categoryId ?? "__none__"} className="border-b border-zinc-100">
                   <td className="py-2 font-medium">{c.label}</td>
                   <td className="py-2 text-right tabular-nums">{c.orderCount}</td>
+                  <td className="py-2 text-right tabular-nums">{c.qtySold}</td>
                   <td className="py-2 text-right tabular-nums">{formatTry(c.grossMinor)}</td>
                   <td className="py-2 text-right tabular-nums">
                     {c.deductionsMinor > 0 ? formatTry(c.deductionsMinor) : "—"}
                   </td>
-                  <td className="py-2 text-right tabular-nums">
-                    {c.costMinor > 0 ? formatTry(c.costMinor) : "—"}
+                  <td className="py-2">
+                    <CostBreakdownCell
+                      qtySold={c.qtySold}
+                      productCostMinor={c.productCostMinor}
+                      operatingCostMinor={c.operatingCostMinor}
+                      costMinor={c.costMinor}
+                    />
                   </td>
                   <td className="py-2 text-right tabular-nums font-medium">
                     {c.netProfitMinor != null ? formatTry(c.netProfitMinor) : "—"}
@@ -189,8 +225,13 @@ export function FinanceProfitabilityView({ report }: { report: ProfitabilityRepo
                   <td className="py-2 text-right tabular-nums">
                     {p.deductionsMinor > 0 ? formatTry(p.deductionsMinor) : "—"}
                   </td>
-                  <td className="py-2 text-right tabular-nums">
-                    {p.costMinor > 0 ? formatTry(p.costMinor) : "—"}
+                  <td className="py-2">
+                    <CostBreakdownCell
+                      qtySold={p.qtySold}
+                      productCostMinor={p.productCostMinor}
+                      operatingCostMinor={p.operatingCostMinor}
+                      costMinor={p.costMinor}
+                    />
                   </td>
                   <td className="py-2 text-right tabular-nums font-medium">
                     {p.netProfitMinor != null ? formatTry(p.netProfitMinor) : "—"}

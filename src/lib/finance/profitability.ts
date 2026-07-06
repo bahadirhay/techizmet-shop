@@ -2,7 +2,8 @@ import "server-only";
 
 import { parseOrderFinanceSnapshot } from "@/lib/finance/order-economics";
 import {
-  lineTotalCostMinor,
+  lineProductCostMinor,
+  lineWebOperatingCostMinor,
   marketplaceDeductionsFromSnapshot,
   orderTotalCostMinor,
 } from "@/lib/finance/economics-math";
@@ -48,6 +49,10 @@ export type ProductProfitRow = {
   qtySold: number;
   grossMinor: number;
   deductionsMinor: number;
+  /** Ürün maliyeti (birim × adet) */
+  productCostMinor: number;
+  /** Paket, kart, kargo payı */
+  operatingCostMinor: number;
   costMinor: number;
   netProfitMinor: number | null;
   marginPercent: number | null;
@@ -57,8 +62,11 @@ export type CategoryProfitRow = {
   categoryId: string | null;
   label: string;
   orderCount: number;
+  qtySold: number;
   grossMinor: number;
   deductionsMinor: number;
+  productCostMinor: number;
+  operatingCostMinor: number;
   costMinor: number;
   netProfitMinor: number | null;
   marginPercent: number | null;
@@ -300,7 +308,9 @@ export async function loadProfitabilityReport(
     for (const line of snap.lines) {
       const share = gross > 0 ? line.lineMinor / gross : 0;
       const lineDed = isMarketplace ? Math.round(effectiveDed * share) : 0;
-      const lineCost = lineTotalCostMinor(snap, line, isMarketplace);
+      const lineProductCost = lineProductCostMinor(line);
+      const lineOperatingCost = isMarketplace ? 0 : lineWebOperatingCostMinor(snap, line);
+      const lineCost = lineProductCost + lineOperatingCost;
       const productKey = line.productId ?? `title:${line.title}`;
 
       const pRow = productMap.get(productKey) ?? {
@@ -309,6 +319,8 @@ export async function loadProfitabilityReport(
         qtySold: 0,
         grossMinor: 0,
         deductionsMinor: 0,
+        productCostMinor: 0,
+        operatingCostMinor: 0,
         costMinor: 0,
         netProfitMinor: null,
         marginPercent: null,
@@ -316,6 +328,8 @@ export async function loadProfitabilityReport(
       pRow.qtySold += line.qty;
       pRow.grossMinor += line.lineMinor;
       pRow.deductionsMinor += lineDed;
+      pRow.productCostMinor += lineProductCost;
+      pRow.operatingCostMinor += lineOperatingCost;
       pRow.costMinor += lineCost;
       productMap.set(productKey, pRow);
 
@@ -325,14 +339,20 @@ export async function loadProfitabilityReport(
         categoryId: line.categoryId,
         label: line.categoryId ? "" : "Kategorisiz",
         orderCount: 0,
+        qtySold: 0,
         grossMinor: 0,
         deductionsMinor: 0,
+        productCostMinor: 0,
+        operatingCostMinor: 0,
         costMinor: 0,
         netProfitMinor: null,
         marginPercent: null,
       };
+      cRow.qtySold += line.qty;
       cRow.grossMinor += line.lineMinor;
       cRow.deductionsMinor += lineDed;
+      cRow.productCostMinor += lineProductCost;
+      cRow.operatingCostMinor += lineOperatingCost;
       cRow.costMinor += lineCost;
       categoryMap.set(catKey, cRow);
     }
