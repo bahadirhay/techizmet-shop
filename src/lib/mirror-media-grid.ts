@@ -2,6 +2,8 @@ import { plainTextToSimpleHtml } from "@/lib/html-plain-text";
 import { isAnchorNode } from "@/lib/mirror-dom-node";
 import {
   MIRROR_HERO_TILE_WIDTH,
+  MIRROR_LCP_HERO_SIZES,
+  MIRROR_LCP_SRCSET_WIDTHS,
   MIRROR_MOBILE_LCP_WIDTH,
   mirrorCdnImageUrl,
 } from "@/lib/mirror-cdn-image";
@@ -114,6 +116,11 @@ function setItemImage(item: Element, url: string, opts?: { isLcp?: boolean }) {
     el.setAttribute("data-src", sized);
     el.setAttribute("data-original", base);
     el.setAttribute("data-kn-sized", "1");
+    if (opts?.isLcp) {
+      const srcset = MIRROR_LCP_SRCSET_WIDTHS.map((w) => `${mirrorCdnImageUrl(base, w)} ${w}w`).join(", ");
+      el.setAttribute("srcset", srcset);
+      el.setAttribute("sizes", MIRROR_LCP_HERO_SIZES);
+    }
     const aspect = Number.parseFloat(el.getAttribute("data-aspectratio") ?? "");
     if (Number.isFinite(aspect) && aspect > 0) {
       const h = Math.max(1, Math.round(width / aspect));

@@ -86,3 +86,19 @@ html.kn-mirror-embed .section-media-grid:first-of-type img.media_image {
   max-height: 100% !important;
   object-fit: cover !important;
 }
+
+/* CLS — hero grid yüksekliği CSS yüklenmeden rezerve et */
+.kn-theme-shell-home #MainContent > .section-media-grid:first-of-type {
+  min-height: max(300px, var(--desktop_height, 300px));
+}
+
+@media (max-width: 767px) {
+  .kn-theme-shell-home #MainContent > .section-media-grid:first-of-type {
+    min-height: max(200px, var(--mobile_height, 200px));
+  }
+}
+
+/* Metin bloğu — grid hücresi boyutlanana kadar kaymayı azalt */
+.kn-theme-shell-home #MainContent > .section-media-grid:first-of-type .media-content.large {
+  contain: layout style;
+}

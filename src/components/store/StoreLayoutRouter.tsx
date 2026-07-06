@@ -28,6 +28,14 @@ const StoreThemeStyles = dynamic(
   { ssr: true },
 );
 
+const ThemeShellChromeStyles = dynamic(
+  () =>
+    import("@/components/store/ThemeShellChromeStyles").then((m) => ({
+      default: m.ThemeShellChromeStyles,
+    })),
+  { ssr: true },
+);
+
 function ThemeStylesForPath({ pathname }: { pathname: string }) {
   return <StoreThemeStyles pathname={pathname} />;
 }
@@ -95,7 +103,7 @@ export function StoreLayoutRouter({
     return (
       <>
         <HtmlLang locale={locale} />
-        <StoreThemeStyles />
+        <ThemeShellChromeStyles pathname={pathname} />
         {schemeCss ? <style dangerouslySetInnerHTML={{ __html: schemeCss }} /> : null}
         {themeColorsCss ? <style dangerouslySetInnerHTML={{ __html: themeColorsCss }} /> : null}
         {announcementSlides?.length ? (

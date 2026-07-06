@@ -39,7 +39,13 @@ export function analyzeHomeLcpFromHtml(html: string): HomeLcpProbeResult {
       issues.push(`LCP hero çok büyük (${w}px) — mobilde 640 hedeflenmeli`);
     }
     if (/srcset=/i.test(lcpImg)) {
-      issues.push("LCP hero srcset var — preload uyumsuzluğu ve CLS riski");
+      const hasResponsivePreload = /rel="preload"[^>]*as="image"[^>]*imagesrcset=/i.test(html);
+      const hasSizes = /sizes=/i.test(lcpImg);
+      if (!hasSizes) {
+        issues.push("LCP hero srcset var ama sizes eksik");
+      } else if (!hasResponsivePreload) {
+        issues.push("LCP hero srcset var ama imagesrcset preload eksik");
+      }
     }
   }
 

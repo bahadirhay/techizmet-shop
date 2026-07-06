@@ -3,6 +3,8 @@
 import {
   MIRROR_CARD_IMAGE_WIDTH,
   MIRROR_HERO_TILE_WIDTH,
+  MIRROR_LCP_HERO_SIZES,
+  MIRROR_LCP_SRCSET_WIDTHS,
   MIRROR_MOBILE_LCP_WIDTH,
   isResizableMirrorImageUrl,
   mirrorCdnImageUrl,
@@ -89,7 +91,8 @@ function patchImgTagAttrs(
 
   // Responsive srcset ve sizes ekle
   if (kind === "lcp-hero") {
-    // Tek boyut — preload ile eşleşir; srcset mobilde 1440 seçimi ve CLS yapar
+    const srcset = buildSrcset(rawSrc.split("?")[0]!, MIRROR_LCP_SRCSET_WIDTHS);
+    next += ` srcset="${srcset}" sizes="${escapeHtmlAttr(MIRROR_LCP_HERO_SIZES)}"`;
   } else if (kind === "hero" || kind === "generic") {
     // Lazy hero: lazysizes data-srcset + data-sizes="auto" kullanır
     const srcset = buildSrcset(rawSrc.split("?")[0]!, HERO_SRCSET_WIDTHS);
@@ -175,8 +178,10 @@ export function patchMirrorCriticalImageLoading(html: string): string {
     if (originalMatch?.[1]) {
       const heroUrl = originalMatch[1].replace(/&amp;/g, "&");
       if (isResizableMirrorImageUrl(heroUrl)) {
-        const sized = mirrorCdnImageUrl(heroUrl, MIRROR_MOBILE_LCP_WIDTH);
-        const preload = `<link rel="preload" as="image" href="${escapeHtmlAttr(sized)}" fetchpriority="high">`;
+        const base = heroUrl.split("?")[0]!;
+        const sized = mirrorCdnImageUrl(base, MIRROR_MOBILE_LCP_WIDTH);
+        const srcset = buildSrcset(base, MIRROR_LCP_SRCSET_WIDTHS);
+        const preload = `<link rel="preload" as="image" href="${escapeHtmlAttr(sized)}" imagesrcset="${srcset}" imagesizes="${escapeHtmlAttr(MIRROR_LCP_HERO_SIZES)}" fetchpriority="high">`;
         out = out.replace(/<head(\b[^>]*)>/i, `<head$1>\n${preload}`);
       }
     }

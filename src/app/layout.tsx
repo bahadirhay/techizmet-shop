@@ -91,8 +91,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {mirrorHeroPreload ? (
           <link
             rel="preload"
-            href={mirrorHeroPreload}
+            href={mirrorHeroPreload.href}
             as="image"
+            imageSrcSet={mirrorHeroPreload.imageSrcSet}
+            imageSizes={mirrorHeroPreload.imageSizes}
             fetchPriority="high"
           />
         ) : null}

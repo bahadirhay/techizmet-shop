@@ -68,7 +68,7 @@ export function ThemeShellVitrinBoot() {
   useEffect(() => {
     const run = () => {
       bootThemeShellVitrinFeatures();
-      forceMirrorResponsiveImagesInDocument(document);
+      forceMirrorResponsiveImagesInDocument(document, { themeShell: true });
       void hydrateThemeShellCatalog(document);
     };
     run();

@@ -9,6 +9,10 @@ export const MIRROR_LCP_IMAGE_WIDTH = 750;
 export const MIRROR_CARD_IMAGE_WIDTH = 400;
 export const MIRROR_HERO_TILE_WIDTH = 600;
 export const MIRROR_MOBILE_LCP_WIDTH = 640;
+export const MIRROR_DESKTOP_LCP_WIDTH = 1080;
+export const MIRROR_LCP_SRCSET_WIDTHS = [MIRROR_MOBILE_LCP_WIDTH, MIRROR_DESKTOP_LCP_WIDTH, 1440] as const;
+/** Hero LCP — mobil tam genişlik, masaüstünde grid yarım sütun */
+export const MIRROR_LCP_HERO_SIZES = "(max-width: 768px) 100vw, 50vw";
 
 export function isResizableMirrorImageUrl(url: string): boolean {
   const path = url.split("?")[0]?.trim() ?? "";

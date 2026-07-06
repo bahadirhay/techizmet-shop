@@ -3,6 +3,8 @@
 import {
   MIRROR_CARD_IMAGE_WIDTH,
   MIRROR_HERO_TILE_WIDTH,
+  MIRROR_LCP_HERO_SIZES,
+  MIRROR_LCP_SRCSET_WIDTHS,
   MIRROR_MOBILE_LCP_WIDTH,
   isResizableMirrorImageUrl,
   mirrorCdnImageUrl,
@@ -47,6 +49,10 @@ function isHeroGridImage(img: HTMLImageElement): boolean {
   return Boolean(img.closest(".section-media-grid") && img.classList.contains("media_image"));
 }
 
+function buildLcpSrcset(base: string): string {
+  return MIRROR_LCP_SRCSET_WIDTHS.map((w) => `${mirrorCdnImageUrl(base, w)} ${w}w`).join(", ");
+}
+
 function applySizedMirrorImage(
   img: HTMLImageElement,
   width: number,
@@ -61,17 +67,24 @@ function applySizedMirrorImage(
   if (
     opts?.highPriority &&
     img.getAttribute("data-kn-sized") === "1" &&
-    currentSrc.includes(`width=${width}`)
+    currentSrc.includes(`width=${MIRROR_MOBILE_LCP_WIDTH}`) &&
+    img.getAttribute("srcset")
   ) {
     return;
   }
 
   img.classList.remove("no-js-hidden", "lazyload", "lazyloading");
   img.classList.add("lazyloaded");
-  img.removeAttribute("srcset");
   img.removeAttribute("data-srcset");
-  img.removeAttribute("sizes");
   img.removeAttribute("data-sizes");
+
+  if (opts?.highPriority && isResizableMirrorImageUrl(base)) {
+    img.setAttribute("srcset", buildLcpSrcset(base));
+    img.setAttribute("sizes", MIRROR_LCP_HERO_SIZES);
+  } else {
+    img.removeAttribute("srcset");
+    img.removeAttribute("sizes");
+  }
 
   if (opts?.highPriority) {
     img.setAttribute("fetchpriority", "high");
@@ -79,8 +92,8 @@ function applySizedMirrorImage(
     img.removeAttribute("loading");
     const aspect = Number.parseFloat(img.getAttribute("data-aspectratio") ?? "");
     if (Number.isFinite(aspect) && aspect > 0) {
-      const h = Math.max(1, Math.round(width / aspect));
-      img.setAttribute("width", String(width));
+      const h = Math.max(1, Math.round(MIRROR_MOBILE_LCP_WIDTH / aspect));
+      img.setAttribute("width", String(MIRROR_MOBILE_LCP_WIDTH));
       img.setAttribute("height", String(h));
     }
   } else {
@@ -94,9 +107,17 @@ function applySizedMirrorImage(
   img.setAttribute("data-kn-sized", "1");
 }
 
+function isThemeShellDocument(doc: Document): boolean {
+  return Boolean(doc.querySelector(".kn-theme-shell-home, .kn-theme-shell-sections"));
+}
+
 /** Prebuild veya overlay sonrası tam boy görselleri zorla küçült */
-export function forceMirrorResponsiveImagesInDocument(doc: Document) {
-  markMirrorEmbedRoot(doc);
+export function forceMirrorResponsiveImagesInDocument(
+  doc: Document,
+  opts?: { themeShell?: boolean },
+) {
+  const themeShell = opts?.themeShell ?? isThemeShellDocument(doc);
+  markMirrorEmbedRoot(doc, { injectCriticalCss: !themeShell });
 
   for (const node of doc.querySelectorAll("img")) {
     if (!(node instanceof HTMLImageElement)) continue;
@@ -163,24 +184,25 @@ function ensureLazyRevealObserver(doc: Document): IntersectionObserver | null {
  * yüksekliğe overflow:hidden ile sıkıştırılıyordu; bu, çok satırlı hero'yu tek
  * şeride kırpıp görselleri "yarım" gösteriyordu.
  */
+/** Yalnızca mobil iframe — masaüstünde kn-mirror-hero.css absolute düzenini bozmaz */
 export const MIRROR_EMBED_HERO_CRITICAL_CSS = `
-#MainContent > .section-media-grid:first-of-type .media-grid--item {
-  position: relative !important;
-  overflow: hidden !important;
-}
-#MainContent > .section-media-grid:first-of-type .media-grid--image {
-  position: relative !important;
-  width: 100% !important;
-  overflow: hidden !important;
-}
-#MainContent > .section-media-grid:first-of-type img.media_image {
-  display: block !important;
-  width: 100% !important;
-  height: auto !important;
-  max-width: 100% !important;
-  object-fit: cover !important;
-}
 @media (max-width: 768px) {
+  #MainContent > .section-media-grid:first-of-type .media-grid--item {
+    position: relative !important;
+    overflow: hidden !important;
+  }
+  #MainContent > .section-media-grid:first-of-type .media-grid--image {
+    position: relative !important;
+    width: 100% !important;
+    overflow: hidden !important;
+  }
+  #MainContent > .section-media-grid:first-of-type img.media_image {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    max-width: 100% !important;
+    object-fit: cover !important;
+  }
   #MainContent > .section-media-grid:first-of-type .media-grid--image .media,
   #MainContent > .section-media-grid:first-of-type .media-grid--image .media-fixed {
     position: absolute !important;
@@ -201,8 +223,9 @@ export const MIRROR_EMBED_HERO_CRITICAL_CSS = `
 }
 `;
 
-export function markMirrorEmbedRoot(doc: Document) {
+export function markMirrorEmbedRoot(doc: Document, opts?: { injectCriticalCss?: boolean }) {
   doc.documentElement.classList.add("kn-mirror-embed");
+  if (opts?.injectCriticalCss === false) return;
   if (!doc.getElementById("kn-mirror-embed-critical")) {
     const style = doc.createElement("style");
     style.id = "kn-mirror-embed-critical";
