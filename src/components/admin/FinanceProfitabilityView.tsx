@@ -70,7 +70,7 @@ export function FinanceProfitabilityView({ report }: { report: ProfitabilityRepo
 
       <section className="admin-card admin-card-pad mt-8 overflow-x-auto">
         <h2 className="font-semibold">Kanal kârlılığı</h2>
-        <p className="mt-1 text-xs text-zinc-500">Web vs pazaryeri — brüt, kesinti, kargo/komisyon, maliyet, net marj</p>
+        <p className="mt-1 text-xs text-zinc-500">Web vs pazaryeri — brüt, kesinti, toplam maliyet (ürün + paket + kart), net marj</p>
         {report.channels.length === 0 ? (
           <p className="mt-4 text-sm text-zinc-500">Bu dönemde sipariş yok.</p>
         ) : (
@@ -82,7 +82,7 @@ export function FinanceProfitabilityView({ report }: { report: ProfitabilityRepo
                 <th className="pb-2 text-right">Brüt</th>
                 <th className="pb-2 text-right">Tahmini kesinti</th>
                 <th className="pb-2 text-right">Onaylı kesinti</th>
-                <th className="pb-2 text-right">Maliyet</th>
+                <th className="pb-2 text-right">Toplam maliyet</th>
                 <th className="pb-2 text-right">Net kâr</th>
                 <th className="pb-2 text-right">Marj</th>
               </tr>
@@ -118,7 +118,7 @@ export function FinanceProfitabilityView({ report }: { report: ProfitabilityRepo
       {report.categories.length > 0 ? (
         <section className="admin-card admin-card-pad mt-8 overflow-x-auto">
           <h2 className="font-semibold">Kategori kârlılığı</h2>
-          <p className="mt-1 text-xs text-zinc-500">Sipariş satırlarından — kesintiler brüte oranla dağıtılır</p>
+          <p className="mt-1 text-xs text-zinc-500">Sipariş satırlarından — kesinti yalnızca pazaryeri; maliyet ürün + paket + kart payı</p>
           <table className="mt-4 w-full min-w-[640px] text-sm">
             <thead>
               <tr className="border-b text-left text-xs text-zinc-500">
@@ -126,7 +126,7 @@ export function FinanceProfitabilityView({ report }: { report: ProfitabilityRepo
                 <th className="pb-2 text-right">Sipariş</th>
                 <th className="pb-2 text-right">Brüt</th>
                 <th className="pb-2 text-right">Kesinti</th>
-                <th className="pb-2 text-right">Maliyet</th>
+                <th className="pb-2 text-right">Toplam maliyet</th>
                 <th className="pb-2 text-right">Net kâr</th>
                 <th className="pb-2 text-right">Marj</th>
               </tr>
@@ -159,7 +159,7 @@ export function FinanceProfitabilityView({ report }: { report: ProfitabilityRepo
       {report.topProducts.length > 0 ? (
         <section className="admin-card admin-card-pad mt-8 overflow-x-auto">
           <h2 className="font-semibold">Ürün bazlı (top 15)</h2>
-          <p className="mt-1 text-xs text-zinc-500">Brüt ciroya göre sıralı</p>
+          <p className="mt-1 text-xs text-zinc-500">Brüt ciroya göre sıralı — maliyet: ürün × adet + paketleme + kart komisyonu payı</p>
           <table className="mt-4 w-full min-w-[680px] text-sm">
             <thead>
               <tr className="border-b text-left text-xs text-zinc-500">
@@ -167,7 +167,7 @@ export function FinanceProfitabilityView({ report }: { report: ProfitabilityRepo
                 <th className="pb-2 text-right">Adet</th>
                 <th className="pb-2 text-right">Brüt</th>
                 <th className="pb-2 text-right">Kesinti</th>
-                <th className="pb-2 text-right">Maliyet</th>
+                <th className="pb-2 text-right">Toplam maliyet</th>
                 <th className="pb-2 text-right">Net kâr</th>
                 <th className="pb-2 text-right">Marj</th>
               </tr>

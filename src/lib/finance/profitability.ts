@@ -1,7 +1,11 @@
 import "server-only";
 
 import { parseOrderFinanceSnapshot } from "@/lib/finance/order-economics";
-import { totalOperatingCostsFromSnapshot } from "@/lib/finance/economics-math";
+import {
+  lineTotalCostMinor,
+  marketplaceDeductionsFromSnapshot,
+  orderTotalCostMinor,
+} from "@/lib/finance/economics-math";
 import { MARKETPLACE_PLATFORMS } from "@/lib/admin/marketplace-platforms";
 import { prisma } from "@/lib/prisma";
 
@@ -144,12 +148,13 @@ export async function loadProfitabilityReport(
     const channel = order.marketplacePlatform ?? "web";
     const snap = parseOrderFinanceSnapshot(order.financeSnapshotJson);
     const gross = snap?.grossMinor ?? order.totalMinor;
+    const isMarketplace = Boolean(order.marketplacePlatform);
     const estDed = snap
-      ? order.marketplacePlatform
-        ? snap.totalCommissionMinor + snap.shippingDeductionMinor
-        : totalOperatingCostsFromSnapshot(snap)
+      ? isMarketplace
+        ? marketplaceDeductionsFromSnapshot(snap)
+        : 0
       : 0;
-    const cost = snap?.totalCostMinor ?? 0;
+    const cost = snap ? orderTotalCostMinor(snap, isMarketplace) : 0;
 
     const row = channelMap.get(channel) ?? {
       channel,
@@ -184,7 +189,7 @@ export async function loadProfitabilityReport(
   for (const row of channelMap.values()) {
     const deductionsForNet =
       row.confirmedDeductionsMinor > 0 ? row.confirmedDeductionsMinor : row.estimatedDeductionsMinor;
-    if (row.costMinor > 0) {
+    if (row.costMinor > 0 || deductionsForNet > 0) {
       row.netProfitMinor = row.grossMinor - deductionsForNet - row.costMinor;
       row.marginPercent =
         row.grossMinor > 0 ? Math.round((row.netProfitMinor / row.grossMinor) * 1000) / 10 : null;
@@ -273,23 +278,18 @@ export async function loadProfitabilityReport(
     const snap = parseOrderFinanceSnapshot(order.financeSnapshotJson);
     if (!snap?.lines.length) continue;
 
+    const isMarketplace = Boolean(order.marketplacePlatform);
     const orderDeductions = deductions.filter((d) => d.orderId === order.id);
     const confirmedOrderDed = orderDeductions
       .filter((d) => d.reconciliationStatus !== "estimated")
       .reduce((s, d) => s + d.amountMinor, 0);
-    const estimatedOrderDed = snap
-      ? order.marketplacePlatform
-        ? snap.totalCommissionMinor + snap.shippingDeductionMinor
-        : totalOperatingCostsFromSnapshot(snap)
-      : 0;
+    const estimatedOrderDed = isMarketplace ? marketplaceDeductionsFromSnapshot(snap) : 0;
     const effectiveDed = confirmedOrderDed > 0 ? confirmedOrderDed : estimatedOrderDed;
     const gross = snap.grossMinor;
-    const cost = snap.totalCostMinor ?? 0;
+    const cost = orderTotalCostMinor(snap, isMarketplace);
 
-    if (cost > 0) {
-      const estNet =
-        snap.expectedNetProfitMinor ??
-        gross - estimatedOrderDed - cost;
+    if (cost > 0 || effectiveDed > 0) {
+      const estNet = snap.expectedNetProfitMinor ?? gross - estimatedOrderDed - cost;
       estimatedNetSum += estNet;
       hasEstimatedNet = true;
       const actNet = gross - effectiveDed - cost;
@@ -299,8 +299,8 @@ export async function loadProfitabilityReport(
 
     for (const line of snap.lines) {
       const share = gross > 0 ? line.lineMinor / gross : 0;
-      const lineDed = Math.round(effectiveDed * share);
-      const lineCost = line.costMinor ?? 0;
+      const lineDed = isMarketplace ? Math.round(effectiveDed * share) : 0;
+      const lineCost = lineTotalCostMinor(snap, line, isMarketplace);
       const productKey = line.productId ?? `title:${line.title}`;
 
       const pRow = productMap.get(productKey) ?? {
@@ -365,7 +365,8 @@ export async function loadProfitabilityReport(
   }
 
   for (const row of [...productMap.values(), ...categoryMap.values()]) {
-    if (row.costMinor > 0) {
+    const hasEconomics = row.costMinor > 0 || row.deductionsMinor > 0;
+    if (hasEconomics) {
       row.netProfitMinor = row.grossMinor - row.deductionsMinor - row.costMinor;
       row.marginPercent =
         row.grossMinor > 0 ? Math.round((row.netProfitMinor / row.grossMinor) * 1000) / 10 : null;
