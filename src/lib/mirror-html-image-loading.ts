@@ -12,11 +12,21 @@ import { MIRROR_EMBED_HERO_CRITICAL_CSS } from "@/lib/mirror-image-reveal";
 // Responsive genişlikler — tarayıcı doğru boyutu seçer
 const HERO_SRCSET_WIDTHS = [640, 1080, 1440] as const;
 const CARD_SRCSET_WIDTHS = [300, 500] as const;
-const HERO_SIZES = "(max-width: 640px) 640px, (max-width: 1200px) 1080px, 1440px";
-const CARD_SIZES = "(max-width: 640px) 300px, 500px";
 
 function escapeHtmlAttr(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+}
+
+/** CLS — width/height özniteliklerini görüntülenen boyuta indir */
+function patchHeroIntrinsicDimensions(attrs: string, displayWidth: number): string {
+  const aspectMatch = attrs.match(/data-aspectratio="([^"]+)"/i);
+  const aspect = aspectMatch ? Number.parseFloat(aspectMatch[1]!) : 0;
+  if (!Number.isFinite(aspect) || aspect <= 0) return attrs;
+
+  const h = Math.max(1, Math.round(displayWidth / aspect));
+  let next = attrs.replace(/\swidth="[^"]*"/gi, "");
+  next = next.replace(/\sheight="[^"]*"/gi, "");
+  return `${next} width="${displayWidth}" height="${h}"`;
 }
 
 function buildSrcset(rawUrl: string, widths: readonly number[]): string {
@@ -79,9 +89,7 @@ function patchImgTagAttrs(
 
   // Responsive srcset ve sizes ekle
   if (kind === "lcp-hero") {
-    // Eager LCP: tarayıcı srcset'i direkt okur, lazyload devreye girmez
-    const srcset = buildSrcset(rawSrc.split("?")[0]!, HERO_SRCSET_WIDTHS);
-    next += ` srcset="${srcset}" sizes="${HERO_SIZES}"`;
+    // Tek boyut — preload ile eşleşir; srcset mobilde 1440 seçimi ve CLS yapar
   } else if (kind === "hero" || kind === "generic") {
     // Lazy hero: lazysizes data-srcset + data-sizes="auto" kullanır
     const srcset = buildSrcset(rawSrc.split("?")[0]!, HERO_SRCSET_WIDTHS);
@@ -107,6 +115,10 @@ function patchImgTagAttrs(
 
   next = next.replace(/\sdata-kn-sized="[^"]*"/gi, "");
   next += ' data-kn-sized="1"';
+
+  if (kind === "lcp-hero") {
+    next = patchHeroIntrinsicDimensions(next, baseWidth);
+  }
 
   return next;
 }

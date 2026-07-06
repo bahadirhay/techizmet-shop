@@ -1,4 +1,4 @@
-/** Canlı ana sayfa — LCP hero görsel boyutlandırma denetimi */
+/** Canlı ana sayfa — LCP hero + CLS denetimi */
 
 export type HomeLcpProbeResult = {
   ok: boolean;
@@ -6,12 +6,17 @@ export type HomeLcpProbeResult = {
   issues: string[];
 };
 
-export function analyzeHomeLcpFromHtml(html: string): HomeLcpProbeResult {
-  const issues: string[] = [];
-  const lcpImg =
+function firstLcpHeroImgTag(html: string): string {
+  return (
     html.match(
       /<section[^>]*section-media-grid[^>]*>[\s\S]{0,12000}?<img\b[^>]*class="[^"]*media_image[^"]*"[^>]*>/i,
-    )?.[0] ?? "";
+    )?.[0] ?? ""
+  );
+}
+
+export function analyzeHomeLcpFromHtml(html: string): HomeLcpProbeResult {
+  const issues: string[] = [];
+  const lcpImg = firstLcpHeroImgTag(html);
 
   if (!lcpImg) {
     return { ok: true, detail: "Media grid hero bulunamadı — LCP denetimi atlandı", issues };
@@ -26,20 +31,35 @@ export function analyzeHomeLcpFromHtml(html: string): HomeLcpProbeResult {
 
   const src = lcpImg.match(/(?<![a-z-])src="([^"]+)"/i)?.[1]?.replace(/&amp;/g, "&") ?? "";
   if (src) {
-    const isFullMedia = /^\/api\/media\/[^/?]+$/i.test(src.split("?")[0] ?? "");
-    const hasWidth = /[?&]width=\d+/i.test(src) || src.includes("/api/resize-image");
-    if (isFullMedia && !hasWidth) {
-      issues.push("LCP hero tam boy /api/media ile sunuluyor");
+    const widthParam = src.match(/[?&]width=(\d+)/i)?.[1];
+    const w = widthParam ? Number.parseInt(widthParam, 10) : 0;
+    if (!widthParam) {
+      issues.push("LCP hero src width parametresi yok");
+    } else if (w > 720) {
+      issues.push(`LCP hero çok büyük (${w}px) — mobilde 640 hedeflenmeli`);
+    }
+    if (/srcset=/i.test(lcpImg)) {
+      issues.push("LCP hero srcset var — preload uyumsuzluğu ve CLS riski");
     }
   }
 
-  if (!/srcset=|data-srcset=/i.test(lcpImg)) {
-    issues.push("Responsive srcset eksik");
+  const attrW = Number.parseInt(lcpImg.match(/\swidth="(\d+)"/i)?.[1] ?? "", 10);
+  if (!Number.isFinite(attrW) || attrW > 900) {
+    issues.push(`LCP hero width özniteliği çok büyük (${attrW || "yok"}) — CLS`);
+  }
+
+  const attrH = Number.parseInt(lcpImg.match(/\sheight="(\d+)"/i)?.[1] ?? "", 10);
+  const aspect = Number.parseFloat(lcpImg.match(/data-aspectratio="([^"]+)"/i)?.[1] ?? "");
+  if (Number.isFinite(attrW) && attrW > 0 && Number.isFinite(attrH) && attrH > 0 && Number.isFinite(aspect) && aspect > 0) {
+    const expected = Math.round(attrW / aspect);
+    if (Math.abs(expected - attrH) > 3) {
+      issues.push("width/height oranı data-aspectratio ile uyuşmuyor");
+    }
   }
 
   return {
     ok: issues.length === 0,
-    detail: issues.length ? issues.join("; ") : "LCP hero doğru boyutlandırılmış",
+    detail: issues.length ? issues.join("; ") : "LCP hero boyutlandırılmış, CLS güvenli",
     issues,
   };
 }

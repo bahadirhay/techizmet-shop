@@ -135,10 +135,22 @@ export async function scanSitePerformance(siteId: string): Promise<SitePerforman
       lighthouseId: "render-blocking-resources",
       label: "Oluşturma engelleyen CSS",
       explanation:
-        "Ana sayfa kabuğunun indirdiği CSS, tarayıcı ilk çizimi yapmadan önce bekletir. Kritik dışı bölüm CSS'i ertelenmeli.",
-      status: "pass",
-      detail:
-        "Theme shell: media-grid ve featured-collection CSS öncelikli; diğer bölüm stilleri deferred yüklenir.",
+        "Ana sayfa kabuğunun indirdiği CSS, tarayıcı ilk çizimi yapmadan önce bekletir. Kritik dışı bölüm ve çekmece CSS'i ertelenmeli.",
+      status: homeLcp.ok ? "pass" : "warn",
+      detail: homeLcp.ok
+        ? "Media-grid CSS kritik; diğer bölüm + cart/account/search CSS deferred yüklenir."
+        : `CSS/hero: ${homeLcp.detail}`,
+      fixLabel: "Performans düzeltmelerini uygula",
+      fixAction: "perf-apply-fixes",
+    },
+    {
+      id: "cls-hero-layout",
+      lighthouseId: "layout-shift",
+      label: "CLS — hero görsel yerleşimi",
+      explanation:
+        "LCP hero görselinde width/height ve srcset hataları sayfa yüklenirken büyük kaymaya (CLS) neden olur.",
+      status: homeLcp.ok ? "pass" : "fail",
+      detail: homeLcp.detail,
       fixLabel: "Performans düzeltmelerini uygula",
       fixAction: "perf-apply-fixes",
     },

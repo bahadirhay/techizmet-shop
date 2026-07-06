@@ -6,7 +6,7 @@ import { ThemeShellListingCartBridge } from "@/components/store/ThemeShellListin
 import { ThemeShellProductScripts } from "@/components/store/ThemeShellProductScripts";
 import { ThemeShellVitrinBoot } from "@/components/store/ThemeShellVitrinBoot";
 
-const MIRROR_HERO_CSS = "/theme/techizmet-shop/kn-mirror-hero.css?v=2";
+const MIRROR_HERO_CSS = "/theme/techizmet-shop/kn-mirror-hero.css?v=3";
 
 /** Ana sayfa vitrin bölümleri — ürün kartları, swiper, tema scriptleri */
 export function ThemeShellHomeView({ content }: { content: ThemeShellHomeContent }) {

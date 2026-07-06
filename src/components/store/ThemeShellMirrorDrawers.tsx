@@ -5,6 +5,7 @@ import { MIRROR_ACCOUNT_BRIDGE_JS } from "@/lib/mirror-account-bridge";
 import { MIRROR_CART_BRIDGE_JS } from "@/lib/mirror-cart-bridge";
 import { MIRROR_SEARCH_BRIDGE_JS } from "@/lib/mirror-search-bridge";
 import { ThemeShellInjectScript } from "@/components/store/ThemeShellInjectScript";
+import { ThemeShellDrawerDeferredStyles } from "@/components/store/ThemeShellDrawerDeferredStyles";
 
 /** Canlı vitrin ile aynı cart/account/search çekmeceleri + köprü scriptleri */
 export function ThemeShellMirrorDrawers({
@@ -26,9 +27,7 @@ export function ThemeShellMirrorDrawers({
   }, [html]);
   return (
     <>
-      {stylesheets.map((href) => (
-        <link key={href} rel="stylesheet" href={href} />
-      ))}
+      <ThemeShellDrawerDeferredStyles hrefs={stylesheets} />
       <ThemeShellInjectScript id="kn-store-bridge" code={storeBridgeJs} />
       <ThemeShellInjectScript id="kn-cart-bridge" code={MIRROR_CART_BRIDGE_JS} />
       <ThemeShellInjectScript id="kn-account-bridge" code={MIRROR_ACCOUNT_BRIDGE_JS} />

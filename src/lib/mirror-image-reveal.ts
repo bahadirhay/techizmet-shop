@@ -57,15 +57,32 @@ function applySizedMirrorImage(
   const base = rawUrl.split("?")[0] ?? rawUrl;
   const sized = isResizableMirrorImageUrl(base) ? mirrorCdnImageUrl(base, width) : rawUrl;
 
+  const currentSrc = img.getAttribute("src") ?? "";
+  if (
+    opts?.highPriority &&
+    img.getAttribute("data-kn-sized") === "1" &&
+    currentSrc.includes(`width=${width}`)
+  ) {
+    return;
+  }
+
   img.classList.remove("no-js-hidden", "lazyload", "lazyloading");
   img.classList.add("lazyloaded");
   img.removeAttribute("srcset");
   img.removeAttribute("data-srcset");
+  img.removeAttribute("sizes");
+  img.removeAttribute("data-sizes");
 
   if (opts?.highPriority) {
     img.setAttribute("fetchpriority", "high");
     img.setAttribute("elementtiming", "kn-hero-lcp");
     img.removeAttribute("loading");
+    const aspect = Number.parseFloat(img.getAttribute("data-aspectratio") ?? "");
+    if (Number.isFinite(aspect) && aspect > 0) {
+      const h = Math.max(1, Math.round(width / aspect));
+      img.setAttribute("width", String(width));
+      img.setAttribute("height", String(h));
+    }
   } else {
     img.setAttribute("loading", "lazy");
     img.removeAttribute("fetchpriority");
@@ -147,16 +164,23 @@ function ensureLazyRevealObserver(doc: Document): IntersectionObserver | null {
  * şeride kırpıp görselleri "yarım" gösteriyordu.
  */
 export const MIRROR_EMBED_HERO_CRITICAL_CSS = `
+#MainContent > .section-media-grid:first-of-type .media-grid--item {
+  position: relative !important;
+  overflow: hidden !important;
+}
+#MainContent > .section-media-grid:first-of-type .media-grid--image {
+  position: relative !important;
+  width: 100% !important;
+  overflow: hidden !important;
+}
+#MainContent > .section-media-grid:first-of-type img.media_image {
+  display: block !important;
+  width: 100% !important;
+  height: auto !important;
+  max-width: 100% !important;
+  object-fit: cover !important;
+}
 @media (max-width: 768px) {
-  #MainContent > .section-media-grid:first-of-type .media-grid--item {
-    position: relative !important;
-    overflow: hidden !important;
-  }
-  #MainContent > .section-media-grid:first-of-type .media-grid--image {
-    position: absolute !important;
-    inset: 0 !important;
-    overflow: hidden !important;
-  }
   #MainContent > .section-media-grid:first-of-type .media-grid--image .media,
   #MainContent > .section-media-grid:first-of-type .media-grid--image .media-fixed {
     position: absolute !important;
@@ -169,7 +193,7 @@ export const MIRROR_EMBED_HERO_CRITICAL_CSS = `
     inset: 0 !important;
     width: 100% !important;
     height: 100% !important;
-    object-fit: cover !important;
+    max-width: none !important;
   }
   #MainContent > .section-media-grid:first-of-type .media-content.large {
     z-index: 2 !important;

@@ -106,10 +106,20 @@ function setItemImage(item: Element, url: string, opts?: { isLcp?: boolean }) {
     const el = img as HTMLImageElement;
     el.classList.remove("lazyload", "lazyloading", "lazyloaded");
     el.removeAttribute("lazyload");
+    el.removeAttribute("srcset");
+    el.removeAttribute("data-srcset");
+    el.removeAttribute("sizes");
+    el.removeAttribute("data-sizes");
     el.src = sized;
     el.setAttribute("data-src", sized);
     el.setAttribute("data-original", base);
     el.setAttribute("data-kn-sized", "1");
+    const aspect = Number.parseFloat(el.getAttribute("data-aspectratio") ?? "");
+    if (Number.isFinite(aspect) && aspect > 0) {
+      const h = Math.max(1, Math.round(width / aspect));
+      el.setAttribute("width", String(width));
+      el.setAttribute("height", String(h));
+    }
     if (opts?.isLcp) {
       el.setAttribute("fetchpriority", "high");
       el.setAttribute("loading", "eager");
