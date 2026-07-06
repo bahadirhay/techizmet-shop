@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { formatTry } from "@/lib/admin/money";
-import type { ProfitabilityReport } from "@/lib/finance/profitability";
+import type { ProductProfitRow, ProfitabilityReport } from "@/lib/finance/profitability";
 import { btnSecondary } from "@/components/admin/AdminForm";
 
 const EVA_STATUS: Record<string, { label: string; className: string }> = {
@@ -11,32 +11,139 @@ const EVA_STATUS: Record<string, { label: string; className: string }> = {
   variance: { label: "Fark var", className: "bg-red-100 text-red-800" },
 };
 
+function perUnitMinor(totalMinor: number, qty: number): number | null {
+  if (qty <= 0 || totalMinor === 0) return null;
+  return Math.round(totalMinor / qty);
+}
+
+function MoneyCell({
+  totalMinor,
+  perUnitMinor,
+  sub,
+  emphasize,
+  tone,
+}: {
+  totalMinor: number;
+  perUnitMinor?: number | null;
+  sub?: string;
+  emphasize?: boolean;
+  tone?: "profit" | "loss" | "default";
+}) {
+  if (totalMinor === 0 && !sub) return <span className="text-zinc-400">—</span>;
+  const toneClass =
+    tone === "profit" ? "text-emerald-700" : tone === "loss" ? "text-red-700" : "text-zinc-900";
+
+  return (
+    <div className="text-right">
+      <div className={`tabular-nums ${emphasize ? "font-semibold" : ""} ${toneClass}`}>
+        {formatTry(totalMinor)}
+      </div>
+      {perUnitMinor != null ? (
+        <div className="mt-0.5 text-xs text-zinc-500 tabular-nums">{formatTry(perUnitMinor)} / adet</div>
+      ) : null}
+      {sub ? <div className="mt-0.5 text-xs text-zinc-500">{sub}</div> : null}
+    </div>
+  );
+}
+
 function CostBreakdownCell({
   qtySold,
   productCostMinor,
   operatingCostMinor,
   costMinor,
+  deductionsMinor,
 }: {
   qtySold: number;
   productCostMinor: number;
   operatingCostMinor: number;
   costMinor: number;
+  deductionsMinor?: number;
 }) {
   if (costMinor <= 0) return <>—</>;
-  const unitProduct =
-    qtySold > 0 && productCostMinor > 0 ? Math.round(productCostMinor / qtySold) : null;
+  const unitProduct = perUnitMinor(productCostMinor, qtySold);
+  const parts: string[] = [];
+  if (qtySold > 0 && unitProduct != null) parts.push(`${qtySold} × ${formatTry(unitProduct)} ürün`);
+  if (operatingCostMinor > 0) parts.push(`${formatTry(operatingCostMinor)} paket/kart/kargo`);
+  if (deductionsMinor && deductionsMinor > 0) parts.push(`${formatTry(deductionsMinor)} pazaryeri kesintisi ayrı`);
 
   return (
-    <div className="text-right">
-      <div className="tabular-nums font-medium">{formatTry(costMinor)}</div>
-      {qtySold > 0 ? (
-        <div className="mt-0.5 text-xs text-zinc-500 tabular-nums">
-          {qtySold} adet
-          {unitProduct != null ? ` × ${formatTry(unitProduct)}` : null}
-          {operatingCostMinor > 0 ? ` + ${formatTry(operatingCostMinor)} gider` : null}
-        </div>
-      ) : null}
-    </div>
+    <MoneyCell
+      totalMinor={costMinor}
+      perUnitMinor={perUnitMinor(costMinor, qtySold)}
+      sub={parts.length ? parts.join(" + ") : undefined}
+    />
+  );
+}
+
+function ProductProfitRowView({ p }: { p: ProductProfitRow }) {
+  const unitProfit =
+    p.netProfitMinor != null && p.qtySold > 0 ? Math.round(p.netProfitMinor / p.qtySold) : null;
+  const lowMargin = p.marginPercent != null && p.marginPercent < 15;
+  const profitTone =
+    p.netProfitMinor == null ? "default" : p.netProfitMinor >= 0 ? "profit" : "loss";
+
+  return (
+    <tr className="border-b border-zinc-100 align-top">
+      <td className="py-3 pr-3 font-medium max-w-[220px]">
+        {p.productId ? (
+          <Link href={`/admin/products/${p.productId}/edit`} className="text-[var(--kn-brand)] underline">
+            {p.title}
+          </Link>
+        ) : (
+          p.title
+        )}
+        {lowMargin && p.productId ? (
+          <p className="mt-1 text-xs font-normal text-amber-800">
+            Düşük marj — ürün maliyetini kontrol edin
+          </p>
+        ) : null}
+      </td>
+      <td className="py-3 text-right tabular-nums">{p.qtySold}</td>
+      <td className="py-3">
+        <MoneyCell totalMinor={p.grossMinor} perUnitMinor={perUnitMinor(p.grossMinor, p.qtySold)} />
+      </td>
+      <td className="py-3">
+        <CostBreakdownCell
+          qtySold={p.qtySold}
+          productCostMinor={p.productCostMinor}
+          operatingCostMinor={p.operatingCostMinor}
+          costMinor={p.costMinor}
+          deductionsMinor={p.deductionsMinor}
+        />
+      </td>
+      <td className="py-3">
+        <MoneyCell
+          totalMinor={p.netProfitMinor ?? 0}
+          emphasize
+          tone={profitTone}
+          sub={p.deductionsMinor > 0 ? `Kesinti ${formatTry(p.deductionsMinor)} düşüldü` : undefined}
+        />
+      </td>
+      <td className="py-3">
+        {unitProfit != null ? (
+          <MoneyCell totalMinor={unitProfit} emphasize tone={profitTone} />
+        ) : (
+          <span className="text-zinc-400">—</span>
+        )}
+      </td>
+      <td className="py-3 text-right tabular-nums">
+        {p.marginPercent != null ? (
+          <span
+            className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
+              p.marginPercent >= 30
+                ? "bg-emerald-100 text-emerald-800"
+                : p.marginPercent >= 15
+                  ? "bg-amber-100 text-amber-900"
+                  : "bg-red-100 text-red-800"
+            }`}
+          >
+            %{p.marginPercent}
+          </span>
+        ) : (
+          "—"
+        )}
+      </td>
+    </tr>
   );
 }
 
@@ -177,6 +284,7 @@ export function FinanceProfitabilityView({ report }: { report: ProfitabilityRepo
                       productCostMinor={c.productCostMinor}
                       operatingCostMinor={c.operatingCostMinor}
                       costMinor={c.costMinor}
+                      deductionsMinor={c.deductionsMinor}
                     />
                   </td>
                   <td className="py-2 text-right tabular-nums font-medium">
@@ -195,51 +303,31 @@ export function FinanceProfitabilityView({ report }: { report: ProfitabilityRepo
       {report.topProducts.length > 0 ? (
         <section className="admin-card admin-card-pad mt-8 overflow-x-auto">
           <h2 className="font-semibold">Ürün bazlı (top 15)</h2>
-          <p className="mt-1 text-xs text-zinc-500">Brüt ciroya göre sıralı — maliyet: ürün × adet + paketleme + kart komisyonu payı</p>
-          <table className="mt-4 w-full min-w-[680px] text-sm">
+          <p className="mt-1 text-sm text-zinc-600">
+            Seçilen dönemdeki satışlar toplanır.{" "}
+            <strong>Toplam kâr = Brüt satış − Toplam maliyet − Pazaryeri kesintisi</strong>. Net marj = Toplam kâr ÷
+            Brüt satış.
+          </p>
+          <p className="mt-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
+            Düşük marj (ör. %9) geçmiş ortalamadan değil; bu dönemde satılan adetlerin gerçek maliyet ve fiyatından
+            gelir. Tavuk ayağı örneğinde ürün maliyeti (~₺189/adet) satış fiyatına (~₺239/adet) çok yakınsa marj
+            düşük çıkar — ürün kartındaki <em>maliyet</em> alanını doğrulayın.
+          </p>
+          <table className="mt-4 w-full min-w-[900px] text-sm">
             <thead>
               <tr className="border-b text-left text-xs text-zinc-500">
-                <th className="pb-2">Ürün</th>
+                <th className="pb-2 pr-3">Ürün</th>
                 <th className="pb-2 text-right">Adet</th>
-                <th className="pb-2 text-right">Brüt</th>
-                <th className="pb-2 text-right">Kesinti</th>
+                <th className="pb-2 text-right">Brüt satış</th>
                 <th className="pb-2 text-right">Toplam maliyet</th>
-                <th className="pb-2 text-right">Net kâr</th>
-                <th className="pb-2 text-right">Marj</th>
+                <th className="pb-2 text-right">Toplam kâr</th>
+                <th className="pb-2 text-right">1 adet kâr</th>
+                <th className="pb-2 text-right">Net marj</th>
               </tr>
             </thead>
             <tbody>
               {report.topProducts.map((p) => (
-                <tr key={p.productId ?? p.title} className="border-b border-zinc-100">
-                  <td className="py-2 font-medium">
-                    {p.productId ? (
-                      <Link href={`/admin/products/${p.productId}/edit`} className="text-[var(--kn-brand)] underline">
-                        {p.title}
-                      </Link>
-                    ) : (
-                      p.title
-                    )}
-                  </td>
-                  <td className="py-2 text-right tabular-nums">{p.qtySold}</td>
-                  <td className="py-2 text-right tabular-nums">{formatTry(p.grossMinor)}</td>
-                  <td className="py-2 text-right tabular-nums">
-                    {p.deductionsMinor > 0 ? formatTry(p.deductionsMinor) : "—"}
-                  </td>
-                  <td className="py-2">
-                    <CostBreakdownCell
-                      qtySold={p.qtySold}
-                      productCostMinor={p.productCostMinor}
-                      operatingCostMinor={p.operatingCostMinor}
-                      costMinor={p.costMinor}
-                    />
-                  </td>
-                  <td className="py-2 text-right tabular-nums font-medium">
-                    {p.netProfitMinor != null ? formatTry(p.netProfitMinor) : "—"}
-                  </td>
-                  <td className="py-2 text-right tabular-nums">
-                    {p.marginPercent != null ? `%${p.marginPercent}` : "—"}
-                  </td>
-                </tr>
+                <ProductProfitRowView key={p.productId ?? p.title} p={p} />
               ))}
             </tbody>
           </table>
