@@ -63,6 +63,11 @@ model StoreSite {
   financeInvoiceLineTemplates FinanceInvoiceLineTemplate[]
   taxObligations           TaxObligation[]
   invoiceEntries           InvoiceEntry[]
+  stockItems               StockItem[]
+  stockMovements           StockMovement[]
+  financeInvoiceLineStockMappings FinanceInvoiceLineStockMapping[]
+  productRecipes           ProductRecipe[]
+  packagingRuns            PackagingRun[]
   streetFoodCampaigns      StreetFoodCampaign[]
   streetFoodContributions  StreetFoodContribution[]
   streetFoodDonations      StreetFoodDonation[]
@@ -562,6 +567,9 @@ model StoreProduct {
   bundleMemberships  StoreBundleComponent[] @relation("BundleComponentOf")
   socialContentDrafts SocialContentDraft[]
   reviews            StoreProductReview[]
+  stockItems         StockItem[]
+  productRecipes     ProductRecipe[] @relation("RecipeOutputProduct")
+  packagingRuns      PackagingRun[] @relation("PackagingOutputProduct")
 
   @@unique([siteId, slug])
   @@index([siteId, sku])
@@ -627,6 +635,7 @@ model StoreProductVariant {
   updatedAt      DateTime @updatedAt
   priceChangeItems StorePriceChangeItem[]
   bundleComponents StoreBundleComponent[]
+  stockItems       StockItem[]
 
   @@index([productId, sortOrder])
   @@map("product_variant")
@@ -1293,6 +1302,7 @@ model FinanceInvoice {
   approvalLogs          FinanceInvoiceApprovalLog[]
   linkedTransactions    FinanceTransaction[]
   postJobs              FinanceInvoicePostJob[]
+  stockPostedAt         DateTime?
 
   @@index([siteId, status, issueDate])
   @@index([siteId, source, direction])
@@ -1514,5 +1524,136 @@ model InvoiceEntry {
   @@index([siteId, invoiceDate])
   @@index([siteId, direction, invoiceDate])
   @@map("invoice_entry")
+  @@schema("shop")
+}
+
+/** Stok kartı — hammadde (kg), ambalaj (adet), mamul (adet) */
+model StockItem {
+  id                String   @id @default(cuid())
+  siteId            String
+  site              StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  name              String
+  sku               String?
+  /** raw_material | packaging | finished */
+  kind              String   @default("finished")
+  /** kg | adet — bakiye: kg için gram, adet için parça */
+  unit              String   @default("adet")
+  balanceBase       Int      @default(0)
+  lowStockThreshold Int      @default(0)
+  productId         String?
+  product           StoreProduct? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  variantId         String?
+  variant           StoreProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  active            Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  movements         StockMovement[]
+  recipeLines       ProductRecipeLine[]
+  invoiceLineMappings FinanceInvoiceLineStockMapping[]
+
+  @@index([siteId, kind, active])
+  @@index([siteId, productId])
+  @@map("stock_item")
+  @@schema("shop")
+}
+
+/** Stok hareket defteri */
+model StockMovement {
+  id           String   @id @default(cuid())
+  siteId       String
+  site         StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  stockItemId  String
+  stockItem    StockItem @relation(fields: [stockItemId], references: [id], onDelete: Cascade)
+  /** purchase | sale | production_in | production_out | adjustment | return */
+  type         String
+  /** Pozitif giriş, negatif çıkış (gram veya adet) */
+  qtyBase      Int
+  balanceAfter Int
+  refType      String
+  refId        String
+  lineKey      String   @default("")
+  occurredAt   DateTime
+  note         String?
+  staffUserId  String?
+  createdAt    DateTime @default(now())
+
+  @@unique([siteId, refType, refId, lineKey, stockItemId])
+  @@index([siteId, occurredAt])
+  @@index([siteId, stockItemId, occurredAt])
+  @@map("stock_movement")
+  @@schema("shop")
+}
+
+/** Fatura satırı → stok kartı eşlemesi (GİB / tekrarlayan kalemler) */
+model FinanceInvoiceLineStockMapping {
+  id              String   @id @default(cuid())
+  siteId          String
+  site            StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  descriptionNorm String
+  stockItemId     String
+  stockItem       StockItem @relation(fields: [stockItemId], references: [id], onDelete: Cascade)
+  /** Fatura birimi: kg | adet | gram */
+  invoiceUnit     String   @default("adet")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([siteId, descriptionNorm])
+  @@map("finance_invoice_line_stock_mapping")
+  @@schema("shop")
+}
+
+/** Paketleme reçetesi — mamul çıkışı + hammadde/ambalaj girdileri */
+model ProductRecipe {
+  id              String   @id @default(cuid())
+  siteId          String
+  site            StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  name            String
+  outputProductId String
+  outputProduct   StoreProduct @relation("RecipeOutputProduct", fields: [outputProductId], references: [id], onDelete: Cascade)
+  outputVariantId String?
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  lines           ProductRecipeLine[]
+  packagingRuns   PackagingRun[]
+
+  @@index([siteId, outputProductId])
+  @@map("product_recipe")
+  @@schema("shop")
+}
+
+model ProductRecipeLine {
+  id               String   @id @default(cuid())
+  recipeId         String
+  recipe           ProductRecipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  stockItemId      String
+  stockItem        StockItem @relation(fields: [stockItemId], references: [id], onDelete: Restrict)
+  /** 1 mamul birimi başına tüketim (gram veya adet) */
+  qtyBasePerOutput Int
+  sortOrder        Int      @default(0)
+
+  @@index([recipeId, sortOrder])
+  @@map("product_recipe_line")
+  @@schema("shop")
+}
+
+/** Paketleme fişi — reçeteye göre stok dönüşümü */
+model PackagingRun {
+  id              String   @id @default(cuid())
+  siteId          String
+  site            StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  recipeId        String?
+  recipe          ProductRecipe? @relation(fields: [recipeId], references: [id], onDelete: SetNull)
+  outputProductId String
+  outputProduct   StoreProduct @relation("PackagingOutputProduct", fields: [outputProductId], references: [id], onDelete: Restrict)
+  outputVariantId String?
+  outputQty       Int
+  occurredAt      DateTime
+  note            String?
+  staffUserId     String?
+  createdAt       DateTime @default(now())
+
+  @@index([siteId, occurredAt])
+  @@map("packaging_run")
   @@schema("shop")
 }

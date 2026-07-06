@@ -205,6 +205,23 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       },
     });
 
+    if (body.stockQty != null) {
+      const newStockQty = parseInt(String(body.stockQty), 10) || 0;
+      if (newStockQty !== existing.stockQty) {
+        const { syncProductStockChangeToLedger } = await import("@/lib/stock/manual-entry");
+        await prisma.$transaction(async (tx) => {
+          await syncProductStockChangeToLedger(tx, {
+            siteId: auth.siteId,
+            productId: id,
+            previousQty: existing.stockQty,
+            newQty: newStockQty,
+            staffUserId: auth.staffUserId,
+            note: "Ürün düzenleme — stok alanı",
+          });
+        });
+      }
+    }
+
     if (categorySelection) {
       await syncProductCategoryLinks(prisma, id, categorySelection.categoryIds);
     }

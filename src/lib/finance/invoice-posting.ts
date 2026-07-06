@@ -68,6 +68,18 @@ export async function postInvoiceToFinance(
         note: params.note?.trim() || "Onaylandı ve muhasebeye işlendi.",
       },
     });
+
+    const { postFinanceInvoiceStock } = await import("@/lib/stock/invoice-stock");
+    await postFinanceInvoiceStock(trx, {
+      siteId: params.siteId,
+      invoiceId: invoice.id,
+      direction: invoice.direction,
+      linesJson: invoice.linesJson,
+      issueDate: invoice.issueDate,
+      orderId: invoice.orderId,
+      staffUserId: params.actorUserId,
+    });
+
     return { posted, updated };
   });
   return { alreadyPosted: false, ...tx };

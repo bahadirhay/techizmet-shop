@@ -6,6 +6,7 @@ export type DraftInvoiceLineInput = {
   qty: number;
   unitPrice: number;
   vatRate: number;
+  unit?: string;
 };
 
 export type NormalizedInvoiceLine = {
@@ -16,6 +17,7 @@ export type NormalizedInvoiceLine = {
   vatRate: number;
   vatMinor: number;
   totalMinor: number;
+  unit?: string;
 };
 
 export function normalizeInvoiceLines(lines: DraftInvoiceLineInput[]): {
@@ -30,6 +32,7 @@ export function normalizeInvoiceLines(lines: DraftInvoiceLineInput[]): {
       qty: Number(l.qty ?? 0),
       unitPriceMinor: tryToMinor(l.unitPrice),
       vatRate: Math.max(0, Number(l.vatRate ?? 0)),
+      unit: l.unit?.trim() || undefined,
     }))
     .filter((l) => l.description && l.qty > 0 && l.unitPriceMinor > 0)
     .map((l) => {

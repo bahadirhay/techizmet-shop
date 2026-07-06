@@ -68,10 +68,22 @@ export async function PATCH(req: Request) {
   if (body.stockDelta != null && body.stockDelta !== 0) {
     const delta = parseInt(String(body.stockDelta), 10);
     if (!Number.isNaN(delta)) {
+      const { applyProductStockDeltaToLedger } = await import("@/lib/stock/manual-entry");
       for (const p of owned) {
-        await prisma.storeProduct.update({
-          where: { id: p.id },
-          data: { stockQty: Math.max(0, p.stockQty + delta) },
+        const newQty = Math.max(0, p.stockQty + delta);
+        await prisma.$transaction(async (tx) => {
+          await tx.storeProduct.update({
+            where: { id: p.id },
+            data: { stockQty: newQty },
+          });
+          await applyProductStockDeltaToLedger(tx, {
+            siteId: auth.siteId,
+            productId: p.id,
+            previousQty: p.stockQty,
+            newQty,
+            staffUserId: auth.staffUserId,
+            note: "Toplu stok düzeltme",
+          });
         });
       }
     }

@@ -658,37 +658,9 @@ export async function createOrderFromCart(params: {
   const order = await prisma.$transaction(async (tx) => {
     for (const line of cart.items) {
       const lineKey = cartLineKey(line.productId, line.variantId);
-      if (kindById.get(line.productId) === PRODUCT_KIND_BUNDLE) {
+      const kind = kindById.get(line.productId) ?? "standard";
+      if (kind === PRODUCT_KIND_BUNDLE) {
         const components = await loadResolvedBundleComponents(tx, line.productId);
-        const deductions = expandBundleStockDeductions(components, line.qty);
-        for (const d of deductions) {
-          if (d.variantId) {
-            const updated = await tx.storeProductVariant.updateMany({
-              where: {
-                id: d.variantId,
-                productId: d.productId,
-                stockQty: { gte: d.qty },
-              },
-              data: { stockQty: { decrement: d.qty } },
-            });
-            if (updated.count === 0) throw new Error(`${line.title} için yeterli stok yok`);
-            const sum = await tx.storeProductVariant.aggregate({
-              where: { productId: d.productId },
-              _sum: { stockQty: true },
-            });
-            await tx.storeProduct.update({
-              where: { id: d.productId },
-              data: { stockQty: sum._sum.stockQty ?? 0 },
-            });
-          } else {
-            const updated = await tx.storeProduct.updateMany({
-              where: { id: d.productId, stockQty: { gte: d.qty } },
-              data: { stockQty: { decrement: d.qty } },
-            });
-            if (updated.count === 0) throw new Error(`${line.title} için yeterli stok yok`);
-          }
-          componentProductIdsForSync.add(d.productId);
-        }
         orderLineExtras.set(lineKey, {
           lineKind: PRODUCT_KIND_BUNDLE,
           bundleProductId: line.productId,
@@ -696,31 +668,10 @@ export async function createOrderFromCart(params: {
             await buildComponentsSnapshotForOrder(tx, components, line.qty),
           ),
         });
-      } else if (line.variantId) {
-        const updated = await tx.storeProductVariant.updateMany({
-          where: { id: line.variantId, productId: line.productId, stockQty: { gte: line.qty } },
-          data: { stockQty: { decrement: line.qty } },
-        });
-        if (updated.count === 0) throw new Error(`${line.title} için yeterli stok yok`);
-        const sum = await tx.storeProductVariant.aggregate({
-          where: { productId: line.productId },
-          _sum: { stockQty: true },
-        });
-        await tx.storeProduct.update({
-          where: { id: line.productId },
-          data: { stockQty: sum._sum.stockQty ?? 0 },
-        });
-        orderLineExtras.set(lineKey, {
-          lineKind: "standard",
-          bundleProductId: null,
-          componentsSnapshotJson: null,
-        });
+        for (const d of expandBundleStockDeductions(components, line.qty)) {
+          componentProductIdsForSync.add(d.productId);
+        }
       } else {
-        const updated = await tx.storeProduct.updateMany({
-          where: { id: line.productId, stockQty: { gte: line.qty } },
-          data: { stockQty: { decrement: line.qty } },
-        });
-        if (updated.count === 0) throw new Error(`${line.title} için yeterli stok yok`);
         orderLineExtras.set(lineKey, {
           lineKind: "standard",
           bundleProductId: null,
@@ -729,23 +680,7 @@ export async function createOrderFromCart(params: {
       }
     }
 
-    if (componentProductIdsForSync.size) {
-      await syncBundlesContainingProducts(tx, [...componentProductIdsForSync]);
-    }
-
-    const campaignIds = cart.campaignIds?.length
-      ? cart.campaignIds
-      : cart.campaignId
-        ? [cart.campaignId]
-        : [];
-    for (const campaignId of campaignIds) {
-      await tx.storeCampaign.update({
-        where: { id: campaignId },
-        data: { usedCount: { increment: 1 } },
-      });
-    }
-
-    return tx.storeOrder.create({
+    const created = await tx.storeOrder.create({
       data: {
         siteId: params.siteId,
         orderNumber,
@@ -799,7 +734,42 @@ export async function createOrderFromCart(params: {
           }),
         },
       },
+      include: { lines: true },
     });
+
+    const { recordOrderStockMovements } = await import("@/lib/stock/order-stock");
+    await recordOrderStockMovements(tx, {
+      siteId: params.siteId,
+      orderId: created.id,
+      lines: created.lines
+        .filter((l): l is typeof l & { productId: string } => Boolean(l.productId))
+        .map((l) => ({
+          id: l.id,
+          productId: l.productId,
+          variantId: l.variantId,
+          qty: l.qty,
+          title: l.title,
+        })),
+      productKinds: kindById,
+    });
+
+    if (componentProductIdsForSync.size) {
+      await syncBundlesContainingProducts(tx, [...componentProductIdsForSync]);
+    }
+
+    const campaignIds = cart.campaignIds?.length
+      ? cart.campaignIds
+      : cart.campaignId
+        ? [cart.campaignId]
+        : [];
+    for (const campaignId of campaignIds) {
+      await tx.storeCampaign.update({
+        where: { id: campaignId },
+        data: { usedCount: { increment: 1 } },
+      });
+    }
+
+    return created;
   });
 
   const productIds = [
