@@ -1,5 +1,7 @@
 "use client";
 
+import "@/app/store-theme.css";
+
 /**
  * Tema kabuğu — ana sayfada yalnızca header/hero için kritik CSS senkron;
  * çekmece, koleksiyon ve animasyon sayfaları render'ı bloklamaz.
