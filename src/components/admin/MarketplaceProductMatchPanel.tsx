@@ -309,18 +309,23 @@ export function MarketplaceProductMatchPanel({
 
   async function refreshBatchStatus() {
     setSending(true);
-    setMsg(null);
-    const res = await fetch("/api/admin/integrations/marketplaces/trendyol/batch-status", {
-      method: "POST",
-    });
-    const json = (await res.json()) as { message?: string; error?: string };
-    setSending(false);
-    if (!res.ok) {
-      setMsg(json.error ?? "Durum alınamadı");
-      return;
+    setMsg("Trendyol durumu sorgulanıyor…");
+    try {
+      const res = await fetch("/api/admin/integrations/marketplaces/trendyol/batch-status", {
+        method: "POST",
+      });
+      const json = (await res.json().catch(() => ({}))) as { message?: string; error?: string };
+      if (!res.ok) {
+        setMsg(json.error ?? "Durum alınamadı");
+        return;
+      }
+      setMsg(`Trendyol durumu: ${json.message ?? "güncellendi"}`);
+      await loadCategory();
+    } catch (e) {
+      setMsg(`Durum sorgulanamadı: ${e instanceof Error ? e.message : "bağlantı sorunu"}`);
+    } finally {
+      setSending(false);
     }
-    setMsg(`Trendyol durumu: ${json.message ?? "güncellendi"}`);
-    await loadCategory();
   }
 
   async function sendSelected() {
@@ -330,26 +335,32 @@ export function MarketplaceProductMatchPanel({
       return;
     }
     setSending(true);
-    setMsg(null);
-    const saved = await saveAttributes(ids);
-    if (!saved) {
+    setMsg("Özellikler kaydediliyor…");
+    try {
+      const saved = await saveAttributes(ids);
+      if (!saved) return;
+      setMsg(`${ids.length} ürün Trendyol'a gönderiliyor… (birkaç dakika sürebilir, sayfayı kapatmayın)`);
+      const res = await fetch("/api/admin/integrations/marketplaces/trendyol/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productIds: ids }),
+      });
+      const json = (await res.json().catch(() => ({}))) as {
+        result?: { ok: boolean; message: string };
+        error?: string;
+      };
+      if (!res.ok) {
+        setMsg(json.error ?? "Gönderim başarısız");
+        return;
+      }
+      setMsg(json.result?.message ?? "Gönderildi");
+      await loadCategory();
+      await loadReadiness();
+    } catch (e) {
+      setMsg(`Gönderim hatası: ${e instanceof Error ? e.message : "bağlantı/zaman aşımı"} — birkaç dakika sonra “Trendyol durumunu yenile” ile kontrol edin.`);
+    } finally {
       setSending(false);
-      return;
     }
-    const res = await fetch("/api/admin/integrations/marketplaces/trendyol/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ productIds: ids }),
-    });
-    const json = (await res.json()) as { result?: { ok: boolean; message: string }; error?: string };
-    setSending(false);
-    if (!res.ok) {
-      setMsg(json.error ?? "Gönderim başarısız");
-      return;
-    }
-    setMsg(json.result?.message ?? "Gönderildi");
-    await loadCategory();
-    await loadReadiness();
   }
 
   const visibleProducts = products.filter((p) => {

@@ -5,6 +5,8 @@ import { parseTrendyolConfig } from "@/lib/marketplace/trendyol/client";
 import { checkTrendyolBatchRequest } from "@/lib/marketplace/trendyol/categories";
 import { marketplaceProductListingDb } from "@/lib/marketplace/prisma-marketplace";
 
+export const maxDuration = 120;
+
 /** Bekleyen Trendyol gönderimlerinin batch sonucunu yeniden sorgular ve durumları günceller. */
 export async function POST() {
   const auth = await requireStaffApi("store.integrations");

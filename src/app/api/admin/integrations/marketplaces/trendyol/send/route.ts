@@ -5,6 +5,8 @@ import { syncProductsToTrendyol } from "@/lib/marketplace/trendyol";
 
 type Body = { productIds?: string[] };
 
+export const maxDuration = 120;
+
 export async function POST(req: Request) {
   const auth = await requireStaffApi("store.integrations");
   if (auth instanceof NextResponse) return auth;
