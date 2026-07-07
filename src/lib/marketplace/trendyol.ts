@@ -5,7 +5,7 @@ import { resolveTrendyolAttributes } from "@/lib/marketplace/attribute-mapping";
 import type { TrendyolPayloadAttribute } from "@/lib/marketplace/attribute-mapping";
 import { marketplaceProductListingDb } from "@/lib/marketplace/prisma-marketplace";
 import { buildPlatformListingTitle } from "@/lib/marketplace/title-rules";
-import { parseTrendyolConfig, trendyolLegacyProductBase } from "@/lib/marketplace/trendyol/client";
+import { parseTrendyolConfig, trendyolApiBase } from "@/lib/marketplace/trendyol/client";
 import { trendyolAuthHeaders } from "@/lib/marketplace/trendyol/headers";
 import { checkTrendyolBatchRequest } from "@/lib/marketplace/trendyol/categories";
 
@@ -23,7 +23,7 @@ type TrendyolProduct = {
   cargoCompanyId: number;
   currencyType: string;
   dimensionalWeight: number;
-  deliveryDuration?: number;
+  deliveryOption?: { deliveryDuration: number };
   shipmentAddressId?: number;
   returningAddressId?: number;
   description?: string;
@@ -158,7 +158,7 @@ export async function syncProductsToTrendyol(
       cargoCompanyId,
       currencyType,
       dimensionalWeight: productDimensionalWeight(p, defaultDimensionalWeight),
-      deliveryDuration,
+      deliveryOption: deliveryDuration ? { deliveryDuration } : undefined,
       shipmentAddressId,
       returningAddressId,
       description: (p.description ?? "").slice(0, 3000) || undefined,
@@ -167,7 +167,7 @@ export async function syncProductsToTrendyol(
     });
   }
 
-  const url = `${trendyolLegacyProductBase(creds)}/sapigw/suppliers/${creds.sellerId}/v2/products`;
+  const url = `${trendyolApiBase(creds)}/integration/product/sellers/${creds.sellerId}/products`;
 
   try {
     const res = await fetch(url, {

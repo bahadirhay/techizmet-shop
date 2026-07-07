@@ -6,6 +6,7 @@ import { MARKETPLACE_PLATFORMS } from "@/lib/admin/marketplace-platforms";
 import { AdminField, btnPrimary, btnSecondary, inputClass } from "@/components/admin/AdminForm";
 import { MarketplaceCommissionRulesPanel } from "@/components/admin/MarketplaceCommissionRulesPanel";
 import { MarketplaceAttributeMappingPanel } from "@/components/admin/MarketplaceAttributeMappingPanel";
+import { TRENDYOL_CARGO_PROVIDERS } from "@/lib/marketplace/trendyol/cargo-providers";
 import type { CommissionRuleRow } from "@/lib/marketplace/commission-types";
 
 type SyncLog = {
@@ -84,6 +85,10 @@ export function MarketplaceIntegrationsClient({
   const [mapPlatformCategoryId, setMapPlatformCategoryId] = useState("");
   const [mapPlatformBrandId, setMapPlatformBrandId] = useState("");
   const [mappings, setMappings] = useState(categoryMappings);
+  const [trendyolAddresses, setTrendyolAddresses] = useState<
+    { id: number; addressType: string; fullAddress: string; isShipment: boolean; isReturning: boolean; isDefault: boolean }[]
+  >([]);
+  const [addressBusy, setAddressBusy] = useState(false);
 
   useEffect(() => {
     const p = resolvePlatform(searchParams.get("platform") ?? initialPlatform);
@@ -224,6 +229,23 @@ export function MarketplaceIntegrationsClient({
     setMapPlatformCategoryId("");
     setMapPlatformBrandId("");
     window.location.reload();
+  }
+
+  async function loadTrendyolAddresses() {
+    setAddressBusy(true);
+    setMsg(null);
+    const res = await fetch("/api/admin/integrations/marketplaces/trendyol/addresses");
+    const json = (await res.json()) as {
+      addresses?: typeof trendyolAddresses;
+      error?: string;
+    };
+    setAddressBusy(false);
+    if (!res.ok) {
+      setMsg(json.error ?? "Adresler alınamadı");
+      return;
+    }
+    setTrendyolAddresses(json.addresses ?? []);
+    setMsg(`${json.addresses?.length ?? 0} adres geldi. Aşağıdan seçin.`);
   }
 
   async function runSync() {
@@ -413,14 +435,22 @@ export function MarketplaceIntegrationsClient({
                 ID&apos;lerini Trendyol Satıcı Paneli → Kargo/Adres ayarlarından alın.
               </p>
               <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                <AdminField label="Kargo firması ID (cargoCompanyId) *">
-                  <input
+                <AdminField label="Kargo firması (cargoCompanyId) *">
+                  <select
                     className={inputClass}
-                    inputMode="numeric"
                     value={cfg.cargoCompanyId ?? ""}
                     onChange={(e) => setCfg({ ...cfg, cargoCompanyId: e.target.value })}
-                    placeholder="örn. 10 (Yurtiçi), 30 (Aras)"
-                  />
+                  >
+                    <option value="">Seçin…</option>
+                    {TRENDYOL_CARGO_PROVIDERS.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} (#{c.id})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-xs text-zinc-500">
+                    Trendyol sözleşmenizde onaylı kargo firmasını seçin, aksi halde ürün yayına çıkmaz.
+                  </p>
                 </AdminField>
                 <AdminField label="Teslim süresi (gün)">
                   <input
@@ -431,23 +461,69 @@ export function MarketplaceIntegrationsClient({
                     placeholder="örn. 2"
                   />
                 </AdminField>
-                <AdminField label="Sevkiyat adresi ID (shipmentAddressId)">
-                  <input
-                    className={inputClass}
-                    inputMode="numeric"
-                    value={cfg.shipmentAddressId ?? ""}
-                    onChange={(e) => setCfg({ ...cfg, shipmentAddressId: e.target.value })}
-                    placeholder="Boşsa varsayılan adres"
-                  />
+                <div className="sm:col-span-2">
+                  <button
+                    type="button"
+                    className={btnSecondary}
+                    disabled={addressBusy}
+                    onClick={() => void loadTrendyolAddresses()}
+                  >
+                    {addressBusy ? "Adresler geliyor…" : "Adresleri Trendyol'dan getir"}
+                  </button>
+                </div>
+                <AdminField label="Sevkiyat adresi (shipmentAddressId)">
+                  {trendyolAddresses.length > 0 ? (
+                    <select
+                      className={inputClass}
+                      value={cfg.shipmentAddressId ?? ""}
+                      onChange={(e) => setCfg({ ...cfg, shipmentAddressId: e.target.value })}
+                    >
+                      <option value="">Varsayılan adres</option>
+                      {trendyolAddresses
+                        .filter((a) => a.isShipment)
+                        .map((a) => (
+                          <option key={a.id} value={a.id}>
+                            #{a.id} {a.fullAddress}
+                            {a.isDefault ? " (varsayılan)" : ""}
+                          </option>
+                        ))}
+                    </select>
+                  ) : (
+                    <input
+                      className={inputClass}
+                      inputMode="numeric"
+                      value={cfg.shipmentAddressId ?? ""}
+                      onChange={(e) => setCfg({ ...cfg, shipmentAddressId: e.target.value })}
+                      placeholder="Boşsa varsayılan adres"
+                    />
+                  )}
                 </AdminField>
-                <AdminField label="İade adresi ID (returningAddressId)">
-                  <input
-                    className={inputClass}
-                    inputMode="numeric"
-                    value={cfg.returningAddressId ?? ""}
-                    onChange={(e) => setCfg({ ...cfg, returningAddressId: e.target.value })}
-                    placeholder="Boşsa varsayılan adres"
-                  />
+                <AdminField label="İade adresi (returningAddressId)">
+                  {trendyolAddresses.length > 0 ? (
+                    <select
+                      className={inputClass}
+                      value={cfg.returningAddressId ?? ""}
+                      onChange={(e) => setCfg({ ...cfg, returningAddressId: e.target.value })}
+                    >
+                      <option value="">Varsayılan adres</option>
+                      {trendyolAddresses
+                        .filter((a) => a.isReturning)
+                        .map((a) => (
+                          <option key={a.id} value={a.id}>
+                            #{a.id} {a.fullAddress}
+                            {a.isDefault ? " (varsayılan)" : ""}
+                          </option>
+                        ))}
+                    </select>
+                  ) : (
+                    <input
+                      className={inputClass}
+                      inputMode="numeric"
+                      value={cfg.returningAddressId ?? ""}
+                      onChange={(e) => setCfg({ ...cfg, returningAddressId: e.target.value })}
+                      placeholder="Boşsa varsayılan adres"
+                    />
+                  )}
                 </AdminField>
                 <AdminField label="Varsayılan KDV (%)">
                   <input

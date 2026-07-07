@@ -1,6 +1,45 @@
 import type { TrendyolCredentials } from "@/lib/marketplace/trendyol/client";
 import { trendyolRequest } from "@/lib/marketplace/trendyol/client";
 
+export { TRENDYOL_CARGO_PROVIDERS } from "@/lib/marketplace/trendyol/cargo-providers";
+
+export type TrendyolAddress = {
+  id: number;
+  addressType: string;
+  fullAddress: string;
+  isShipment: boolean;
+  isReturning: boolean;
+  isDefault: boolean;
+};
+
+/** Satıcının kayıtlı sevkiyat/iade adreslerini getirir */
+export async function fetchTrendyolAddresses(
+  creds: TrendyolCredentials,
+): Promise<{ ok: boolean; addresses: TrendyolAddress[]; message: string }> {
+  const path = `/integration/sellers/${creds.sellerId}/addresses`;
+  const res = await trendyolRequest(creds, path);
+  if (!res.ok) {
+    return { ok: false, addresses: [], message: `HTTP ${res.status}: ${res.text.slice(0, 200)}` };
+  }
+
+  const obj = (res.json ?? {}) as Record<string, unknown>;
+  const raw = Array.isArray(obj.supplierAddresses)
+    ? (obj.supplierAddresses as Record<string, unknown>[])
+    : [];
+  const addresses: TrendyolAddress[] = raw
+    .map((a) => ({
+      id: Number(a.id),
+      addressType: String(a.addressType ?? ""),
+      fullAddress: String(a.fullAddress ?? a.address ?? ""),
+      isShipment: a.shipmentAddress === true,
+      isReturning: a.returningAddress === true,
+      isDefault: a.default === true,
+    }))
+    .filter((a) => Number.isFinite(a.id));
+
+  return { ok: true, addresses, message: `${addresses.length} adres` };
+}
+
 export type TrendyolAttributeValue = { id: number; name: string };
 
 export type TrendyolCategoryAttribute = {
