@@ -8,6 +8,7 @@ import { buildPlatformListingTitle } from "@/lib/marketplace/title-rules";
 import { parseTrendyolConfig, trendyolApiBase } from "@/lib/marketplace/trendyol/client";
 import { trendyolAuthHeaders } from "@/lib/marketplace/trendyol/headers";
 import { checkTrendyolBatchRequest } from "@/lib/marketplace/trendyol/categories";
+import { toAbsoluteMediaUrl } from "@/lib/seo/site-url";
 
 type TrendyolProduct = {
   barcode: string;
@@ -84,15 +85,6 @@ export async function syncProductsToTrendyol(
   const defaultBrandId = Number(config.trendyolBrandId ?? config.brandId ?? 0);
   const defaultCategoryId = Number(config.trendyolCategoryId ?? config.categoryId ?? 0);
 
-  if (!defaultBrandId || !defaultCategoryId) {
-    return {
-      ok: false,
-      sent: 0,
-      message:
-        "Trendyol varsayılan marka/kategori ID girin veya kategori eşlemesi tanımlayın.",
-    };
-  }
-
   const cargoCompanyId = num(config.cargoCompanyId);
   if (!cargoCompanyId) {
     return {
@@ -110,16 +102,22 @@ export async function syncProductsToTrendyol(
   const currencyType = config.currencyType?.trim() || "TRY";
   const defaultDimensionalWeight = num(config.dimensionalWeight) ?? 1;
 
-  const eligible = products.filter((p) => p.barcode?.trim() && p.stockQty > 0).slice(0, 50);
-  if (eligible.length === 0) {
+  const withBarcodeStock = products.filter((p) => p.barcode?.trim() && p.stockQty > 0);
+  if (withBarcodeStock.length === 0) {
+    const noBarcode = products.filter((p) => !p.barcode?.trim()).length;
     return {
       ok: false,
       sent: 0,
-      message: "Gönderilecek ürün yok: barkod ve stok > 0 olan yayın ürün gerekli.",
+      message: noBarcode
+        ? `Gönderilecek ürün yok: barkod ve stok > 0 gerekli. ${noBarcode} üründe barkod eksik.`
+        : "Gönderilecek ürün yok: barkod ve stok > 0 olan yayın ürün gerekli.",
     };
   }
 
+  const eligible = withBarcodeStock.slice(0, 50);
   const items: TrendyolProduct[] = [];
+  const sentProducts: SyncProductInput[] = [];
+  const skippedNoMapping: string[] = [];
   for (const p of eligible) {
     const mapped = siteId
       ? await resolveTrendyolCategoryBrand(siteId, p.categoryId, {
@@ -127,6 +125,12 @@ export async function syncProductsToTrendyol(
           brandId: defaultBrandId,
         })
       : { categoryId: defaultCategoryId, brandId: defaultBrandId };
+
+    // Kategori veya marka çözülemezse (ne eşleme ne varsayılan) bu ürünü atla
+    if (!mapped.categoryId || !mapped.brandId) {
+      skippedNoMapping.push(p.title);
+      continue;
+    }
 
     const categoryAttributes = siteId ? await resolveTrendyolAttributes(siteId, p.categoryId) : [];
     const attributes = mergeTrendyolAttributes(
@@ -137,10 +141,16 @@ export async function syncProductsToTrendyol(
     const prices = toMarketplaceSyncPrices(p, "trendyol");
     const list = Number(minorToTry(prices.listPriceMinor));
     const sale = Number(minorToTry(prices.salePriceMinor));
-    const imageUrls = [
-      ...(p.imageUrl ? [p.imageUrl] : []),
-      ...(p.images?.map((i) => i.url).filter(Boolean) ?? []),
-    ].slice(0, 8);
+    const imageUrls = Array.from(
+      new Set(
+        [
+          ...(p.imageUrl ? [p.imageUrl] : []),
+          ...(p.images?.map((i) => i.url).filter(Boolean) ?? []),
+        ]
+          .map((u) => toAbsoluteMediaUrl(u))
+          .filter((u): u is string => Boolean(u) && /^https:\/\//i.test(u!)),
+      ),
+    ).slice(0, 8);
 
     const vatRate =
       p.vatRate != null && p.vatRate >= 0
@@ -170,6 +180,18 @@ export async function syncProductsToTrendyol(
       images: imageUrls.length ? imageUrls.map((url) => ({ url })) : undefined,
       attributes: attributes.length ? attributes : undefined,
     });
+    sentProducts.push(p);
+  }
+
+  if (items.length === 0) {
+    const skippedNote = skippedNoMapping.length
+      ? ` ${skippedNoMapping.length} ürünün kategorisi Trendyol'a eşlenmemiş (ör. "${skippedNoMapping[0]}"). Kategori eşlemesi tanımlayın veya varsayılan marka/kategori ID girin.`
+      : " Varsayılan marka/kategori ID girin veya kategori eşlemesi tanımlayın.";
+    return {
+      ok: false,
+      sent: 0,
+      message: `Gönderilecek uygun ürün bulunamadı.${skippedNote}`,
+    };
   }
 
   const url = `${trendyolApiBase(creds)}/integration/product/sellers/${creds.sellerId}/products`;
@@ -235,7 +257,7 @@ export async function syncProductsToTrendyol(
       if (listingDb) {
         const now = new Date();
         const meta = batchRequestId ? JSON.stringify({ batchRequestId }) : null;
-        for (const p of eligible) {
+        for (const p of sentProducts) {
           const bc = p.barcode?.trim() ?? "";
           const result = batchByBarcode.get(bc);
           await listingDb.upsert({
@@ -269,10 +291,13 @@ export async function syncProductsToTrendyol(
     }
 
     const failedCount = [...batchByBarcode.values()].filter((v) => v.status === "rejected").length;
+    const skipNote = skippedNoMapping.length
+      ? ` · ${skippedNoMapping.length} ürün kategori eşlemesi olmadığı için atlandı`
+      : "";
     return {
       ok: failedCount === 0,
       sent: items.length,
-      message: `${items.length} ürün Trendyol'a gönderildi. ${detail}${batchSummary}`,
+      message: `${items.length} ürün Trendyol'a gönderildi. ${detail}${batchSummary}${skipNote}`,
       httpStatus: res.status,
     };
   } catch (e) {
