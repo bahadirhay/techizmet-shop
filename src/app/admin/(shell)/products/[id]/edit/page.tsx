@@ -1,8 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { PRODUCT_KIND_BUNDLE } from "@/lib/product-bundle";
 import { ProductForm } from "@/components/admin/ProductForm";
-import { ProductTrendyolAttributes } from "@/components/admin/ProductTrendyolAttributes";
-import { parseProductAttributes } from "@/lib/marketplace/attribute-mapping";
 import { loadCatalogOptions } from "@/lib/admin/catalog-options";
 import { productToForm } from "@/lib/admin/product-form";
 import { loadActiveMarketplacePlatforms } from "@/lib/marketplace/active-integrations";
@@ -48,7 +46,6 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
       vatRate: true,
       marketplacePricesJson: true,
       marketplaceMarkupPercentJson: true,
-      marketplaceAttributesJson: true,
       stockQty: true,
       lowStockThreshold: true,
       weightGrams: true,
@@ -98,37 +95,25 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
   const siteDefaultExplore = getDefaultProductExploreLooks(settings);
   const { autoGenerate: defaultAutoGenerateBarcode } = getProductBarcodeSettings(settings);
   const siteName = getSiteSeo(settings, site.name).siteTitle;
-  const trendyolActive = activeMarketplaces.some((m) => m.id === "trendyol");
-  const productTrendyolAttrs = parseProductAttributes(product.marketplaceAttributesJson, "trendyol");
 
   return (
-    <div className="space-y-6">
-      <ProductForm
-        key={`${product.id}-${formInitial.mediaItems.length}`}
-        initial={formInitial}
-        collections={collections}
-        categories={categories}
-        brands={brands}
-        allProducts={allProducts}
-        siteDefaultExplore={siteDefaultExplore}
-        activeMarketplaces={activeMarketplaces}
-        defaultAutoGenerateBarcode={defaultAutoGenerateBarcode && !formInitial.barcode.trim()}
-        homepageMode={getHomepageMode(settings)}
-        siteUrl={process.env.NEXT_PUBLIC_SITE_URL ?? ""}
-        siteName={siteName}
-        webShippingCostMinor={resolveWebShippingCostMinor(settings)}
-        packagingCostMinor={resolvePackagingCostMinor(settings)}
-        cardFeePercent={resolveCardFeePercent(settings)}
-        freeShippingOverMinor={settings.store?.freeShippingOverMinor ?? 0}
-      />
-      {trendyolActive ? (
-        <ProductTrendyolAttributes
-          productId={product.id}
-          productCategoryId={product.categoryId}
-          initialAttributes={productTrendyolAttrs}
-          trendyolActive={trendyolActive}
-        />
-      ) : null}
-    </div>
+    <ProductForm
+      key={`${product.id}-${formInitial.mediaItems.length}`}
+      initial={formInitial}
+      collections={collections}
+      categories={categories}
+      brands={brands}
+      allProducts={allProducts}
+      siteDefaultExplore={siteDefaultExplore}
+      activeMarketplaces={activeMarketplaces}
+      defaultAutoGenerateBarcode={defaultAutoGenerateBarcode && !formInitial.barcode.trim()}
+      homepageMode={getHomepageMode(settings)}
+      siteUrl={process.env.NEXT_PUBLIC_SITE_URL ?? ""}
+      siteName={siteName}
+      webShippingCostMinor={resolveWebShippingCostMinor(settings)}
+      packagingCostMinor={resolvePackagingCostMinor(settings)}
+      cardFeePercent={resolveCardFeePercent(settings)}
+      freeShippingOverMinor={settings.store?.freeShippingOverMinor ?? 0}
+    />
   );
 }

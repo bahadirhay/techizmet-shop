@@ -6,6 +6,7 @@ import { MARKETPLACE_PLATFORMS } from "@/lib/admin/marketplace-platforms";
 import { AdminField, btnPrimary, btnSecondary, inputClass } from "@/components/admin/AdminForm";
 import { MarketplaceCommissionRulesPanel } from "@/components/admin/MarketplaceCommissionRulesPanel";
 import { MarketplaceAttributeMappingPanel } from "@/components/admin/MarketplaceAttributeMappingPanel";
+import { MarketplaceProductMatchPanel } from "@/components/admin/MarketplaceProductMatchPanel";
 import { TRENDYOL_CARGO_PROVIDERS } from "@/lib/marketplace/trendyol/cargo-providers";
 import type { CommissionRuleRow } from "@/lib/marketplace/commission-types";
 
@@ -94,6 +95,7 @@ export function MarketplaceIntegrationsClient({
   const [brandSearchQ, setBrandSearchQ] = useState("");
   const [brandResults, setBrandResults] = useState<{ id: number; name: string }[]>([]);
   const [lookupBusy, setLookupBusy] = useState(false);
+  const [view, setView] = useState<"settings" | "products">("settings");
 
   useEffect(() => {
     const p = resolvePlatform(searchParams.get("platform") ?? initialPlatform);
@@ -336,7 +338,35 @@ export function MarketplaceIntegrationsClient({
           </button>
         ))}
       </div>
-      <div className="space-y-4 rounded-xl border bg-white p-6">
+      {selected === "trendyol" ? (
+        <div className="flex gap-1 border-b border-zinc-200">
+          <button
+            type="button"
+            className={`-mb-px border-b-2 px-3 py-2 text-sm ${view === "settings" ? "border-zinc-800 font-medium text-zinc-900" : "border-transparent text-zinc-500"}`}
+            onClick={() => setView("settings")}
+          >
+            Entegrasyon ayarları
+          </button>
+          <button
+            type="button"
+            className={`-mb-px border-b-2 px-3 py-2 text-sm ${view === "products" ? "border-zinc-800 font-medium text-zinc-900" : "border-transparent text-zinc-500"}`}
+            onClick={() => setView("products")}
+          >
+            Ürün eşleştirme & gönderim
+          </button>
+        </div>
+      ) : null}
+      {selected === "trendyol" && view === "products" ? (
+        <MarketplaceProductMatchPanel
+          platform={selected}
+          categories={categories}
+          tablesReady={marketplaceTablesReady}
+        />
+      ) : null}
+      <div
+        className="space-y-4 rounded-xl border bg-white p-6"
+        hidden={selected === "trendyol" && view === "products"}
+      >
         <h2 className="text-lg font-semibold">
           {MARKETPLACE_PLATFORMS.find((p) => p.id === selected)?.label}
         </h2>
