@@ -76,6 +76,9 @@ const nextConfig: NextConfig = {
       { source: "/collections.html", destination: "/collections", permanent: true },
       { source: "/en-us/pages/:slug", destination: "/pages/:slug", permanent: true },
       { source: "/en-us", destination: "/", permanent: false },
+      { source: "/iade-degisim.html", destination: "/pages/refund-policy", permanent: true },
+      { source: "/iade-degisim", destination: "/pages/refund-policy", permanent: true },
+      { source: "/index.html", destination: "/", permanent: true },
       ...legacyProductRedirects,
     ];
   },
