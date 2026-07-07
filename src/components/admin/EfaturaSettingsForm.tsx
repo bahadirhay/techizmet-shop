@@ -6,6 +6,11 @@ import { AdminField, btnPrimary, inputClass } from "@/components/admin/AdminForm
 type TestResult = {
   ok: boolean;
   message: string;
+  environment?: "TEST" | "PROD";
+  portalUrl?: string;
+  loginOk?: boolean;
+  profileOk?: boolean;
+  hint?: string;
   debug?: {
     hasUsername: boolean;
     hasPasswordFromEnv: boolean;
@@ -44,8 +49,11 @@ export function EfaturaSettingsForm({ initial }: { initial: EfaturaFormState }) 
       const res = await fetch("/api/admin/settings/efatura/test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // Formdaki şifreyi gönder — DB'ye kaydedilmemiş olsa bile test çalışır
-        body: JSON.stringify({ password: s.password || undefined }),
+        body: JSON.stringify({
+          username: s.username || undefined,
+          password: s.password || undefined,
+          testMode: s.testMode,
+        }),
       });
       const j = (await res.json()) as TestResult;
       setTestResult(j);
@@ -159,6 +167,16 @@ export function EfaturaSettingsForm({ initial }: { initial: EfaturaFormState }) 
         />
         Test ortamı (earsivportaltest.efatura.gov.tr)
       </label>
+      {s.testMode ? (
+        <p className="mt-1 text-xs text-amber-700">
+          Test ortamı açıkken canlı e-Arşiv portalına girdiğiniz bilgiler çalışmayabilir. Canlı fatura
+          kesecekseniz bu kutuyu kapatın.
+        </p>
+      ) : (
+        <p className="mt-1 text-xs text-zinc-500">
+          Canlı ortam: earsivportal.efatura.gov.tr — İVD kullanıcı kodu ve şifrenizle giriş yapılır.
+        </p>
+      )}
 
       <div className="mt-4 space-y-3">
         <AdminField label="GİB kullanıcı kodu">
@@ -272,6 +290,15 @@ export function EfaturaSettingsForm({ initial }: { initial: EfaturaFormState }) 
           }`}
         >
           <div className="font-medium">{testResult.ok ? "✓" : "✗"} {testResult.message}</div>
+          {testResult.portalUrl ? (
+            <div className="mt-1 text-xs opacity-80">
+              Ortam: {testResult.environment === "TEST" ? "Test" : "Canlı"} — {testResult.portalUrl}
+              {testResult.loginOk === true && testResult.profileOk === false ? " · Giriş OK, profil eksik" : null}
+            </div>
+          ) : null}
+          {testResult.hint ? (
+            <p className="mt-2 text-xs leading-relaxed opacity-90">{testResult.hint}</p>
+          ) : null}
           {testResult.debug && (
             <div className="mt-1.5 text-xs opacity-75 space-y-0.5">
               <div>Kullanıcı kodu: {testResult.debug.hasUsername ? "✓ mevcut" : "✗ eksik — girin"}</div>
