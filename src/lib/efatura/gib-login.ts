@@ -16,7 +16,23 @@ const BASE_URL = {
   TEST: "https://earsivportaltest.efatura.gov.tr",
 } as const;
 
+const UA =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36";
+
 export type GibEnv = "PROD" | "TEST";
+
+/** Tarayıcı gibi: önce giriş sayfasını açıp oturum çerezini (JSESSIONID) al */
+async function fetchSessionCookie(origin: string): Promise<string> {
+  try {
+    const res = await fetch(`${origin}/intragiris.html`, {
+      headers: { "user-agent": UA, accept: "text/html,*/*" },
+    });
+    const cookies = res.headers.getSetCookie?.() ?? [];
+    return cookies.map((c) => c.split(";")[0]).join("; ");
+  } catch {
+    return "";
+  }
+}
 
 /**
  * Denenecek giriş komutları.
@@ -47,6 +63,7 @@ async function attempt(
   cmd: string,
   userName: string,
   password: string,
+  cookie: string,
 ): Promise<{ token: string } | { error: string }> {
   const origin = BASE_URL[env];
   const res = await fetch(`${origin}/earsiv-services/assos-login`, {
@@ -61,8 +78,8 @@ async function attempt(
       // "kimlik doğrulanamadı" döner (İnteraktif giriş sayfası referansı).
       referer: `${origin}/intragiris.html`,
       origin,
-      "user-agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36",
+      ...(cookie ? { cookie } : {}),
+      "user-agent": UA,
     },
     body:
       `assoscmd=${encodeURIComponent(cmd)}&rtype=json` +
@@ -96,9 +113,10 @@ export async function gibLogin(
   userName: string,
   password: string,
 ): Promise<GibLoginResult> {
+  const cookie = await fetchSessionCookie(BASE_URL[env]);
   const attempts: { command: string; error: string }[] = [];
   for (const cmd of loginCommands(env)) {
-    const r = await attempt(env, cmd, userName, password);
+    const r = await attempt(env, cmd, userName, password, cookie);
     if ("token" in r) {
       return { token: r.token, command: cmd, attempts };
     }

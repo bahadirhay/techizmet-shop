@@ -28,7 +28,25 @@ const base =
 
 const commands = env === "PROD" ? ["anologin", "login"] : ["login", "anologin"];
 
-async function tryLogin(cmd) {
+const UA =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36";
+
+// Tarayıcı gibi: önce sayfayı açıp oturum çerezini al
+async function getSessionCookie() {
+  try {
+    const res = await fetch(`${base}/intragiris.html`, {
+      headers: { "user-agent": UA, accept: "text/html,*/*" },
+    });
+    const cookies = res.headers.getSetCookie?.() ?? [];
+    const jar = cookies.map((c) => c.split(";")[0]).join("; ");
+    if (jar) console.log(`  (oturum çerezi alındı: ${jar.slice(0, 40)}…)`);
+    return jar;
+  } catch {
+    return "";
+  }
+}
+
+async function tryLogin(cmd, cookie) {
   const body =
     `assoscmd=${encodeURIComponent(cmd)}&rtype=json` +
     `&userid=${encodeURIComponent(username)}` +
@@ -47,8 +65,8 @@ async function tryLogin(cmd) {
         pragma: "no-cache",
         referer: `${base}/intragiris.html`,
         origin: base,
-        "user-agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36",
+        ...(cookie ? { cookie } : {}),
+        "user-agent": UA,
       },
       body,
     });
@@ -86,9 +104,11 @@ async function tryLogin(cmd) {
 console.log(`Ortam: ${env} — ${base}`);
 console.log(`Kullanıcı: ${username.slice(0, 3)}*** · komutlar: ${commands.join(", ")}`);
 
+const cookie = await getSessionCookie();
+
 let ok = false;
 for (const cmd of commands) {
-  if (await tryLogin(cmd)) {
+  if (await tryLogin(cmd, cookie)) {
     ok = true;
     break;
   }
