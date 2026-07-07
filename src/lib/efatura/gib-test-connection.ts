@@ -4,6 +4,7 @@ import { createFaturaClient, type UserData } from "fatura";
 import type { ResolvedEfaturaConfig } from "@/lib/efatura/settings";
 import { resolveLegalSellerProfile } from "@/lib/legal/seller-profile";
 import type { SiteSettings } from "@/lib/site-settings";
+import { gibLogin } from "@/lib/efatura/gib-login";
 
 export type GibTestInput = {
   username?: string;
@@ -101,18 +102,24 @@ export async function testGibConnection(
 
   let token: string;
   try {
-    token = await client.getToken(config.username, config.password);
+    const login = await gibLogin(env, config.username, config.password);
+    token = login.token;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
+    const isAuthError =
+      /doğrulanamad|dogrulanamad|kimlik|kullanıcı adı|parola|şifre|sifre/i.test(msg);
     return {
       ok: false,
       message: `GİB girişi başarısız: ${msg}`,
       environment: env,
       portalUrl,
       loginOk: false,
-      hint:
-        config.testMode
-          ? "Test ortamı açık — earsivportaltest.efatura.gov.tr için ayrı test hesabı gerekir. Canlı portala girebiliyorsanız test kutusunu kapatıp tekrar deneyin."
+      hint: config.testMode
+        ? "Test ortamı açık — earsivportaltest.efatura.gov.tr için ayrı test hesabı gerekir. Canlı portala girebiliyorsanız test kutusunu kapatıp tekrar deneyin."
+        : isAuthError
+          ? "1) API girişinde e-Devlet TC/şifre DEĞİL, İVD 'kullanıcı kodu ve şifre' kullanılır (ivd.gib.gov.tr → e-Devlet ile Kayıt Ol ile alınır). " +
+            "2) Bu hata çoğu zaman GİB sunucu yoğunluğundandır; birkaç dakika sonra tekrar deneyin. " +
+            "3) Kullanıcı kodu/şifreyi web portalda kullandığınızla birebir aynı girin."
           : "Kullanıcı kodu ve parolayı İVD / e-Arşiv portal giriş bilgilerinizle kontrol edin.",
     };
   }

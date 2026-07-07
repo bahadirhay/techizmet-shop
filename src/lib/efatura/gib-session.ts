@@ -6,6 +6,7 @@
 import "server-only";
 
 import { createFaturaClient } from "fatura";
+import { gibLogin } from "@/lib/efatura/gib-login";
 import { prisma } from "@/lib/prisma";
 import { parseSiteSettings, type SiteSettings } from "@/lib/site-settings";
 import { mergeSiteSettings } from "@/lib/merge-site-settings";
@@ -103,9 +104,9 @@ export async function getGibSession(
     }
   }
 
-  // Yeni login
-  const token = await (client as unknown as { getToken: (u: string, p: string) => Promise<string> })
-    .getToken(config.username, config.password);
+  // Yeni login — çoklu assoscmd fallback ile (paketin sabit anologin'i bazı hesaplarda reddediliyor)
+  const login = await gibLogin(config.testMode ? "TEST" : "PROD", config.username, config.password);
+  const token = login.token;
 
   // Token'ı DB'ye kaydet (fire-and-forget, hata login'i engellemez)
   writeCachedToken(siteId, token).catch((e) => console.error("[gib-session] cache write:", e));
