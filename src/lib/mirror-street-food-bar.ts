@@ -121,12 +121,14 @@ function ensureHeroStyles(doc: Document) {
   margin-top: 6px;
   font-size: 12px;
   line-height: 1.4;
+  color: #fff !important;
   opacity: 0.95;
 }
 .kn-street-food-hero__counts {
   margin-top: 10px;
   font-size: 12px;
   font-weight: 600;
+  color: #fff !important;
 }
 .kn-street-food-hero__track {
   height: 5px;
@@ -144,12 +146,13 @@ function ensureHeroStyles(doc: Document) {
 .kn-street-food-hero__sub {
   margin-top: 8px;
   font-size: 11px;
+  color: #fff !important;
   opacity: 0.9;
 }
 .kn-street-food-hero__link {
   display: inline-block;
   margin-top: 8px;
-  color: #fff;
+  color: #fff !important;
   font-size: 11px;
   font-weight: 600;
   text-decoration: underline;
