@@ -66,11 +66,16 @@ export async function importMarketplaceCatalog(
 
   let matched = 0;
   let unmatched = 0;
+  const unmatchedSamples: string[] = [];
 
   for (const item of items) {
     const product = await findProductByBarcodeOrSku(siteId, item.barcode, item.sku);
     if (!product) {
       unmatched++;
+      if (unmatchedSamples.length < 5) {
+        const label = item.title?.trim() || item.sku || item.barcode || "?";
+        unmatchedSamples.push(`${label}${item.barcode ? ` (barkod ${item.barcode})` : ""}`);
+      }
       continue;
     }
 
@@ -91,6 +96,12 @@ export async function importMarketplaceCatalog(
   }
 
   const ok = matched > 0 || items.length === 0;
+  const unmatchedNote = unmatched
+    ? ` · ${unmatched} ürün sitedeki barkodla eşleşmedi` +
+      (unmatchedSamples.length
+        ? ` (ör. ${unmatchedSamples.join(", ")}). Bu ürünler Trendyol'da var ama sitede aynı barkod yok — sitedeki ürüne Trendyol barkodunu girin.`
+        : " — sitedeki ürünlere Trendyol barkodunu girin.")
+    : "";
   return {
     ok,
     itemsCount: matched,
@@ -99,6 +110,6 @@ export async function importMarketplaceCatalog(
     message:
       items.length === 0
         ? "Pazaryerinde ürün bulunamadı"
-        : `${matched} ürün eşleştirildi${unmatched ? ` · ${unmatched} eşleşmedi (barkod/SKU kontrol edin)` : ""}`,
+        : `${matched} ürün eşleştirildi${unmatchedNote}`,
   };
 }

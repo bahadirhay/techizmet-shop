@@ -8,6 +8,7 @@ import { buildPlatformListingTitle } from "@/lib/marketplace/title-rules";
 import { parseTrendyolConfig, trendyolApiBase } from "@/lib/marketplace/trendyol/client";
 import { trendyolAuthHeaders } from "@/lib/marketplace/trendyol/headers";
 import { checkTrendyolBatchRequest } from "@/lib/marketplace/trendyol/categories";
+import { syncTrendyolPriceAndInventory } from "@/lib/marketplace/trendyol/inventory";
 import { toAbsoluteMediaUrl } from "@/lib/seo/site-url";
 import { prisma } from "@/lib/prisma";
 
@@ -413,6 +414,28 @@ export async function syncProductsToTrendyol(
       if (updateResult.sent > 0) messages.push(updateResult.message);
       totalSent += updateResult.sent;
       if (!updateResult.ok) allOk = false;
+    }
+
+    // Trendyol PUT (ürün güncelleme) fiyat/stok kabul ETMEZ — bunlar ayrı
+    // price-and-inventory endpoint'inden gider. Var olan ürünler güncellenirken
+    // fiyat/stoğu da güncel tutmak için burada ayrıca gönderiyoruz.
+    if (updateProducts.length > 0) {
+      const invItems = updateProducts
+        .filter((p) => p.barcode?.trim())
+        .map((p) => {
+          const prices = toMarketplaceSyncPrices(p, "trendyol");
+          return {
+            barcode: p.barcode!.trim(),
+            quantity: Math.min(Math.max(0, p.stockQty), 9999),
+            salePriceMinor: prices.salePriceMinor,
+            listPriceMinor: prices.listPriceMinor,
+          };
+        });
+      if (invItems.length > 0) {
+        const inv = await syncTrendyolPriceAndInventory(creds, invItems);
+        messages.push(inv.ok ? `Fiyat/stok: ${inv.sent} ürün güncellendi` : `Fiyat/stok hatası: ${inv.message}`);
+        if (!inv.ok) allOk = false;
+      }
     }
 
     const skipNote = skippedNoMapping.length

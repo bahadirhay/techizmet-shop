@@ -76,33 +76,47 @@ export async function fetchTrendyolCatalog(
   const maxPages = options?.maxPages ?? 50;
   const catalog: MarketplaceCatalogItem[] = [];
   const errors: string[] = [];
-  let page = 0;
+  const seen = new Set<string>();
+  let approvedCount = 0;
+  let pendingCount = 0;
 
-  while (page < maxPages) {
-    const path = `/integration/product/sellers/${creds.sellerId}/products?page=${page}&size=200`;
-    const res = await trendyolRequest(creds, path);
+  // Trendyol filterProducts, `approved` parametresi verilmezse yayında (onaylı)
+  // ürünleri döndürmeyebilir. Bu yüzden hem onaylı hem onaysız ürünleri ayrı
+  // ayrı çekip barkoda göre birleştiriyoruz. size max 100.
+  for (const approved of [true, false] as const) {
+    let page = 0;
+    while (page < maxPages) {
+      const path = `/integration/product/sellers/${creds.sellerId}/products?approved=${approved}&page=${page}&size=100`;
+      const res = await trendyolRequest(creds, path);
 
-    if (!res.ok) {
-      errors.push(`HTTP ${res.status}: ${res.text.slice(0, 200)}`);
-      break;
+      if (!res.ok) {
+        errors.push(`approved=${approved} HTTP ${res.status}: ${res.text.slice(0, 200)}`);
+        break;
+      }
+
+      const { items, totalPages } = extractTrendyolPage(res.json);
+      if (!items.length) break;
+
+      for (const raw of items) {
+        const parsed = parseTrendyolProduct(raw);
+        if (!parsed) continue;
+        const key = (parsed.barcode || parsed.sku || "").toLocaleLowerCase("tr");
+        if (key && seen.has(key)) continue;
+        if (key) seen.add(key);
+        catalog.push(parsed);
+        if (approved) approvedCount++;
+        else pendingCount++;
+      }
+
+      page++;
+      if (page >= totalPages) break;
     }
-
-    const { items, totalPages } = extractTrendyolPage(res.json);
-    if (!items.length) break;
-
-    for (const raw of items) {
-      const parsed = parseTrendyolProduct(raw);
-      if (parsed) catalog.push(parsed);
-    }
-
-    page++;
-    if (page >= totalPages) break;
   }
 
   return {
     ok: catalog.length > 0 || errors.length === 0,
     items: catalog,
-    message: `${catalog.length} Trendyol ürünü okundu`,
+    message: `${catalog.length} Trendyol ürünü okundu (${approvedCount} onaylı/yayında, ${pendingCount} onaysız)`,
     errors,
   };
 }
