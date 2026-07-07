@@ -21,6 +21,7 @@ type CategoryMappingDb = {
 
 type ProductListingDb = {
   upsert: (args: unknown) => Promise<unknown>;
+  update: (args: unknown) => Promise<unknown>;
 };
 
 type CategoryAttributeRow = {

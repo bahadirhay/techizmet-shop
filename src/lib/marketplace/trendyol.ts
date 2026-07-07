@@ -250,6 +250,10 @@ export async function syncProductsToTrendyol(
           if (batch.status === "COMPLETED") break;
         }
       }
+      if (!batchSummary) {
+        batchSummary =
+          " · Trendyol kuyruğa aldı, onay birkaç dakika sürebilir. Birazdan “Trendyol durumunu yenile”ye basın.";
+      }
     }
 
     if (siteId) {

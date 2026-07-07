@@ -274,6 +274,22 @@ export function MarketplaceProductMatchPanel({
     if (ok) setMsg(`${ids.length} ürünün özellikleri kaydedildi`);
   }
 
+  async function refreshBatchStatus() {
+    setSending(true);
+    setMsg(null);
+    const res = await fetch("/api/admin/integrations/marketplaces/trendyol/batch-status", {
+      method: "POST",
+    });
+    const json = (await res.json()) as { message?: string; error?: string };
+    setSending(false);
+    if (!res.ok) {
+      setMsg(json.error ?? "Durum alınamadı");
+      return;
+    }
+    setMsg(`Trendyol durumu: ${json.message ?? "güncellendi"}`);
+    await loadCategory();
+  }
+
   async function sendSelected() {
     const ids = [...selected];
     if (ids.length === 0) {
@@ -419,6 +435,9 @@ export function MarketplaceProductMatchPanel({
               Tüm özellikler
             </label>
             <div className="ml-auto flex gap-2">
+              <button type="button" className={btnSecondary} disabled={sending} onClick={() => void refreshBatchStatus()}>
+                {sending ? "…" : "Trendyol durumunu yenile"}
+              </button>
               <button type="button" className={btnSecondary} disabled={sending} onClick={() => void saveSelected()}>
                 {sending ? "…" : selected.size ? `Seçiliyi kaydet (${selected.size})` : "Tümünü kaydet"}
               </button>
