@@ -131,3 +131,73 @@ export async function checkTrendyolBatchRequest(
 
   return { ok: true, status, items, message: `${status}: ${items.length} kalem` };
 }
+
+export type TrendyolCategoryLeaf = { id: number; name: string; path: string };
+
+/** Kategori ağacını çeker, yaprak (alt kategorisi olmayan) kategorileri arar */
+export async function searchTrendyolCategories(
+  creds: TrendyolCredentials,
+  query: string,
+): Promise<{ ok: boolean; categories: TrendyolCategoryLeaf[]; message: string }> {
+  const res = await trendyolRequest(creds, "/integration/product/product-categories");
+  if (!res.ok) {
+    return { ok: false, categories: [], message: `HTTP ${res.status}: ${res.text.slice(0, 200)}` };
+  }
+
+  const obj = (res.json ?? {}) as Record<string, unknown>;
+  const roots = Array.isArray(obj.categories) ? (obj.categories as Record<string, unknown>[]) : [];
+  const leaves: TrendyolCategoryLeaf[] = [];
+
+  const walk = (node: Record<string, unknown>, trail: string[]) => {
+    const id = Number(node.id);
+    const name = String(node.name ?? "");
+    const nextTrail = [...trail, name];
+    const subs = Array.isArray(node.subCategories)
+      ? (node.subCategories as Record<string, unknown>[])
+      : [];
+    if (subs.length === 0) {
+      if (Number.isFinite(id)) leaves.push({ id, name, path: nextTrail.join(" > ") });
+    } else {
+      for (const sub of subs) walk(sub, nextTrail);
+    }
+  };
+  for (const root of roots) walk(root, []);
+
+  const q = query.trim().toLocaleLowerCase("tr");
+  const matched = q
+    ? leaves.filter((c) => c.path.toLocaleLowerCase("tr").includes(q))
+    : leaves;
+
+  return {
+    ok: true,
+    categories: matched.slice(0, 50),
+    message: `${matched.length} eşleşme (${leaves.length} yaprak kategori)`,
+  };
+}
+
+export type TrendyolBrand = { id: number; name: string };
+
+/** Marka adına göre Trendyol marka ID araması */
+export async function searchTrendyolBrands(
+  creds: TrendyolCredentials,
+  name: string,
+): Promise<{ ok: boolean; brands: TrendyolBrand[]; message: string }> {
+  const path = `/integration/product/brands/by-name?name=${encodeURIComponent(name.trim())}`;
+  const res = await trendyolRequest(creds, path);
+  if (!res.ok) {
+    return { ok: false, brands: [], message: `HTTP ${res.status}: ${res.text.slice(0, 200)}` };
+  }
+
+  const data = res.json;
+  const rawArr = Array.isArray(data)
+    ? data
+    : Array.isArray((data as Record<string, unknown>)?.brands)
+      ? ((data as Record<string, unknown>).brands as unknown[])
+      : [];
+  const brands: TrendyolBrand[] = (rawArr as Record<string, unknown>[])
+    .map((b) => ({ id: Number(b.id), name: String(b.name ?? "") }))
+    .filter((b) => Number.isFinite(b.id));
+
+  return { ok: true, brands, message: `${brands.length} marka` };
+}
+

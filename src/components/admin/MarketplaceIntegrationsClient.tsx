@@ -89,6 +89,11 @@ export function MarketplaceIntegrationsClient({
     { id: number; addressType: string; fullAddress: string; isShipment: boolean; isReturning: boolean; isDefault: boolean }[]
   >([]);
   const [addressBusy, setAddressBusy] = useState(false);
+  const [catSearchQ, setCatSearchQ] = useState("");
+  const [catResults, setCatResults] = useState<{ id: number; name: string; path: string }[]>([]);
+  const [brandSearchQ, setBrandSearchQ] = useState("");
+  const [brandResults, setBrandResults] = useState<{ id: number; name: string }[]>([]);
+  const [lookupBusy, setLookupBusy] = useState(false);
 
   useEffect(() => {
     const p = resolvePlatform(searchParams.get("platform") ?? initialPlatform);
@@ -229,6 +234,52 @@ export function MarketplaceIntegrationsClient({
     setMapPlatformCategoryId("");
     setMapPlatformBrandId("");
     window.location.reload();
+  }
+
+  async function searchTrendyolCategory() {
+    if (!catSearchQ.trim()) {
+      setMsg("Aranacak kategori adı girin");
+      return;
+    }
+    setLookupBusy(true);
+    setMsg(null);
+    const res = await fetch(
+      `/api/admin/integrations/marketplaces/trendyol/lookup?type=category&q=${encodeURIComponent(catSearchQ.trim())}`,
+    );
+    const json = (await res.json()) as {
+      categories?: { id: number; name: string; path: string }[];
+      error?: string;
+    };
+    setLookupBusy(false);
+    if (!res.ok) {
+      setMsg(json.error ?? "Kategori aranamadı");
+      return;
+    }
+    setCatResults(json.categories ?? []);
+    if ((json.categories ?? []).length === 0) setMsg("Eşleşen kategori bulunamadı");
+  }
+
+  async function searchTrendyolBrand() {
+    if (!brandSearchQ.trim()) {
+      setMsg("Aranacak marka adı girin");
+      return;
+    }
+    setLookupBusy(true);
+    setMsg(null);
+    const res = await fetch(
+      `/api/admin/integrations/marketplaces/trendyol/lookup?type=brand&q=${encodeURIComponent(brandSearchQ.trim())}`,
+    );
+    const json = (await res.json()) as {
+      brands?: { id: number; name: string }[];
+      error?: string;
+    };
+    setLookupBusy(false);
+    if (!res.ok) {
+      setMsg(json.error ?? "Marka aranamadı");
+      return;
+    }
+    setBrandResults(json.brands ?? []);
+    if ((json.brands ?? []).length === 0) setMsg("Eşleşen marka bulunamadı");
   }
 
   async function loadTrendyolAddresses() {
@@ -767,6 +818,84 @@ export function MarketplaceIntegrationsClient({
               </AdminField>
             ) : null}
           </div>
+          {selected === "trendyol" ? (
+            <div className="mt-3 grid gap-3 rounded-lg border border-zinc-200 bg-white p-3 sm:grid-cols-2">
+              <div>
+                <p className="text-xs font-medium text-zinc-600">Trendyol kategori ara</p>
+                <div className="mt-1 flex gap-2">
+                  <input
+                    className={inputClass}
+                    value={catSearchQ}
+                    onChange={(e) => setCatSearchQ(e.target.value)}
+                    placeholder="örn. köpek ödül"
+                  />
+                  <button
+                    type="button"
+                    className={btnSecondary}
+                    disabled={lookupBusy}
+                    onClick={() => void searchTrendyolCategory()}
+                  >
+                    Ara
+                  </button>
+                </div>
+                {catResults.length > 0 ? (
+                  <ul className="mt-2 max-h-48 space-y-1 overflow-auto text-xs">
+                    {catResults.map((c) => (
+                      <li key={c.id}>
+                        <button
+                          type="button"
+                          className="w-full rounded border px-2 py-1 text-left hover:bg-zinc-50"
+                          onClick={() => {
+                            setMapPlatformCategoryId(String(c.id));
+                            setMsg(`Kategori seçildi: ${c.path} (#${c.id})`);
+                          }}
+                        >
+                          {c.path} <span className="text-zinc-400">#{c.id}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+              <div>
+                <p className="text-xs font-medium text-zinc-600">Trendyol marka ara</p>
+                <div className="mt-1 flex gap-2">
+                  <input
+                    className={inputClass}
+                    value={brandSearchQ}
+                    onChange={(e) => setBrandSearchQ(e.target.value)}
+                    placeholder="örn. Anatolian Paw"
+                  />
+                  <button
+                    type="button"
+                    className={btnSecondary}
+                    disabled={lookupBusy}
+                    onClick={() => void searchTrendyolBrand()}
+                  >
+                    Ara
+                  </button>
+                </div>
+                {brandResults.length > 0 ? (
+                  <ul className="mt-2 max-h-48 space-y-1 overflow-auto text-xs">
+                    {brandResults.map((b) => (
+                      <li key={b.id}>
+                        <button
+                          type="button"
+                          className="w-full rounded border px-2 py-1 text-left hover:bg-zinc-50"
+                          onClick={() => {
+                            setMapPlatformBrandId(String(b.id));
+                            setMsg(`Marka seçildi: ${b.name} (#${b.id})`);
+                          }}
+                        >
+                          {b.name} <span className="text-zinc-400">#{b.id}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
           <button
             type="button"
             className={`${btnSecondary} mt-2`}
