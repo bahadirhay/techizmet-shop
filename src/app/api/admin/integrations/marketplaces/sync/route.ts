@@ -1,12 +1,22 @@
 import { NextResponse } from "next/server";
 import { requireStaffApi } from "@/lib/staff-auth";
 import { runMarketplaceSync } from "@/lib/marketplace/sync";
+import { pushAllMarketplaceProducts } from "@/lib/marketplace/actions";
 import { prisma } from "@/lib/prisma";
+
+export const maxDuration = 300;
 
 export async function POST(req: Request) {
   const auth = await requireStaffApi("store.integrations");
   if (auth instanceof NextResponse) return auth;
-  const body = (await req.json()) as { platform?: string };
+  const body = (await req.json()) as { platform?: string; all?: boolean };
+
+  // Tüm aktif pazaryerlerine tek seferde yükle
+  if (body.all) {
+    const result = await pushAllMarketplaceProducts(auth.siteId);
+    return NextResponse.json({ result });
+  }
+
   const platform = String(body.platform ?? "").trim().toLowerCase();
   if (!platform) return NextResponse.json({ error: "Platform gerekli" }, { status: 400 });
 

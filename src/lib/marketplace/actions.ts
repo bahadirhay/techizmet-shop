@@ -362,6 +362,44 @@ export async function pullAllMarketplaceCatalogs(siteId: string): Promise<{
   };
 }
 
+/** Web sitesini ana kaynak kabul edip tüm ürünleri her aktif pazaryerine yükler (oluştur + güncelle). */
+export async function pushAllMarketplaceProducts(siteId: string): Promise<{
+  ok: boolean;
+  message: string;
+  results: (MarketplaceActionResult & { platform: string })[];
+}> {
+  const integrations = await prisma.marketplaceIntegration.findMany({
+    where: { siteId, active: true },
+    orderBy: { platform: "asc" },
+  });
+
+  const results: (MarketplaceActionResult & { platform: string })[] = [];
+  for (const integration of integrations) {
+    const config = parseConfig(integration.configJson);
+    const result = await pushMarketplaceProducts(siteId, integration.platform, config);
+    await logMarketplaceAction(siteId, integration.platform, "sync", result);
+    await prisma.marketplaceIntegration.update({
+      where: { id: integration.id },
+      data: {
+        lastSyncAt: result.ok ? new Date() : integration.lastSyncAt,
+        lastError: result.ok ? null : result.message,
+      },
+    });
+    results.push({ ...result, platform: integration.platform });
+  }
+
+  const sentTotal = results.reduce((sum, r) => sum + r.itemsCount, 0);
+  const ok = results.some((r) => r.ok);
+  return {
+    ok,
+    message:
+      results.length === 0
+        ? "Aktif pazaryeri entegrasyonu yok"
+        : `${results.length} platform · ${sentTotal} ürün gönderildi`,
+    results,
+  };
+}
+
 export async function approveMarketplaceOrder(
   siteId: string,
   orderId: string,

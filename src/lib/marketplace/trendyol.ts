@@ -67,6 +67,19 @@ function num(v: string | undefined | null): number | undefined {
   return Number.isFinite(n) && n > 0 ? n : undefined;
 }
 
+/** Barkodu olmayan ürün için SKU/slug'dan kararlı barkod üretir (Trendyol: max 40, alfanumerik + .-_). */
+function generateBarcode(sku: string | null | undefined, slug: string): string | null {
+  const raw = (sku?.trim() || slug?.trim() || "").replace(/[^a-zA-Z0-9._-]/g, "-").replace(/-+/g, "-");
+  if (!raw) return null;
+  return raw.slice(0, 40);
+}
+
+function chunk<T>(arr: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+}
+
 function productDimensionalWeight(p: SyncProductInput, fallback: number): number {
   if (p.desi != null && p.desi > 0) return p.desi;
   if (p.weightGrams != null && p.weightGrams > 0) return Math.max(1, Math.ceil(p.weightGrams / 1000));
@@ -298,19 +311,37 @@ export async function syncProductsToTrendyol(
   const currencyType = config.currencyType?.trim() || "TRY";
   const defaultDimensionalWeight = num(config.dimensionalWeight) ?? 1;
 
+  // Web sitesi ana kaynak: barkodu olmayan ürünlere SKU/slug'dan kararlı bir
+  // barkod üret ve siteye kaydet (Trendyol barkod zorunlu). Böylece "tek seferlik
+  // tam yükleme"de hiçbir ürün barkod eksikliğinden atlanmaz.
+  if (siteId) {
+    for (const p of products) {
+      if (p.barcode?.trim()) continue;
+      const generated = generateBarcode(p.sku, p.slug);
+      if (!generated) continue;
+      p.barcode = generated;
+      try {
+        await prisma.storeProduct.update({ where: { id: p.id }, data: { barcode: generated } });
+      } catch {
+        /* barkod çakışması vb. — bu ürünü atla */
+      }
+    }
+  }
+
   const withBarcodeStock = products.filter((p) => p.barcode?.trim() && p.stockQty > 0);
   if (withBarcodeStock.length === 0) {
-    const noBarcode = products.filter((p) => !p.barcode?.trim()).length;
+    const noStock = products.filter((p) => p.stockQty <= 0).length;
     return {
       ok: false,
       sent: 0,
-      message: noBarcode
-        ? `Gönderilecek ürün yok: barkod ve stok > 0 gerekli. ${noBarcode} üründe barkod eksik.`
+      message: noStock
+        ? `Gönderilecek ürün yok: stok > 0 olan yayın ürün gerekli. ${noStock} ürün stoksuz.`
         : "Gönderilecek ürün yok: barkod ve stok > 0 olan yayın ürün gerekli.",
     };
   }
 
-  const eligible = withBarcodeStock.slice(0, 50);
+  // Trendyol tek istekte max 1000 ürün kabul eder; güvenli üst sınır.
+  const eligible = withBarcodeStock.slice(0, 1000);
 
   const listingStatuses = new Map<string, string>();
   if (siteId && marketplaceProductListingDb()) {
@@ -388,33 +419,45 @@ export async function syncProductsToTrendyol(
     const messages: string[] = [];
     let totalSent = 0;
     let allOk = true;
+    const CHUNK = 100;
 
-    if (createItems.length > 0) {
-      let createResult = await sendTrendyolProductBatch(creds, "POST", createItems, createProducts, siteId);
-      if (!createResult.ok && isDuplicateCreateError(createResult.message) && createProducts.length > 0) {
-        const retryItems = createItems.map((item) => {
+    // Yeni ürünler — 100'lük gruplar halinde oluştur
+    const createChunks = chunk(createItems, CHUNK);
+    const createProdChunks = chunk(createProducts, CHUNK);
+    let createSent = 0;
+    let createFailedBatches = 0;
+    for (let i = 0; i < createChunks.length; i++) {
+      let r = await sendTrendyolProductBatch(creds, "POST", createChunks[i], createProdChunks[i], siteId);
+      if (!r.ok && isDuplicateCreateError(r.message) && createProdChunks[i].length > 0) {
+        const retryItems = createChunks[i].map((item) => {
           const { quantity: _q, listPrice: _l, salePrice: _s, cargoCompanyId: _c, currencyType: _ct, dimensionalWeight: _d, ...rest } = item;
           return rest;
         });
-        createResult = await sendTrendyolProductBatch(creds, "PUT", retryItems, createProducts, siteId);
-        if (createResult.ok || createResult.sent > 0) {
-          createResult = {
-            ...createResult,
-            message: createResult.message.replace("güncellendi", "güncellendi (zaten Trendyol'da vardı)"),
-          };
-        }
+        r = await sendTrendyolProductBatch(creds, "PUT", retryItems, createProdChunks[i], siteId);
       }
-      if (createResult.sent > 0) messages.push(createResult.message);
-      totalSent += createResult.sent;
-      if (!createResult.ok) allOk = false;
+      createSent += r.sent;
+      if (!r.ok) {
+        allOk = false;
+        createFailedBatches++;
+        if (i === 0) messages.push(r.message);
+      }
     }
+    if (createSent > 0) {
+      messages.push(`${createSent} yeni ürün gönderildi${createFailedBatches ? ` (${createFailedBatches} grup hatalı)` : ""}`);
+    }
+    totalSent += createSent;
 
-    if (updateItems.length > 0) {
-      const updateResult = await sendTrendyolProductBatch(creds, "PUT", updateItems, updateProducts, siteId);
-      if (updateResult.sent > 0) messages.push(updateResult.message);
-      totalSent += updateResult.sent;
-      if (!updateResult.ok) allOk = false;
+    // Var olan ürünler — 100'lük gruplar halinde güncelle
+    const updateChunks = chunk(updateItems, CHUNK);
+    const updateProdChunks = chunk(updateProducts, CHUNK);
+    let updateSent = 0;
+    for (let i = 0; i < updateChunks.length; i++) {
+      const r = await sendTrendyolProductBatch(creds, "PUT", updateChunks[i], updateProdChunks[i], siteId);
+      updateSent += r.sent;
+      if (!r.ok) allOk = false;
     }
+    if (updateSent > 0) messages.push(`${updateSent} ürün güncellendi`);
+    totalSent += updateSent;
 
     // Trendyol PUT (ürün güncelleme) fiyat/stok kabul ETMEZ — bunlar ayrı
     // price-and-inventory endpoint'inden gider. Var olan ürünler güncellenirken

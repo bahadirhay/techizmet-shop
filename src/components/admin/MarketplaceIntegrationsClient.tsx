@@ -193,6 +193,35 @@ export function MarketplaceIntegrationsClient({
     window.location.reload();
   }
 
+  async function runPushAll() {
+    if (!confirm("Web sitesindeki tüm yayınlanmış ürünler, tüm aktif pazaryerlerine yüklenecek (yenileri oluşturulur, var olanlar güncellenir). Devam edilsin mi?")) {
+      return;
+    }
+    setSyncBusy(true);
+    setMsg("Tüm ürünler pazaryerlerine yükleniyor… (ürün sayısına göre birkaç dakika sürebilir, sayfayı kapatmayın)");
+    try {
+      const res = await fetch("/api/admin/integrations/marketplaces/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ all: true }),
+      });
+      const json = (await res.json().catch(() => ({}))) as {
+        result?: { message: string; ok: boolean; results?: { platform: string; message: string }[] };
+        error?: string;
+      };
+      if (!res.ok) {
+        setMsg(json.error ?? "Toplu yükleme başarısız");
+        return;
+      }
+      const details = json.result?.results?.map((r) => `${r.platform}: ${r.message}`).join(" · ");
+      setMsg(details ? `${json.result?.message} — ${details}` : (json.result?.message ?? "Tamamlandı"));
+    } catch (e) {
+      setMsg(`Toplu yükleme hatası: ${e instanceof Error ? e.message : "bağlantı/zaman aşımı"}`);
+    } finally {
+      setSyncBusy(false);
+    }
+  }
+
   async function runAction(path: string, label: string) {
     setSyncBusy(true);
     setMsg(null);
@@ -741,6 +770,9 @@ export function MarketplaceIntegrationsClient({
           ) : null}
           <button type="button" className={btnSecondary} onClick={runSync} disabled={syncBusy}>
             {syncBusy ? "…" : "Ürün gönder"}
+          </button>
+          <button type="button" className={btnPrimary} onClick={() => void runPushAll()} disabled={syncBusy}>
+            {syncBusy ? "…" : "Tüm ürünleri tüm pazaryerlerine yükle"}
           </button>
           <button
             type="button"
