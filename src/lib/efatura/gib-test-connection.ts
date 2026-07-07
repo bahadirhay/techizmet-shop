@@ -106,20 +106,26 @@ export async function testGibConnection(
     token = login.token;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
+    const detail =
+      (err as Error & { detail?: string }).detail && (err as Error & { detail?: string }).detail !== msg
+        ? (err as Error & { detail?: string }).detail
+        : undefined;
     const isAuthError =
       /doğrulanamad|dogrulanamad|kimlik|kullanıcı adı|parola|şifre|sifre/i.test(msg);
     return {
       ok: false,
-      message: `GİB girişi başarısız: ${msg}`,
+      message: `GİB girişi başarısız: ${msg}${detail ? ` (denenen: ${detail})` : ""}`,
       environment: env,
       portalUrl,
       loginOk: false,
       hint: config.testMode
         ? "Test ortamı açık — earsivportaltest.efatura.gov.tr için ayrı test hesabı gerekir. Canlı portala girebiliyorsanız test kutusunu kapatıp tekrar deneyin."
         : isAuthError
-          ? "1) API girişinde e-Devlet TC/şifre DEĞİL, İVD 'kullanıcı kodu ve şifre' kullanılır (ivd.gib.gov.tr → e-Devlet ile Kayıt Ol ile alınır). " +
-            "2) Bu hata çoğu zaman GİB sunucu yoğunluğundandır; birkaç dakika sonra tekrar deneyin. " +
-            "3) Kullanıcı kodu/şifreyi web portalda kullandığınızla birebir aynı girin."
+          ? "Bilgiler web portalda çalışıyor ama sunucudan çalışmıyorsa neden büyük olasılıkla GİB'in IP engelidir: " +
+            "GİB İVD, bulut/yurt dışı sunucu (Vercel) IP'lerinden gelen girişleri bu mesajla reddeder. " +
+            "Doğrulamak için `node scripts/gib-login-diag.mjs <kullanıcı> <şifre>` komutunu KENDİ bilgisayarınızda çalıştırın; " +
+            "orada başarılıysa sorun IP engelidir (çözüm: Türkiye IP'li vekil sunucu veya özel entegratör). " +
+            "Değilse: İVD kullanıcı kodu/şifresini kontrol edin veya GİB yoğunluğu için birkaç dk sonra deneyin."
           : "Kullanıcı kodu ve parolayı İVD / e-Arşiv portal giriş bilgilerinizle kontrol edin.",
     };
   }
