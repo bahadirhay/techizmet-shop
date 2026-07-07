@@ -992,6 +992,29 @@ model MarketplaceCategoryMapping {
   @@schema("shop")
 }
 
+/// Pazaryeri kategori zorunlu özellik eşlemesi (Trendyol attributes)
+model MarketplaceCategoryAttribute {
+  id                 String   @id @default(cuid())
+  siteId             String
+  platform           String
+  /** Yerel kategori (null = varsayılan/tüm ürünler) */
+  categoryId         String?
+  attributeId        Int
+  attributeName      String
+  attributeValueId   Int?
+  attributeValueName String?
+  /** allowCustom özelliklerde serbest metin değeri */
+  customValue        String?
+  required           Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([siteId, platform, categoryId, attributeId])
+  @@index([siteId, platform, categoryId])
+  @@map("marketplace_category_attribute")
+  @@schema("shop")
+}
+
 /// Pazaryeri komisyon / kargo kesinti kuralları (platform × yerel kategori)
 model MarketplaceCommissionRule {
   id                String   @id @default(cuid())

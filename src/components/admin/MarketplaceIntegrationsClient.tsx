@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { MARKETPLACE_PLATFORMS } from "@/lib/admin/marketplace-platforms";
 import { AdminField, btnPrimary, btnSecondary, inputClass } from "@/components/admin/AdminForm";
 import { MarketplaceCommissionRulesPanel } from "@/components/admin/MarketplaceCommissionRulesPanel";
+import { MarketplaceAttributeMappingPanel } from "@/components/admin/MarketplaceAttributeMappingPanel";
 import type { CommissionRuleRow } from "@/lib/marketplace/commission-types";
 
 type SyncLog = {
@@ -405,6 +406,69 @@ export function MarketplaceIntegrationsClient({
                 onChange={(e) => setCfg({ ...cfg, trendyolCategoryId: e.target.value })}
               />
             </AdminField>
+            <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+              <p className="text-sm font-semibold">Gönderim ayarları (ürün onayı için zorunlu)</p>
+              <p className="mt-1 text-xs text-zinc-500">
+                Trendyol ürün oluşturma bu alanlar olmadan reddedilir. Kargo firma ID ve adres
+                ID&apos;lerini Trendyol Satıcı Paneli → Kargo/Adres ayarlarından alın.
+              </p>
+              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                <AdminField label="Kargo firması ID (cargoCompanyId) *">
+                  <input
+                    className={inputClass}
+                    inputMode="numeric"
+                    value={cfg.cargoCompanyId ?? ""}
+                    onChange={(e) => setCfg({ ...cfg, cargoCompanyId: e.target.value })}
+                    placeholder="örn. 10 (Yurtiçi), 30 (Aras)"
+                  />
+                </AdminField>
+                <AdminField label="Teslim süresi (gün)">
+                  <input
+                    className={inputClass}
+                    inputMode="numeric"
+                    value={cfg.deliveryDuration ?? ""}
+                    onChange={(e) => setCfg({ ...cfg, deliveryDuration: e.target.value })}
+                    placeholder="örn. 2"
+                  />
+                </AdminField>
+                <AdminField label="Sevkiyat adresi ID (shipmentAddressId)">
+                  <input
+                    className={inputClass}
+                    inputMode="numeric"
+                    value={cfg.shipmentAddressId ?? ""}
+                    onChange={(e) => setCfg({ ...cfg, shipmentAddressId: e.target.value })}
+                    placeholder="Boşsa varsayılan adres"
+                  />
+                </AdminField>
+                <AdminField label="İade adresi ID (returningAddressId)">
+                  <input
+                    className={inputClass}
+                    inputMode="numeric"
+                    value={cfg.returningAddressId ?? ""}
+                    onChange={(e) => setCfg({ ...cfg, returningAddressId: e.target.value })}
+                    placeholder="Boşsa varsayılan adres"
+                  />
+                </AdminField>
+                <AdminField label="Varsayılan KDV (%)">
+                  <input
+                    className={inputClass}
+                    inputMode="numeric"
+                    value={cfg.vatRate ?? ""}
+                    onChange={(e) => setCfg({ ...cfg, vatRate: e.target.value })}
+                    placeholder="Ürün KDV&apos;si varsa o kullanılır"
+                  />
+                </AdminField>
+                <AdminField label="Varsayılan desi/hacim ağırlığı">
+                  <input
+                    className={inputClass}
+                    inputMode="decimal"
+                    value={cfg.dimensionalWeight ?? ""}
+                    onChange={(e) => setCfg({ ...cfg, dimensionalWeight: e.target.value })}
+                    placeholder="Üründe desi/ağırlık yoksa"
+                  />
+                </AdminField>
+              </div>
+            </div>
           </>
         ) : null}
         {current?.lastSyncAt ? (
@@ -644,6 +708,14 @@ export function MarketplaceIntegrationsClient({
           initialRules={commissionRules}
           tablesReady={commissionTablesReady}
         />
+
+        {selected === "trendyol" ? (
+          <MarketplaceAttributeMappingPanel
+            platform={selected}
+            categories={categories}
+            tablesReady={marketplaceTablesReady}
+          />
+        ) : null}
 
         <div className="mt-6 border-t pt-4">
           <h3 className="text-sm font-semibold">Senkron geçmişi</h3>

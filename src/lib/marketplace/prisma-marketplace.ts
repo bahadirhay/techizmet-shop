@@ -23,6 +23,25 @@ type ProductListingDb = {
   upsert: (args: unknown) => Promise<unknown>;
 };
 
+type CategoryAttributeRow = {
+  id: string;
+  siteId: string;
+  platform: string;
+  categoryId: string | null;
+  attributeId: number;
+  attributeName: string;
+  attributeValueId: number | null;
+  attributeValueName: string | null;
+  customValue: string | null;
+  required: boolean;
+};
+
+type CategoryAttributeDb = {
+  findMany: (args: unknown) => Promise<CategoryAttributeRow[]>;
+  upsert: (args: unknown) => Promise<CategoryAttributeRow>;
+  deleteMany: (args: unknown) => Promise<{ count: number }>;
+};
+
 type CommissionRuleRow = {
   id: string;
   siteId: string;
@@ -57,6 +76,12 @@ export function marketplaceCategoryMappingDb(): CategoryMappingDb | null {
 export function marketplaceProductListingDb(): ProductListingDb | null {
   const d = readDelegate("marketplaceProductListing") as ProductListingDb | undefined;
   if (!d || typeof d.upsert !== "function") return null;
+  return d;
+}
+
+export function marketplaceCategoryAttributeDb(): CategoryAttributeDb | null {
+  const d = readDelegate("marketplaceCategoryAttribute") as CategoryAttributeDb | undefined;
+  if (!d || typeof d.findMany !== "function") return null;
   return d;
 }
 
