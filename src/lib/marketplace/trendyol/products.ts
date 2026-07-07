@@ -69,6 +69,28 @@ function extractTrendyolPage(json: unknown): { items: Record<string, unknown>[];
   return { items: items as Record<string, unknown>[], totalPages, page };
 }
 
+/** Tek barkod için Trendyol'da ürün ara (önce onaylı, sonra onaysız). */
+export async function lookupTrendyolProductByBarcode(
+  creds: TrendyolCredentials,
+  barcode: string,
+): Promise<MarketplaceCatalogItem | null> {
+  const bc = barcode.trim();
+  if (!bc) return null;
+
+  for (const approved of [true, false] as const) {
+    const path = `/integration/product/sellers/${creds.sellerId}/products?barcode=${encodeURIComponent(bc)}&approved=${approved}&page=0&size=1`;
+    const res = await trendyolRequest(creds, path);
+    if (!res.ok) continue;
+    const { items } = extractTrendyolPage(res.json);
+    if (items.length > 0) {
+      return parseTrendyolProduct(items[0]);
+    }
+  }
+  return null;
+}
+
+export { mapTrendyolListingStatus, parseTrendyolProduct, extractTrendyolRejectReason };
+
 export async function fetchTrendyolCatalog(
   creds: TrendyolCredentials,
   options?: { maxPages?: number },

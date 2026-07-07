@@ -39,10 +39,10 @@ type CellValue = { valueId: string; custom: string };
 
 const STATUS_LABEL: Record<string, { text: string; cls: string }> = {
   none: { text: "gönderilmedi", cls: "text-zinc-400" },
-  pending: { text: "onay bekliyor", cls: "text-amber-600" },
+  pending: { text: "TY onayında / doğrulanıyor", cls: "text-amber-600" },
   active: { text: "yayında", cls: "text-green-600" },
   inactive: { text: "pasif", cls: "text-zinc-500" },
-  rejected: { text: "reddedildi", cls: "text-red-600" },
+  rejected: { text: "reddedildi / TY'de yok", cls: "text-red-600" },
   exported: { text: "gönderildi", cls: "text-blue-600" },
 };
 
@@ -309,20 +309,27 @@ export function MarketplaceProductMatchPanel({
 
   async function refreshBatchStatus() {
     setSending(true);
-    setMsg("Trendyol durumu sorgulanıyor…");
+    setMsg("Trendyol API'den gerçek durum doğrulanıyor (batch + barkod)…");
     try {
       const res = await fetch("/api/admin/integrations/marketplaces/trendyol/batch-status", {
         method: "POST",
       });
-      const json = (await res.json().catch(() => ({}))) as { message?: string; error?: string };
+      const json = (await res.json().catch(() => ({}))) as {
+        message?: string;
+        error?: string;
+        details?: string[];
+        notFound?: number;
+        batchFailed?: number;
+      };
       if (!res.ok) {
         setMsg(json.error ?? "Durum alınamadı");
         return;
       }
-      setMsg(`Trendyol durumu: ${json.message ?? "güncellendi"}`);
+      const detailLines = json.details?.length ? `\n${json.details.join("\n")}` : "";
+      setMsg(`${json.message ?? "Güncellendi"}${detailLines}`);
       await loadCategory();
     } catch (e) {
-      setMsg(`Durum sorgulanamadı: ${e instanceof Error ? e.message : "bağlantı sorunu"}`);
+      setMsg(`Doğrulama hatası: ${e instanceof Error ? e.message : "bağlantı sorunu"}`);
     } finally {
       setSending(false);
     }
@@ -356,6 +363,8 @@ export function MarketplaceProductMatchPanel({
       setMsg(json.result?.message ?? "Gönderildi");
       await loadCategory();
       await loadReadiness();
+      // Gönderim sonrası gerçek durumu Trendyol'dan doğrula
+      await refreshBatchStatus();
     } catch (e) {
       setMsg(`Gönderim hatası: ${e instanceof Error ? e.message : "bağlantı/zaman aşımı"} — birkaç dakika sonra “Trendyol durumunu yenile” ile kontrol edin.`);
     } finally {
@@ -514,7 +523,7 @@ export function MarketplaceProductMatchPanel({
             </AdminField>
             <div className="ml-auto flex gap-2">
               <button type="button" className={btnSecondary} disabled={sending} onClick={() => void refreshBatchStatus()}>
-                {sending ? "…" : "Trendyol durumunu yenile"}
+                {sending ? "…" : "Trendyol'da doğrula"}
               </button>
               <button type="button" className={btnSecondary} disabled={sending} onClick={() => void saveSelected()}>
                 {sending ? "…" : selected.size ? `Seçiliyi kaydet (${selected.size})` : "Tümünü kaydet"}

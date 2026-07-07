@@ -162,8 +162,8 @@ async function sendTrendyolProductBatch(
 
   let batchSummary = "";
   if (batchRequestId) {
-    for (let attempt = 0; attempt < 3; attempt++) {
-      await new Promise((r) => setTimeout(r, attempt === 0 ? 2500 : 2500));
+    for (let attempt = 0; attempt < 6; attempt++) {
+      await new Promise((r) => setTimeout(r, attempt === 0 ? 2000 : 3000));
       const batch = await checkTrendyolBatchRequest(creds, batchRequestId);
       if (!batch.ok) break;
       if (batch.status === "COMPLETED" || batch.items.length > 0) {
@@ -184,9 +184,10 @@ async function sendTrendyolProductBatch(
       }
     }
     if (!batchSummary) {
-      batchSummary =
-        " · Trendyol kuyruğa aldı, onay birkaç dakika sürebilir. Birazdan “Trendyol durumunu yenile”ye basın.";
+      batchSummary = ` · Batch kuyrukta (id: ${batchRequestId.slice(0, 12)}…) — "Trendyol'da doğrula" ile kontrol edin`;
     }
+  } else if (res.ok) {
+    batchSummary = " · Trendyol batch ID dönmedi — gönderim şüpheli";
   }
 
   if (siteId) {
@@ -197,6 +198,14 @@ async function sendTrendyolProductBatch(
       for (const p of sentProducts) {
         const bc = p.barcode?.trim() ?? "";
         const result = batchByBarcode.get(bc);
+        const listingStatus = result?.status ?? (batchRequestId ? "pending" : "rejected");
+        const lastError =
+          result?.error ??
+          (batchRequestId && !result
+            ? "Batch sonucu henüz yok — Trendyol'da doğrula"
+            : !batchRequestId
+              ? "Trendyol batch ID alınamadı"
+              : null);
         await listingDb.upsert({
           where: {
             siteId_platform_productId: {
@@ -210,16 +219,16 @@ async function sendTrendyolProductBatch(
             platform: "trendyol",
             productId: p.id,
             barcode: bc || null,
-            listingStatus: result?.status ?? "pending",
+            listingStatus,
             lastSyncAt: now,
-            lastError: result?.error ?? null,
+            lastError,
             metaJson: meta,
           },
           update: {
             barcode: bc || null,
-            listingStatus: result?.status ?? "pending",
+            listingStatus,
             lastSyncAt: now,
-            lastError: result?.error ?? null,
+            lastError,
             metaJson: meta,
           },
         });
