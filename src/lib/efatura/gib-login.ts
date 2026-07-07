@@ -21,19 +21,6 @@ const UA =
 
 export type GibEnv = "PROD" | "TEST";
 
-/** Tarayıcı gibi: önce giriş sayfasını açıp oturum çerezini (JSESSIONID) al */
-async function fetchSessionCookie(origin: string): Promise<string> {
-  try {
-    const res = await fetch(`${origin}/intragiris.html`, {
-      headers: { "user-agent": UA, accept: "text/html,*/*" },
-    });
-    const cookies = res.headers.getSetCookie?.() ?? [];
-    return cookies.map((c) => c.split(";")[0]).join("; ");
-  } catch {
-    return "";
-  }
-}
-
 /**
  * Denenecek giriş komutları.
  * Yaygın/çalışan konvansiyon: PROD → anologin, TEST → login.
@@ -63,7 +50,6 @@ async function attempt(
   cmd: string,
   userName: string,
   password: string,
-  cookie: string,
 ): Promise<{ token: string } | { error: string }> {
   const origin = BASE_URL[env];
   const res = await fetch(`${origin}/earsiv-services/assos-login`, {
@@ -74,11 +60,9 @@ async function attempt(
       "cache-control": "no-cache",
       "content-type": "application/x-www-form-urlencoded;charset=UTF-8",
       pragma: "no-cache",
-      // GİB güvenlik katmanı bu başlıkları bekler; olmadan bazı hesaplarda
-      // "kimlik doğrulanamadı" döner (İnteraktif giriş sayfası referansı).
+      // Tarayıcı davranışını taklit et (İnteraktif giriş sayfası referansı).
       referer: `${origin}/intragiris.html`,
       origin,
-      ...(cookie ? { cookie } : {}),
       "user-agent": UA,
     },
     body:
@@ -113,10 +97,9 @@ export async function gibLogin(
   userName: string,
   password: string,
 ): Promise<GibLoginResult> {
-  const cookie = await fetchSessionCookie(BASE_URL[env]);
   const attempts: { command: string; error: string }[] = [];
   for (const cmd of loginCommands(env)) {
-    const r = await attempt(env, cmd, userName, password, cookie);
+    const r = await attempt(env, cmd, userName, password);
     if ("token" in r) {
       return { token: r.token, command: cmd, attempts };
     }
