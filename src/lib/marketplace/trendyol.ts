@@ -7,7 +7,8 @@ import { marketplaceProductListingDb } from "@/lib/marketplace/prisma-marketplac
 import { buildPlatformListingTitle } from "@/lib/marketplace/title-rules";
 import { parseTrendyolConfig, trendyolApiBase } from "@/lib/marketplace/trendyol/client";
 import { trendyolAuthHeaders } from "@/lib/marketplace/trendyol/headers";
-import { checkTrendyolBatchRequest } from "@/lib/marketplace/trendyol/categories";
+import { checkTrendyolBatchRequest, fetchTrendyolAddresses } from "@/lib/marketplace/trendyol/categories";
+import type { TrendyolCredentials } from "@/lib/marketplace/trendyol/client";
 import { syncTrendyolPriceAndInventory } from "@/lib/marketplace/trendyol/inventory";
 import { toAbsoluteMediaUrl } from "@/lib/seo/site-url";
 import { prisma } from "@/lib/prisma";
@@ -253,9 +254,10 @@ function buildTrendyolItemBase(
   mapped: { categoryId: number; brandId: number },
   config: Record<string, string>,
   attributes: TrendyolPayloadAttribute[],
+  addresses: { shipmentAddressId?: number; returningAddressId?: number },
 ) {
-  const shipmentAddressId = num(config.shipmentAddressId);
-  const returningAddressId = num(config.returningAddressId);
+  const shipmentAddressId = addresses.shipmentAddressId;
+  const returningAddressId = addresses.returningAddressId;
   const deliveryDuration = num(config.deliveryDuration);
   const defaultVatRate = Number(config.vatRate ?? config.defaultVatRate ?? "");
   const imageUrls = Array.from(
@@ -293,6 +295,66 @@ function buildTrendyolItemBase(
   };
 }
 
+/**
+ * Adresleri Trendyol'dan çekip doğrular. Ayarlardaki ID hesapta yoksa
+ * (ör. yanlış girilmiş → "Verilen Adres ID'ye karşılık adres bulunamadı")
+ * hesabın gerçek varsayılan/uygun adresine otomatik düşer.
+ */
+async function resolveTrendyolAddresses(
+  creds: TrendyolCredentials,
+  wantShipment?: number,
+  wantReturning?: number,
+): Promise<{ shipmentAddressId?: number; returningAddressId?: number; warning?: string }> {
+  let fetched;
+  try {
+    fetched = await fetchTrendyolAddresses(creds);
+  } catch {
+    fetched = null;
+  }
+
+  // Adresler çekilemediyse (API hatası): kullanıcının girdiği değerlere güven,
+  // hiç yoksa alanı boş bırak (Trendyol varsayılanı kullanır).
+  if (!fetched || !fetched.ok || fetched.addresses.length === 0) {
+    return { shipmentAddressId: wantShipment, returningAddressId: wantReturning };
+  }
+
+  const addrs = fetched.addresses;
+  const byId = new Map(addrs.map((a) => [a.id, a]));
+
+  const pickShipment = () => {
+    if (wantShipment && byId.has(wantShipment)) return wantShipment;
+    const cand =
+      addrs.find((a) => a.isShipment && a.isDefault) ??
+      addrs.find((a) => a.isShipment) ??
+      addrs.find((a) => a.isDefault) ??
+      addrs[0];
+    return cand?.id;
+  };
+  const pickReturning = () => {
+    if (wantReturning && byId.has(wantReturning)) return wantReturning;
+    const cand =
+      addrs.find((a) => a.isReturning && a.isDefault) ??
+      addrs.find((a) => a.isReturning) ??
+      addrs.find((a) => a.isDefault) ??
+      addrs[0];
+    return cand?.id;
+  };
+
+  const shipmentAddressId = pickShipment();
+  const returningAddressId = pickReturning();
+
+  if (!shipmentAddressId || !returningAddressId) {
+    return {
+      shipmentAddressId,
+      returningAddressId,
+      warning:
+        "Trendyol hesabında geçerli sevkiyat/iade adresi bulunamadı. Trendyol Satıcı Paneli → Adres ayarlarından adres tanımlayın.",
+    };
+  }
+
+  return { shipmentAddressId, returningAddressId };
+}
+
 /** Trendyol Supplier API — ürün aktarımı (oluştur veya güncelle) */
 export async function syncProductsToTrendyol(
   products: SyncProductInput[],
@@ -319,6 +381,18 @@ export async function syncProductsToTrendyol(
 
   const currencyType = config.currencyType?.trim() || "TRY";
   const defaultDimensionalWeight = num(config.dimensionalWeight) ?? 1;
+
+  // Adresleri Trendyol'dan çekip doğrula. Ayarlardaki ID hesapta yoksa (ör. yanlış
+  // girilmiş) hesabın gerçek varsayılan adresine düş; hiç adres yoksa alanı boş bırak.
+  const resolvedAddresses = await resolveTrendyolAddresses(
+    creds,
+    num(config.shipmentAddressId),
+    num(config.returningAddressId),
+  );
+  if (resolvedAddresses.warning) {
+    // Adres hatası ürünlerin tamamını reddettirir; erken ve net uyar.
+    return { ok: false, sent: 0, message: resolvedAddresses.warning };
+  }
 
   // Web sitesi ana kaynak: barkodu olmayan ürünlere SKU/slug'dan kararlı bir
   // barkod üret ve siteye kaydet (Trendyol barkod zorunlu). Böylece "tek seferlik
@@ -391,7 +465,7 @@ export async function syncProductsToTrendyol(
       categoryAttributes,
       parseProductAttributes(p.marketplaceAttributesJson, "trendyol"),
     );
-    const base = buildTrendyolItemBase(p, mapped, config, attributes);
+    const base = buildTrendyolItemBase(p, mapped, config, attributes, resolvedAddresses);
     const listingStatus = listingStatuses.get(p.id) ?? "none";
     const existsOnTrendyol = listingStatus !== "none";
 
