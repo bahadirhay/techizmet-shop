@@ -537,6 +537,8 @@ model StoreProduct {
   marketplacePricesJson String?
   /** JSON: { "trendyol": 15, "hepsiburada": 10 } — web fiyatı üzerinden % fark */
   marketplaceMarkupPercentJson String?
+  /** JSON: { "trendyol": [{ attributeId, attributeValueId?, customValue? }] } — ürüne özel pazaryeri özellikleri */
+  marketplaceAttributesJson String?
   /** KDV oranı (%) — satış fiyatı KDV dahil kabul edilir */
   vatRate          Int      @default(20)
   imageUrl         String?

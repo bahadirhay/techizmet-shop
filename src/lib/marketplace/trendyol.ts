@@ -1,7 +1,7 @@
 import { minorToTry } from "@/lib/admin/money";
 import { toMarketplaceSyncPrices } from "@/lib/marketplace/product-prices";
 import { resolveTrendyolCategoryBrand } from "@/lib/marketplace/category-mapping";
-import { resolveTrendyolAttributes } from "@/lib/marketplace/attribute-mapping";
+import { resolveTrendyolAttributes, mergeTrendyolAttributes, parseProductAttributes } from "@/lib/marketplace/attribute-mapping";
 import type { TrendyolPayloadAttribute } from "@/lib/marketplace/attribute-mapping";
 import { marketplaceProductListingDb } from "@/lib/marketplace/prisma-marketplace";
 import { buildPlatformListingTitle } from "@/lib/marketplace/title-rules";
@@ -48,6 +48,7 @@ type SyncProductInput = {
   priceMinor: number;
   compareAtMinor: number | null;
   marketplacePricesJson?: string | null;
+  marketplaceAttributesJson?: string | null;
   stockQty: number;
   description: string | null;
   imageUrl: string | null;
@@ -127,7 +128,11 @@ export async function syncProductsToTrendyol(
         })
       : { categoryId: defaultCategoryId, brandId: defaultBrandId };
 
-    const attributes = siteId ? await resolveTrendyolAttributes(siteId, p.categoryId) : [];
+    const categoryAttributes = siteId ? await resolveTrendyolAttributes(siteId, p.categoryId) : [];
+    const attributes = mergeTrendyolAttributes(
+      categoryAttributes,
+      parseProductAttributes(p.marketplaceAttributesJson, "trendyol"),
+    );
 
     const prices = toMarketplaceSyncPrices(p, "trendyol");
     const list = Number(minorToTry(prices.listPriceMinor));

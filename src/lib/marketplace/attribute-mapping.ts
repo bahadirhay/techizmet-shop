@@ -50,6 +50,63 @@ export async function resolveTrendyolAttributes(
   return out;
 }
 
+export type ProductAttributeOverride = {
+  attributeId: number;
+  attributeName?: string;
+  attributeValueId?: number | null;
+  attributeValueName?: string | null;
+  customValue?: string | null;
+};
+
+/** Üründeki marketplaceAttributesJson içinden bir platformun override'larını okur */
+export function parseProductAttributes(
+  json: string | null | undefined,
+  platform: string,
+): ProductAttributeOverride[] {
+  if (!json) return [];
+  try {
+    const obj = JSON.parse(json) as Record<string, unknown>;
+    const arr = obj[platform];
+    if (!Array.isArray(arr)) return [];
+    return arr
+      .map((a) => {
+        const o = a as Record<string, unknown>;
+        const attributeId = Number(o.attributeId);
+        if (!Number.isFinite(attributeId)) return null;
+        return {
+          attributeId,
+          attributeName: o.attributeName != null ? String(o.attributeName) : undefined,
+          attributeValueId: o.attributeValueId != null ? Number(o.attributeValueId) : null,
+          attributeValueName: o.attributeValueName != null ? String(o.attributeValueName) : null,
+          customValue: o.customValue != null ? String(o.customValue) : null,
+        } as ProductAttributeOverride;
+      })
+      .filter((x): x is ProductAttributeOverride => x != null);
+  } catch {
+    return [];
+  }
+}
+
+/** Kategori seviyesi + ürün seviyesi özellikleri birleştirir (ürün seviyesi kazanır) */
+export function mergeTrendyolAttributes(
+  categoryLevel: TrendyolPayloadAttribute[],
+  productLevel: ProductAttributeOverride[],
+): TrendyolPayloadAttribute[] {
+  const byId = new Map<number, TrendyolPayloadAttribute>();
+  for (const a of categoryLevel) byId.set(a.attributeId, a);
+  for (const p of productLevel) {
+    if (p.attributeValueId != null) {
+      byId.set(p.attributeId, { attributeId: p.attributeId, attributeValueId: p.attributeValueId });
+    } else if (p.customValue?.trim()) {
+      byId.set(p.attributeId, {
+        attributeId: p.attributeId,
+        customAttributeValue: p.customValue.trim(),
+      });
+    }
+  }
+  return [...byId.values()];
+}
+
 export async function listAttributeMappings(
   siteId: string,
   platform: string,
