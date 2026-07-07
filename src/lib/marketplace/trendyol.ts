@@ -117,6 +117,13 @@ function isDuplicateCreateError(detail: string): boolean {
   return d.includes("tekrarl") || d.includes("duplicate") || d.includes("zaten");
 }
 
+// PUT (güncelleme) sırasında ürün Trendyol'da yoksa dönen hata.
+// Örn: "'969057' tedarikçi için '...' barkodlu ürün bulunamadı".
+function isNotFoundUpdateError(detail: string): boolean {
+  const d = detail.toLocaleLowerCase("tr");
+  return d.includes("bulunamad") || d.includes("not found");
+}
+
 async function sendTrendyolProductBatch(
   creds: NonNullable<ReturnType<typeof parseTrendyolConfig>>,
   method: "POST" | "PUT",
@@ -467,7 +474,11 @@ export async function syncProductsToTrendyol(
     );
     const base = buildTrendyolItemBase(p, mapped, config, attributes, resolvedAddresses);
     const listingStatus = listingStatuses.get(p.id) ?? "none";
-    const existsOnTrendyol = listingStatus !== "none";
+    // Sadece Trendyol'da gerçekten var olan (yayında/pasif) ürünler PUT ile
+    // güncellenir. "rejected/exported/pending/error/none" durumundakiler henüz
+    // Trendyol'da OLUŞMAMIŞ demektir → POST (oluştur) yapılır. Zaten varsa POST
+    // "tekrarlı" hatası verir ve aşağıda PUT'a düşülür.
+    const existsOnTrendyol = listingStatus === "active" || listingStatus === "inactive";
 
     if (existsOnTrendyol) {
       updateItems.push(base);
@@ -535,7 +546,24 @@ export async function syncProductsToTrendyol(
     const updateProdChunks = chunk(updateProducts, CHUNK);
     let updateSent = 0;
     for (let i = 0; i < updateChunks.length; i++) {
-      const r = await sendTrendyolProductBatch(creds, "PUT", updateChunks[i], updateProdChunks[i], siteId);
+      let r = await sendTrendyolProductBatch(creds, "PUT", updateChunks[i], updateProdChunks[i], siteId);
+      // Ürün Trendyol'da yoksa PUT "bulunamadı" der → CREATE (POST) olarak yeniden dene.
+      if (!r.ok && isNotFoundUpdateError(r.message) && updateProdChunks[i].length > 0) {
+        const createRetry: TrendyolProduct[] = updateChunks[i].map((item, idx) => {
+          const prod = updateProdChunks[i][idx];
+          const prices = toMarketplaceSyncPrices(prod, "trendyol");
+          return {
+            ...item,
+            quantity: Math.min(prod.stockQty, 9999),
+            listPrice: Number(minorToTry(prices.listPriceMinor)),
+            salePrice: Number(minorToTry(prices.salePriceMinor)),
+            cargoCompanyId,
+            currencyType,
+            dimensionalWeight: productDimensionalWeight(prod, defaultDimensionalWeight),
+          };
+        });
+        r = await sendTrendyolProductBatch(creds, "POST", createRetry, updateProdChunks[i], siteId);
+      }
       updateSent += r.sent;
       if (!r.ok) allOk = false;
     }

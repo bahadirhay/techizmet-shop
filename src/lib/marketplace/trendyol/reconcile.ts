@@ -64,11 +64,14 @@ export async function reconcileTrendyolListings(
   let batchFailed = 0;
   const details: string[] = [];
 
-  // Batch'ten reddedilen barkodlar
+  // Batch sonuçları: FAILED = kesin red, SUCCESS = kesin kabul,
+  // henüz sonuçlanmamış (PROCESSING / batch okunamadı) = "işleniyor" (red DEĞİL).
   const batchRejected = new Map<string, string>();
   const batchAccepted = new Set<string>();
+  const batchPending = new Set<string>();
 
   const byBatch = new Map<string, ListingRow[]>();
+  const hasBatch = new Set<string>();
   for (const l of listings) {
     let batchId = "";
     try {
@@ -77,6 +80,7 @@ export async function reconcileTrendyolListings(
       batchId = "";
     }
     if (!batchId) continue;
+    hasBatch.add(l.id);
     const arr = byBatch.get(batchId) ?? [];
     arr.push(l);
     byBatch.set(batchId, arr);
@@ -84,30 +88,35 @@ export async function reconcileTrendyolListings(
 
   for (const [batchId, batchListings] of byBatch) {
     const batch = await checkTrendyolBatchRequest(creds, batchId);
-    if (!batch.ok) continue;
 
-    for (const it of batch.items) {
-      const bc = it.barcode.trim();
-      if (!bc) continue;
-      if (it.status === "FAILED") {
-        batchRejected.set(bc, it.failureReasons.join("; ") || "Trendyol batch reddetti");
-      } else if (it.status === "SUCCESS") {
-        batchAccepted.add(bc);
+    const itemByBarcode = new Map<string, { status: string; reasons: string[] }>();
+    if (batch.ok) {
+      for (const it of batch.items) {
+        const bc = it.barcode.trim();
+        if (bc) itemByBarcode.set(bc, { status: it.status, reasons: it.failureReasons });
       }
     }
 
     for (const l of batchListings) {
       const bc = l.barcode?.trim();
       if (!bc) continue;
-      const failReason = batchRejected.get(bc);
-      if (failReason) {
+      const it = itemByBarcode.get(bc);
+      if (it?.status === "FAILED") {
+        const reason = it.reasons.join("; ") || "Trendyol batch reddetti";
+        batchRejected.set(bc, reason);
         batchFailed++;
         rejected++;
-        details.push(`✗ ${bc}: ${failReason}`);
+        details.push(`✗ ${bc}: ${reason}`);
         await listingDb.update({
           where: { id: l.id },
-          data: { listingStatus: "rejected", lastError: failReason, lastSyncAt: now },
+          data: { listingStatus: "rejected", lastError: reason, lastSyncAt: now },
         });
+      } else if (it?.status === "SUCCESS") {
+        batchAccepted.add(bc);
+      } else {
+        // Batch henüz sonuçlanmadı ya da bu barkod batch listesinde yok:
+        // Trendyol işliyor olabilir → "reddedildi" DEME, beklemede say.
+        batchPending.add(bc);
       }
     }
   }
@@ -164,24 +173,50 @@ export async function reconcileTrendyolListings(
       });
     } else if (batchAccepted.has(bc)) {
       pending++;
-      details.push(`○ ${bc}: batch kabul etti, TY'de henüz görünmüyor`);
+      details.push(`○ ${bc}: Trendyol kabul etti, listeye düşmesi birkaç dk sürebilir`);
       await listingDb.update({
         where: { id: l.id },
         data: {
           listingStatus: "pending",
-          lastError: "Batch kabul edildi; Trendyol listesinde henüz yok — birkaç dakika sonra tekrar doğrulayın",
+          lastError:
+            "Trendyol kabul etti; katalog listesine düşmesi birkaç dakika sürebilir — sonra tekrar doğrulayın",
+          lastSyncAt: now,
+        },
+      });
+    } else if (batchPending.has(bc)) {
+      pending++;
+      details.push(`○ ${bc}: Trendyol batch'i işleniyor`);
+      await listingDb.update({
+        where: { id: l.id },
+        data: {
+          listingStatus: "pending",
+          lastError: "Trendyol gönderimi işleniyor — birkaç dakika sonra tekrar doğrulayın",
+          lastSyncAt: now,
+        },
+      });
+    } else if (hasBatch.has(l.id)) {
+      // Batch kaydı vardı ama sonuç okunamadı ve TY'de de yok → beklemede tut,
+      // "reddedildi" deme (Trendyol indeksleme gecikmesi olabilir).
+      pending++;
+      details.push(`○ ${bc}: durum belirsiz, beklemede`);
+      await listingDb.update({
+        where: { id: l.id },
+        data: {
+          listingStatus: "pending",
+          lastError: "Trendyol'da henüz görünmüyor — birkaç dakika sonra tekrar doğrulayın",
           lastSyncAt: now,
         },
       });
     } else {
+      // Hiç batch kaydı yok ve Trendyol'da da yok → gönderim tamamlanmamış.
+      // Bu bir Trendyol reddi DEĞİL; kullanıcının tekrar göndermesi gerekiyor.
       notFound++;
-      rejected++;
       const err =
-        "Trendyol mağazasında bu barkodla ürün yok. Gönderim başarısız veya farklı barkod kullanılmış olabilir.";
-      details.push(`✗ ${bc}: Trendyol'da bulunamadı`);
+        "Trendyol'a gönderim kaydı bulunamadı — bu ürünü tekrar gönderin (\"Seçilenleri gönder\").";
+      details.push(`⚠ ${bc}: gönderilmemiş, tekrar gönderin`);
       await listingDb.update({
         where: { id: l.id },
-        data: { listingStatus: "rejected", lastError: err, lastSyncAt: now },
+        data: { listingStatus: "exported", lastError: err, lastSyncAt: now },
       });
     }
   }
@@ -190,7 +225,7 @@ export async function reconcileTrendyolListings(
   const message =
     checked === 0
       ? "Doğrulanacak bekleyen ürün yok"
-      : `${checked} kontrol · ${foundOnTrendyol} TY'de var (${active} yayında, ${pending} onayda) · ${notFound} yok · ${batchFailed} batch hatası`;
+      : `${checked} kontrol · ${foundOnTrendyol} TY'de var (${active} yayında) · ${pending} işleniyor/onay bekliyor · ${rejected} reddedildi (${batchFailed} batch hatası) · ${notFound} gönderilmemiş`;
 
   return {
     ok: true,
