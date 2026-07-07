@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AdminField, btnPrimary, btnSecondary, inputClass } from "@/components/admin/AdminForm";
+
+type ReadinessCheck = { key: string; label: string; ok: boolean; detail: string };
 
 type CategoryOption = { id: string; label: string };
 
@@ -79,8 +81,28 @@ export function MarketplaceProductMatchPanel({
   const [msg, setMsg] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [showAll, setShowAll] = useState(false);
+  const [checks, setChecks] = useState<ReadinessCheck[] | null>(null);
+  const [ready, setReady] = useState(true);
 
   const perProductAttrs = attrs.filter((a) => showAll || !(a.attributeId in template));
+
+  async function loadReadiness() {
+    if (platform !== "trendyol") return;
+    try {
+      const res = await fetch("/api/admin/integrations/marketplaces/trendyol/readiness");
+      if (!res.ok) return;
+      const j = (await res.json()) as { ready?: boolean; checks?: ReadinessCheck[] };
+      setChecks(j.checks ?? null);
+      setReady(j.ready ?? true);
+    } catch {
+      /* readiness kontrol edilemedi */
+    }
+  }
+
+  useEffect(() => {
+    void loadReadiness();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function initCells(rows: ProductRow[], attributes: Attr[], autofill: boolean) {
     const next: Record<string, Record<number, CellValue>> = {};
@@ -278,6 +300,7 @@ export function MarketplaceProductMatchPanel({
     }
     setMsg(json.result?.message ?? "Gönderildi");
     await loadCategory();
+    await loadReadiness();
   }
 
   const visibleProducts = products.filter((p) =>
@@ -292,8 +315,49 @@ export function MarketplaceProductMatchPanel({
     );
   }
 
+  const failedChecks = checks?.filter((c) => !c.ok) ?? [];
+
   return (
     <div className="space-y-4">
+      {checks ? (
+        <div
+          className={`rounded-lg border p-4 ${
+            ready ? "border-green-200 bg-green-50" : "border-amber-300 bg-amber-50"
+          }`}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-semibold">
+              {ready
+                ? "Gönderime hazır — tüm ayarlar tamam"
+                : `Gönderim öncesi ${failedChecks.length} eksik var`}
+            </p>
+            <button
+              type="button"
+              className="text-xs text-zinc-500 underline"
+              onClick={() => void loadReadiness()}
+            >
+              Yenile
+            </button>
+          </div>
+          <ul className="mt-2 grid gap-1 sm:grid-cols-2">
+            {checks.map((c) => (
+              <li key={c.key} className="flex items-start gap-2 text-xs">
+                <span className={c.ok ? "text-green-600" : "text-amber-600"}>{c.ok ? "✓" : "✗"}</span>
+                <span>
+                  <span className="font-medium">{c.label}</span>
+                  <span className="text-zinc-500"> — {c.detail}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+          {!ready ? (
+            <p className="mt-2 text-xs text-amber-900">
+              Eksikleri <strong>Entegrasyon ayarları</strong> sekmesinden tamamlayın, sonra “Yenile”ye basın.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="rounded-lg border border-zinc-200 bg-white p-4">
         <p className="text-sm font-semibold">Ürün eşleştirme & gönderim</p>
         <p className="mt-1 text-xs text-zinc-500">
