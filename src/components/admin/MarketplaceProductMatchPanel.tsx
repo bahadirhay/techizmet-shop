@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { AdminField, btnPrimary, btnSecondary, inputClass } from "@/components/admin/AdminForm";
 
-type ReadinessCheck = { key: string; label: string; ok: boolean; detail: string };
+type ReadinessCheck = { key: string; label: string; ok: boolean; detail: string; optional?: boolean };
 
 type CategoryOption = { id: string; label: string };
 
@@ -315,7 +315,7 @@ export function MarketplaceProductMatchPanel({
     );
   }
 
-  const failedChecks = checks?.filter((c) => !c.ok) ?? [];
+  const failedChecks = checks?.filter((c) => !c.ok && !c.optional) ?? [];
 
   return (
     <div className="space-y-4">
@@ -340,15 +340,19 @@ export function MarketplaceProductMatchPanel({
             </button>
           </div>
           <ul className="mt-2 grid gap-1 sm:grid-cols-2">
-            {checks.map((c) => (
-              <li key={c.key} className="flex items-start gap-2 text-xs">
-                <span className={c.ok ? "text-green-600" : "text-amber-600"}>{c.ok ? "✓" : "✗"}</span>
-                <span>
-                  <span className="font-medium">{c.label}</span>
-                  <span className="text-zinc-500"> — {c.detail}</span>
-                </span>
-              </li>
-            ))}
+            {checks.map((c) => {
+              const mark = c.ok ? "✓" : c.optional ? "○" : "✗";
+              const markCls = c.ok ? "text-green-600" : c.optional ? "text-zinc-400" : "text-amber-600";
+              return (
+                <li key={c.key} className="flex items-start gap-2 text-xs">
+                  <span className={markCls}>{mark}</span>
+                  <span>
+                    <span className="font-medium">{c.label}</span>
+                    <span className="text-zinc-500"> — {c.detail}</span>
+                  </span>
+                </li>
+              );
+            })}
           </ul>
           {!ready ? (
             <p className="mt-2 text-xs text-amber-900">

@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { parseTrendyolConfig } from "@/lib/marketplace/trendyol/client";
 import { listCategoryMappings } from "@/lib/marketplace/category-mapping";
 
-type Check = { key: string; label: string; ok: boolean; detail: string };
+type Check = { key: string; label: string; ok: boolean; detail: string; optional?: boolean };
 
 export async function GET() {
   const auth = await requireStaffApi("store.integrations");
@@ -58,15 +58,17 @@ export async function GET() {
     },
     {
       key: "shipmentAddress",
-      label: "Sevkiyat adresi",
+      label: "Sevkiyat adresi (opsiyonel)",
       ok: Boolean(shipAddr),
-      detail: shipAddr ? `ID: ${shipAddr}` : "Trendyol'dan adres çekip seçin",
+      optional: true,
+      detail: shipAddr ? `ID: ${shipAddr}` : "Boş bırakılırsa Trendyol'daki varsayılan adres kullanılır",
     },
     {
       key: "returnAddress",
-      label: "İade adresi",
+      label: "İade adresi (opsiyonel)",
       ok: Boolean(returnAddr),
-      detail: returnAddr ? `ID: ${returnAddr}` : "Trendyol'dan adres çekip seçin",
+      optional: true,
+      detail: returnAddr ? `ID: ${returnAddr}` : "Boş bırakılırsa Trendyol'daki varsayılan adres kullanılır",
     },
     {
       key: "categoryRouting",
@@ -89,7 +91,7 @@ export async function GET() {
     },
   ];
 
-  const ready = checks.every((c) => c.ok);
+  const ready = checks.every((c) => c.ok || c.optional);
 
   return NextResponse.json({
     ready,

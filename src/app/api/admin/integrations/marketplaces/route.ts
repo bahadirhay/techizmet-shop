@@ -73,6 +73,7 @@ export async function POST(req: Request) {
       label,
       active: Boolean(body.active),
       configJson: config,
+      lastError: null,
     },
   });
   return NextResponse.json({ integration: row });

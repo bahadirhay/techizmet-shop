@@ -552,59 +552,57 @@ export function MarketplaceIntegrationsClient({
                     {addressBusy ? "Adresler geliyor…" : "Adresleri Trendyol'dan getir"}
                   </button>
                 </div>
-                <AdminField label="Sevkiyat adresi (shipmentAddressId)">
+                <AdminField label="Sevkiyat adresi (shipmentAddressId) — opsiyonel">
                   {trendyolAddresses.length > 0 ? (
                     <select
-                      className={inputClass}
-                      value={cfg.shipmentAddressId ?? ""}
-                      onChange={(e) => setCfg({ ...cfg, shipmentAddressId: e.target.value })}
+                      className={`${inputClass} mb-1`}
+                      value=""
+                      onChange={(e) =>
+                        e.target.value && setCfg({ ...cfg, shipmentAddressId: e.target.value })
+                      }
                     >
-                      <option value="">Varsayılan adres</option>
-                      {trendyolAddresses
-                        .filter((a) => a.isShipment)
-                        .map((a) => (
-                          <option key={a.id} value={a.id}>
-                            #{a.id} {a.fullAddress}
-                            {a.isDefault ? " (varsayılan)" : ""}
-                          </option>
-                        ))}
+                      <option value="">Trendyol adreslerinden seç…</option>
+                      {trendyolAddresses.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          #{a.id} {a.fullAddress}
+                          {a.isDefault ? " (varsayılan)" : ""}
+                        </option>
+                      ))}
                     </select>
-                  ) : (
-                    <input
-                      className={inputClass}
-                      inputMode="numeric"
-                      value={cfg.shipmentAddressId ?? ""}
-                      onChange={(e) => setCfg({ ...cfg, shipmentAddressId: e.target.value })}
-                      placeholder="Boşsa varsayılan adres"
-                    />
-                  )}
+                  ) : null}
+                  <input
+                    className={inputClass}
+                    inputMode="numeric"
+                    value={cfg.shipmentAddressId ?? ""}
+                    onChange={(e) => setCfg({ ...cfg, shipmentAddressId: e.target.value })}
+                    placeholder="Boş bırakılırsa Trendyol varsayılan adresi kullanılır"
+                  />
                 </AdminField>
-                <AdminField label="İade adresi (returningAddressId)">
+                <AdminField label="İade adresi (returningAddressId) — opsiyonel">
                   {trendyolAddresses.length > 0 ? (
                     <select
-                      className={inputClass}
-                      value={cfg.returningAddressId ?? ""}
-                      onChange={(e) => setCfg({ ...cfg, returningAddressId: e.target.value })}
+                      className={`${inputClass} mb-1`}
+                      value=""
+                      onChange={(e) =>
+                        e.target.value && setCfg({ ...cfg, returningAddressId: e.target.value })
+                      }
                     >
-                      <option value="">Varsayılan adres</option>
-                      {trendyolAddresses
-                        .filter((a) => a.isReturning)
-                        .map((a) => (
-                          <option key={a.id} value={a.id}>
-                            #{a.id} {a.fullAddress}
-                            {a.isDefault ? " (varsayılan)" : ""}
-                          </option>
-                        ))}
+                      <option value="">Trendyol adreslerinden seç…</option>
+                      {trendyolAddresses.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          #{a.id} {a.fullAddress}
+                          {a.isDefault ? " (varsayılan)" : ""}
+                        </option>
+                      ))}
                     </select>
-                  ) : (
-                    <input
-                      className={inputClass}
-                      inputMode="numeric"
-                      value={cfg.returningAddressId ?? ""}
-                      onChange={(e) => setCfg({ ...cfg, returningAddressId: e.target.value })}
-                      placeholder="Boşsa varsayılan adres"
-                    />
-                  )}
+                  ) : null}
+                  <input
+                    className={inputClass}
+                    inputMode="numeric"
+                    value={cfg.returningAddressId ?? ""}
+                    onChange={(e) => setCfg({ ...cfg, returningAddressId: e.target.value })}
+                    placeholder="Boş bırakılırsa Trendyol varsayılan adresi kullanılır"
+                  />
                 </AdminField>
                 <AdminField label="Varsayılan KDV (%)">
                   <input
