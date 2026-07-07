@@ -78,6 +78,7 @@ export async function importMarketplaceCatalog(
     await upsertProductMarketplaceListing(siteId, product.id, platform, {
       barcode: item.barcode ?? null,
       listingStatus: item.listingStatus,
+      lastError: item.lastError ?? null,
       metaJson: item.meta
         ? JSON.stringify({
             title: item.title,

@@ -1,8 +1,7 @@
 import "server-only";
 
-import { createFaturaClient } from "fatura";
-import { gibLogin } from "@/lib/efatura/gib-login";
 import { getEfaturaConfig } from "@/lib/efatura/settings";
+import { getGibSession, refreshGibSession } from "@/lib/efatura/gib-session";
 import { normalizeInvoiceLines, invoiceLinesToJson, type DraftInvoiceLineInput } from "@/lib/finance/invoices";
 import { prisma } from "@/lib/prisma";
 
@@ -92,41 +91,52 @@ export async function syncInboundGibInvoices(siteId: string, actorUserId?: strin
   if (!cfg.enabled || !cfg.username || !cfg.password) {
     return { ok: false as const, message: "GİB e-Arşiv ayarları eksik. /admin/settings/efatura sayfasından kullanıcı adı ve şifre girin.", imported: 0, kdvEntriesCreated: 0 };
   }
-  const env = cfg.testMode ? "TEST" : "PROD";
-
-  // 1) GİB'e giriş yap (birden fazla komut varyantı deneyen yardımcı ile token al)
-  let token: string;
+  // 1) Önbellekli GİB oturumu al (aynı token tekrar kullanılır → "aynı anda
+  //    birden fazla giriş" hatasını önler). Token süresi dolmuşsa yenilenir.
+  let session: Awaited<ReturnType<typeof getGibSession>>;
   try {
-    const login = await gibLogin(env, cfg.username, cfg.password);
-    token = login.token;
+    session = await getGibSession(siteId, cfg);
   } catch (e) {
     const detail = (e as Error & { detail?: string }).detail || (e instanceof Error ? e.message : "bilinmeyen hata");
+    const alreadyLoggedIn = /birden fazla giriş|birden fazla giris|güvenli çıkış|guvenli cikis/i.test(detail);
     return {
       ok: false as const,
-      message: `GİB girişi başarısız: ${detail}. Kullanıcı kodu ve şifreyi /admin/settings/efatura sayfasından kontrol edin.`,
+      message: alreadyLoggedIn
+        ? `GİB'de açık bir oturum var: ${detail} · Çözüm: earsivportal.efatura.gov.tr adresine girip "Güvenli Çıkış" yapın veya birkaç dakika bekleyip tekrar deneyin.`
+        : `GİB girişi başarısız: ${detail}. Kullanıcı kodu ve şifreyi /admin/settings/efatura sayfasından kontrol edin.`,
       imported: 0,
       kdvEntriesCreated: 0,
     };
   }
 
-  // 2) Son 90 günde adıma kesilen belgeleri getir
-  const client = createFaturaClient(env) as unknown as {
+  // 2) Son 90 günde adıma kesilen belgeleri getir (token dolmuşsa 1 kez yenile-tekrarla)
+  const end = new Date();
+  const start = new Date();
+  start.setDate(start.getDate() - 90);
+  const range = { startDate: gibDate(start), endDate: gibDate(end) };
+
+  type InboundClient = {
     getAllInvoicesIssuedToMeByDateRange: (
       token: string,
       range: { startDate: string; endDate: string },
     ) => Promise<unknown>;
   };
 
-  const end = new Date();
-  const start = new Date();
-  start.setDate(start.getDate() - 90);
-
   let raw: unknown;
   try {
-    raw = await client.getAllInvoicesIssuedToMeByDateRange(token, {
-      startDate: gibDate(start),
-      endDate: gibDate(end),
-    });
+    try {
+      raw = await (session.client as unknown as InboundClient).getAllInvoicesIssuedToMeByDateRange(
+        session.token,
+        range,
+      );
+    } catch {
+      // Token süresi dolmuş olabilir — oturumu yenileyip bir kez daha dene
+      session = await refreshGibSession(siteId, cfg);
+      raw = await (session.client as unknown as InboundClient).getAllInvoicesIssuedToMeByDateRange(
+        session.token,
+        range,
+      );
+    }
   } catch (e) {
     return {
       ok: false as const,

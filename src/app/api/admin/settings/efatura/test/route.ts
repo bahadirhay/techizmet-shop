@@ -42,6 +42,6 @@ export async function POST(req: Request) {
     );
   }
 
-  const result = await testGibConnection(effectiveConfig, settings);
+  const result = await testGibConnection(effectiveConfig, settings, auth.siteId);
   return NextResponse.json(result, { status: result.ok ? 200 : 400 });
 }

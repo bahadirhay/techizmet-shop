@@ -81,6 +81,8 @@ export function MarketplaceProductMatchPanel({
   const [msg, setMsg] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [showAll, setShowAll] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [pullBusy, setPullBusy] = useState(false);
   const [checks, setChecks] = useState<ReadinessCheck[] | null>(null);
   const [ready, setReady] = useState(true);
 
@@ -274,6 +276,37 @@ export function MarketplaceProductMatchPanel({
     if (ok) setMsg(`${ids.length} ürünün özellikleri kaydedildi`);
   }
 
+  async function pullFromTrendyol() {
+    setPullBusy(true);
+    setMsg("Trendyol mağazasından ürünler çekiliyor…");
+    try {
+      const res = await fetch("/api/admin/integrations/marketplaces/catalog/pull", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ platform: "trendyol" }),
+      });
+      const json = (await res.json().catch(() => ({}))) as {
+        result?: { ok?: boolean; message?: string; matched?: number; unmatched?: number };
+        error?: string;
+      };
+      if (!res.ok) {
+        setMsg(json.error ?? "Katalog çekme başarısız");
+        return;
+      }
+      const r = json.result;
+      setMsg(
+        r?.ok
+          ? `✓ ${r.message ?? "Katalog çekildi"}`
+          : `✗ ${r?.message ?? "Katalog çekilemedi"}`,
+      );
+      if (localCategoryId) await loadCategory();
+    } catch (e) {
+      setMsg(`Katalog çekme hatası: ${e instanceof Error ? e.message : "bağlantı sorunu"}`);
+    } finally {
+      setPullBusy(false);
+    }
+  }
+
   async function refreshBatchStatus() {
     setSending(true);
     setMsg(null);
@@ -319,9 +352,20 @@ export function MarketplaceProductMatchPanel({
     await loadReadiness();
   }
 
-  const visibleProducts = products.filter((p) =>
-    search.trim() ? p.searchText.includes(search.trim().toLocaleLowerCase("tr")) : true,
-  );
+  const visibleProducts = products.filter((p) => {
+    if (statusFilter !== "all" && p.listingStatus !== statusFilter) return false;
+    return search.trim() ? p.searchText.includes(search.trim().toLocaleLowerCase("tr")) : true;
+  });
+
+  const selectedRows = products.filter((p) => selected.has(p.id));
+  const sendLabel =
+    selectedRows.length === 0
+      ? "Seçiliyi gönder"
+      : selectedRows.every((p) => p.listingStatus === "none")
+        ? `Seçiliyi gönder (${selected.size})`
+        : selectedRows.every((p) => p.listingStatus !== "none")
+          ? `Seçiliyi güncelle (${selected.size})`
+          : `Seçiliyi gönder/güncelle (${selected.size})`;
 
   if (platform !== "trendyol") {
     return (
@@ -381,8 +425,9 @@ export function MarketplaceProductMatchPanel({
       <div className="rounded-lg border border-zinc-200 bg-white p-4">
         <p className="text-sm font-semibold">Ürün eşleştirme & gönderim</p>
         <p className="mt-1 text-xs text-zinc-500">
-          Kategori seç → ürünler listelenir. Aroma/gramaj gibi değişkenler <strong>otomatik önerilir</strong>
-          (başlık, varyant, SKU, açıklamaya göre); onayla, seç ve gönder. Sabitler kategori şablonundan gelir.
+          Önce <strong>Trendyol&apos;dan çek</strong> ile mağazanızdaki mevcut ürünleri içe aktarın (barkod ile
+          eşleşir). Kategori seç → ürünler listelenir. Reddedilen ürünlerin hata nedeni <strong>Durum</strong>{" "}
+          sütununda görünür; özellikleri düzeltip <strong>güncelle</strong> gönderin.
         </p>
         {!tablesReady ? (
           <p className="mt-2 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
@@ -409,6 +454,14 @@ export function MarketplaceProductMatchPanel({
           <button type="button" className={btnPrimary} disabled={busy} onClick={() => void loadCategory()}>
             {busy ? "Yükleniyor…" : "Ürünleri getir"}
           </button>
+          <button
+            type="button"
+            className={btnSecondary}
+            disabled={pullBusy || busy}
+            onClick={() => void pullFromTrendyol()}
+          >
+            {pullBusy ? "Çekiliyor…" : "Trendyol'dan çek"}
+          </button>
         </div>
         {loaded && !trCatId ? (
           <p className="mt-2 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
@@ -434,6 +487,20 @@ export function MarketplaceProductMatchPanel({
               <input type="checkbox" checked={showAll} onChange={(e) => setShowAll(e.target.checked)} />
               Tüm özellikler
             </label>
+            <AdminField label="Durum filtresi">
+              <select
+                className={`${inputClass} text-xs`}
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option value="all">Tümü</option>
+                <option value="rejected">Reddedildi</option>
+                <option value="pending">Onay bekliyor</option>
+                <option value="active">Yayında</option>
+                <option value="inactive">Pasif</option>
+                <option value="none">Gönderilmedi</option>
+              </select>
+            </AdminField>
             <div className="ml-auto flex gap-2">
               <button type="button" className={btnSecondary} disabled={sending} onClick={() => void refreshBatchStatus()}>
                 {sending ? "…" : "Trendyol durumunu yenile"}
@@ -442,7 +509,7 @@ export function MarketplaceProductMatchPanel({
                 {sending ? "…" : selected.size ? `Seçiliyi kaydet (${selected.size})` : "Tümünü kaydet"}
               </button>
               <button type="button" className={btnPrimary} disabled={sending || selected.size === 0} onClick={() => void sendSelected()}>
-                {sending ? "Gönderiliyor…" : `Seçiliyi gönder (${selected.size})`}
+                {sending ? "Gönderiliyor…" : sendLabel}
               </button>
             </div>
           </div>

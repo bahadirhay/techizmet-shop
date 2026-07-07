@@ -12,6 +12,25 @@ function mapTrendyolListingStatus(raw: Record<string, unknown>): MarketplaceCata
   return "pending";
 }
 
+function extractTrendyolRejectReason(raw: Record<string, unknown>): string | null {
+  const details = raw.rejectReasonDetails;
+  if (Array.isArray(details) && details.length > 0) {
+    const parts = details
+      .map((d) => {
+        if (typeof d === "string") return d.trim();
+        if (d && typeof d === "object") {
+          const o = d as Record<string, unknown>;
+          return String(o.reason ?? o.message ?? o.rejectReason ?? o.description ?? "").trim();
+        }
+        return "";
+      })
+      .filter(Boolean);
+    if (parts.length) return parts.join("; ");
+  }
+  if (raw.rejected === true) return "Trendyol tarafından reddedildi";
+  return null;
+}
+
 function parseTrendyolProduct(raw: Record<string, unknown>): MarketplaceCatalogItem | null {
   const barcode = String(raw.barcode ?? "").trim();
   const sku = String(raw.stockCode ?? raw.productMainId ?? "").trim();
@@ -22,6 +41,7 @@ function parseTrendyolProduct(raw: Record<string, unknown>): MarketplaceCatalogI
     sku: sku || undefined,
     title: String(raw.title ?? "").trim() || undefined,
     listingStatus: mapTrendyolListingStatus(raw),
+    lastError: extractTrendyolRejectReason(raw),
     meta: {
       productMainId: raw.productMainId,
       quantity: raw.quantity,
@@ -29,6 +49,10 @@ function parseTrendyolProduct(raw: Record<string, unknown>): MarketplaceCatalogI
       listPrice: raw.listPrice,
       approved: raw.approved,
       onSale: raw.onSale,
+      rejected: raw.rejected,
+      rejectReasonDetails: raw.rejectReasonDetails,
+      categoryId: raw.pimCategoryId ?? raw.categoryId,
+      brandId: raw.brandId,
     },
   };
 }

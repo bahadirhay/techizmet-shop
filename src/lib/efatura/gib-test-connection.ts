@@ -5,6 +5,7 @@ import type { ResolvedEfaturaConfig } from "@/lib/efatura/settings";
 import { resolveLegalSellerProfile } from "@/lib/legal/seller-profile";
 import type { SiteSettings } from "@/lib/site-settings";
 import { gibLogin } from "@/lib/efatura/gib-login";
+import { getGibSession } from "@/lib/efatura/gib-session";
 
 export type GibTestInput = {
   username?: string;
@@ -87,9 +88,9 @@ function displayName(d: UserData): string | undefined {
 export async function testGibConnection(
   config: ResolvedEfaturaConfig,
   settings: SiteSettings,
+  siteId?: string,
 ): Promise<GibTestResult> {
   const { env, portalUrl } = gibEnvLabel(config.testMode);
-  const client = createFaturaClient(env) as GibClient;
 
   if (!config.username || !config.password) {
     return {
@@ -100,33 +101,48 @@ export async function testGibConnection(
     };
   }
 
+  // Önbellekli oturum kullan (siteId varsa): aynı token tekrar kullanılır, böylece
+  // test + fatura çekme aynı oturumu paylaşır ve "aynı anda birden fazla giriş" olmaz.
   let token: string;
+  let client: GibClient;
   try {
-    const login = await gibLogin(env, config.username, config.password);
-    token = login.token;
+    if (siteId) {
+      const session = await getGibSession(siteId, config);
+      token = session.token;
+      client = session.client as GibClient;
+    } else {
+      client = createFaturaClient(env) as GibClient;
+      const login = await gibLogin(env, config.username, config.password);
+      token = login.token;
+    }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     const detail =
       (err as Error & { detail?: string }).detail && (err as Error & { detail?: string }).detail !== msg
         ? (err as Error & { detail?: string }).detail
         : undefined;
+    const isAlreadyLoggedIn = /birden fazla giriş|birden fazla giris|güvenli çıkış|guvenli cikis/i.test(msg + (detail ?? ""));
     const isAuthError =
       /doğrulanamad|dogrulanamad|kimlik|kullanıcı adı|parola|şifre|sifre/i.test(msg);
     return {
       ok: false,
-      message: `GİB girişi başarısız: ${msg}${detail ? ` (denenen: ${detail})` : ""}`,
+      message: isAlreadyLoggedIn
+        ? `GİB'de zaten açık bir oturum var: ${msg}`
+        : `GİB girişi başarısız: ${msg}${detail ? ` (denenen: ${detail})` : ""}`,
       environment: env,
       portalUrl,
       loginOk: false,
-      hint: config.testMode
-        ? "Test ortamı açık — earsivportaltest.efatura.gov.tr için ayrı test hesabı gerekir. Canlı portala girebiliyorsanız test kutusunu kapatıp tekrar deneyin."
-        : isAuthError
-          ? "Bilgiler web portalda çalışıyor ama sunucudan çalışmıyorsa neden büyük olasılıkla GİB'in IP engelidir: " +
-            "GİB İVD, bulut/yurt dışı sunucu (Vercel) IP'lerinden gelen girişleri bu mesajla reddeder. " +
-            "Doğrulamak için `node scripts/gib-login-diag.mjs <kullanıcı> <şifre>` komutunu KENDİ bilgisayarınızda çalıştırın; " +
-            "orada başarılıysa sorun IP engelidir (çözüm: Türkiye IP'li vekil sunucu veya özel entegratör). " +
-            "Değilse: İVD kullanıcı kodu/şifresini kontrol edin veya GİB yoğunluğu için birkaç dk sonra deneyin."
-          : "Kullanıcı kodu ve parolayı İVD / e-Arşiv portal giriş bilgilerinizle kontrol edin.",
+      hint: isAlreadyLoggedIn
+        ? `GİB aynı hesapta ikinci oturuma izin vermez. ${portalUrl} adresine tarayıcıdan girip sağ üstten "Güvenli Çıkış" yapın (veya açık sekmeleri kapatın), 1-2 dakika bekleyip tekrar deneyin. Sistem artık tek oturumu paylaşır, bu hata tekrarlanmamalı.`
+        : config.testMode
+          ? "Test ortamı açık — earsivportaltest.efatura.gov.tr için ayrı test hesabı gerekir. Canlı portala girebiliyorsanız test kutusunu kapatıp tekrar deneyin."
+          : isAuthError
+            ? "Bilgiler web portalda çalışıyor ama sunucudan çalışmıyorsa neden büyük olasılıkla GİB'in IP engelidir: " +
+              "GİB İVD, bulut/yurt dışı sunucu (Vercel) IP'lerinden gelen girişleri bu mesajla reddeder. " +
+              "Doğrulamak için `node scripts/gib-login-diag.mjs <kullanıcı> <şifre>` komutunu KENDİ bilgisayarınızda çalıştırın; " +
+              "orada başarılıysa sorun IP engelidir (çözüm: Türkiye IP'li vekil sunucu veya özel entegratör). " +
+              "Değilse: İVD kullanıcı kodu/şifresini kontrol edin veya GİB yoğunluğu için birkaç dk sonra deneyin."
+            : "Kullanıcı kodu ve parolayı İVD / e-Arşiv portal giriş bilgilerinizle kontrol edin.",
     };
   }
 

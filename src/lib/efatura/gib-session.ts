@@ -98,8 +98,21 @@ export async function getGibSession(
         client,
         logout: async () => { /* cache'de oturum açık kalır, manuel logout yapmıyoruz */ },
       };
-    } catch {
-      // Token geçersiz — temizle ve yeniden giriş yap
+    } catch (e) {
+      // Profil eksikliği token'ın geçersiz olduğu anlamına GELMEZ. Bu durumda
+      // token'ı korur ve yeniden kullanırız — aksi halde her seferinde yeni login
+      // yapılıp "aynı anda birden fazla giriş" hatasına yol açar.
+      const msg = e instanceof Error ? e.message : String(e);
+      const profileOnly =
+        /kullanıcı bilgilerine ulaşılamadı|kullanici bilgilerine ulasilamadi|güncellemedi|guncellemedi/i.test(msg);
+      if (profileOnly) {
+        return {
+          token: cached,
+          client,
+          logout: async () => { /* oturum açık kalır */ },
+        };
+      }
+      // Gerçek token/oturum hatası — temizle ve yeniden giriş yap
       await clearCachedToken(siteId).catch(() => null);
     }
   }

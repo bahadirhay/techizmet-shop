@@ -3,6 +3,7 @@ export type MarketplaceCatalogItem = {
   sku?: string;
   title?: string;
   listingStatus: "active" | "pending" | "inactive" | "rejected" | "exported";
+  lastError?: string | null;
   meta?: Record<string, unknown>;
 };
 
