@@ -49,7 +49,7 @@ export async function reconcileTrendyolListings(
     };
   }
 
-  const statuses = options?.statuses ?? ["pending", "exported", "inactive"];
+  const statuses = options?.statuses ?? ["pending", "exported", "inactive", "rejected", "error"];
   const listings = await prisma.marketplaceProductListing.findMany({
     where: { siteId, platform: "trendyol", listingStatus: { in: statuses } },
     select: { id: true, productId: true, barcode: true, listingStatus: true, metaJson: true },

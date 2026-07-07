@@ -581,7 +581,14 @@ export function MarketplaceIntegrationsClient({
                     {addressBusy ? "Adresler geliyor…" : "Adresleri Trendyol'dan getir"}
                   </button>
                 </div>
-                <AdminField label="Sevkiyat adresi (shipmentAddressId) — opsiyonel">
+                <div className="sm:col-span-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-800">
+                  <strong>Türkiye mağazası için adres alanlarını BOŞ bırakın.</strong>{" "}
+                  Trendyol dokümanına göre sevkiyat/iade adresi ID&apos;leri yalnızca Suudi
+                  Arabistan (SA) ve BAE (AE) mağazaları içindir. Türkiye&apos;de geçersiz bir ID
+                  girmek &quot;Verilen Adres ID&apos;ye karşılık adres bulunamadı&quot; hatasıyla
+                  tüm ürünleri reddettirir. Boş bırakırsanız Trendyol varsayılan deponuzu kullanır.
+                </div>
+                <AdminField label="Sevkiyat adresi (shipmentAddressId) — sadece SA/AE">
                   {trendyolAddresses.length > 0 ? (
                     <select
                       className={`${inputClass} mb-1`}
@@ -604,10 +611,10 @@ export function MarketplaceIntegrationsClient({
                     inputMode="numeric"
                     value={cfg.shipmentAddressId ?? ""}
                     onChange={(e) => setCfg({ ...cfg, shipmentAddressId: e.target.value })}
-                    placeholder="Boş bırakılırsa Trendyol varsayılan adresi kullanılır"
+                    placeholder="Türkiye için boş bırakın"
                   />
                 </AdminField>
-                <AdminField label="İade adresi (returningAddressId) — opsiyonel">
+                <AdminField label="İade adresi (returningAddressId) — sadece SA/AE">
                   {trendyolAddresses.length > 0 ? (
                     <select
                       className={`${inputClass} mb-1`}
@@ -630,7 +637,7 @@ export function MarketplaceIntegrationsClient({
                     inputMode="numeric"
                     value={cfg.returningAddressId ?? ""}
                     onChange={(e) => setCfg({ ...cfg, returningAddressId: e.target.value })}
-                    placeholder="Boş bırakılırsa Trendyol varsayılan adresi kullanılır"
+                    placeholder="Türkiye için boş bırakın"
                   />
                 </AdminField>
                 <AdminField label="Varsayılan KDV (%)">

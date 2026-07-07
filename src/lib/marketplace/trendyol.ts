@@ -303,15 +303,24 @@ function buildTrendyolItemBase(
 }
 
 /**
- * Adresleri Trendyol'dan çekip doğrular. Ayarlardaki ID hesapta yoksa
- * (ör. yanlış girilmiş → "Verilen Adres ID'ye karşılık adres bulunamadı")
- * hesabın gerçek varsayılan/uygun adresine otomatik düşer.
+ * shipmentAddressId / returningAddressId Trendyol'da OPSİYONEL alanlardır ve
+ * resmî dokümana göre yalnızca "SA" (Suudi Arabistan) ve "AE" (BAE) mağazaları
+ * için geçerlidir. Türkiye mağazasında gönderilen geçersiz/uygunsuz bir ID,
+ * "Verilen Adres ID'ye karşılık adres bulunamadı" hatasıyla TÜM ürünleri
+ * reddettirir.
+ *
+ * Bu yüzden: bir adres ID'sini YALNIZCA getSuppliersAddresses'te gerçekten
+ * var olduğunda gönderiyoruz. Doğrulayamıyorsak ya da ID hesapta yoksa alanı
+ * tamamen çıkarıyoruz — Trendyol o zaman satıcının varsayılan deposunu kullanır.
  */
 async function resolveTrendyolAddresses(
   creds: TrendyolCredentials,
   wantShipment?: number,
   wantReturning?: number,
 ): Promise<{ shipmentAddressId?: number; returningAddressId?: number; warning?: string }> {
+  // Hiç adres girilmemişse: alanları hiç gönderme (TR için doğru davranış).
+  if (!wantShipment && !wantReturning) return {};
+
   let fetched;
   try {
     fetched = await fetchTrendyolAddresses(creds);
@@ -319,47 +328,16 @@ async function resolveTrendyolAddresses(
     fetched = null;
   }
 
-  // Adresler çekilemediyse (API hatası): kullanıcının girdiği değerlere güven,
-  // hiç yoksa alanı boş bırak (Trendyol varsayılanı kullanır).
+  // Adresleri doğrulayamıyorsak riskli/geçersiz ID göndermeyip alanı çıkarıyoruz.
   if (!fetched || !fetched.ok || fetched.addresses.length === 0) {
-    return { shipmentAddressId: wantShipment, returningAddressId: wantReturning };
+    return {};
   }
 
-  const addrs = fetched.addresses;
-  const byId = new Map(addrs.map((a) => [a.id, a]));
-
-  const pickShipment = () => {
-    if (wantShipment && byId.has(wantShipment)) return wantShipment;
-    const cand =
-      addrs.find((a) => a.isShipment && a.isDefault) ??
-      addrs.find((a) => a.isShipment) ??
-      addrs.find((a) => a.isDefault) ??
-      addrs[0];
-    return cand?.id;
+  const validIds = new Set(fetched.addresses.map((a) => a.id));
+  return {
+    shipmentAddressId: wantShipment && validIds.has(wantShipment) ? wantShipment : undefined,
+    returningAddressId: wantReturning && validIds.has(wantReturning) ? wantReturning : undefined,
   };
-  const pickReturning = () => {
-    if (wantReturning && byId.has(wantReturning)) return wantReturning;
-    const cand =
-      addrs.find((a) => a.isReturning && a.isDefault) ??
-      addrs.find((a) => a.isReturning) ??
-      addrs.find((a) => a.isDefault) ??
-      addrs[0];
-    return cand?.id;
-  };
-
-  const shipmentAddressId = pickShipment();
-  const returningAddressId = pickReturning();
-
-  if (!shipmentAddressId || !returningAddressId) {
-    return {
-      shipmentAddressId,
-      returningAddressId,
-      warning:
-        "Trendyol hesabında geçerli sevkiyat/iade adresi bulunamadı. Trendyol Satıcı Paneli → Adres ayarlarından adres tanımlayın.",
-    };
-  }
-
-  return { shipmentAddressId, returningAddressId };
 }
 
 /** Trendyol Supplier API — ürün aktarımı (oluştur veya güncelle) */
