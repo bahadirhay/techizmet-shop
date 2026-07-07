@@ -60,6 +60,7 @@ export function FinanceInvoicesManager({
     { description: "", qty: 1, unitPrice: 0, vatRate: 20 },
   ]);
   const [msg, setMsg] = useState<string | null>(null);
+  const [gibBusy, setGibBusy] = useState(false);
 
   const categoryOptions = useMemo(
     () => categories.filter((c) => c.kind === (form.direction === "incoming" ? "expense" : "income")),
@@ -213,14 +214,23 @@ export function FinanceInvoicesManager({
           <div className="flex gap-2">
             <button
               className="rounded border px-2 py-1 text-sm"
+              disabled={gibBusy}
               onClick={async () => {
-                const res = await fetch("/api/admin/finance/invoices/gib-sync", { method: "POST" });
-                const j = (await res.json()) as { error?: string; message?: string };
-                setMsg(res.ok ? j.message ?? "GİB senkron tamamlandı." : j.error ?? "GİB senkron başarısız.");
-                await reloadList();
+                setGibBusy(true);
+                setMsg("GİB'den gelen faturalar çekiliyor…");
+                try {
+                  const res = await fetch("/api/admin/finance/invoices/gib-sync", { method: "POST" });
+                  const j = (await res.json().catch(() => ({}))) as { error?: string; message?: string };
+                  setMsg(res.ok ? j.message ?? "GİB senkron tamamlandı." : j.error ?? "GİB senkron başarısız.");
+                  await reloadList();
+                } catch (e) {
+                  setMsg(`GİB senkron hatası: ${e instanceof Error ? e.message : "bağlantı sorunu"}`);
+                } finally {
+                  setGibBusy(false);
+                }
               }}
             >
-              GİB’den gelenleri çek
+              {gibBusy ? "Çekiliyor…" : "GİB’den gelenleri çek"}
             </button>
             <button
               className="rounded border px-2 py-1 text-sm"

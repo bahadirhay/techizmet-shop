@@ -1,11 +1,40 @@
 import "server-only";
 
 import { createFaturaClient } from "fatura";
+import { gibLogin } from "@/lib/efatura/gib-login";
 import { getEfaturaConfig } from "@/lib/efatura/settings";
 import { normalizeInvoiceLines, invoiceLinesToJson, type DraftInvoiceLineInput } from "@/lib/finance/invoices";
 import { prisma } from "@/lib/prisma";
 
 type AnyRow = Record<string, unknown>;
+
+/** GİB tarih formatı: gg/AA/yyyy */
+function gibDate(d: Date): string {
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  return `${dd}/${mm}/${d.getFullYear()}`;
+}
+
+/** "gg/AA/yyyy" veya ISO tarihini Date'e çevir */
+function parseGibDate(s: string | null): Date {
+  if (!s) return new Date();
+  const tr = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(s.trim());
+  if (tr) return new Date(Number(tr[3]), Number(tr[2]) - 1, Number(tr[1]));
+  const d = new Date(s);
+  return Number.isNaN(d.getTime()) ? new Date() : d;
+}
+
+function firstNum(row: AnyRow, keys: string[]): number {
+  for (const k of keys) {
+    const v = row[k];
+    if (typeof v === "number" && Number.isFinite(v)) return v;
+    if (typeof v === "string") {
+      const n = Number(v.replace(/\./g, "").replace(",", "."));
+      if (Number.isFinite(n)) return n;
+    }
+  }
+  return 0;
+}
 
 function firstStr(row: AnyRow, keys: string[]): string | null {
   for (const k of keys) {
@@ -63,22 +92,50 @@ export async function syncInboundGibInvoices(siteId: string, actorUserId?: strin
   if (!cfg.enabled || !cfg.username || !cfg.password) {
     return { ok: false as const, message: "GİB e-Arşiv ayarları eksik. /admin/settings/efatura sayfasından kullanıcı adı ve şifre girin.", imported: 0, kdvEntriesCreated: 0 };
   }
-  const clientAny = createFaturaClient(cfg.testMode ? "TEST" : "PROD") as unknown as Record<
-    string,
-    (...args: unknown[]) => Promise<unknown>
-  >;
+  const env = cfg.testMode ? "TEST" : "PROD";
 
-  const fn =
-    clientAny.listIncomingInvoices ||
-    clientAny.getIncomingInvoices ||
-    clientAny.incomingInvoices ||
-    clientAny.listInvoices;
-
-  if (typeof fn !== "function") {
-    return { ok: false as const, message: "Kullanılan fatura istemcisi gelen fatura listesini desteklemiyor.", imported: 0, kdvEntriesCreated: 0 };
+  // 1) GİB'e giriş yap (birden fazla komut varyantı deneyen yardımcı ile token al)
+  let token: string;
+  try {
+    const login = await gibLogin(env, cfg.username, cfg.password);
+    token = login.token;
+  } catch (e) {
+    const detail = (e as Error & { detail?: string }).detail || (e instanceof Error ? e.message : "bilinmeyen hata");
+    return {
+      ok: false as const,
+      message: `GİB girişi başarısız: ${detail}. Kullanıcı kodu ve şifreyi /admin/settings/efatura sayfasından kontrol edin.`,
+      imported: 0,
+      kdvEntriesCreated: 0,
+    };
   }
 
-  const raw = await fn.call(clientAny);
+  // 2) Son 90 günde adıma kesilen belgeleri getir
+  const client = createFaturaClient(env) as unknown as {
+    getAllInvoicesIssuedToMeByDateRange: (
+      token: string,
+      range: { startDate: string; endDate: string },
+    ) => Promise<unknown>;
+  };
+
+  const end = new Date();
+  const start = new Date();
+  start.setDate(start.getDate() - 90);
+
+  let raw: unknown;
+  try {
+    raw = await client.getAllInvoicesIssuedToMeByDateRange(token, {
+      startDate: gibDate(start),
+      endDate: gibDate(end),
+    });
+  } catch (e) {
+    return {
+      ok: false as const,
+      message: `GİB gelen fatura sorgusu başarısız: ${e instanceof Error ? e.message : "bilinmeyen hata"}`,
+      imported: 0,
+      kdvEntriesCreated: 0,
+    };
+  }
+
   const rows = parseInboundRows(raw);
   let imported = 0;
   let kdvEntriesCreated = 0;
@@ -93,16 +150,40 @@ export async function syncInboundGibInvoices(siteId: string, actorUserId?: strin
       select: { id: true },
     });
 
-    const issueDateStr = firstStr(row, ["issueDate", "date", "faturaTarihi"]);
-    const issueDate = issueDateStr ? new Date(issueDateStr) : new Date();
-    const safeIssueDate = Number.isNaN(issueDate.getTime()) ? new Date() : issueDate;
+    const safeIssueDate = parseGibDate(
+      firstStr(row, ["issueDate", "date", "faturaTarihi", "belgeTarihi"]),
+    );
 
-    const linesInput = parseLines(row);
-    const calc = normalizeInvoiceLines(linesInput);
     const title =
-      firstStr(row, ["title", "documentNumber", "invoiceNumber", "faturaNo"]) || "GİB gelen fatura";
-    const counterpartyName = firstStr(row, ["supplierTitle", "senderTitle", "unvan"]) || "GİB karşı taraf";
-    const taxId = firstStr(row, ["supplierTaxId", "senderTaxId", "vkn"]);
+      firstStr(row, ["title", "belgeNumarasi", "documentNumber", "invoiceNumber", "faturaNo"]) ||
+      "GİB gelen fatura";
+    const counterpartyName =
+      firstStr(row, ["saticiUnvan", "gonderenUnvan", "supplierTitle", "senderTitle", "unvan", "aliciUnvan"]) ||
+      "GİB karşı taraf";
+    const taxId = firstStr(row, [
+      "saticiVknTckn",
+      "gonderenVknTckn",
+      "supplierTaxId",
+      "senderTaxId",
+      "vknTckn",
+      "vkn",
+    ]);
+
+    // GİB liste yanıtı satır kalemi içermez; belge tutarından tek satır üret.
+    // Toplam KDV dahil kabul edilip %20 ile net'e indirgenir (onay ekranında düzeltilebilir).
+    const grossTotal = firstNum(row, [
+      "belgeTutari",
+      "tutar",
+      "toplamTutar",
+      "grandTotalInclVAT",
+      "paymentTotal",
+      "odenecekTutar",
+    ]);
+    const linesInput: DraftInvoiceLineInput[] =
+      grossTotal > 0
+        ? [{ description: title, qty: 1, unitPrice: grossTotal / 1.2, vatRate: 20 }]
+        : parseLines(row);
+    const calc = normalizeInvoiceLines(linesInput);
 
     if (!exists) {
       const created = await prisma.financeInvoice.create({
