@@ -18,9 +18,13 @@ const BASE_URL = {
 
 export type GibEnv = "PROD" | "TEST";
 
-/** Denenecek giriş komutları — gerçek adlı giriş önce, anonim fallback sonra */
+/**
+ * Denenecek giriş komutları.
+ * Yaygın/çalışan konvansiyon: PROD → anologin, TEST → login.
+ * Yine de her ortamda diğerini fallback olarak deniyoruz (hesaba göre değişebiliyor).
+ */
 function loginCommands(env: GibEnv): string[] {
-  return env === "PROD" ? ["login", "anologin"] : ["login", "anologin"];
+  return env === "PROD" ? ["anologin", "login"] : ["login", "anologin"];
 }
 
 type AssosResponse = {
@@ -44,7 +48,8 @@ async function attempt(
   userName: string,
   password: string,
 ): Promise<{ token: string } | { error: string }> {
-  const res = await fetch(`${BASE_URL[env]}/earsiv-services/assos-login`, {
+  const origin = BASE_URL[env];
+  const res = await fetch(`${origin}/earsiv-services/assos-login`, {
     method: "POST",
     headers: {
       accept: "*/*",
@@ -52,6 +57,12 @@ async function attempt(
       "cache-control": "no-cache",
       "content-type": "application/x-www-form-urlencoded;charset=UTF-8",
       pragma: "no-cache",
+      // GİB güvenlik katmanı bu başlıkları bekler; olmadan bazı hesaplarda
+      // "kimlik doğrulanamadı" döner (İnteraktif giriş sayfası referansı).
+      referer: `${origin}/intragiris.html`,
+      origin,
+      "user-agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36",
     },
     body:
       `assoscmd=${encodeURIComponent(cmd)}&rtype=json` +
