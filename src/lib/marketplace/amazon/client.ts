@@ -6,6 +6,14 @@ export type AmazonSpApiCredentials = {
   region: "eu" | "na" | "fe";
 };
 
+/** Amazon.com.tr varsayılan marketplace ID'si */
+export const AMAZON_TR_MARKETPLACE_ID = "A33AVAJ2PDY3EV";
+
+/** config → marketplaceId (yoksa Amazon.com.tr) */
+export function resolveAmazonMarketplaceId(config: Record<string, string>): string {
+  return config.amazonMarketplaceId?.trim() || AMAZON_TR_MARKETPLACE_ID;
+}
+
 const REGION_ENDPOINTS: Record<AmazonSpApiCredentials["region"], string> = {
   eu: "https://sellingpartnerapi-eu.amazon.com",
   na: "https://sellingpartnerapi-na.amazon.com",
@@ -59,14 +67,22 @@ export async function amazonSpApiRequest(
   creds: AmazonSpApiCredentials,
   accessToken: string,
   path: string,
+  init?: { method?: string; body?: unknown },
 ): Promise<{ ok: boolean; status: number; json: unknown; text: string }> {
   const url = `${amazonSpApiBase(creds)}${path}`;
+  const method = init?.method ?? "GET";
+  const hasBody = init?.body !== undefined;
+  const headers: Record<string, string> = {
+    "x-amz-access-token": accessToken,
+    Accept: "application/json",
+    "User-Agent": "TechizmetShop/1.0 (Language=TypeScript)",
+  };
+  if (hasBody) headers["Content-Type"] = "application/json";
+
   const res = await fetch(url, {
-    headers: {
-      "x-amz-access-token": accessToken,
-      Accept: "application/json",
-      "User-Agent": "TechizmetShop/1.0 (Language=TypeScript)",
-    },
+    method,
+    headers,
+    body: hasBody ? JSON.stringify(init!.body) : undefined,
   });
   const text = await res.text();
   let json: unknown = null;

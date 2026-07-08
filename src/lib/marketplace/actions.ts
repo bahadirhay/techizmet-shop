@@ -14,9 +14,15 @@ import { syncProductsToHepsiburada } from "@/lib/marketplace/hepsiburada";
 import { parseHepsiburadaOmsConfig } from "@/lib/marketplace/hepsiburada/client";
 import { fetchHepsiburadaPackages } from "@/lib/marketplace/hepsiburada/orders";
 import { importHepsiburadaPackages } from "@/lib/marketplace/hepsiburada/import-orders";
-import { getAmazonAccessToken, parseAmazonConfig } from "@/lib/marketplace/amazon/client";
+import {
+  getAmazonAccessToken,
+  parseAmazonConfig,
+  resolveAmazonMarketplaceId,
+} from "@/lib/marketplace/amazon/client";
 import { fetchAmazonOrders } from "@/lib/marketplace/amazon/orders";
 import { importAmazonOrders } from "@/lib/marketplace/amazon/import-orders";
+import { syncAmazonPriceAndInventory } from "@/lib/marketplace/amazon/inventory";
+import { syncProductsToAmazon } from "@/lib/marketplace/amazon/products";
 import { syncProductsToTrendyol } from "@/lib/marketplace/trendyol";
 import { fetchTrendyolCatalog } from "@/lib/marketplace/trendyol/products";
 import { fetchHepsiburadaCatalog } from "@/lib/marketplace/hepsiburada/products";
@@ -188,6 +194,31 @@ export async function syncMarketplaceInventory(
     return { ok: hb.ok, itemsCount: hb.sent, message: hb.message };
   }
 
+  if (platform === "amazon_tr") {
+    const creds = parseAmazonConfig(config);
+    if (!creds) {
+      return { ok: false, itemsCount: 0, message: "Amazon SP-API bilgileri eksik" };
+    }
+    const token = await getAmazonAccessToken(creds);
+    if (!token.accessToken) {
+      return { ok: false, itemsCount: 0, message: token.error ?? "Amazon token alınamadı" };
+    }
+    const marketplaceId = resolveAmazonMarketplaceId(config);
+    const items = products
+      .filter((p) => p.sku?.trim())
+      .map((p) => {
+        const prices = toMarketplaceSyncPrices(p, "amazon_tr");
+        return {
+          sku: p.sku!.trim(),
+          quantity: p.stockQty,
+          salePriceMinor: prices.salePriceMinor,
+          listPriceMinor: prices.listPriceMinor,
+        };
+      });
+    const result = await syncAmazonPriceAndInventory(creds, token.accessToken, marketplaceId, items);
+    return { ok: result.ok, itemsCount: result.sent, message: result.message };
+  }
+
   return {
     ok: false,
     itemsCount: 0,
@@ -216,6 +247,10 @@ export async function pushMarketplaceProducts(
   if (platform === "hepsiburada") {
     const hb = await syncProductsToHepsiburada(products, config, { siteId });
     return { ok: hb.ok, itemsCount: hb.sent, message: hb.message };
+  }
+  if (platform === "amazon_tr") {
+    const az = await syncProductsToAmazon(products, config, siteId);
+    return { ok: az.ok, itemsCount: az.sent, message: az.message };
   }
 
   const withStock = products.filter((p) => p.stockQty > 0).length;

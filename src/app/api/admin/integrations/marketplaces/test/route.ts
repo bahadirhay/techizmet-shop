@@ -3,6 +3,8 @@ import { requireStaffApi } from "@/lib/staff-auth";
 import { prisma } from "@/lib/prisma";
 import { parseTrendyolConfig } from "@/lib/marketplace/trendyol/client";
 import { testTrendyolConnection } from "@/lib/marketplace/trendyol/test-connection";
+import { parseAmazonConfig } from "@/lib/marketplace/amazon/client";
+import { testAmazonConnection } from "@/lib/marketplace/amazon/test-connection";
 
 function parseConfig(raw: string | null): Record<string, string> {
   if (!raw) return {};
@@ -60,6 +62,22 @@ export async function POST(req: Request) {
       );
     }
     const result = await testTrendyolConnection(creds);
+    return NextResponse.json({ result });
+  }
+
+  if (platform === "amazon_tr") {
+    const creds = parseAmazonConfig(config);
+    if (!creds) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message:
+            "Amazon için Satıcı ID, LWA Client ID, LWA Client Secret ve Refresh Token zorunlu.",
+        },
+        { status: 400 },
+      );
+    }
+    const result = await testAmazonConnection(creds);
     return NextResponse.json({ result });
   }
 

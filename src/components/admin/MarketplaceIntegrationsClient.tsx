@@ -754,8 +754,25 @@ export function MarketplaceIntegrationsClient({
                 <option value="fe">FE</option>
               </select>
             </AdminField>
+            <AdminField label="Varsayılan ürün tipi (amazonDefaultProductType)">
+              <input
+                className={inputClass}
+                placeholder="PRODUCT (ör. PET_FOOD, PET_SUPPLIES)"
+                value={cfg.amazonDefaultProductType ?? "PRODUCT"}
+                onChange={(e) => setCfg({ ...cfg, amazonDefaultProductType: e.target.value })}
+              />
+            </AdminField>
+            <div className="rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-800">
+              <strong>Ürün gönderme notları:</strong> Amazon her ürün için satıcı <strong>SKU</strong>
+              &apos;su ister — ürünlerde SKU yoksa slug/barkoddan otomatik üretilir.{" "}
+              <strong>Ürün tipi</strong> kategoriye göre eşlenebilir (aşağıdaki «Kategori eşlemesi»
+              bölümünde Amazon için platform kategori alanına <em>productType</em> yazın, ör.
+              <code> PET_FOOD</code>). Yeni ilanlar Amazon&apos;da birkaç dakikada işlenir; sonra
+              «Katalog çek» ile durumu doğrulayın. Barkodu (GTIN) olmayan ürünler için marka onayı
+              gerekebilir.
+            </div>
             <p className="text-xs text-zinc-500">
-              Orders + Finances rolleri gerekir. Seller ID yukarıdaki alanda.
+              Orders, Finances, Listing (Product) rolleri gerekir. Seller ID yukarıdaki alanda.
             </p>
           </>
         ) : null}
@@ -764,7 +781,7 @@ export function MarketplaceIntegrationsClient({
           <br />
           <strong>Hepsiburada:</strong> ürün gönder/çek, sipariş (OMS), hakediş (MpFinance).
           <br />
-          <strong>Amazon:</strong> ürün çek (Listings), sipariş, hakediş, XML dışa aktarım.
+          <strong>Amazon:</strong> ürün gönder/çek (Listings), stok/fiyat, sipariş, hakediş, XML.
           <br />
           <strong>n11, Çiçeksepeti, Pazarama:</strong> ürün gönder ile işaretlenir · XML dışa aktarım.
           <br />
@@ -774,7 +791,7 @@ export function MarketplaceIntegrationsClient({
           <button type="button" className={btnPrimary} onClick={save}>
             Ayarları kaydet
           </button>
-          {selected === "trendyol" ? (
+          {selected === "trendyol" || selected === "amazon_tr" ? (
             <button
               type="button"
               className={btnSecondary}
