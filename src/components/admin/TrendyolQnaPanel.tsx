@@ -178,7 +178,7 @@ export function TrendyolQnaPanel() {
             checked={settings.qnaAuto}
             onChange={(e) => setSettings({ ...settings, qnaAuto: e.target.checked })}
           />
-          Otomatik soru-cevap açık (cron 2 saatte bir çalışır)
+          Otomatik soru-cevap açık (cron günde 1× çalışır; daha sık için harici zamanlayıcı)
         </label>
         <label className="text-sm">
           <span className="mb-1 block text-xs text-zinc-500">Mod</span>

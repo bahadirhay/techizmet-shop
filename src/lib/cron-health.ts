@@ -41,7 +41,7 @@ const SCHEDULES: Record<CronJobId, string> = {
   socialPublish:
     "Harici zamanlayıcı — GET /api/cron/social/publish?secret=CRON_SECRET (öneri: her 15 dk)",
   trendyolQna:
-    "Vercel cron (2 saatte bir) veya GET /api/cron/marketplace/trendyol-qna?secret=CRON_SECRET",
+    "Vercel cron (günde 1× 06:00 UTC) veya sık cevap için harici zamanlayıcı: GET /api/cron/marketplace/trendyol-qna?secret=CRON_SECRET",
 };
 
 function getOps(settings: SiteSettings) {

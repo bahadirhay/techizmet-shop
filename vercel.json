@@ -17,7 +17,7 @@
     },
     {
       "path": "/api/cron/marketplace/trendyol-qna",
-      "schedule": "0 */2 * * *"
+      "schedule": "0 6 * * *"
     }
   ],
   "build": {
