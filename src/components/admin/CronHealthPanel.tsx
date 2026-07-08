@@ -10,6 +10,7 @@ const JOB_LABELS: Record<CronJobId, string> = {
   gscSync: "GSC arama senkronu",
   seoDistribution: "SEO indeksleme (IndexNow + sitemap)",
   socialPublish: "Sosyal içerik zamanlanmış yayın",
+  trendyolQna: "Trendyol soru-cevap otomasyonu",
 };
 
 function statusTone(record: CronRunRecord | undefined, stale: boolean) {
@@ -49,6 +50,7 @@ export function CronHealthPanel() {
     "gscSync",
     "seoDistribution",
     "socialPublish",
+    "trendyolQna",
   ];
 
   return (

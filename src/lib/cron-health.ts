@@ -10,7 +10,8 @@ export type CronJobId =
   | "blogAutomation"
   | "gscSync"
   | "seoDistribution"
-  | "socialPublish";
+  | "socialPublish"
+  | "trendyolQna";
 
 export type CronRunRecord = {
   jobId: CronJobId;
@@ -39,6 +40,8 @@ const SCHEDULES: Record<CronJobId, string> = {
     "Vercel cron (günlük 05:30 TR) veya GET /api/cron/seo/distribution — Authorization: Bearer CRON_SECRET",
   socialPublish:
     "Harici zamanlayıcı — GET /api/cron/social/publish?secret=CRON_SECRET (öneri: her 15 dk)",
+  trendyolQna:
+    "Vercel cron (2 saatte bir) veya GET /api/cron/marketplace/trendyol-qna?secret=CRON_SECRET",
 };
 
 function getOps(settings: SiteSettings) {

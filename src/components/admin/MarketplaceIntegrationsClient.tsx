@@ -7,6 +7,7 @@ import { AdminField, btnPrimary, btnSecondary, inputClass } from "@/components/a
 import { MarketplaceCommissionRulesPanel } from "@/components/admin/MarketplaceCommissionRulesPanel";
 import { MarketplaceAttributeMappingPanel } from "@/components/admin/MarketplaceAttributeMappingPanel";
 import { MarketplaceProductMatchPanel } from "@/components/admin/MarketplaceProductMatchPanel";
+import { TrendyolQnaPanel } from "@/components/admin/TrendyolQnaPanel";
 import { TRENDYOL_CARGO_PROVIDERS } from "@/lib/marketplace/trendyol/cargo-providers";
 import type { CommissionRuleRow } from "@/lib/marketplace/commission-types";
 
@@ -95,7 +96,7 @@ export function MarketplaceIntegrationsClient({
   const [brandSearchQ, setBrandSearchQ] = useState("");
   const [brandResults, setBrandResults] = useState<{ id: number; name: string }[]>([]);
   const [lookupBusy, setLookupBusy] = useState(false);
-  const [view, setView] = useState<"settings" | "products">("settings");
+  const [view, setView] = useState<"settings" | "products" | "qna">("settings");
 
   useEffect(() => {
     const p = resolvePlatform(searchParams.get("platform") ?? initialPlatform);
@@ -383,6 +384,13 @@ export function MarketplaceIntegrationsClient({
           >
             Ürün eşleştirme & gönderim
           </button>
+          <button
+            type="button"
+            className={`-mb-px border-b-2 px-3 py-2 text-sm ${view === "qna" ? "border-zinc-800 font-medium text-zinc-900" : "border-transparent text-zinc-500"}`}
+            onClick={() => setView("qna")}
+          >
+            Soru-Cevap (otomatik)
+          </button>
         </div>
       ) : null}
       {selected === "trendyol" && view === "products" ? (
@@ -392,9 +400,10 @@ export function MarketplaceIntegrationsClient({
           tablesReady={marketplaceTablesReady}
         />
       ) : null}
+      {selected === "trendyol" && view === "qna" ? <TrendyolQnaPanel /> : null}
       <div
         className="space-y-4 rounded-xl border bg-white p-6"
-        hidden={selected === "trendyol" && view === "products"}
+        hidden={selected === "trendyol" && (view === "products" || view === "qna")}
       >
         <h2 className="text-lg font-semibold">
           {MARKETPLACE_PLATFORMS.find((p) => p.id === selected)?.label}
