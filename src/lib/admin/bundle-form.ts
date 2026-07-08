@@ -14,6 +14,8 @@ type BundleRow = {
   slug: string;
   description: string | null;
   descriptionHtml: string | null;
+  keyFeaturesHtml: string | null;
+  howToUseHtml: string | null;
   sku: string | null;
   barcode: string | null;
   collectionId: string | null;
@@ -52,6 +54,8 @@ export function emptyBundleForm(): BundleFormData {
     slug: "",
     description: "",
     descriptionHtml: "",
+    keyFeaturesHtml: "",
+    howToUseHtml: "",
     sku: "",
     barcode: "",
     collectionId: "",
@@ -107,6 +111,8 @@ export function bundleToForm(
     slug: product.slug,
     description: product.description ?? htmlToPlainText(product.descriptionHtml ?? ""),
     descriptionHtml: product.descriptionHtml ?? "",
+    keyFeaturesHtml: product.keyFeaturesHtml ?? "",
+    howToUseHtml: product.howToUseHtml ?? "",
     sku: product.sku ?? "",
     barcode: product.barcode ?? "",
     collectionId: product.collectionId ?? "",

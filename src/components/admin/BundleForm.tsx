@@ -15,6 +15,7 @@ import { ProductProfitEstimate } from "@/components/admin/ProductProfitEstimate"
 import { VatRateSelect } from "@/components/admin/VatRateSelect";
 import { ProductMarketplacePrices } from "@/components/admin/ProductMarketplacePrices";
 import { buildQuickSeoDefaults } from "@/lib/admin/product-seo/content-builders";
+import { htmlToPlainText } from "@/lib/product-content-format";
 import type { ActiveMarketplaceOption } from "@/lib/marketplace/product-prices";
 import { computeAvailableBundles } from "@/lib/product-bundle";
 
@@ -34,6 +35,8 @@ export type BundleFormData = {
   slug: string;
   description: string;
   descriptionHtml: string;
+  keyFeaturesHtml: string;
+  howToUseHtml: string;
   sku: string;
   barcode: string;
   collectionId: string;
@@ -667,6 +670,41 @@ export function BundleForm({
             onChange={(e) => set("seoDescription", e.target.value)}
           />
         </AdminField>
+
+        <div className="rounded-lg border border-zinc-200 bg-zinc-50/80 p-4 space-y-4">
+          <p className="text-sm font-semibold text-zinc-800">Ürün sayfası içeriği (vitrin accordion)</p>
+          <p className="-mt-2 text-xs text-zinc-500">
+            Google ve pazaryeri için tanıtım, özellikler/besin değerleri (Key Features) ve kullanım
+            talimatları. Aşağıdaki «Tam SEO çalışması» bu alanları otomatik doldurur — düz metin yazın.
+          </p>
+          <AdminField label="Description — ürün tanıtımı">
+            <textarea
+              className={inputClass}
+              rows={5}
+              value={form.descriptionHtml}
+              onChange={(e) => set("descriptionHtml", e.target.value)}
+              placeholder="Detaylı tanıtım: paket içeriği, faydalar, hedef kitle"
+            />
+          </AdminField>
+          <AdminField label="Key Features — özellikler & besin değerleri">
+            <textarea
+              className={inputClass}
+              rows={12}
+              value={form.keyFeaturesHtml}
+              onChange={(e) => set("keyFeaturesHtml", e.target.value)}
+              placeholder="İçerik listesi, protein/yağ/lif/nem/kül (%), katkısız vurgusu…"
+            />
+          </AdminField>
+          <AdminField label="How to Use — kullanım / veriliş">
+            <textarea
+              className={inputClass}
+              rows={8}
+              value={form.howToUseHtml}
+              onChange={(e) => set("howToUseHtml", e.target.value)}
+              placeholder="Günlük miktar, saklama, yaş grubu uyarıları"
+            />
+          </AdminField>
+        </div>
       </div>
 
       <ProductSeoHealthPanel
@@ -676,8 +714,8 @@ export function BundleForm({
         seoDescription={form.seoDescription}
         description={form.description}
         descriptionHtml={form.descriptionHtml}
-        keyFeaturesHtml=""
-        howToUseHtml=""
+          keyFeaturesHtml={form.keyFeaturesHtml}
+          howToUseHtml={form.howToUseHtml}
         brandId={form.brandId}
         categoryId={form.categoryId}
         imageUrl={form.imageUrl || primaryProductImageUrl(mediaItems) || ""}
@@ -723,7 +761,15 @@ export function BundleForm({
           if (patch.seoTitle != null) set("seoTitle", patch.seoTitle);
           if (patch.seoDescription != null) set("seoDescription", patch.seoDescription);
           if (patch.description != null) set("description", patch.description);
-          if (patch.descriptionHtml != null) set("descriptionHtml", patch.descriptionHtml);
+          if (patch.descriptionHtml != null) {
+            set("descriptionHtml", htmlToPlainText(patch.descriptionHtml) || patch.descriptionHtml);
+          }
+          if (patch.keyFeaturesHtml != null) {
+            set("keyFeaturesHtml", htmlToPlainText(patch.keyFeaturesHtml) || patch.keyFeaturesHtml);
+          }
+          if (patch.howToUseHtml != null) {
+            set("howToUseHtml", htmlToPlainText(patch.howToUseHtml) || patch.howToUseHtml);
+          }
         }}
       />
 

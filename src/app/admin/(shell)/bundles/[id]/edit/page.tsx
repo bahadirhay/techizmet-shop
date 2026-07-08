@@ -30,6 +30,8 @@ export default async function EditBundlePage({ params }: { params: Promise<{ id:
       slug: true,
       description: true,
       descriptionHtml: true,
+      keyFeaturesHtml: true,
+      howToUseHtml: true,
       sku: true,
       barcode: true,
       collectionId: true,

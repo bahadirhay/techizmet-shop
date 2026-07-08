@@ -114,6 +114,8 @@ export async function POST(req: Request) {
           slug,
           description: String(body.description ?? "").trim() || null,
           descriptionHtml: String(body.descriptionHtml ?? "").trim() || null,
+          keyFeaturesHtml: String(body.keyFeaturesHtml ?? "").trim() || null,
+          howToUseHtml: String(body.howToUseHtml ?? "").trim() || null,
           sku: String(body.sku ?? "").trim() || null,
           barcode,
           collectionId: String(body.collectionId ?? "").trim() || null,

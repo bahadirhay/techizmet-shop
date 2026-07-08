@@ -156,6 +156,12 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
           ...(body.descriptionHtml !== undefined
             ? { descriptionHtml: String(body.descriptionHtml).trim() || null }
             : {}),
+          ...(body.keyFeaturesHtml !== undefined
+            ? { keyFeaturesHtml: String(body.keyFeaturesHtml).trim() || null }
+            : {}),
+          ...(body.howToUseHtml !== undefined
+            ? { howToUseHtml: String(body.howToUseHtml).trim() || null }
+            : {}),
           ...(body.sku !== undefined ? { sku: String(body.sku).trim() || null } : {}),
           ...(nextBarcode !== undefined ? { barcode: nextBarcode } : {}),
           ...(body.collectionId !== undefined
