@@ -86,6 +86,13 @@ export function MarketplaceProductMatchPanel({
   const [checks, setChecks] = useState<ReadinessCheck[] | null>(null);
   const [ready, setReady] = useState(true);
 
+  // Hızlı gönder: ada göre ara → seçili ürünleri kategori seçmeden gönder
+  const [quickSearch, setQuickSearch] = useState("");
+  const [quickResults, setQuickResults] = useState<ProductRow[]>([]);
+  const [quickSelected, setQuickSelected] = useState<Set<string>>(new Set());
+  const [quickBusy, setQuickBusy] = useState(false);
+  const [quickSearched, setQuickSearched] = useState(false);
+
   const perProductAttrs = attrs.filter((a) => showAll || !(a.attributeId in template));
 
   async function loadReadiness() {
@@ -372,6 +379,74 @@ export function MarketplaceProductMatchPanel({
     }
   }
 
+  async function quickSearchProducts() {
+    const q = quickSearch.trim();
+    if (q.length < 2) {
+      setMsg("En az 2 harf yazın");
+      return;
+    }
+    setQuickBusy(true);
+    setMsg(null);
+    try {
+      const res = await fetch(
+        `/api/admin/integrations/marketplaces/trendyol/products?q=${encodeURIComponent(q)}`,
+      );
+      const json = (await res.json().catch(() => ({}))) as { products?: ProductRow[]; error?: string };
+      if (!res.ok) {
+        setMsg(json.error ?? "Arama başarısız");
+        return;
+      }
+      setQuickResults(json.products ?? []);
+      setQuickSelected(new Set());
+      setQuickSearched(true);
+    } catch (e) {
+      setMsg(`Arama hatası: ${e instanceof Error ? e.message : "bağlantı"}`);
+    } finally {
+      setQuickBusy(false);
+    }
+  }
+
+  function toggleQuick(id: string) {
+    setQuickSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function quickSend() {
+    const ids = [...quickSelected];
+    if (ids.length === 0) {
+      setMsg("Gönderilecek ürün seçin");
+      return;
+    }
+    setQuickBusy(true);
+    setMsg(`${ids.length} ürün Trendyol'a gönderiliyor… (birkaç dakika sürebilir)`);
+    try {
+      const res = await fetch("/api/admin/integrations/marketplaces/trendyol/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productIds: ids }),
+      });
+      const json = (await res.json().catch(() => ({}))) as {
+        result?: { ok: boolean; message: string };
+        error?: string;
+      };
+      if (!res.ok) {
+        setMsg(json.error ?? "Gönderim başarısız");
+        return;
+      }
+      setMsg(json.result?.message ?? "Gönderildi");
+      await quickSearchProducts();
+      await refreshBatchStatus();
+    } catch (e) {
+      setMsg(`Gönderim hatası: ${e instanceof Error ? e.message : "bağlantı/zaman aşımı"}`);
+    } finally {
+      setQuickBusy(false);
+    }
+  }
+
   const visibleProducts = products.filter((p) => {
     if (statusFilter !== "all" && p.listingStatus !== statusFilter) return false;
     return search.trim() ? p.searchText.includes(search.trim().toLocaleLowerCase("tr")) : true;
@@ -442,8 +517,77 @@ export function MarketplaceProductMatchPanel({
         </div>
       ) : null}
 
+      <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+        <p className="text-sm font-semibold text-emerald-900">Hızlı gönder — ada göre bul & seçili gönder</p>
+        <p className="mt-1 text-xs text-emerald-800">
+          Yeni bir ürün/paketi kategori seçmeden buradan gönderin. Ada göre arayın, göndermek
+          istediklerinizi işaretleyin, <strong>Seçiliyi gönder</strong>&apos;e basın. Sadece
+          seçtikleriniz gönderilir — tüm ürünler değil.
+        </p>
+        <div className="mt-3 flex flex-wrap items-end gap-2">
+          <input
+            className={`${inputClass} min-w-[16rem] flex-1`}
+            placeholder="Ürün/paket adı ara…"
+            value={quickSearch}
+            onChange={(e) => setQuickSearch(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void quickSearchProducts();
+            }}
+          />
+          <button type="button" className={btnSecondary} disabled={quickBusy} onClick={() => void quickSearchProducts()}>
+            {quickBusy ? "…" : "Ara"}
+          </button>
+          <button
+            type="button"
+            className={btnPrimary}
+            disabled={quickBusy || quickSelected.size === 0}
+            onClick={() => void quickSend()}
+          >
+            {quickBusy ? "Gönderiliyor…" : `Seçiliyi gönder (${quickSelected.size})`}
+          </button>
+        </div>
+        {quickSearched && quickResults.length === 0 ? (
+          <p className="mt-2 text-xs text-emerald-800">Eşleşen yayında ürün bulunamadı.</p>
+        ) : null}
+        {quickResults.length > 0 ? (
+          <div className="mt-3 max-h-80 space-y-1 overflow-y-auto rounded-lg border border-emerald-100 bg-white p-2">
+            {quickResults.map((p) => {
+              const status = STATUS_LABEL[p.listingStatus] ?? STATUS_LABEL.none;
+              return (
+                <label
+                  key={p.id}
+                  className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-emerald-50"
+                >
+                  <input
+                    type="checkbox"
+                    checked={quickSelected.has(p.id)}
+                    onChange={() => toggleQuick(p.id)}
+                  />
+                  {p.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={p.imageUrl} alt="" className="h-8 w-8 rounded object-cover" />
+                  ) : (
+                    <div className="h-8 w-8 rounded bg-zinc-100" />
+                  )}
+                  <span className="min-w-[10rem] flex-1">
+                    <span className="font-medium leading-tight">{p.title}</span>
+                    <span className="block text-xs text-zinc-500">
+                      {p.barcode ? `Barkod: ${p.barcode}` : (
+                        <span className="text-red-600">Barkod yok — otomatik üretilecek</span>
+                      )}{" "}
+                      · stok {p.stockQty}
+                    </span>
+                  </span>
+                  <span className={`text-xs ${status.cls}`}>{status.text}</span>
+                </label>
+              );
+            })}
+          </div>
+        ) : null}
+      </div>
+
       <div className="rounded-lg border border-zinc-200 bg-white p-4">
-        <p className="text-sm font-semibold">Ürün eşleştirme & gönderim</p>
+        <p className="text-sm font-semibold">Ürün eşleştirme & gönderim (kategori + özellik düzenleme)</p>
         <p className="mt-1 text-xs text-zinc-500">
           Önce <strong>Trendyol&apos;dan çek</strong> ile mağazanızdaki mevcut ürünleri içe aktarın (barkod ile
           eşleşir). Kategori seç → ürünler listelenir. Reddedilen ürünlerin hata nedeni <strong>Durum</strong>{" "}
