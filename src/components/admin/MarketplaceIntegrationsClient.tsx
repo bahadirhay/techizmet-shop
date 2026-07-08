@@ -8,6 +8,7 @@ import { MarketplaceCommissionRulesPanel } from "@/components/admin/MarketplaceC
 import { MarketplaceAttributeMappingPanel } from "@/components/admin/MarketplaceAttributeMappingPanel";
 import { MarketplaceProductMatchPanel } from "@/components/admin/MarketplaceProductMatchPanel";
 import { TrendyolQnaPanel } from "@/components/admin/TrendyolQnaPanel";
+import { AmazonProductSendPanel } from "@/components/admin/AmazonProductSendPanel";
 import { TRENDYOL_CARGO_PROVIDERS } from "@/lib/marketplace/trendyol/cargo-providers";
 import type { CommissionRuleRow } from "@/lib/marketplace/commission-types";
 
@@ -853,6 +854,12 @@ export function MarketplaceIntegrationsClient({
           >
             {msg}
           </p>
+        ) : null}
+
+        {selected === "amazon_tr" ? (
+          <div className="mt-4">
+            <AmazonProductSendPanel />
+          </div>
         ) : null}
 
         {!marketplaceTablesReady ? (

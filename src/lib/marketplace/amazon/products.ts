@@ -74,7 +74,14 @@ export async function fetchAmazonCatalog(
     );
 
     if (!res.ok) {
-      errors.push(`HTTP ${res.status}: ${res.text.slice(0, 200)}`);
+      if (res.status === 403) {
+        errors.push(
+          "Toplu katalog listeleme (searchListingsItems) bu uygulama için kısıtlı (Draft/onaysız uygulamalarda olağan). " +
+            "Ürün gönderme ve stok/fiyat çalışır; gönderilen ürünler tek tek doğrulanır.",
+        );
+      } else {
+        errors.push(`HTTP ${res.status}: ${res.text.slice(0, 200)}`);
+      }
       break;
     }
 
