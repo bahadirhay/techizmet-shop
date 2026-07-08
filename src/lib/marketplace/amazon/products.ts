@@ -119,6 +119,7 @@ type AmazonPushProduct = {
   description: string | null;
   descriptionHtml: string | null;
   keyFeaturesHtml: string | null;
+  howToUseHtml: string | null;
   priceMinor: number;
   compareAtMinor: number | null;
   stockQty: number;
@@ -147,16 +148,27 @@ function gtinType(barcode: string): "ean" | "upc" | "gtin" {
 }
 
 /**
+ * Varsayılan Amazon productType. "PRODUCT" Amazon'da geçerli bir tür DEĞİL
+ * (ilan oluştururken reddedilir), o yüzden onu ve boşu PET_FOOD'a çeviririz
+ * (mağaza ağırlıklı köpek maması/ödülü). Kategori eşlemesi bunu ezebilir.
+ */
+function resolveAmazonDefaultProductType(config: Record<string, string>): string {
+  const raw = config.amazonDefaultProductType?.trim();
+  if (!raw || raw.toUpperCase() === "PRODUCT") return "PET_FOOD";
+  return raw;
+}
+
+/**
  * Kategoriye göre Amazon productType çözer.
  * MarketplaceCategoryMapping.platformCategoryId Amazon için productType string'i taşır
- * (ör. "PET_FOOD"). Yoksa config.amazonDefaultProductType, o da yoksa "PRODUCT".
+ * (ör. "PET_FOOD"). Yoksa config.amazonDefaultProductType (geçersizse PET_FOOD).
  */
 async function resolveAmazonProductType(
   siteId: string,
   categoryId: string | null,
   config: Record<string, string>,
 ): Promise<string> {
-  const fallback = config.amazonDefaultProductType?.trim() || "PRODUCT";
+  const fallback = resolveAmazonDefaultProductType(config);
   if (!categoryId) return fallback;
   const db = marketplaceCategoryMappingDb();
   if (!db) return fallback;
@@ -170,6 +182,8 @@ async function resolveAmazonProductType(
 function buildAmazonAttributes(
   product: AmazonPushProduct,
   marketplaceId: string,
+  productType: string,
+  config: Record<string, string>,
 ): Record<string, unknown> {
   const brandName = product.brand?.name?.trim() || "Anatolian Paw";
   const title = buildPlatformListingTitle("amazon_tr", product.title, brandName, {
@@ -188,7 +202,12 @@ function buildAmazonAttributes(
     .split(/\r?\n|•|\u2022|;/)
     .map((s) => s.trim())
     .filter((s) => s.length >= 3)
+    .map((s) => s.slice(0, 100))
     .slice(0, 5);
+  // bullet_point Amazon'da zorunlu (min 1) — hiç yoksa başlıktan üret.
+  if (bulletPoints.length === 0) {
+    bulletPoints.push(title.slice(0, 100));
+  }
 
   const images = (product.images ?? [])
     .map((i) => toAbsoluteMediaUrl(i.url))
@@ -201,6 +220,7 @@ function buildAmazonAttributes(
     product_description: [
       { value: descriptionText.slice(0, 2000), language_tag: "tr_TR", marketplace_id: marketplaceId },
     ],
+    country_of_origin: [{ value: "TR", marketplace_id: marketplaceId }],
     fulfillment_availability: [
       { fulfillment_channel_code: "DEFAULT", quantity: Math.max(0, product.stockQty) },
     ],
@@ -235,6 +255,65 @@ function buildAmazonAttributes(
       attrs[`other_product_image_locator_${idx + 1}`] = [
         { media_location: url, marketplace_id: marketplaceId },
       ];
+    });
+  }
+
+  // PET_FOOD (mama/ödül) için Amazon'un zorunlu tuttuğu ek alanlar.
+  if (productType === "PET_FOOD") {
+    const featuresText = htmlToPlainText(product.keyFeaturesHtml ?? "");
+    const howToUseText = htmlToPlainText(product.howToUseHtml ?? "");
+    const manufacturer = config.amazonManufacturer?.trim() || brandName;
+    const ingredients =
+      featuresText || descriptionText.slice(0, 500) || "%100 doğal, katkısız içerik.";
+    const directions =
+      howToUseText ||
+      "Köpeğinizin boyutuna göre günde 1-2 adet verin. Yanında her zaman temiz su bulundurun.";
+
+    Object.assign(attrs, {
+      manufacturer: [{ value: manufacturer, language_tag: "tr_TR", marketplace_id: marketplaceId }],
+      rtip_manufacturer_contact_information: [
+        {
+          value:
+            config.amazonManufacturerContact?.trim() || `${manufacturer}, Türkiye`,
+          marketplace_id: marketplaceId,
+        },
+      ],
+      ingredients: [
+        { value: ingredients.slice(0, 1000), language_tag: "tr_TR", marketplace_id: marketplaceId },
+      ],
+      directions: [
+        { value: directions.slice(0, 1000), language_tag: "tr_TR", marketplace_id: marketplaceId },
+      ],
+      serving_recommendation: [
+        { value: directions.slice(0, 500), language_tag: "tr_TR", marketplace_id: marketplaceId },
+      ],
+      item_form: [
+        {
+          value: config.amazonItemForm?.trim() || "Kurutulmuş",
+          language_tag: "tr_TR",
+          marketplace_id: marketplaceId,
+        },
+      ],
+      number_of_items: [{ value: 1, marketplace_id: marketplaceId }],
+      contains_food_or_beverage: [{ value: true, marketplace_id: marketplaceId }],
+      contains_liquid_contents: [{ value: false, marketplace_id: marketplaceId }],
+      unit_count: [
+        { value: 1, type: { value: "Count", language_tag: "tr_TR" }, marketplace_id: marketplaceId },
+      ],
+      storage_instructions: [
+        {
+          value: config.amazonStorageInstructions?.trim() || "Serin ve kuru yerde saklayın.",
+          language_tag: "tr_TR",
+          marketplace_id: marketplaceId,
+        },
+      ],
+      use_by_recommendation: [
+        {
+          value: "Son kullanma tarihi için ürün ambalajına bakınız.",
+          language_tag: "tr_TR",
+          marketplace_id: marketplaceId,
+        },
+      ],
     });
   }
 
@@ -288,7 +367,7 @@ export async function syncProductsToAmazon(
     const sku = resolveAmazonSku(product);
     const productType = siteId
       ? await resolveAmazonProductType(siteId, product.categoryId, config)
-      : config.amazonDefaultProductType?.trim() || "PRODUCT";
+      : resolveAmazonDefaultProductType(config);
 
     const qs = new URLSearchParams({ marketplaceIds: marketplaceId, issueLocale: "tr_TR" });
     const res = await amazonSpApiRequest(
@@ -300,7 +379,7 @@ export async function syncProductsToAmazon(
         body: {
           productType,
           requirements: "LISTING",
-          attributes: buildAmazonAttributes(product, marketplaceId),
+          attributes: buildAmazonAttributes(product, marketplaceId, productType, config),
         },
       },
     );
@@ -347,7 +426,7 @@ export async function syncProductsToAmazon(
     sent: accepted,
     message:
       `${accepted} ürün Amazon'a gönderildi (onay bekliyor), ${rejected} reddedildi.` +
-      " Amazon ilanları birkaç dakikada işlenir; sonra 'Katalog çek' ile durumu doğrulayın." +
+      " Amazon ilanları birkaç dakikada işlenir; Amazon Seller Central → Envanter'den görebilirsiniz." +
       errNote,
     errors,
   };
