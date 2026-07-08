@@ -73,3 +73,52 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ entry });
 }
+
+export async function PUT(req: Request) {
+  const auth = await requireStaffApi("store.integrations");
+  if (auth instanceof NextResponse) return auth;
+
+  const body = (await req.json()) as {
+    id?: string;
+    title?: string;
+    body?: string;
+    keywords?: string;
+    channel?: string;
+  };
+  if (!body.id) {
+    return NextResponse.json({ error: "id gerekli" }, { status: 400 });
+  }
+  const title = body.title?.trim();
+  const text = body.body?.trim();
+  if (!title || !text) {
+    return NextResponse.json({ error: "title ve body gerekli" }, { status: 400 });
+  }
+
+  const result = await prisma.assistantKnowledgeEntry.updateMany({
+    where: { id: body.id, siteId: auth.siteId },
+    data: {
+      title,
+      body: text,
+      keywords: body.keywords?.trim() || null,
+      ...(body.channel?.trim() ? { channel: body.channel.trim() } : {}),
+    },
+  });
+  if (result.count === 0) {
+    return NextResponse.json({ error: "Kayıt bulunamadı" }, { status: 404 });
+  }
+  return NextResponse.json({ ok: true });
+}
+
+export async function DELETE(req: Request) {
+  const auth = await requireStaffApi("store.integrations");
+  if (auth instanceof NextResponse) return auth;
+
+  const id = new URL(req.url).searchParams.get("id")?.trim();
+  if (!id) {
+    return NextResponse.json({ error: "id gerekli" }, { status: 400 });
+  }
+  await prisma.assistantKnowledgeEntry.deleteMany({
+    where: { id, siteId: auth.siteId },
+  });
+  return NextResponse.json({ ok: true });
+}

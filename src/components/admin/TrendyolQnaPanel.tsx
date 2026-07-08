@@ -26,6 +26,15 @@ type QnaSettings = {
   qnaAutoThreshold: number;
 };
 
+type KnowledgeEntry = {
+  id: string;
+  title: string;
+  body: string;
+  keywords: string | null;
+  channel: string;
+  updatedAt: string;
+};
+
 const STATUS_TABS: { id: string; label: string }[] = [
   { id: "needs_review", label: "Onay bekleyen" },
   { id: "sent", label: "Cevaplanan" },
@@ -62,6 +71,97 @@ export function TrendyolQnaPanel() {
   const [msg, setMsg] = useState("");
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [busyId, setBusyId] = useState<string | null>(null);
+
+  const [panelTab, setPanelTab] = useState<"queue" | "library">("queue");
+  const [entries, setEntries] = useState<KnowledgeEntry[]>([]);
+  const [libLoading, setLibLoading] = useState(false);
+  const [libQuestion, setLibQuestion] = useState("");
+  const [libAnswer, setLibAnswer] = useState("");
+  const [libKeywords, setLibKeywords] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [libMsg, setLibMsg] = useState("");
+  const [libBusy, setLibBusy] = useState(false);
+
+  const loadLibrary = useCallback(async () => {
+    setLibLoading(true);
+    try {
+      const res = await fetch("/api/admin/assistant/knowledge?entryType=faq");
+      const json = await res.json();
+      setEntries(json.entries ?? []);
+    } catch {
+      setLibMsg("Kütüphane yüklenemedi");
+    } finally {
+      setLibLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (panelTab === "library") void loadLibrary();
+  }, [panelTab, loadLibrary]);
+
+  const resetLibForm = () => {
+    setEditingId(null);
+    setLibQuestion("");
+    setLibAnswer("");
+    setLibKeywords("");
+  };
+
+  const saveLibEntry = async () => {
+    const q = libQuestion.trim();
+    const a = libAnswer.trim();
+    if (q.length < 3 || a.length < 5) {
+      setLibMsg("Soru ve cevap gerekli.");
+      return;
+    }
+    setLibBusy(true);
+    setLibMsg("");
+    try {
+      const res = await fetch("/api/admin/assistant/knowledge", {
+        method: editingId ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editingId ?? undefined,
+          entryType: "faq",
+          channel: "*",
+          title: q,
+          body: a,
+          keywords: libKeywords.trim() || undefined,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setLibMsg(json.error ?? "Kaydedilemedi");
+        return;
+      }
+      setLibMsg(editingId ? "Güncellendi." : "Eklendi.");
+      resetLibForm();
+      await loadLibrary();
+    } catch {
+      setLibMsg("Bağlantı hatası");
+    } finally {
+      setLibBusy(false);
+    }
+  };
+
+  const editLibEntry = (e: KnowledgeEntry) => {
+    setEditingId(e.id);
+    setLibQuestion(e.title);
+    setLibAnswer(e.body);
+    setLibKeywords(e.keywords ?? "");
+  };
+
+  const deleteLibEntry = async (id: string) => {
+    setLibBusy(true);
+    try {
+      await fetch(`/api/admin/assistant/knowledge?id=${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      });
+      if (editingId === id) resetLibForm();
+      await loadLibrary();
+    } finally {
+      setLibBusy(false);
+    }
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -171,7 +271,127 @@ export function TrendyolQnaPanel() {
         </p>
       </div>
 
-      <div className="grid gap-3 rounded-xl border bg-white p-4 sm:grid-cols-4">
+      <div className="flex gap-1 border-b border-zinc-200">
+        <button
+          type="button"
+          className={`-mb-px border-b-2 px-3 py-2 text-sm ${
+            panelTab === "queue"
+              ? "border-zinc-800 font-medium text-zinc-900"
+              : "border-transparent text-zinc-500"
+          }`}
+          onClick={() => setPanelTab("queue")}
+        >
+          Onay kuyruğu & geçmiş
+        </button>
+        <button
+          type="button"
+          className={`-mb-px border-b-2 px-3 py-2 text-sm ${
+            panelTab === "library"
+              ? "border-zinc-800 font-medium text-zinc-900"
+              : "border-transparent text-zinc-500"
+          }`}
+          onClick={() => setPanelTab("library")}
+        >
+          Soru kütüphanesi
+        </button>
+      </div>
+
+      {panelTab === "library" ? (
+        <div className="space-y-4">
+          <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-950">
+            Buraya <strong>soru → cevap</strong> çiftleri ekleyin. Bir müşteri benzer bir soru
+            sorduğunda sistem bu cevabı bulur ve (hibrit modda güven eşiğini geçerse) otomatik
+            gönderir. Anahtar kelimeler eşleşmeyi güçlendirir (örn. &quot;kargo, teslimat, gönderim&quot;).
+          </div>
+
+          <div className="grid gap-3 rounded-xl border bg-white p-4">
+            <label className="text-sm">
+              <span className="mb-1 block text-xs text-zinc-500">Soru / başlık</span>
+              <input
+                className={input}
+                value={libQuestion}
+                onChange={(e) => setLibQuestion(e.target.value)}
+                placeholder="Örn. Ürünler ne zaman kargolanır?"
+              />
+            </label>
+            <label className="text-sm">
+              <span className="mb-1 block text-xs text-zinc-500">Cevap</span>
+              <textarea
+                className={`${input} min-h-[90px]`}
+                value={libAnswer}
+                onChange={(e) => setLibAnswer(e.target.value)}
+                placeholder="Örn. Siparişleriniz 1-2 iş günü içinde kargoya verilir."
+              />
+            </label>
+            <label className="text-sm">
+              <span className="mb-1 block text-xs text-zinc-500">
+                Anahtar kelimeler (opsiyonel, virgülle)
+              </span>
+              <input
+                className={input}
+                value={libKeywords}
+                onChange={(e) => setLibKeywords(e.target.value)}
+                placeholder="kargo, teslimat, gönderim, ne zaman"
+              />
+            </label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className={btnPrimary}
+                disabled={libBusy}
+                onClick={() => void saveLibEntry()}
+              >
+                {editingId ? "Güncelle" : "Kütüphaneye ekle"}
+              </button>
+              {editingId ? (
+                <button type="button" className={btnSecondary} onClick={resetLibForm}>
+                  Vazgeç
+                </button>
+              ) : null}
+            </div>
+          </div>
+
+          {libMsg ? <p className="text-sm text-zinc-600">{libMsg}</p> : null}
+
+          {libLoading ? (
+            <p className="text-sm text-zinc-500">Yükleniyor…</p>
+          ) : entries.length === 0 ? (
+            <p className="text-sm text-zinc-500">Henüz soru-cevap eklenmedi.</p>
+          ) : (
+            <div className="space-y-2">
+              {entries.map((e) => (
+                <div key={e.id} className="rounded-xl border bg-white p-3">
+                  <p className="text-sm font-medium text-zinc-900">{e.title}</p>
+                  <p className="mt-1 text-sm text-zinc-600">{e.body}</p>
+                  {e.keywords ? (
+                    <p className="mt-1 text-xs text-zinc-400">Anahtar: {e.keywords}</p>
+                  ) : null}
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      type="button"
+                      className={btnSecondary}
+                      disabled={libBusy}
+                      onClick={() => editLibEntry(e)}
+                    >
+                      Düzenle
+                    </button>
+                    <button
+                      type="button"
+                      className={btnSecondary}
+                      disabled={libBusy}
+                      onClick={() => void deleteLibEntry(e.id)}
+                    >
+                      Sil
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : null}
+
+      <div className="grid gap-3 rounded-xl border bg-white p-4 sm:grid-cols-4" hidden={panelTab !== "queue"}>
         <label className="flex items-center gap-2 text-sm sm:col-span-4">
           <input
             type="checkbox"
@@ -218,9 +438,9 @@ export function TrendyolQnaPanel() {
         </div>
       </div>
 
-      {msg ? <p className="text-sm text-zinc-600">{msg}</p> : null}
+      {panelTab === "queue" && msg ? <p className="text-sm text-zinc-600">{msg}</p> : null}
 
-      <div className="flex flex-wrap gap-1 border-b border-zinc-200">
+      <div className="flex flex-wrap gap-1 border-b border-zinc-200" hidden={panelTab !== "queue"}>
         {STATUS_TABS.map((t) => (
           <button
             key={t.id || "all"}
@@ -238,7 +458,7 @@ export function TrendyolQnaPanel() {
         ))}
       </div>
 
-      {loading ? (
+      {panelTab !== "queue" ? null : loading ? (
         <p className="text-sm text-zinc-500">Yükleniyor…</p>
       ) : records.length === 0 ? (
         <p className="text-sm text-zinc-500">Bu kategoride kayıt yok.</p>
