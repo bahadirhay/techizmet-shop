@@ -1,6 +1,6 @@
 import { readThemeShellPilotLive } from "@/lib/theme-shell-pilot-live";
 import { redirect } from "next/navigation";
-import { PaytrCheckout } from "@/components/cart/PaytrCheckout";
+import { CardCheckout } from "@/components/cart/CardCheckout";
 import { CheckoutEmbedStyles } from "@/components/store/CheckoutEmbedStyles";
 import { getStoreHomepageMode } from "@/lib/site-settings";
 import {
@@ -23,7 +23,7 @@ export default async function CheckoutPayPage({
     isThemeShellEnabledForCommercePath("/checkout/pay", query, themeShellLive);
 
   const pay = (
-    <PaytrCheckout
+    <CardCheckout
       orderNumber={order.trim()}
       paymentToken={token.trim()}
       failed={failed === "1"}

@@ -4,7 +4,7 @@ import { getSiteBranding as getSiteBrandingCore } from "@/lib/site-settings-bran
 import { getGoogleSwgSettings } from "@/lib/seo/google-swg-settings";
 import { prisma } from "@/lib/prisma";
 import { getDefaultSite } from "@/lib/site";
-import { getPaytrConfig } from "@/lib/payments/paytr";
+import { resolveCardProvider } from "@/lib/payments/card-provider";
 import { extractUrls } from "@/lib/social-links";
 import {
   DEFAULT_STORE_FOOTER,
@@ -180,8 +180,10 @@ export type SiteSettings = {
     webhookToken?: string;
   };
   payment?: {
+    /** Aktif kart sağlayıcısı — iyzico veya paytr */
+    cardProvider?: "iyzico" | "paytr";
     paytr?: { merchantId?: string; merchantKey?: string; merchantSalt?: string; testMode?: boolean };
-    iyzico?: { apiKey?: string; secretKey?: string; baseUrl?: string };
+    iyzico?: { apiKey?: string; secretKey?: string; baseUrl?: string; testMode?: boolean };
     codEnabled?: boolean;
     bankTransferEnabled?: boolean;
     bankAccounts?: { bank: string; iban: string; holder: string }[];
@@ -426,7 +428,7 @@ export const getSiteSettings = cache(async (siteId?: string): Promise<SiteSettin
 });
 
 export function isCardPaymentEnabled(settings: SiteSettings): boolean {
-  return getPaytrConfig(settings) !== null;
+  return resolveCardProvider(settings) !== null;
 }
 
 export function getHomepageMode(settings: SiteSettings): HomepageMode {

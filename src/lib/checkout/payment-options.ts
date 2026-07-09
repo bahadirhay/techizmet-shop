@@ -1,4 +1,10 @@
 import type { SiteSettings } from "@/lib/site-settings";
+import {
+  cardProviderLabel,
+  resolveCardProvider,
+  type CardProviderId,
+} from "@/lib/payments/card-provider";
+import { iyzicoConfigStatus } from "@/lib/payments/iyzico";
 
 /** İstemci güvenli — paytr.ts (node:crypto) kullanılmaz */
 function isPaytrConfigured(settings: SiteSettings): boolean {
@@ -10,7 +16,11 @@ export type CheckoutPaymentFlags = {
   codEnabled: boolean;
   bankTransferEnabled: boolean;
   cardEnabled: boolean;
-  /** PayTR test_mode — yalnızca kart açıkken ve admin’de işaretliyken */
+  cardProvider: CardProviderId | null;
+  cardProviderLabel: string | null;
+  /** Aktif kart sağlayıcısı test modunda mı */
+  cardTestMode: boolean;
+  /** @deprecated use cardTestMode */
   paytrTestMode: boolean;
   bankAccounts: { bank: string; iban: string; holder: string }[];
 };
@@ -19,12 +29,24 @@ export type PaymentMethodId = "cod" | "bank_transfer" | "card" | "open_account";
 
 /** Admin panelinde açık olan yöntemler — varsayılan true değil */
 export function getCheckoutPaymentFlags(settings: SiteSettings): CheckoutPaymentFlags {
-  const cardEnabled = isPaytrConfigured(settings);
+  const cardProvider = resolveCardProvider(settings);
+  const cardEnabled = cardProvider !== null;
+  const iyzicoStatus = iyzicoConfigStatus(settings);
+  const cardTestMode =
+    cardProvider === "iyzico"
+      ? iyzicoStatus.testMode
+      : cardProvider === "paytr"
+        ? settings.payment?.paytr?.testMode === true
+        : false;
+
   return {
     codEnabled: settings.payment?.codEnabled === true,
     bankTransferEnabled: settings.payment?.bankTransferEnabled === true,
     cardEnabled,
-    paytrTestMode: cardEnabled && settings.payment?.paytr?.testMode === true,
+    cardProvider,
+    cardProviderLabel: cardProvider ? cardProviderLabel(cardProvider) : null,
+    cardTestMode,
+    paytrTestMode: cardTestMode,
     bankAccounts: settings.payment?.bankAccounts ?? [],
   };
 }
@@ -57,3 +79,5 @@ export function paytrConfigStatus(settings: SiteSettings): {
   if (!p?.merchantSalt?.trim()) missing.push("Merchant salt");
   return { configured: missing.length === 0, missing };
 }
+
+export { iyzicoConfigStatus };

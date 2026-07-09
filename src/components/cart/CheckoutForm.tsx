@@ -732,9 +732,9 @@ export function CheckoutForm({
           </section>
           <section className="kn-checkout__section">
             <h2>Ödeme yöntemi</h2>
-            {payment.paytrTestMode ? (
+            {payment.cardTestMode ? (
               <p className="kn-paytr-test-notice" role="status">
-                PayTR test modu aktif — gerçek tahsilat yapılmaz; PayTR panelindeki test kartlarını kullanın.
+                {payment.cardProviderLabel ?? "Kart"} test modu aktif — gerçek tahsilat yapılmaz.
               </p>
             ) : null}
             {!paymentAvailable ? (
@@ -776,7 +776,8 @@ export function CheckoutForm({
                     checked={form.paymentMethod === "card"}
                     onChange={() => setForm({ ...form, paymentMethod: "card" })}
                   />
-                  Kredi / banka kartı (PayTR{payment.paytrTestMode ? " · test" : ""} güvenli ödeme)
+                  Kredi / banka kartı ({payment.cardProviderLabel ?? "güvenli ödeme"}
+                  {payment.cardTestMode ? " · test" : ""})
                 </label>
               ) : null}
               {payment.openAccount.enabled ? (
@@ -810,8 +811,8 @@ export function CheckoutForm({
             ) : null}
             {payment.cardEnabled && form.paymentMethod === "card" ? (
               <p className="kn-checkout__card-hint">
-                Kart numarası bu adımda istenmez. Siparişi tamamladıktan sonra güvenli PayTR ödeme
-                ekranında kart bilgilerinizi gireceksiniz.
+                Kart numarası bu adımda istenmez. Siparişi tamamladıktan sonra güvenli{" "}
+                {payment.cardProviderLabel ?? "ödeme"} ekranında kart bilgilerinizi gireceksiniz.
               </p>
             ) : null}
             {form.paymentMethod === "bank_transfer" && payment.bankAccounts.length > 0 ? (
