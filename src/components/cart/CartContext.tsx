@@ -98,10 +98,13 @@ const emptyCart: CartView = {
 export function CartProvider({
   children,
   initialCart,
+  exposeWindowBridge = true,
 }: {
   children: ReactNode;
   /** Sunucu tarafı sepet — ödeme embed'de boş flaşını önler */
   initialCart?: CartView | null;
+  /** Mirror tema çekmecesi varken window.__kn* köprüsünü ezme */
+  exposeWindowBridge?: boolean;
 }) {
   const [cart, setCart] = useState<CartView | null>(initialCart ?? null);
   const [loading, setLoading] = useState(initialCart == null);
@@ -253,6 +256,7 @@ export function CartProvider({
   }, []);
 
   useEffect(() => {
+    if (!exposeWindowBridge) return;
     const win = window as unknown as Record<string, unknown>;
     win.__knOpenCart = openCart;
     win.__knRefreshCart = refresh;
@@ -262,7 +266,7 @@ export function CartProvider({
       delete win.__knRefreshCart;
       delete win.__knRenderCartDrawer;
     };
-  }, [openCart, refresh, renderCartDrawer]);
+  }, [exposeWindowBridge, openCart, refresh, renderCartDrawer]);
 
   const value = useMemo(
     () => ({

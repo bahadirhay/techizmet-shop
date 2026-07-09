@@ -118,7 +118,7 @@ const CART_BRIDGE_SCRIPT = `<script id="kn-cart-bridge">(function(){
         foot.innerHTML='<div class="cart-drawer--footer-content">'+
           '<div class="cart-summary-price-item"><span>'+esc(L.subtotal)+'</span><span data-kn-subtotal>'+esc(formatTry(sub))+'</span></div>'+
           '<div class="cart-summary-price-item cart-summary-price-item--total"><span class="kn-cart-total-label heading-font">'+esc(L.total)+'</span><strong class="heading-font" data-kn-cart-total>'+esc(formatTry(total))+'</strong></div>'+
-          '<div class="cart-drawer-buttons"><a href="/cart" class="button medium-button button-secondary button-block">'+esc(L.viewCart)+'</a><a href="/checkout" class="button medium-button button-block cart-checkout-btn">'+BAG+'<span>'+esc(L.checkout)+' '+esc(formatTry(total))+'</span></a></div></div>';
+          '<div class="cart-drawer-buttons kn-cart-drawer-buttons"><a href="/cart" class="button medium-button button-secondary button-block kn-cart-drawer-btn kn-cart-drawer-btn--secondary">'+esc(L.viewCart)+'</a><a href="/checkout" class="button medium-button button-block kn-cart-drawer-btn kn-cart-drawer-btn--primary cart-checkout-btn">'+BAG+'<span>'+esc(L.checkout)+' '+esc(formatTry(total))+'</span></a></div></div>';
       }
     }
   }
@@ -165,16 +165,20 @@ const CART_BRIDGE_SCRIPT = `<script id="kn-cart-bridge">(function(){
   }
   window.__knRefreshCart=refreshCart;
   window.__knRenderCartDrawer=renderCart;
-  window.__knOpenCart=function(){
+  window.__knOpenCart=function(skipRefresh){
     var drawer=document.querySelector('[data-drawer="cart-drawer"]');
     if(!drawer){(window.top||window).location.href="/cart";return;}
-    document.querySelectorAll("[data-drawer]").forEach(function(d){
-      d.removeAttribute("open");
-      d.classList.remove("show","active","open");
-    });
-    drawer.classList.add("show");
-    drawer.setAttribute("open","");
-    document.body.classList.add("overflow-hidden");
+    function show(){
+      document.querySelectorAll("[data-drawer]").forEach(function(d){
+        d.removeAttribute("open");
+        d.classList.remove("show","active","open");
+      });
+      drawer.classList.add("show");
+      drawer.setAttribute("open","");
+      document.body.classList.add("overflow-hidden");
+    }
+    if(skipRefresh){show();return;}
+    refreshCart().then(show).catch(function(){show();});
   };
   document.addEventListener("click",function(e){
     var t=e.target;

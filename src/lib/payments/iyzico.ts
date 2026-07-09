@@ -77,6 +77,8 @@ async function iyzicoRequest<T>(
   }
 }
 
+export type IyzicoBasketLine = { id: string; name: string; priceMinor: number };
+
 export type IyzicoCheckoutInitParams = {
   conversationId: string;
   basketId: string;
@@ -90,8 +92,39 @@ export type IyzicoCheckoutInitParams = {
     city: string;
     address: string;
   };
-  basketItems: { id: string; name: string; priceMinor: number; qty: number }[];
+  /** Satır toplamları (indirim sonrası); kargo ayrı kalem olabilir */
+  basketItems: IyzicoBasketLine[];
 };
+
+/** iyzico: price = basketItems toplamı (kırılım hatası önlenir) */
+export function buildIyzicoBasketFromOrder(order: {
+  lines: Array<{ id: string; title: string; lineMinor: number; discountMinor: number }>;
+  shippingMinor: number;
+  totalMinor: number;
+}): IyzicoBasketLine[] {
+  const items: IyzicoBasketLine[] = order.lines
+    .map((line) => ({
+      id: line.id,
+      name: line.title,
+      priceMinor: Math.max(0, line.lineMinor - line.discountMinor),
+    }))
+    .filter((line) => line.priceMinor > 0);
+
+  if (order.shippingMinor > 0) {
+    items.push({ id: "shipping", name: "Kargo", priceMinor: order.shippingMinor });
+  }
+
+  const sumMinor = items.reduce((s, i) => s + i.priceMinor, 0);
+  const diff = order.totalMinor - sumMinor;
+  if (diff !== 0 && items.length > 0) {
+    items[items.length - 1] = {
+      ...items[items.length - 1],
+      priceMinor: Math.max(0, items[items.length - 1].priceMinor + diff),
+    };
+  }
+
+  return items;
+}
 
 export async function initializeIyzicoCheckout(
   cfg: IyzicoConfig,
@@ -104,9 +137,9 @@ export async function initializeIyzicoCheckout(
   const basketItems = params.basketItems.map((item) => ({
     id: item.id.slice(0, 50),
     name: item.name.slice(0, 100),
-    category1: "Ürün",
+    category1: item.id === "shipping" ? "Kargo" : "Ürün",
     itemType: "PHYSICAL",
-    price: ((item.priceMinor * item.qty) / 100).toFixed(2),
+    price: (item.priceMinor / 100).toFixed(2),
   }));
 
   const body = {

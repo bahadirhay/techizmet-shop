@@ -12,6 +12,7 @@ import {
   patchMirrorStoreBridgeAccountDrawer,
 } from "@/lib/mirror-account-bridge";
 import { patchMirrorStoreBridgeDrawerClickGuard } from "@/lib/mirror-store-bridge-drawer-patch";
+import { patchMirrorStoreBridgeCartRefresh } from "@/lib/mirror-store-bridge-cart-patch";
 import { patchMirrorStoreBridgeNavigation } from "@/lib/mirror-store-bridge-nav-patch";
 import { readMirrorPageHtmlForLocale } from "@/lib/mirror-page-html";
 
@@ -118,6 +119,7 @@ function patchThemeShellStoreBridgeJs(js: string): string {
       `document.addEventListener("click", function (e) {\n    ${THEME_SHELL_DRAWER_CLICK_PATCH}\n    var listSet =`,
     );
   }
+  out = patchMirrorStoreBridgeCartRefresh(out);
   return `document.documentElement.dataset.knNavServer="1";\n${out}`;
 }
 
@@ -149,7 +151,7 @@ export function resolveThemeShellDrawers(
 ): Promise<ThemeShellDrawers | null> {
   return unstable_cache(
     () => Promise.resolve(resolveThemeShellDrawersUncached(locale)),
-    ["theme-shell-drawers-v5", siteId, locale],
+    ["theme-shell-drawers-v6", siteId, locale],
     {
       revalidate: STORE_PUBLIC_REVALIDATE_SEC,
       tags: [storeMirrorTag(siteId)],

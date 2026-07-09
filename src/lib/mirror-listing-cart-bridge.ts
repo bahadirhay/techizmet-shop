@@ -90,25 +90,62 @@ export const MIRROR_LISTING_CART_BRIDGE_JS = `(function(){
     });
   }
   function topWin(){try{return window.top&&window.top!==window?window.top:null;}catch(e){return null;}}
+  function cartTargetWindow(){
+    try{
+      if(document.querySelector('[data-drawer="cart-drawer"]'))return window;
+      var top=topWin();
+      if(top){
+        try{
+          if(top.document.querySelector('[data-drawer="cart-drawer"]'))return top;
+        }catch(e){}
+      }
+    }catch(e){}
+    return window;
+  }
+  function openDrawerIn(win){
+    try{
+      var doc=win.document;
+      var drawer=doc.querySelector('[data-drawer="cart-drawer"]');
+      if(!drawer)return false;
+      doc.querySelectorAll("[data-drawer]").forEach(function(d){
+        d.removeAttribute("open");
+        d.classList.remove("show","active","open");
+      });
+      drawer.classList.add("show");
+      drawer.setAttribute("open","");
+      doc.body.classList.add("overflow-hidden");
+      return true;
+    }catch(e){return false;}
+  }
+  function renderCartIn(win,cart){
+    if(!win||!cart)return;
+    try{
+      win.__knCartCache=cart;
+      if(typeof win.__knRenderCartDrawer==="function")win.__knRenderCartDrawer(cart);
+    }catch(e){}
+  }
   function openDrawerUi(){
+    var target=cartTargetWindow();
+    if(openDrawerIn(target))return;
     var top=topWin();
+    if(top&&top!==target&&openDrawerIn(top))return;
     if(top&&top.__knOpenCart){top.__knOpenCart();return;}
     if(window.__knOpenCart){window.__knOpenCart();return;}
     try{(top||window).location.href="/cart";}catch(e){window.location.href="/cart";}
   }
   async function openCart(prefetched){
-    var top=topWin();
-    openDrawerUi();
+    var target=cartTargetWindow();
     if(prefetched){
-      var renderFn=(top&&top.__knRenderCartDrawer)||window.__knRenderCartDrawer;
-      if(renderFn){
-        if(top)top.__knCartCache=prefetched;else window.__knCartCache=prefetched;
-        renderFn(prefetched);
-        return;
+      renderCartIn(target,prefetched);
+      if(target!==window&&document.querySelector("[data-cart-drawer-body]")){
+        renderCartIn(window,prefetched);
       }
+    }else if(typeof target.__knRefreshCart==="function"){
+      try{await target.__knRefreshCart();}catch(e){}
     }
-    var refreshFn=(top&&top.__knRefreshCart)||window.__knRefreshCart;
-    if(refreshFn)try{await refreshFn();}catch(e){}
+    if(!openDrawerIn(target)){
+      openDrawerUi();
+    }
   }
   async function addToCart(slug,variantLabel,control){
     if(!slug)return false;

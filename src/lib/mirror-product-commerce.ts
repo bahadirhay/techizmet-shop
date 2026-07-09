@@ -215,7 +215,7 @@ function buildCommerceScript(data: MirrorProductCommercePayload): string {
   bindVariantUi();
   updatePrice();
   function openDrawerUi(){
-    if(window.__knOpenCart){window.__knOpenCart();return;}
+    if(window.__knOpenCart){window.__knOpenCart(true);return;}
     var drawer=document.querySelector('[data-drawer="cart-drawer"]');
     if(drawer){
       document.querySelectorAll('[data-drawer]').forEach(function(d){
@@ -228,13 +228,13 @@ function buildCommerceScript(data: MirrorProductCommercePayload): string {
     (window.top||window).location.href='/cart';
   }
   async function openCart(prefetched){
-    openDrawerUi();
     if(prefetched&&window.__knRenderCartDrawer){
       window.__knCartCache=prefetched;
       window.__knRenderCartDrawer(prefetched);
-      return;
+    }else if(window.__knRefreshCart){
+      await window.__knRefreshCart();
     }
-    if(window.__knRefreshCart)await window.__knRefreshCart();
+    openDrawerUi();
   }
   async function addToCart(e){
     if(e){e.preventDefault();e.stopImmediatePropagation();}

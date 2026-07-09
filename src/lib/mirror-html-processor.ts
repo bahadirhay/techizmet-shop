@@ -32,6 +32,7 @@ import { patchMirrorSwiperHtml } from "@/lib/mirror-html-swiper-patch";
 import { injectNavIntoMirrorHtml } from "@/lib/mirror-html-nav-inject";
 import { injectMirrorIconsFix } from "@/lib/mirror-icons-fix";
 import { injectMirrorListingCartBridge } from "@/lib/mirror-listing-cart-bridge";
+import { patchMirrorStoreBridgeCartRefreshInHtml } from "@/lib/mirror-store-bridge-cart-patch";
 import { injectMirrorProductFavoritesBridge } from "@/lib/mirror-product-favorites-bridge";
 import { applyCmsPageToMirrorHtml } from "@/lib/mirror-cms-page";
 import { parseBlocks } from "@/lib/blocks/schema";
@@ -193,6 +194,7 @@ export async function buildMirrorHtmlCore(params: MirrorHtmlBuildParams): Promis
   }
   localized = injectMirrorCartBridge(localized);
   localized = injectMirrorListingCartBridge(localized);
+  localized = patchMirrorStoreBridgeCartRefreshInHtml(localized);
   localized = injectMirrorProductFavoritesBridge(localized);
   localized = injectMirrorLinkBridge(localized);
   localized = injectMirrorAnalyticsBridge(localized, inferMirrorStorePath(normalized));

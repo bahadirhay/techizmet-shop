@@ -5,7 +5,11 @@ import { prisma } from "@/lib/prisma";
 import { getDefaultSite } from "@/lib/site";
 import { getSiteSettings } from "@/lib/site-settings";
 import { resolveCardProvider } from "@/lib/payments/card-provider";
-import { getIyzicoConfig, initializeIyzicoCheckout } from "@/lib/payments/iyzico";
+import {
+  buildIyzicoBasketFromOrder,
+  getIyzicoConfig,
+  initializeIyzicoCheckout,
+} from "@/lib/payments/iyzico";
 import {
   buildPaytrToken,
   encodePaytrBasket,
@@ -62,6 +66,8 @@ export async function POST(req: Request) {
     const firstName = nameParts[0] ?? "Müşteri";
     const lastName = nameParts.slice(1).join(" ") || "Müşteri";
 
+    const basketItems = buildIyzicoBasketFromOrder(order);
+
     const result = await initializeIyzicoCheckout(cfg, {
       conversationId: order.orderNumber,
       basketId: order.id,
@@ -75,12 +81,7 @@ export async function POST(req: Request) {
         city: "Istanbul",
         address: "Türkiye",
       },
-      basketItems: order.lines.map((l) => ({
-        id: l.id,
-        name: l.title,
-        priceMinor: l.unitMinor,
-        qty: l.qty,
-      })),
+      basketItems,
     });
 
     if (!result.ok) {

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { TurkeyAddressFields, type TrAddressBootstrap } from "@/components/address/TurkeyAddressFields";
 import { useCart } from "@/components/cart/CartContext";
+import { CardCheckout } from "@/components/cart/CardCheckout";
 import { formatPrice } from "@/lib/currency/format-price";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import type { ShippingOption, CartView } from "@/lib/cart/types";
@@ -92,6 +93,10 @@ export function CheckoutForm({
   const [couponInput, setCouponInput] = useState("");
   const [couponBusy, setCouponBusy] = useState(false);
   const [couponErr, setCouponErr] = useState<string | null>(null);
+  const [cardSession, setCardSession] = useState<{
+    orderNumber: string;
+    paymentToken: string;
+  } | null>(null);
 
   const defaultAddr = prefill?.addresses.find((a) => a.isDefault) ?? prefill?.addresses[0];
   const addrFields = defaultAddr ? addressToForm(defaultAddr) : null;
@@ -233,6 +238,12 @@ export function CheckoutForm({
     },
     [],
   );
+
+  useEffect(() => {
+    if (form.paymentMethod !== "card") {
+      setCardSession(null);
+    }
+  }, [form.paymentMethod]);
 
   useEffect(() => {
     refresh();
@@ -399,6 +410,7 @@ export function CheckoutForm({
       error?: string;
       orderNumber?: string;
       paymentRequired?: boolean;
+      paymentToken?: string;
       redirectUrl?: string;
       accountCreated?: boolean;
     };
@@ -407,11 +419,11 @@ export function CheckoutForm({
       setErr(j.error ?? "Sipariş tamamlanamadı");
       return;
     }
-    if (j.paymentRequired && j.redirectUrl) {
-      if (!topNavigate(j.redirectUrl)) {
-        router.push(j.redirectUrl);
-        router.refresh();
-      }
+    if (j.paymentRequired && j.orderNumber && j.paymentToken) {
+      setCardSession({ orderNumber: j.orderNumber, paymentToken: j.paymentToken });
+      window.setTimeout(() => {
+        document.getElementById("kn-inline-card-pay")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 80);
       return;
     }
     const q = new URLSearchParams({ order: j.orderNumber ?? "" });
@@ -810,10 +822,23 @@ export function CheckoutForm({
               </p>
             ) : null}
             {payment.cardEnabled && form.paymentMethod === "card" ? (
-              <p className="kn-checkout__card-hint">
-                Kart numarası bu adımda istenmez. Siparişi tamamladıktan sonra güvenli{" "}
-                {payment.cardProviderLabel ?? "ödeme"} ekranında kart bilgilerinizi gireceksiniz.
-              </p>
+              <div className="kn-inline-card-pay-wrap">
+                {cardSession ? (
+                  <CardCheckout
+                    inline
+                    orderNumber={cardSession.orderNumber}
+                    paymentToken={cardSession.paymentToken}
+                  />
+                ) : (
+                  <div className="kn-inline-card-pay-placeholder" role="status">
+                    <p>
+                      Kart bilgilerinizi girmek için önce siparişi oluşturun.{" "}
+                      <strong>Siparişi oluştur ve öde</strong> butonuna bastığınızda güvenli
+                      ödeme formu burada açılır.
+                    </p>
+                  </div>
+                )}
+              </div>
             ) : null}
             {form.paymentMethod === "bank_transfer" && payment.bankAccounts.length > 0 ? (
               <div className="kn-bank-accounts">
@@ -942,9 +967,15 @@ export function CheckoutForm({
           <button
             type="submit"
             className="button medium-button button-block cart-checkout-btn kn-checkout__submit-btn"
-            disabled={busy || !paymentAvailable}
+            disabled={busy || !paymentAvailable || Boolean(cardSession)}
           >
-            {busy ? "İşleniyor…" : "Siparişi tamamla"}
+            {cardSession
+              ? "Ödeme bekleniyor…"
+              : busy
+                ? "İşleniyor…"
+                : form.paymentMethod === "card"
+                  ? "Siparişi oluştur ve öde"
+                  : "Siparişi tamamla"}
           </button>
         </aside>
       </div>

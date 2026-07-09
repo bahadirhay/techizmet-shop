@@ -2040,17 +2040,17 @@ button.header--icon-link-text {
   line-height: 1.2;
   text-align: center;
   color: #fff;
-  background: var(--kn-brand, #1a1a1a);
+  background: var(--kn-brand, #8b5a2b);
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 4px 14px rgba(139, 90, 43, 0.22);
   transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
 }
 .kn-checkout__submit-btn:hover:not(:disabled),
 .kn-checkout__summary .cart-checkout-btn:hover:not(:disabled) {
-  background: #333;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+  filter: brightness(1.06);
+  box-shadow: 0 6px 18px rgba(139, 90, 43, 0.28);
 }
 .kn-checkout__submit-btn:active:not(:disabled),
 .kn-checkout__summary .cart-checkout-btn:active:not(:disabled) {
@@ -2251,6 +2251,33 @@ button.header--icon-link-text {
 .kn-paytr__order {
   margin-bottom: 1rem;
   color: var(--kn-muted);
+}
+.kn-paytr--inline {
+  margin-top: 1rem;
+  padding: 1.25rem;
+  background: var(--kn-surface, #fafafa);
+  border: 1px solid var(--kn-border, #e5e5e5);
+  border-radius: var(--kn-radius, 10px);
+}
+.kn-paytr__inline-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+.kn-inline-card-pay-wrap {
+  margin-top: 1rem;
+}
+.kn-inline-card-pay-placeholder {
+  padding: 1rem 1.125rem;
+  background: rgba(139, 90, 43, 0.06);
+  border: 1px dashed rgba(139, 90, 43, 0.35);
+  border-radius: var(--kn-radius, 10px);
+  font-size: 0.875rem;
+  color: var(--kn-muted, #555);
+  line-height: 1.5;
+}
+.kn-inline-card-pay-placeholder strong {
+  color: var(--kn-text, #1a1a1a);
 }
 .kn-paytr__iframe {
   border-radius: var(--kn-radius);

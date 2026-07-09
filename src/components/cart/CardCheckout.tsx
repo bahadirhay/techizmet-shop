@@ -16,10 +16,13 @@ export function CardCheckout({
   orderNumber,
   paymentToken,
   failed,
+  inline = false,
 }: {
   orderNumber: string;
   paymentToken: string;
   failed?: boolean;
+  /** Checkout sayfasında gömülü — ayrı sayfa başlığı yok */
+  inline?: boolean;
 }) {
   const [iframeUrl, setIframeUrl] = useState<string | null>(null);
   const [checkoutHtml, setCheckoutHtml] = useState<string | null>(null);
@@ -49,12 +52,12 @@ export function CardCheckout({
           return;
         }
         if (j.provider === "iyzico") {
-          if (j.paymentPageUrl) {
-            setIframeUrl(j.paymentPageUrl);
-            return;
-          }
           if (j.checkoutFormContent) {
             setCheckoutHtml(j.checkoutFormContent);
+            return;
+          }
+          if (j.paymentPageUrl) {
+            setIframeUrl(j.paymentPageUrl);
             return;
           }
         }
@@ -75,8 +78,12 @@ export function CardCheckout({
   const providerLabel = provider === "iyzico" ? "iyzico" : provider === "paytr" ? "PayTR" : "kart";
 
   return (
-    <div className="kn-section kn-paytr">
-      <h1>Kart ile ödeme</h1>
+    <div className={`kn-section kn-paytr${inline ? " kn-paytr--inline" : ""}`} id="kn-inline-card-pay">
+      {inline ? (
+        <h3 className="kn-paytr__inline-title">Kart ile ödeme</h3>
+      ) : (
+        <h1>Kart ile ödeme</h1>
+      )}
       <p className="kn-paytr__order">
         Sipariş: <strong>{orderNumber}</strong>
       </p>

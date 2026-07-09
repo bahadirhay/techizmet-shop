@@ -94,7 +94,7 @@ export function StoreLayoutRouter({
       <>
         <HtmlLang locale={locale} />
         <MirrorIframeBootScript />
-        <CartProvider>{children}</CartProvider>
+        <CartProvider exposeWindowBridge={false}>{children}</CartProvider>
       </>
     );
   }

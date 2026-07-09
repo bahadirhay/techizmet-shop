@@ -32,7 +32,7 @@ export function StoreShell({
   const useMirrorDrawers = Boolean(mirrorDrawers?.html && mirrorDrawers.storeBridgeJs);
 
   return (
-    <CartProvider>
+    <CartProvider exposeWindowBridge={!useMirrorDrawers}>
       <AccountProvider>
         <StreetFoodFundBar />
         <StoreHeader
