@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { buildCarrierTrackingUrl } from "@/lib/admin/carrier-tracking";
 import { shouldFocusInvoiceAfterSave } from "@/lib/admin/order-invoice-workflow";
 import { ORDER_STATUSES } from "@/lib/admin/marketplace-platforms";
-import { isCardOrderAwaitingPayment } from "@/lib/orders/card-payment";
+import { isCardOrderAwaitingPayment } from "@/lib/orders/card-payment-rules";
 import { AdminField, btnPrimary, inputClass } from "@/components/admin/AdminForm";
 
 type CarrierOpt = { id: string; name: string; trackingUrlTemplate: string | null };

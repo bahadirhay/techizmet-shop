@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { sendOrderStatusEmailIfNeeded } from "@/lib/email/send-order-email";
-import { canTransitionOrderStatus } from "@/lib/orders/card-payment";
+import { canTransitionOrderStatus } from "@/lib/orders/card-payment-rules";
 import { requireStaffApi } from "@/lib/staff-auth";
 import { prisma } from "@/lib/prisma";
 

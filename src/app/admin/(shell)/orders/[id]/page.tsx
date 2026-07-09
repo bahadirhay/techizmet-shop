@@ -10,7 +10,7 @@ import { MarketplaceOrderPanel } from "@/components/admin/MarketplaceOrderPanel"
 import { OrderInvoicePanel } from "@/components/admin/OrderInvoicePanel";
 import { isOrderInvoiceComplete } from "@/lib/admin/order-invoice-workflow";
 import { efaturaReady, getEfaturaConfig } from "@/lib/efatura/settings";
-import { isCardOrderAwaitingPayment } from "@/lib/orders/card-payment";
+import { isCardOrderAwaitingPayment } from "@/lib/orders/card-payment-rules";
 import { paymentStatusAdminLabel } from "@/lib/orders/public-order";
 import { orderSourceLabel, orderSourceBadgeClass } from "@/lib/marketplace/order-source";
 import { parseOrderFinanceSnapshot } from "@/lib/finance/order-economics";

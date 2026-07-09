@@ -9,7 +9,7 @@ import {
 } from "@/lib/marketplace/order-source";
 import { formatTry } from "@/lib/admin/money";
 import { ORDER_STATUSES } from "@/lib/admin/marketplace-platforms";
-import { isCardOrderAwaitingPayment } from "@/lib/orders/card-payment";
+import { isCardOrderAwaitingPayment } from "@/lib/orders/card-payment-rules";
 import { paymentStatusAdminLabel } from "@/lib/orders/public-order";
 import {
   isOrderInvoiceComplete,
