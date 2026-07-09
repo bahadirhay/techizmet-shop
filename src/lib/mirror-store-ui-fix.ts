@@ -3,7 +3,7 @@
 import { revealMirrorImagesInDocument } from "@/lib/mirror-image-reveal";
 import { patchMirrorLogoDimensions } from "@/lib/mirror-logo-unify";
 
-const FIXES_CSS_VERSION = 47;
+const FIXES_CSS_VERSION = 48;
 const FIXES_CSS_HREF = `/theme/techizmet-shop/store-ui-fixes.css?v=${FIXES_CSS_VERSION}`;
 
 export { FIXES_CSS_VERSION, FIXES_CSS_HREF };

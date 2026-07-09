@@ -19,6 +19,7 @@ const SYNC_SHEETS = [
   `${BASE}/footer0e25.css${V}`,
   `${BASE}/announcementf3b9.css${V}`,
   `${BASE}/marquee1a4c.css${V}`,
+  `${BASE}/cartcfbd.css${V}`,
 ] as const;
 
 const HOME_DEFERRED_SHEETS = [
@@ -26,7 +27,6 @@ const HOME_DEFERRED_SHEETS = [
   `${BASE}/featured-collection2541.css${V}`,
   `${BASE}/main-collection71f4.css${V}`,
   `${BASE}/testimonialsfb63.css${V}`,
-  `${BASE}/cartcfbd.css${V}`,
   `${BASE}/account1dbb.css${V}`,
 ] as const;
 
@@ -64,11 +64,7 @@ export function ThemeShellChromeStyles({ pathname = "/" }: { pathname?: string }
         ? PRODUCT_SYNC_SHEETS.map((href) => <link key={href} rel="stylesheet" href={href} />)
         : home
           ? HOME_DEFERRED_SHEETS.map((href) => <DeferredStylesheet key={href} href={href} />)
-          : [
-              ...HOME_DEFERRED_SHEETS.filter((h) => !h.includes("cart") && !h.includes("account")),
-              `${BASE}/cartcfbd.css${V}`,
-              `${BASE}/account1dbb.css${V}`,
-            ].map((href) => <link key={href} rel="stylesheet" href={href} />)}
+          : HOME_DEFERRED_SHEETS.map((href) => <link key={href} rel="stylesheet" href={href} />)}
       <link rel="stylesheet" href="/theme/techizmet-shop/store-bridge.css" />
       <link rel="stylesheet" href={`/theme/techizmet-shop/store-ui-fixes.css?v=${FIXES_CSS_VERSION}`} />
       {home ? (

@@ -1494,6 +1494,32 @@ html.kn-theme-shell-product-active #MainContent .main--product-image-slider-oute
   filter: brightness(1.06);
 }
 
+/* Sepet çekmecesi başlık — cartcfbd.css ertelenince kapatma sola düşmesin */
+cart-drawer.cart--side-drawer .cart--drawer-content-header,
+.cart--side-drawer .cart--drawer-content-header {
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+}
+
+cart-drawer.cart--side-drawer .cart--drawer-heading,
+.cart--side-drawer .cart--drawer-heading {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  margin: 0 !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+}
+
+cart-drawer.cart--side-drawer .cart--drawer-content-header close-drawer,
+.cart--side-drawer .cart--drawer-content-header close-drawer {
+  margin-left: auto !important;
+  flex: 0 0 auto !important;
+}
+
 cart-drawer .cart--drawer-main {
   display: flex;
   flex-direction: column;
