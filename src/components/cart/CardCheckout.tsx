@@ -96,9 +96,11 @@ export function CardCheckout({
       {err ? (
         <div className="kn-alert kn-alert--warn">
           <p>{err}</p>
-          <Link href="/checkout" className="kn-btn kn-btn--outline">
-            Checkout&apos;a dön
-          </Link>
+          {!inline ? (
+            <Link href="/checkout" className="kn-btn kn-btn--outline">
+              Checkout&apos;a dön
+            </Link>
+          ) : null}
         </div>
       ) : null}
       {iframeUrl ? (

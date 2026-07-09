@@ -97,6 +97,9 @@ export function CheckoutForm({
     orderNumber: string;
     paymentToken: string;
   } | null>(null);
+  const [cardOrderBusy, setCardOrderBusy] = useState(false);
+  const [cardSetupHint, setCardSetupHint] = useState<string | null>(null);
+  const cardOrderInflight = useRef(false);
 
   const defaultAddr = prefill?.addresses.find((a) => a.isDefault) ?? prefill?.addresses[0];
   const addrFields = defaultAddr ? addressToForm(defaultAddr) : null;
@@ -239,11 +242,159 @@ export function CheckoutForm({
     [],
   );
 
+  const selectedShipForTotal = shipping.find(
+    (o) => o.carrierId === carrierId && o.rateId === rateId,
+  );
+  const shipMinorForTotal = freeShipping ? 0 : (selectedShipForTotal?.priceMinor ?? 0);
+  const grandTotalPreview = cart ? cart.totalMinor + shipMinorForTotal : 0;
+
+  const buildCheckoutPayload = useCallback(() => {
+    const fullLine1 = formatCheckoutLine1(form.neighborhood, form.line1);
+    return {
+      ...form,
+      line1: fullLine1,
+      billingLine1: form.billingSameAsShipping ? form.line1 : form.billingLine1,
+      billingNeighborhood: form.billingSameAsShipping
+        ? form.neighborhood
+        : form.billingNeighborhood,
+      carrierId: freeShipping ? shipping[0]?.carrierId ?? "" : carrierId,
+      rateId: freeShipping ? shipping[0]?.rateId ?? "" : rateId,
+      createAccount: !prefill?.loggedIn && createAccount,
+      accountPassword: !prefill?.loggedIn && createAccount ? accountPassword : undefined,
+      saveAddress: showSaveAddressOption && saveAddress,
+    };
+  }, [
+    accountPassword,
+    carrierId,
+    createAccount,
+    form,
+    freeShipping,
+    prefill?.loggedIn,
+    rateId,
+    saveAddress,
+    shipping,
+    showSaveAddressOption,
+  ]);
+
+  const getCardSetupBlockReason = useCallback((): string | null => {
+    if (!payment.cardEnabled) return "Kartlı ödeme şu an kullanılamıyor.";
+    if (!form.email.trim() || !form.phone.trim()) {
+      return "Ödeme formu için e-posta ve telefon bilgilerini girin.";
+    }
+    if (!form.firstName.trim() || !form.lastName.trim()) {
+      return "Ad ve soyad bilgilerini girin.";
+    }
+    if (!form.city || !form.district || !form.neighborhood || !form.line1.trim()) {
+      return "Teslimat adresini tamamlayın; ödeme formu otomatik yüklenecek.";
+    }
+    if (
+      !form.billingSameAsShipping &&
+      (!form.billingCity ||
+        !form.billingDistrict ||
+        !form.billingNeighborhood ||
+        !form.billingLine1.trim())
+    ) {
+      return "Fatura adresini tamamlayın.";
+    }
+    if (!freeShipping && shipping.length > 0 && !carrierId) {
+      return "Kargo seçeneği seçin.";
+    }
+    if (!freeShipping && shipping.length === 0) {
+      return "Kargo seçeneği tanımlı değil.";
+    }
+    if (!prefill?.loggedIn && createAccount) {
+      if (accountPassword.length < 6) return "Hesap şifresi en az 6 karakter olmalı.";
+      if (accountPassword !== accountPassword2) return "Şifreler eşleşmiyor.";
+    }
+    if (!form.acceptTerms) {
+      return "Aşağıdaki mesafeli satış sözleşmesini onaylayın; ödeme formu hemen açılacak.";
+    }
+    return null;
+  }, [
+    accountPassword,
+    accountPassword2,
+    carrierId,
+    createAccount,
+    form,
+    freeShipping,
+    payment.cardEnabled,
+    prefill?.loggedIn,
+    shipping.length,
+  ]);
+
+  const ensureCardOrder = useCallback(async (): Promise<boolean> => {
+    if (cardSession || cardOrderInflight.current || form.paymentMethod !== "card") return false;
+    const block = getCardSetupBlockReason();
+    if (block) {
+      setCardSetupHint(block);
+      return false;
+    }
+    setCardSetupHint(null);
+    setCardOrderBusy(true);
+    cardOrderInflight.current = true;
+    setErr(null);
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify(buildCheckoutPayload()),
+      });
+      const j = (await res.json()) as {
+        error?: string;
+        orderNumber?: string;
+        paymentRequired?: boolean;
+        paymentToken?: string;
+      };
+      if (!res.ok) {
+        setErr(j.error ?? "Sipariş oluşturulamadı");
+        return false;
+      }
+      if (j.paymentRequired && j.orderNumber && j.paymentToken) {
+        setCardSession({ orderNumber: j.orderNumber, paymentToken: j.paymentToken });
+        return true;
+      }
+      setErr("Kart ödemesi başlatılamadı");
+      return false;
+    } catch {
+      setErr("Bağlantı hatası");
+      return false;
+    } finally {
+      setCardOrderBusy(false);
+      cardOrderInflight.current = false;
+    }
+  }, [buildCheckoutPayload, cardSession, form.paymentMethod, getCardSetupBlockReason]);
+
   useEffect(() => {
     if (form.paymentMethod !== "card") {
       setCardSession(null);
+      setCardSetupHint(null);
+      setCardOrderBusy(false);
     }
   }, [form.paymentMethod]);
+
+  useEffect(() => {
+    if (form.paymentMethod !== "card" || cardSession) return;
+    const block = getCardSetupBlockReason();
+    setCardSetupHint(block);
+    if (block) return;
+    const timer = window.setTimeout(() => {
+      void ensureCardOrder();
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [
+    form,
+    form.paymentMethod,
+    cardSession,
+    carrierId,
+    rateId,
+    freeShipping,
+    createAccount,
+    accountPassword,
+    accountPassword2,
+    ensureCardOrder,
+    getCardSetupBlockReason,
+  ]);
 
   useEffect(() => {
     refresh();
@@ -346,6 +497,10 @@ export function CheckoutForm({
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (form.paymentMethod === "card") {
+      await ensureCardOrder();
+      return;
+    }
     if (!prefill?.loggedIn && createAccount) {
       if (accountPassword.length < 6) {
         setErr("Hesap şifresi en az 6 karakter olmalı");
@@ -377,34 +532,22 @@ export function CheckoutForm({
     if (
       (form.paymentMethod === "cod" && !payment.codEnabled) ||
       (form.paymentMethod === "bank_transfer" && !payment.bankTransferEnabled) ||
-      (form.paymentMethod === "card" && !payment.cardEnabled) ||
       (form.paymentMethod === "open_account" && !payment.openAccount.enabled)
     ) {
       setErr("Seçilen ödeme yöntemi kullanılamıyor. Lütfen başka bir yöntem seçin.");
       return;
     }
+    if (!form.acceptTerms) {
+      setErr("Mesafeli satış sözleşmesini onaylamalısınız");
+      return;
+    }
     setBusy(true);
     setErr(null);
-    const fullLine1 = formatCheckoutLine1(form.neighborhood, form.line1);
     const res = await fetch("/api/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "same-origin",
-      body: JSON.stringify({
-        ...form,
-        line1: fullLine1,
-        billingLine1: form.billingSameAsShipping
-          ? form.line1
-          : form.billingLine1,
-        billingNeighborhood: form.billingSameAsShipping
-          ? form.neighborhood
-          : form.billingNeighborhood,
-        carrierId: freeShipping ? shipping[0]?.carrierId ?? "" : carrierId,
-        rateId: freeShipping ? shipping[0]?.rateId ?? "" : rateId,
-        createAccount: !prefill?.loggedIn && createAccount,
-        accountPassword: !prefill?.loggedIn && createAccount ? accountPassword : undefined,
-        saveAddress: showSaveAddressOption && saveAddress,
-      }),
+      body: JSON.stringify(buildCheckoutPayload()),
     });
     const j = (await res.json()) as {
       error?: string;
@@ -421,9 +564,6 @@ export function CheckoutForm({
     }
     if (j.paymentRequired && j.orderNumber && j.paymentToken) {
       setCardSession({ orderNumber: j.orderNumber, paymentToken: j.paymentToken });
-      window.setTimeout(() => {
-        document.getElementById("kn-inline-card-pay")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 80);
       return;
     }
     const q = new URLSearchParams({ order: j.orderNumber ?? "" });
@@ -830,12 +970,15 @@ export function CheckoutForm({
                     paymentToken={cardSession.paymentToken}
                   />
                 ) : (
-                  <div className="kn-inline-card-pay-placeholder" role="status">
-                    <p>
-                      Kart bilgilerinizi girmek için önce siparişi oluşturun.{" "}
-                      <strong>Siparişi oluştur ve öde</strong> butonuna bastığınızda güvenli
-                      ödeme formu burada açılır.
-                    </p>
+                  <div className="kn-paytr kn-paytr--inline" id="kn-inline-card-pay">
+                    <h3 className="kn-paytr__inline-title">Kart ile ödeme</h3>
+                    {cardOrderBusy ? (
+                      <p className="kn-inline-card-pay-status">Güvenli ödeme formu yükleniyor…</p>
+                    ) : cardSetupHint ? (
+                      <p className="kn-inline-card-pay-hint">{cardSetupHint}</p>
+                    ) : (
+                      <p className="kn-inline-card-pay-status">Güvenli ödeme formu yükleniyor…</p>
+                    )}
                   </div>
                 )}
               </div>
@@ -964,19 +1107,21 @@ export function CheckoutForm({
             <strong>{fmt(grandTotal)}</strong>
           </div>
           {err ? <p className="kn-checkout__err">{err}</p> : null}
-          <button
-            type="submit"
-            className="button medium-button button-block cart-checkout-btn kn-checkout__submit-btn"
-            disabled={busy || !paymentAvailable || Boolean(cardSession)}
-          >
-            {cardSession
-              ? "Ödeme bekleniyor…"
-              : busy
-                ? "İşleniyor…"
-                : form.paymentMethod === "card"
-                  ? "Siparişi oluştur ve öde"
-                  : "Siparişi tamamla"}
-          </button>
+          {form.paymentMethod === "card" ? (
+            <p className="kn-checkout__card-summary-hint">
+              {cardSession
+                ? "Kart bilgilerinizi sol taraftaki ödeme formundan girin."
+                : "Kart ödemesi seçildi — bilgiler tamamlandığında form otomatik açılır."}
+            </p>
+          ) : (
+            <button
+              type="submit"
+              className="button medium-button button-block cart-checkout-btn kn-checkout__submit-btn"
+              disabled={busy || !paymentAvailable}
+            >
+              {busy ? "İşleniyor…" : "Siparişi tamamla"}
+            </button>
+          )}
         </aside>
       </div>
       </form>

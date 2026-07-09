@@ -2267,17 +2267,25 @@ button.header--icon-link-text {
 .kn-inline-card-pay-wrap {
   margin-top: 1rem;
 }
-.kn-inline-card-pay-placeholder {
-  padding: 1rem 1.125rem;
-  background: rgba(139, 90, 43, 0.06);
-  border: 1px dashed rgba(139, 90, 43, 0.35);
-  border-radius: var(--kn-radius, 10px);
+.kn-inline-card-pay-hint {
+  margin: 0.75rem 0 0;
   font-size: 0.875rem;
   color: var(--kn-muted, #555);
   line-height: 1.5;
 }
-.kn-inline-card-pay-placeholder strong {
-  color: var(--kn-text, #1a1a1a);
+.kn-inline-card-pay-status {
+  margin: 0.75rem 0 0;
+  font-size: 0.875rem;
+  color: var(--kn-muted, #555);
+}
+.kn-checkout__card-summary-hint {
+  margin-top: 1.25rem;
+  padding: 0.85rem 1rem;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--kn-muted, #555);
+  background: rgba(139, 90, 43, 0.06);
+  border-radius: var(--kn-radius, 10px);
 }
 .kn-paytr__iframe {
   border-radius: var(--kn-radius);
