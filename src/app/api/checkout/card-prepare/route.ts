@@ -1,52 +1,37 @@
 import { NextResponse } from "next/server";
 import { cartLinesToSnapshot } from "@/lib/analytics/cart-snapshot";
 import { touchCartAbandonmentCheckout } from "@/lib/analytics/cart-abandonment";
-import { recordPurchaseEvent, recordServerStoreEvent } from "@/lib/analytics/events";
+import { recordServerStoreEvent } from "@/lib/analytics/events";
 import { readVisitorKey } from "@/lib/analytics/visitor";
-import { createOrderFromCart, buildCartView } from "@/lib/cart/service";
-import { clearCartSession, getCartSession } from "@/lib/cart/session";
-import { createAccountAfterOrder } from "@/lib/checkout/create-account-after-order";
-import { saveCheckoutAddressToCustomer } from "@/lib/checkout/save-address";
+import { buildCartView, getShippingOptions } from "@/lib/cart/service";
+import { getCartSession } from "@/lib/cart/session";
 import { normalizeConsumerTaxId } from "@/lib/efatura/consumer-tax-id";
 import { getCustomerSession } from "@/lib/customer-session";
-import { sendOrderConfirmationBundle } from "@/lib/email/send-order-notifications";
-import { getSiteSettings } from "@/lib/site-settings";
+import {
+  createCardCheckoutIntent,
+  generateCardPaymentReference,
+  type CardCheckoutIntentPayload,
+} from "@/lib/payments/card-checkout-intent";
+import { issueCardIntentToken } from "@/lib/payments/card-intent-token";
+import { clientIp, enforceRateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { getSiteSettings, isCardPaymentEnabled } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
+import { prisma } from "@/lib/prisma";
 import { formatCheckoutLine1 } from "@/lib/tr-address/format";
 
 export async function POST(req: Request) {
+  const rl = await enforceRateLimit(`card-prepare:${clientIp(req)}`, 30, 15 * 60 * 1000);
+  if (!rl.ok) return rateLimitResponse(rl.retryAfterSec);
+
   const body = (await req.json()) as Record<string, unknown>;
   const site = await getDefaultSite();
   const settings = await getSiteSettings(site.id);
 
-  const paymentMethod = String(body.paymentMethod ?? "cod");
-  if (paymentMethod === "card") {
+  if (!isCardPaymentEnabled(settings)) {
     return NextResponse.json(
-      {
-        error:
-          "Kart ödemesi için ödeme formunu kullanın. Sipariş, ödeme onaylandıktan sonra oluşturulur.",
-      },
+      { error: "Kartlı ödeme şu an kullanılamıyor." },
       { status: 400 },
     );
-  }
-  if (paymentMethod === "cod" && !settings.payment?.codEnabled) {
-    return NextResponse.json({ error: "Kapıda ödeme şu an kapalı" }, { status: 400 });
-  }
-  if (paymentMethod === "bank_transfer" && !settings.payment?.bankTransferEnabled) {
-    return NextResponse.json({ error: "Havale/EFT şu an kapalı" }, { status: 400 });
-  }
-  if (paymentMethod === "open_account") {
-    const custSession = await getCustomerSession();
-    if (!custSession.isLoggedIn || !custSession.customerId) {
-      return NextResponse.json(
-        { error: "Açık hesap için üye girişi ve onaylı B2B hesabı gerekli" },
-        { status: 400 },
-      );
-    }
-  }
-
-  if (!body.acceptTerms) {
-    return NextResponse.json({ error: "Mesafeli satış sözleşmesini onaylamalısınız" }, { status: 400 });
   }
 
   const session = await getCartSession();
@@ -63,6 +48,16 @@ export async function POST(req: Request) {
 
   const firstName = String(body.firstName ?? "").trim();
   const lastName = String(body.lastName ?? "").trim();
+  const email = String(body.email ?? "").trim();
+  const phone = String(body.phone ?? "").trim();
+
+  if (!email || !phone) {
+    return NextResponse.json({ error: "E-posta ve telefon zorunlu" }, { status: 400 });
+  }
+  if (!firstName || !lastName) {
+    return NextResponse.json({ error: "Ad ve soyad zorunlu" }, { status: 400 });
+  }
+
   const billingSameAsShipping = body.billingSameAsShipping !== false;
   const taxOffice = String(body.taxOffice ?? "").trim() || undefined;
   const billingTaxId = normalizeConsumerTaxId(String(body.taxId ?? "").trim() || undefined);
@@ -89,6 +84,9 @@ export async function POST(req: Request) {
     };
   }
 
+  const carrierId = String(body.carrierId ?? "");
+  const rateId = String(body.rateId ?? "");
+
   try {
     const custSession = await getCustomerSession();
     const visitorKey = await readVisitorKey();
@@ -100,20 +98,49 @@ export async function POST(req: Request) {
       customerId,
     );
 
+    if (cartPreview.items.length === 0) {
+      return NextResponse.json({ error: "Sepet boş" }, { status: 400 });
+    }
+    if (cartPreview.errors.length) {
+      return NextResponse.json({ error: cartPreview.errors[0] }, { status: 400 });
+    }
+
+    const discountMinor = cartPreview.discountMinor;
+    const totalDesi = Math.max(
+      1,
+      (
+        await prisma.storeProduct.findMany({
+          where: { id: { in: cartPreview.items.map((i) => i.productId) } },
+          select: { desi: true },
+        })
+      ).reduce((s, p) => s + (p.desi ?? 1), 0),
+    );
+    const shippingOptions = await getShippingOptions(
+      site.id,
+      cartPreview.subtotalMinor - discountMinor,
+      cartPreview.freeShipping,
+      totalDesi,
+    );
+    const selected = cartPreview.freeShipping
+      ? null
+      : shippingOptions.find((o) => o.carrierId === carrierId && o.rateId === rateId);
+    if (!cartPreview.freeShipping && !selected) {
+      return NextResponse.json({ error: "Kargo seçimi geçersiz" }, { status: 400 });
+    }
+    const shippingMinor = cartPreview.freeShipping ? 0 : (selected?.priceMinor ?? 0);
+    const orderTotalMinor = Math.max(0, cartPreview.subtotalMinor - discountMinor + shippingMinor);
+
     recordServerStoreEvent({
       siteId: site.id,
       type: "begin_checkout",
       payload: {
         cartValueMinor: cartPreview.totalMinor,
         itemCount: cartPreview.itemCount,
-        paymentMethod,
+        paymentMethod: "card",
       },
       visitorKey,
       customerId,
     }).catch((e) => console.error("[analytics]", e));
-
-    const email = String(body.email ?? "").trim();
-    const phone = String(body.phone ?? "").trim();
 
     if (visitorKey) {
       await touchCartAbandonmentCheckout({
@@ -127,10 +154,9 @@ export async function POST(req: Request) {
       }).catch((e) => console.error("[cart abandonment checkout]", e));
     }
 
-    const result = await createOrderFromCart({
-      siteId: site.id,
-      customerId,
+    const payload: CardCheckoutIntentPayload = {
       session: { items: session.items, couponCode: session.couponCode },
+      customerId: customerId ?? null,
       customer: {
         email,
         phone,
@@ -141,59 +167,37 @@ export async function POST(req: Request) {
         billingTaxId,
         billingTaxOffice: taxOffice,
       },
-      carrierId: String(body.carrierId ?? ""),
-      rateId: String(body.rateId ?? ""),
-      paymentMethod,
-      guestCheckout: true,
-      visitorKey,
-    });
-    await clearCartSession();
+      carrierId,
+      rateId,
+      createAccount: Boolean(body.createAccount) && !custSession.isLoggedIn,
+      accountPassword:
+        Boolean(body.createAccount) && !custSession.isLoggedIn
+          ? String(body.accountPassword ?? "")
+          : undefined,
+      saveAddress: Boolean(custSession.isLoggedIn && body.saveAddress),
+      guestLoggedIn: custSession.isLoggedIn,
+    };
 
-    let accountCreated = false;
-    const wantsAccount = Boolean(body.createAccount) && !custSession.isLoggedIn;
-    const accountPassword = String(body.accountPassword ?? "");
-    if (wantsAccount && accountPassword.length >= 6) {
-      const acc = await createAccountAfterOrder({
-        siteId: site.id,
-        customerId: result.customerId ?? null,
-        email: String(body.email ?? "").trim(),
-        password: accountPassword,
-        firstName: String(body.firstName ?? "").trim(),
-        lastName: String(body.lastName ?? "").trim(),
-        phone: String(body.phone ?? "").trim(),
-        address: { city, district, line1, postalCode },
-      });
-      accountCreated = acc.ok && Boolean(acc.loggedIn);
-    }
-
-    if (custSession.isLoggedIn && custSession.customerId && Boolean(body.saveAddress)) {
-      await saveCheckoutAddressToCustomer({
-        customerId: custSession.customerId,
-        firstName: String(body.firstName ?? "").trim(),
-        lastName: String(body.lastName ?? "").trim(),
-        phone: String(body.phone ?? "").trim(),
-        city,
-        district,
-        line1,
-        postalCode,
-      }).catch((e) => console.error("[checkout saveAddress]", e));
-    }
-
-    await sendOrderConfirmationBundle(result.orderId).catch((e) => console.error("[notify]", e));
-
-    recordPurchaseEvent({
+    const reference = generateCardPaymentReference();
+    const intent = await createCardCheckoutIntent({
       siteId: site.id,
-      orderId: result.orderId,
-      orderNumber: result.orderNumber,
-      valueMinor: cartPreview.totalMinor,
-      paymentMethod,
-      visitorKey,
-      customerId: result.customerId,
-    }).catch((e) => console.error("[analytics]", e));
+      reference,
+      payload,
+      totalMinor: orderTotalMinor,
+      customerId: customerId ?? null,
+      visitorKey: visitorKey ?? null,
+    });
 
-    return NextResponse.json({ ok: true, ...result, accountCreated });
+    const paymentToken = issueCardIntentToken(intent.id, reference);
+
+    return NextResponse.json({
+      ok: true,
+      reference,
+      paymentToken,
+      totalMinor: orderTotalMinor,
+    });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "Sipariş oluşturulamadı";
+    const msg = e instanceof Error ? e.message : "Ödeme hazırlanamadı";
     return NextResponse.json({ error: msg }, { status: 400 });
   }
 }

@@ -9,6 +9,7 @@ import {
 } from "@/lib/marketplace/order-source";
 import { formatTry } from "@/lib/admin/money";
 import { ORDER_STATUSES } from "@/lib/admin/marketplace-platforms";
+import { excludeUnpaidCardOrdersFilter } from "@/lib/orders/admin-order-visibility";
 import { isCardOrderAwaitingPayment } from "@/lib/orders/card-payment-rules";
 import { paymentStatusAdminLabel } from "@/lib/orders/public-order";
 import {
@@ -50,7 +51,7 @@ export default async function OrdersPage({
               }
             : status
               ? { status }
-              : {}),
+              : { ...excludeUnpaidCardOrdersFilter }),
     ...orderSourcePrismaFilter(source),
   };
 

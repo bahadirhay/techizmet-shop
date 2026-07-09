@@ -27,11 +27,13 @@ function mountHtmlWithScripts(host: HTMLElement, html: string) {
 
 export function CardCheckout({
   orderNumber,
+  paymentReference,
   paymentToken,
   failed,
   inline = false,
 }: {
-  orderNumber: string;
+  orderNumber?: string;
+  paymentReference?: string;
   paymentToken: string;
   failed?: boolean;
   /** Checkout sayfasında gömülü — ayrı sayfa başlığı yok */
@@ -46,10 +48,17 @@ export function CardCheckout({
   const formHostRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const initKey = paymentReference ?? orderNumber;
+    if (!initKey) return;
+
     fetch("/api/payments/card/init", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orderNumber, paymentToken }),
+      body: JSON.stringify(
+        paymentReference
+          ? { reference: paymentReference, paymentToken }
+          : { orderNumber, paymentToken },
+      ),
     })
       .then((r) => r.json())
       .then((j: CardInitResponse) => {
@@ -82,7 +91,7 @@ export function CardCheckout({
         setLoading(false);
         setErr("Bağlantı hatası");
       });
-  }, [orderNumber, paymentToken]);
+  }, [orderNumber, paymentReference, paymentToken]);
 
   useEffect(() => {
     if (checkoutHtml && formHostRef.current) {
@@ -100,7 +109,13 @@ export function CardCheckout({
         <h1>Kart ile ödeme</h1>
       )}
       <p className="kn-paytr__order">
-        Sipariş: <strong>{orderNumber}</strong>
+        {orderNumber ? (
+          <>
+            Sipariş: <strong>{orderNumber}</strong>
+          </>
+        ) : (
+          <>Güvenli kart ödemesi — bilgileriniz şifreli bağlantı ile işlenir.</>
+        )}
       </p>
       {cardTestMode ? (
         <p className="kn-paytr-test-notice" role="status">

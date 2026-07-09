@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { TurkeyAddressFields, type TrAddressBootstrap } from "@/components/address/TurkeyAddressFields";
 import { useCart } from "@/components/cart/CartContext";
@@ -78,6 +78,8 @@ export function CheckoutForm({
   trAddress?: TrAddressBootstrap;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const paymentFailed = searchParams.get("payment_failed") === "1";
   const { cart, refresh, loading: cartLoading, removeCoupon } = useCart();
   const [shipping, setShipping] = useState<ShippingOption[]>(initialShipping);
   const [freeShipping, setFreeShipping] = useState(initialFreeShipping);
@@ -94,7 +96,7 @@ export function CheckoutForm({
   const [couponBusy, setCouponBusy] = useState(false);
   const [couponErr, setCouponErr] = useState<string | null>(null);
   const [cardSession, setCardSession] = useState<{
-    orderNumber: string;
+    reference: string;
     paymentToken: string;
   } | null>(null);
   const [cardOrderBusy, setCardOrderBusy] = useState(false);
@@ -306,9 +308,6 @@ export function CheckoutForm({
       if (accountPassword.length < 6) return "Hesap şifresi en az 6 karakter olmalı.";
       if (accountPassword !== accountPassword2) return "Şifreler eşleşmiyor.";
     }
-    if (!form.acceptTerms) {
-      return "Aşağıdaki mesafeli satış sözleşmesini onaylayın; ödeme formu hemen açılacak.";
-    }
     return null;
   }, [
     accountPassword,
@@ -322,7 +321,7 @@ export function CheckoutForm({
     shipping.length,
   ]);
 
-  const ensureCardOrder = useCallback(async (): Promise<boolean> => {
+  const ensureCardPayment = useCallback(async (): Promise<boolean> => {
     if (cardSession || cardOrderInflight.current || form.paymentMethod !== "card") return false;
     const block = getCardSetupBlockReason();
     if (block) {
@@ -334,7 +333,7 @@ export function CheckoutForm({
     cardOrderInflight.current = true;
     setErr(null);
     try {
-      const res = await fetch("/api/checkout", {
+      const res = await fetch("/api/checkout/card-prepare", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
@@ -342,16 +341,15 @@ export function CheckoutForm({
       });
       const j = (await res.json()) as {
         error?: string;
-        orderNumber?: string;
-        paymentRequired?: boolean;
+        reference?: string;
         paymentToken?: string;
       };
       if (!res.ok) {
-        setErr(j.error ?? "Sipariş oluşturulamadı");
+        setErr(j.error ?? "Ödeme formu hazırlanamadı");
         return false;
       }
-      if (j.paymentRequired && j.orderNumber && j.paymentToken) {
-        setCardSession({ orderNumber: j.orderNumber, paymentToken: j.paymentToken });
+      if (j.reference && j.paymentToken) {
+        setCardSession({ reference: j.reference, paymentToken: j.paymentToken });
         return true;
       }
       setErr("Kart ödemesi başlatılamadı");
@@ -379,7 +377,7 @@ export function CheckoutForm({
     setCardSetupHint(block);
     if (block) return;
     const timer = window.setTimeout(() => {
-      void ensureCardOrder();
+      void ensureCardPayment();
     }, 400);
     return () => window.clearTimeout(timer);
   }, [
@@ -392,7 +390,7 @@ export function CheckoutForm({
     createAccount,
     accountPassword,
     accountPassword2,
-    ensureCardOrder,
+    ensureCardPayment,
     getCardSetupBlockReason,
   ]);
 
@@ -498,7 +496,7 @@ export function CheckoutForm({
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (form.paymentMethod === "card") {
-      await ensureCardOrder();
+      await ensureCardPayment();
       return;
     }
     if (!prefill?.loggedIn && createAccount) {
@@ -562,10 +560,6 @@ export function CheckoutForm({
       setErr(j.error ?? "Sipariş tamamlanamadı");
       return;
     }
-    if (j.paymentRequired && j.orderNumber && j.paymentToken) {
-      setCardSession({ orderNumber: j.orderNumber, paymentToken: j.paymentToken });
-      return;
-    }
     const q = new URLSearchParams({ order: j.orderNumber ?? "" });
     if (j.accountCreated) q.set("account", "1");
     const successUrl = `/checkout/success?${q.toString()}`;
@@ -598,6 +592,11 @@ export function CheckoutForm({
           {authNotice}
         </div>
       )}
+      {paymentFailed ? (
+        <div className="kn-alert kn-alert--warn kn-checkout__payment-failed" role="alert">
+          Ödeme tamamlanamadı. Kart bilgilerinizi kontrol edip tekrar deneyin. Siparişiniz oluşturulmadı.
+        </div>
+      ) : null}
       <form className="kn-checkout" onSubmit={submit}>
       <div className="kn-checkout__grid">
         <div className="kn-checkout__main">
@@ -966,7 +965,7 @@ export function CheckoutForm({
                 {cardSession ? (
                   <CardCheckout
                     inline
-                    orderNumber={cardSession.orderNumber}
+                    paymentReference={cardSession.reference}
                     paymentToken={cardSession.paymentToken}
                   />
                 ) : (
@@ -1111,7 +1110,7 @@ export function CheckoutForm({
             <p className="kn-checkout__card-summary-hint">
               {cardSession
                 ? "Kart bilgilerinizi sol taraftaki ödeme formundan girin."
-                : "Kart ödemesi seçildi — bilgiler tamamlandığında form otomatik açılır."}
+                : "Kart seçildi — adres ve kargo bilgileri tamamlanınca ödeme formu açılır."}
             </p>
           ) : (
             <button

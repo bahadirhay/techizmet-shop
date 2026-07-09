@@ -534,6 +534,8 @@ export async function createOrderFromCart(params: {
   paymentMethod: string;
   guestCheckout: boolean;
   visitorKey?: string | null;
+  /** Kart ödemesi onaylandıktan sonra sipariş oluştur */
+  cardPaymentConfirmed?: boolean;
 }): Promise<{ orderId: string; orderNumber: string; customerId: string | null }> {
   let orderCustomerId = params.customerId ?? null;
   if (params.customer.email) {
@@ -680,13 +682,18 @@ export async function createOrderFromCart(params: {
       }
     }
 
-    const isCardCheckout = params.paymentMethod === "card";
+    const isCardAwaitingPayment =
+      params.paymentMethod === "card" && !params.cardPaymentConfirmed;
 
     const created = await tx.storeOrder.create({
       data: {
         siteId: params.siteId,
         orderNumber,
-        status: isCardCheckout ? "awaiting_payment" : "pending",
+        status: isCardAwaitingPayment
+          ? "awaiting_payment"
+          : params.cardPaymentConfirmed
+            ? "confirmed"
+            : "pending",
         customerId: orderCustomerId,
         carrierId,
         customerEmail: params.customer.email,
@@ -708,7 +715,9 @@ export async function createOrderFromCart(params: {
             ? "pending"
             : params.paymentMethod === "open_account"
               ? "open_account"
-              : "unpaid",
+              : params.cardPaymentConfirmed
+                ? "paid"
+                : "unpaid",
         adminNotes: orderNotes.length ? orderNotes.join(" · ") : null,
         visitorKey: params.visitorKey?.trim() || null,
         lines: {
@@ -740,7 +749,7 @@ export async function createOrderFromCart(params: {
     });
 
     const { recordOrderStockMovements } = await import("@/lib/stock/order-stock");
-    if (!isCardCheckout) {
+    if (!isCardAwaitingPayment) {
       await recordOrderStockMovements(tx, {
         siteId: params.siteId,
         orderId: created.id,
