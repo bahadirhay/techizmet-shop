@@ -680,11 +680,13 @@ export async function createOrderFromCart(params: {
       }
     }
 
+    const isCardCheckout = params.paymentMethod === "card";
+
     const created = await tx.storeOrder.create({
       data: {
         siteId: params.siteId,
         orderNumber,
-        status: "pending",
+        status: isCardCheckout ? "awaiting_payment" : "pending",
         customerId: orderCustomerId,
         carrierId,
         customerEmail: params.customer.email,
@@ -738,20 +740,22 @@ export async function createOrderFromCart(params: {
     });
 
     const { recordOrderStockMovements } = await import("@/lib/stock/order-stock");
-    await recordOrderStockMovements(tx, {
-      siteId: params.siteId,
-      orderId: created.id,
-      lines: created.lines
-        .filter((l): l is typeof l & { productId: string } => Boolean(l.productId))
-        .map((l) => ({
-          id: l.id,
-          productId: l.productId,
-          variantId: l.variantId,
-          qty: l.qty,
-          title: l.title,
-        })),
-      productKinds: kindById,
-    });
+    if (!isCardCheckout) {
+      await recordOrderStockMovements(tx, {
+        siteId: params.siteId,
+        orderId: created.id,
+        lines: created.lines
+          .filter((l): l is typeof l & { productId: string } => Boolean(l.productId))
+          .map((l) => ({
+            id: l.id,
+            productId: l.productId,
+            variantId: l.variantId,
+            qty: l.qty,
+            title: l.title,
+          })),
+        productKinds: kindById,
+      });
+    }
 
     if (componentProductIdsForSync.size) {
       await syncBundlesContainingProducts(tx, [...componentProductIdsForSync]);

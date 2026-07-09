@@ -38,7 +38,11 @@ export async function loadOperationsChecklist(siteId: string): Promise<Operation
       getSiteSettings(siteId),
       getEfaturaConfig(siteId),
       prisma.storeOrder.count({
-        where: { siteId, status: { in: ["pending", "confirmed"] } },
+        where: {
+          siteId,
+          status: { in: ["pending", "confirmed"] },
+          NOT: { paymentMethod: "card", paymentStatus: { in: ["unpaid", "failed"] } },
+        },
       }),
       prisma.storeOrder.count({
         where: {

@@ -35,7 +35,11 @@ export default async function DashboardPage() {
     safeCount("storeBrand", { where: { siteId: auth.siteId } }),
     safeCount("storeOrder", { where: { siteId: auth.siteId } }),
     safeCount("storeOrder", {
-      where: { siteId: auth.siteId, status: { in: ["pending", "confirmed", "preparing"] } },
+      where: {
+        siteId: auth.siteId,
+        status: { in: ["pending", "confirmed", "preparing"] },
+        NOT: { paymentMethod: "card", paymentStatus: { in: ["unpaid", "failed"] } },
+      },
     }),
     safeCount("storeCampaign", { where: { siteId: auth.siteId, active: true } }),
     safeCount("storeProduct", {

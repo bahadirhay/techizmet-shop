@@ -11,7 +11,20 @@ export function paymentStatusLabel(status: string) {
   if (status === "pending") return "Beklemede";
   if (status === "failed") return "Başarısız";
   if (status === "unpaid") return "Ödenmedi";
+  if (status === "open_account") return "Açık hesap";
   return status;
+}
+
+export function paymentStatusAdminLabel(
+  paymentMethod: string | null,
+  paymentStatus: string,
+): string {
+  if (paymentMethod === "card") {
+    if (paymentStatus === "paid") return "Kart — ödendi";
+    if (paymentStatus === "failed") return "Kart — başarısız";
+    return "Kart — ödeme bekleniyor";
+  }
+  return paymentMethodLabel(paymentMethod);
 }
 
 export function paymentMethodLabel(method: string | null) {

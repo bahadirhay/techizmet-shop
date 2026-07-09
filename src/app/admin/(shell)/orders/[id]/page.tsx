@@ -10,6 +10,8 @@ import { MarketplaceOrderPanel } from "@/components/admin/MarketplaceOrderPanel"
 import { OrderInvoicePanel } from "@/components/admin/OrderInvoicePanel";
 import { isOrderInvoiceComplete } from "@/lib/admin/order-invoice-workflow";
 import { efaturaReady, getEfaturaConfig } from "@/lib/efatura/settings";
+import { isCardOrderAwaitingPayment } from "@/lib/orders/card-payment";
+import { paymentStatusAdminLabel } from "@/lib/orders/public-order";
 import { orderSourceLabel, orderSourceBadgeClass } from "@/lib/marketplace/order-source";
 import { parseOrderFinanceSnapshot } from "@/lib/finance/order-economics";
 import { formatTry } from "@/lib/admin/money";
@@ -90,8 +92,14 @@ export default async function OrderDetailPage({
         </span>
       </p>
       <p className="text-sm text-zinc-500">
-        {statusLabel(order.status)} · {new Date(order.createdAt).toLocaleString("tr-TR")}
+        {statusLabel(order.status)} · {paymentStatusAdminLabel(order.paymentMethod, order.paymentStatus)} ·{" "}
+        {new Date(order.createdAt).toLocaleString("tr-TR")}
       </p>
+      {isCardOrderAwaitingPayment(order) ? (
+        <p className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-900">
+          Bu sipariş için ödeme alınmadı — hazırlık veya kargo işlemi yapmayın.
+        </p>
+      ) : null}
       <p className="mt-2">
         <Link
           href={`/admin/orders/labels/print?ids=${order.id}`}
@@ -133,6 +141,8 @@ export default async function OrderDetailPage({
           initialCarrierId={order.carrierId ?? ""}
           initialTracking={order.trackingNumber ?? ""}
           initialNotes={order.adminNotes ?? ""}
+          paymentMethod={order.paymentMethod}
+          paymentStatus={order.paymentStatus}
           carriers={carriers.map((c) => ({
             id: c.id,
             name: c.name,

@@ -19,6 +19,7 @@ export const SHIPPING_CARRIER_PRESETS = [
 ] as const;
 
 export const ORDER_STATUSES = [
+  { id: "awaiting_payment", label: "Ödeme bekleniyor" },
   { id: "pending", label: "Beklemede" },
   { id: "confirmed", label: "Onaylandı" },
   { id: "preparing", label: "Hazırlanıyor" },

@@ -9,6 +9,8 @@ import {
 } from "@/lib/marketplace/order-source";
 import { formatTry } from "@/lib/admin/money";
 import { ORDER_STATUSES } from "@/lib/admin/marketplace-platforms";
+import { isCardOrderAwaitingPayment } from "@/lib/orders/card-payment";
+import { paymentStatusAdminLabel } from "@/lib/orders/public-order";
 import {
   isOrderInvoiceComplete,
   orderInvoicePendingWhere,
@@ -32,11 +34,23 @@ export default async function OrdersPage({
     siteId: auth.siteId,
     ...(invoicePending
       ? orderInvoicePendingWhere()
-      : status === "refund_requested"
-        ? { status: { in: ["refund_requested", "cancelled"] } }
-        : status
-          ? { status }
-          : {}),
+      : status === "awaiting_payment"
+        ? {
+            OR: [
+              { status: "awaiting_payment" },
+              { paymentMethod: "card", paymentStatus: { in: ["unpaid", "failed"] } },
+            ],
+          }
+        : status === "refund_requested"
+          ? { status: { in: ["refund_requested", "cancelled"] } }
+          : status === "pending"
+            ? {
+                status: "pending",
+                NOT: { paymentMethod: "card", paymentStatus: { in: ["unpaid", "failed"] } },
+              }
+            : status
+              ? { status }
+              : {}),
     ...orderSourcePrismaFilter(source),
   };
 
@@ -51,7 +65,9 @@ export default async function OrdersPage({
 
   const title = invoicePending
     ? "Fatura Bekleyen Siparişler"
-    : status === "pending"
+    : status === "awaiting_payment"
+      ? "Ödeme Bekleyen Siparişler"
+      : status === "pending"
       ? "Onay Bekleyen Siparişler"
       : status === "preparing"
         ? "Hazırlanan Siparişler"
@@ -98,7 +114,7 @@ export default async function OrdersPage({
         >
           Fatura Bekleyen
         </Link>
-        {(["pending", "preparing", "shipped", "refund_requested"] as const).map((s) => (
+        {(["awaiting_payment", "pending", "preparing", "shipped", "refund_requested"] as const).map((s) => (
           <Link
             key={s}
             href={ordersListHref({
@@ -162,7 +178,19 @@ export default async function OrdersPage({
                   <td>{o.customerName ?? o.customerEmail ?? "—"}</td>
                   <td>{formatTry(o.totalMinor)}</td>
                   <td>{statusLabel(o.status)}</td>
-                  <td className="text-zinc-600">{o.paymentMethod ?? "—"}</td>
+                  <td>
+                    <span
+                      className={
+                        isCardOrderAwaitingPayment(o)
+                          ? "inline-block rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800"
+                          : o.paymentStatus === "paid"
+                            ? "text-xs text-emerald-700"
+                            : "text-zinc-600 text-xs"
+                      }
+                    >
+                      {paymentStatusAdminLabel(o.paymentMethod, o.paymentStatus)}
+                    </span>
+                  </td>
                   <td>{o.carrier?.name ?? "—"}</td>
                   <td>
                     {isOrderInvoiceComplete(o.invoiceStatus) ? (

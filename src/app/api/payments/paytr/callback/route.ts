@@ -4,6 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { getDefaultSite } from "@/lib/site";
 import { getSiteSettings } from "@/lib/site-settings";
 import { getPaytrConfig, verifyPaytrCallbackHash } from "@/lib/payments/paytr";
+import {
+  markCardOrderPaymentFailed,
+  recordOrderStockAfterCardPayment,
+} from "@/lib/orders/card-payment";
 
 /** Tarayıcı / panel kontrolü — PayTR bildirimleri yalnızca POST ile gelir */
 export async function GET() {
@@ -58,18 +62,10 @@ export async function POST(req: Request) {
   if (body.status === "success") {
     const paidMinor = Number(body.total_amount);
     if (!Number.isFinite(paidMinor) || paidMinor !== order.totalMinor) {
-      await prisma.storeOrder.update({
-        where: { id: order.id },
-        data: {
-          paymentStatus: "failed",
-          adminNotes: [
-            order.adminNotes,
-            `PayTR tutar uyuşmazlığı: beklenen ${order.totalMinor}, gelen ${body.total_amount}`,
-          ]
-            .filter(Boolean)
-            .join(" · "),
-        },
-      });
+      await markCardOrderPaymentFailed(
+        order.id,
+        `PayTR tutar uyuşmazlığı: beklenen ${order.totalMinor}, gelen ${body.total_amount}`,
+      );
       return new NextResponse("OK");
     }
 
@@ -80,6 +76,7 @@ export async function POST(req: Request) {
         status: "confirmed",
       },
     });
+    await recordOrderStockAfterCardPayment(site.id, order.id);
     await sendOrderConfirmationBundle(order.id).catch((e) => console.error("[notify]", e));
     try {
       const { recordOrderFinanceOnPayment } = await import("@/lib/finance/order-posting");
@@ -108,13 +105,7 @@ export async function POST(req: Request) {
       console.error("[analytics]", e);
     }
   } else {
-    await prisma.storeOrder.update({
-      where: { id: order.id },
-      data: {
-        paymentStatus: "failed",
-        adminNotes: [order.adminNotes, "PayTR: ödeme başarısız"].filter(Boolean).join(" · "),
-      },
-    });
+    await markCardOrderPaymentFailed(order.id, "PayTR: ödeme başarısız");
   }
 
   return new NextResponse("OK");

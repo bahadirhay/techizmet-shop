@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { buildCarrierTrackingUrl } from "@/lib/admin/carrier-tracking";
 import { shouldFocusInvoiceAfterSave } from "@/lib/admin/order-invoice-workflow";
 import { ORDER_STATUSES } from "@/lib/admin/marketplace-platforms";
+import { isCardOrderAwaitingPayment } from "@/lib/orders/card-payment";
 import { AdminField, btnPrimary, inputClass } from "@/components/admin/AdminForm";
 
 type CarrierOpt = { id: string; name: string; trackingUrlTemplate: string | null };
@@ -16,6 +17,8 @@ export function OrderDetailForm({
   initialCarrierId,
   initialTracking,
   initialNotes,
+  paymentMethod,
+  paymentStatus,
   carriers,
   invoiceComplete,
 }: {
@@ -24,6 +27,8 @@ export function OrderDetailForm({
   initialCarrierId: string;
   initialTracking: string;
   initialNotes: string;
+  paymentMethod: string | null;
+  paymentStatus: string;
   carriers: CarrierOpt[];
   invoiceComplete: boolean;
 }) {
@@ -39,6 +44,8 @@ export function OrderDetailForm({
     return buildCarrierTrackingUrl(carrier?.trackingUrlTemplate, trackingNumber);
   }, [carriers, carrierId, trackingNumber]);
 
+  const awaitingCardPayment = isCardOrderAwaitingPayment({ paymentMethod, paymentStatus });
+
   async function save() {
     const previousStatus = initialStatus;
     const previousTracking = initialTracking;
@@ -48,7 +55,8 @@ export function OrderDetailForm({
       body: JSON.stringify({ status, carrierId: carrierId || null, trackingNumber, adminNotes }),
     });
     if (!res.ok) {
-      setMsg("Hata");
+      const j = (await res.json().catch(() => ({}))) as { error?: string };
+      setMsg(j.error ?? "Hata");
       return;
     }
     setMsg("Kaydedildi");
@@ -69,6 +77,15 @@ export function OrderDetailForm({
   return (
     <div className="max-w-xl space-y-4 rounded-xl border bg-white p-6">
       <h2 className="font-semibold">Sipariş yönetimi</h2>
+      {awaitingCardPayment ? (
+        <div
+          className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900"
+          role="alert"
+        >
+          <strong>Ödeme alınmadı.</strong> Bu kartlı sipariş henüz tahsil edilmedi — ürün hazırlamayın
+          veya kargolamayın. Müşteri ödemeyi tamamlayana kadar bekleyin veya siparişi iptal edin.
+        </div>
+      ) : null}
       <AdminField label="Durum">
         <select className={inputClass} value={status} onChange={(e) => setStatus(e.target.value)}>
           {ORDER_STATUSES.map((s) => (

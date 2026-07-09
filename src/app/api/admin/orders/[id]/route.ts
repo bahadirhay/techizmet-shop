@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { sendOrderStatusEmailIfNeeded } from "@/lib/email/send-order-email";
+import { canTransitionOrderStatus } from "@/lib/orders/card-payment";
 import { requireStaffApi } from "@/lib/staff-auth";
 import { prisma } from "@/lib/prisma";
 
@@ -26,6 +27,15 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   const newStatus = body.status != null ? String(body.status) : existing.status;
   const newPaymentStatus =
     body.paymentStatus != null ? String(body.paymentStatus) : existing.paymentStatus;
+
+  const statusGuard = canTransitionOrderStatus(
+    { paymentMethod: existing.paymentMethod, paymentStatus: newPaymentStatus },
+    newStatus,
+  );
+  if (!statusGuard.ok) {
+    return NextResponse.json({ error: statusGuard.error }, { status: 400 });
+  }
+
   const order = await prisma.storeOrder.update({
     where: { id },
     data: {

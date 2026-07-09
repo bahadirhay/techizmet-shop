@@ -4,6 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { getDefaultSite } from "@/lib/site";
 import { getSiteSettings } from "@/lib/site-settings";
 import { getIyzicoConfig, retrieveIyzicoCheckout } from "@/lib/payments/iyzico";
+import {
+  markCardOrderPaymentFailed,
+  recordOrderStockAfterCardPayment,
+} from "@/lib/orders/card-payment";
 
 function siteBaseUrl(): string {
   return (
@@ -18,6 +22,7 @@ async function markOrderPaid(orderId: string, siteId: string, orderNumber: strin
     where: { id: orderId },
     data: { paymentStatus: "paid", status: "confirmed" },
   });
+  await recordOrderStockAfterCardPayment(siteId, orderId);
   await sendOrderConfirmationBundle(orderId).catch((e) => console.error("[notify]", e));
   try {
     const { recordOrderFinanceOnPayment } = await import("@/lib/finance/order-posting");
@@ -93,18 +98,10 @@ export async function POST(req: Request) {
   if (result.paymentStatus === "SUCCESS") {
     const paidMinor = Math.round(Number(result.paidPrice ?? "0") * 100);
     if (!Number.isFinite(paidMinor) || paidMinor !== order.totalMinor) {
-      await prisma.storeOrder.update({
-        where: { id: order.id },
-        data: {
-          paymentStatus: "failed",
-          adminNotes: [
-            order.adminNotes,
-            `iyzico tutar uyuşmazlığı: beklenen ${order.totalMinor}, gelen ${result.paidPrice}`,
-          ]
-            .filter(Boolean)
-            .join(" · "),
-        },
-      });
+      await markCardOrderPaymentFailed(
+        order.id,
+        `iyzico tutar uyuşmazlığı: beklenen ${order.totalMinor}, gelen ${result.paidPrice}`,
+      );
       return NextResponse.redirect(
         `${baseUrl}/checkout/pay?order=${encodeURIComponent(order.orderNumber)}&failed=1`,
         303,
@@ -126,13 +123,7 @@ export async function POST(req: Request) {
     );
   }
 
-  await prisma.storeOrder.update({
-    where: { id: order.id },
-    data: {
-      paymentStatus: "failed",
-      adminNotes: [order.adminNotes, "iyzico: ödeme başarısız"].filter(Boolean).join(" · "),
-    },
-  });
+  await markCardOrderPaymentFailed(order.id, "iyzico: ödeme başarısız");
 
   return NextResponse.redirect(
     `${baseUrl}/checkout/pay?order=${encodeURIComponent(order.orderNumber)}&failed=1`,
