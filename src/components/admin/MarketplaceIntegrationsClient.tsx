@@ -8,7 +8,7 @@ import { MarketplaceCommissionRulesPanel } from "@/components/admin/MarketplaceC
 import { MarketplaceAttributeMappingPanel } from "@/components/admin/MarketplaceAttributeMappingPanel";
 import { MarketplaceProductMatchPanel } from "@/components/admin/MarketplaceProductMatchPanel";
 import { TrendyolQnaPanel } from "@/components/admin/TrendyolQnaPanel";
-import { AmazonProductSendPanel } from "@/components/admin/AmazonProductSendPanel";
+import { AmazonProductMatchPanel } from "@/components/admin/AmazonProductMatchPanel";
 import { TRENDYOL_CARGO_PROVIDERS } from "@/lib/marketplace/trendyol/cargo-providers";
 import type { CommissionRuleRow } from "@/lib/marketplace/commission-types";
 
@@ -394,6 +394,24 @@ export function MarketplaceIntegrationsClient({
           </button>
         </div>
       ) : null}
+      {selected === "amazon_tr" ? (
+        <div className="flex gap-1 border-b border-zinc-200">
+          <button
+            type="button"
+            className={`-mb-px border-b-2 px-3 py-2 text-sm ${view === "settings" ? "border-zinc-800 font-medium text-zinc-900" : "border-transparent text-zinc-500"}`}
+            onClick={() => setView("settings")}
+          >
+            Entegrasyon ayarları
+          </button>
+          <button
+            type="button"
+            className={`-mb-px border-b-2 px-3 py-2 text-sm ${view === "products" ? "border-zinc-800 font-medium text-zinc-900" : "border-transparent text-zinc-500"}`}
+            onClick={() => setView("products")}
+          >
+            Ürün listesi & gönderim
+          </button>
+        </div>
+      ) : null}
       {selected === "trendyol" && view === "products" ? (
         <MarketplaceProductMatchPanel
           platform={selected}
@@ -401,10 +419,16 @@ export function MarketplaceIntegrationsClient({
           tablesReady={marketplaceTablesReady}
         />
       ) : null}
+      {selected === "amazon_tr" && view === "products" ? (
+        <AmazonProductMatchPanel categories={categories} tablesReady={marketplaceTablesReady} />
+      ) : null}
       {selected === "trendyol" && view === "qna" ? <TrendyolQnaPanel /> : null}
       <div
         className="space-y-4 rounded-xl border bg-white p-6"
-        hidden={selected === "trendyol" && (view === "products" || view === "qna")}
+        hidden={
+          (selected === "trendyol" && (view === "products" || view === "qna")) ||
+          (selected === "amazon_tr" && view === "products")
+        }
       >
         <h2 className="text-lg font-semibold">
           {MARKETPLACE_PLATFORMS.find((p) => p.id === selected)?.label}
@@ -758,8 +782,8 @@ export function MarketplaceIntegrationsClient({
             <AdminField label="Varsayılan ürün tipi (amazonDefaultProductType)">
               <input
                 className={inputClass}
-                placeholder="PRODUCT (ör. PET_FOOD, PET_SUPPLIES)"
-                value={cfg.amazonDefaultProductType ?? "PRODUCT"}
+                placeholder="PET_FOOD"
+                value={cfg.amazonDefaultProductType ?? "PET_FOOD"}
                 onChange={(e) => setCfg({ ...cfg, amazonDefaultProductType: e.target.value })}
               />
             </AdminField>
@@ -854,12 +878,6 @@ export function MarketplaceIntegrationsClient({
           >
             {msg}
           </p>
-        ) : null}
-
-        {selected === "amazon_tr" ? (
-          <div className="mt-4">
-            <AmazonProductSendPanel />
-          </div>
         ) : null}
 
         {!marketplaceTablesReady ? (

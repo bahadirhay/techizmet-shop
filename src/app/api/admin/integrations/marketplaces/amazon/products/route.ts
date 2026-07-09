@@ -8,10 +8,16 @@ export async function GET(req: Request) {
   if (auth instanceof NextResponse) return auth;
 
   const params = new URL(req.url).searchParams;
+  const categoryId = params.get("categoryId")?.trim() || "";
   const search = params.get("q")?.trim().toLocaleLowerCase("tr") || "";
 
+  const where: Record<string, unknown> = { siteId: auth.siteId, published: true };
+  if (categoryId) {
+    where.OR = [{ categoryId }, { categoryLinks: { some: { categoryId } } }];
+  }
+
   const products = await prisma.storeProduct.findMany({
-    where: { siteId: auth.siteId, published: true },
+    where,
     orderBy: { title: "asc" },
     take: 500,
     select: {
@@ -23,12 +29,16 @@ export async function GET(req: Request) {
       description: true,
       categoryId: true,
       stockQty: true,
+      category: { select: { title: true } },
       images: { orderBy: { sortOrder: "asc" }, take: 1, select: { url: true } },
       variants: { select: { label: true, sku: true } },
     },
   });
 
-  const statusByProduct = new Map<string, { status: string; error: string | null }>();
+  const statusByProduct = new Map<
+    string,
+    { status: string; error: string | null; metaJson: string | null }
+  >();
   const listingDb = marketplaceProductListingDb();
   if (listingDb) {
     const listings = await prisma.marketplaceProductListing.findMany({
@@ -37,27 +47,42 @@ export async function GET(req: Request) {
         platform: "amazon_tr",
         productId: { in: products.map((p) => p.id) },
       },
-      select: { productId: true, listingStatus: true, lastError: true },
+      select: { productId: true, listingStatus: true, lastError: true, metaJson: true },
     });
     for (const l of listings) {
-      statusByProduct.set(l.productId, { status: l.listingStatus, error: l.lastError });
+      statusByProduct.set(l.productId, {
+        status: l.listingStatus,
+        error: l.lastError,
+        metaJson: l.metaJson,
+      });
     }
   }
 
   const rows = products
     .map((p) => {
       const variantText = p.variants.map((v) => `${v.label} ${v.sku ?? ""}`).join(" ");
-      const searchText = [p.title, p.sku ?? "", variantText, p.description ?? ""]
+      const searchText = [p.title, p.sku ?? "", variantText, p.description ?? "", p.category?.title ?? ""]
         .join(" ")
         .toLocaleLowerCase("tr");
       const listing = statusByProduct.get(p.id);
+      let amazonSku: string | null = p.sku;
+      if (listing?.metaJson) {
+        try {
+          const meta = JSON.parse(listing.metaJson) as { sku?: string };
+          if (meta.sku?.trim()) amazonSku = meta.sku.trim();
+        } catch {
+          /* metaJson bozuk */
+        }
+      }
       return {
         id: p.id,
         title: p.title,
         sku: p.sku,
+        amazonSku,
         barcode: p.barcode,
         imageUrl: p.imageUrl ?? p.images[0]?.url ?? null,
         categoryId: p.categoryId,
+        categoryTitle: p.category?.title ?? null,
         stockQty: p.stockQty,
         searchText,
         listingStatus: listing?.status ?? "none",
