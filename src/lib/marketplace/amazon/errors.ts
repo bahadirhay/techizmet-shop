@@ -1,0 +1,34 @@
+/** Amazon listing issue mesajlarını admin panelde okunur hale getirir. */
+export function formatAmazonListingError(message: string): string {
+  const url = message.match(/https:\/\/[^\s'"]+/)?.[0];
+  const brandFromUrl = url?.match(/brandName=([^&]+)/)?.[1];
+
+  if (
+    message.includes("Onay İsteyin") ||
+    message.includes("onaylanmamış") ||
+    message.includes("approvalrequest")
+  ) {
+    const brand = brandFromUrl ? decodeURIComponent(brandFromUrl.replace(/\+/g, " ")) : "markanız";
+    return url
+      ? `Marka onayı gerekli (${brand}) — Seller Central formu: ${url}`
+      : `Marka onayı gerekli (${brand}): ${message.slice(0, 180)}`;
+  }
+
+  if (message.includes("katalogda olmaması") || message.includes("13013")) {
+    return (
+      "Ürün henüz Amazon kataloğunda oluşturulamadı (marka onayı bekleniyor olabilir). " +
+      "Marka onayından sonra panelden ürünü yeniden gönderin."
+    );
+  }
+
+  return message;
+}
+
+export function amazonBrandApprovalUrl(brandName: string): string {
+  const q = new URLSearchParams({
+    restrictionScope: "CONTRIBUTION",
+    brandName,
+    operationFilter: "use_brand_value",
+  });
+  return `https://sellercentral.amazon.com.tr/hz/approvalrequest?${q}`;
+}

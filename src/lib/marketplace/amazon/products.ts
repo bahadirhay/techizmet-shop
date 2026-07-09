@@ -14,6 +14,7 @@ import { upsertProductMarketplaceListing } from "@/lib/marketplace/catalog-impor
 import { marketplaceCategoryMappingDb } from "@/lib/marketplace/prisma-marketplace";
 import { htmlToPlainText } from "@/lib/product-content-format";
 import { toAbsoluteMediaUrl } from "@/lib/seo/site-url";
+import { formatAmazonListingError } from "@/lib/marketplace/amazon/errors";
 
 const DEFAULT_MARKETPLACE_ID = AMAZON_TR_MARKETPLACE_ID;
 
@@ -393,6 +394,7 @@ export async function syncProductsToAmazon(
         ?.filter((x) => (x.severity ?? "ERROR").toUpperCase() === "ERROR")
         .map((x) => x.message)
         .filter(Boolean)
+        .map((m) => formatAmazonListingError(String(m)))
         .join("; ") || "";
 
     if (res.ok && (status === "ACCEPTED" || status === "VALID")) {

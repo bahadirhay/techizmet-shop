@@ -7,6 +7,7 @@ import {
   type AmazonSpApiCredentials,
 } from "@/lib/marketplace/amazon/client";
 import { upsertProductMarketplaceListing } from "@/lib/marketplace/catalog-import";
+import { formatAmazonListingError } from "@/lib/marketplace/amazon/errors";
 
 function resolveListingSku(
   metaJson: string | null,
@@ -76,6 +77,7 @@ async function fetchAmazonListingStatus(
       ?.filter((x) => (x.severity ?? "ERROR").toUpperCase() === "ERROR")
       .map((x) => x.message)
       .filter(Boolean)
+      .map((m) => formatAmazonListingError(String(m)))
       .join("; ") ?? "";
 
   if (errors) {

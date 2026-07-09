@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { AdminField, btnPrimary, btnSecondary, inputClass } from "@/components/admin/AdminForm";
+import { amazonBrandApprovalUrl } from "@/lib/marketplace/amazon/errors";
 
 type CategoryOption = { id: string; label: string };
 
@@ -28,6 +29,23 @@ const STATUS_LABEL: Record<string, { text: string; cls: string }> = {
   exported: { text: "gönderildi", cls: "text-blue-600" },
   error: { text: "hata", cls: "text-red-600" },
 };
+
+function ErrorText({ text }: { text: string }) {
+  const parts = text.split(/(https:\/\/[^\s]+)/g);
+  return (
+    <p className="mt-0.5 max-w-[14rem] text-[11px] text-red-600">
+      {parts.map((part, i) =>
+        part.startsWith("https://") ? (
+          <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="underline">
+            {part.length > 48 ? "Onay formunu aç →" : part}
+          </a>
+        ) : (
+          <span key={i}>{part}</span>
+        ),
+      )}
+    </p>
+  );
+}
 
 export function AmazonProductMatchPanel({
   categories,
@@ -158,6 +176,24 @@ export function AmazonProductMatchPanel({
 
   return (
     <div className="space-y-4">
+      <div className="rounded-lg border border-amber-300 bg-amber-50 p-4">
+        <p className="text-sm font-semibold text-amber-950">Yeni marka: Amazon onayı gerekir</p>
+        <p className="mt-1 text-xs text-amber-900">
+          <strong>Anatolian Paw</strong> gibi yeni markalar Amazon&apos;da önce onaylanmalıdır. Onay
+          olmadan ilan kataloga eklenemez (&quot;marka onaylanmamış&quot; / &quot;katalogda yok&quot;
+          hataları). Formu doldurun; onay genelde birkaç gün sürer. Sonra ürünü panelden yeniden
+          gönderin.
+        </p>
+        <a
+          href={amazonBrandApprovalUrl("Anatolian Paw")}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-2 inline-block text-xs font-medium text-amber-950 underline"
+        >
+          Anatolian Paw marka onay formu (Seller Central TR) →
+        </a>
+      </div>
+
       <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
         <p className="text-sm font-semibold text-blue-950">Amazon ürün gönderimi</p>
         <p className="mt-1 text-xs text-blue-900">
@@ -306,9 +342,7 @@ export function AmazonProductMatchPanel({
                       <td className="p-2 text-xs">{p.stockQty}</td>
                       <td className="p-2">
                         <span className={`text-xs ${status.cls}`}>{status.text}</span>
-                        {p.lastError ? (
-                          <p className="mt-0.5 max-w-[14rem] text-[11px] text-red-600">{p.lastError}</p>
-                        ) : null}
+                        {p.lastError ? <ErrorText text={p.lastError} /> : null}
                       </td>
                     </tr>
                   );
