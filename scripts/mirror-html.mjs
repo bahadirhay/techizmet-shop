@@ -212,9 +212,19 @@ const STORE_BRIDGE = `<script id="kn-store-bridge">
     document.body.classList.remove("overflow-hidden");
     document.documentElement.classList.remove("overflow-hidden");
   }
-  document.querySelectorAll("[data-close-drawer],[data-drawer-close]").forEach(function (btn) {
-    btn.addEventListener("click", closeDrawers);
-  });
+  window.__knCloseDrawers = closeDrawers;
+  if (!document.documentElement.dataset.knDrawerCloseBound) {
+    document.documentElement.dataset.knDrawerCloseBound = "1";
+    document.addEventListener("click", function (e) {
+      var btn = e.target && e.target.closest ? e.target.closest("[data-close-drawer],[data-drawer-close]") : null;
+      if (!btn) return;
+      var drawer = btn.closest("cart-drawer,account-drawer,search-drawer,[data-drawer]");
+      if (!drawer) return;
+      e.preventDefault();
+      e.stopPropagation();
+      closeDrawers();
+    }, true);
+  }
 })();
 </script>`;
 
