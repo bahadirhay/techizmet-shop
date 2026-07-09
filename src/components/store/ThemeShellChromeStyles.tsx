@@ -1,6 +1,7 @@
 "use client";
 
 import "@/app/store-theme.css";
+import { FIXES_CSS_VERSION } from "@/lib/mirror-store-ui-fix";
 
 /**
  * Tema kabuğu — ana sayfada yalnızca header/hero için kritik CSS senkron;
@@ -8,7 +9,6 @@ import "@/app/store-theme.css";
  */
 const BASE = "/theme/techizmet-shop/cdn/shop/t/5/assets";
 const V = "?v=1";
-const FIXES_CSS_VERSION = 46;
 
 const SYNC_SHEETS = [
   `${BASE}/swiper-bundle.min3e40.css${V}`,

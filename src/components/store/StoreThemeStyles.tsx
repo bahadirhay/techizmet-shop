@@ -2,10 +2,10 @@
  * Techizmet Shop mirror CSS — ürün / CMS sayfaları için.
  */
 import "@/app/store-theme.css";
+import { FIXES_CSS_VERSION } from "@/lib/mirror-store-ui-fix";
 
 const BASE = "/theme/techizmet-shop/cdn/shop/t/5/assets";
 const V = "?v=1";
-const FIXES_CSS_VERSION = 45;
 
 const CORE_SHEETS: string[] = [
   `${BASE}/swiper-bundle.min3e40.css${V}`,

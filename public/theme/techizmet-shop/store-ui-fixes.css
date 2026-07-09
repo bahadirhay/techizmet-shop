@@ -402,6 +402,9 @@ aside.kn-react-account-drawer .kn-account__social .button {
   margin-top: 0.5rem;
 }
 
+/* Tema kabuğu — header (z-index 250) üstünde; theme9bdd .side-drawer z-index:3 yetersiz */
+cart-drawer.side-drawer,
+search-drawer.side-drawer,
 account-drawer.side-drawer {
   z-index: 999 !important;
 }
@@ -435,6 +438,8 @@ account-drawer.side-drawer.show {
   display: flex !important;
 }
 
+cart-drawer.side-drawer .side--drawer-panel,
+search-drawer.side-drawer .side--drawer-panel,
 account-drawer.side-drawer .side--drawer-panel {
   position: relative;
   z-index: 1;
