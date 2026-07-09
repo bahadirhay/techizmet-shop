@@ -353,7 +353,7 @@ export function MarketplaceIntegrationsClient({
   const current = rows.find((r) => r.platform === selected);
 
   return (
-    <div className="space-y-4">
+    <div className="min-w-0 max-w-full">
       <p className="text-sm text-zinc-500">
         Platform değiştirmek için sol menüdeki <strong>Pazaryeri</strong> bölümünü kullanın.
       </p>

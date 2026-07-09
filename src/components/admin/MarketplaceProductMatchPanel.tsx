@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { AdminField, btnPrimary, btnSecondary, inputClass } from "@/components/admin/AdminForm";
 
 type ReadinessCheck = { key: string; label: string; ok: boolean; detail: string; optional?: boolean };
@@ -85,6 +85,8 @@ export function MarketplaceProductMatchPanel({
   const [pullBusy, setPullBusy] = useState(false);
   const [checks, setChecks] = useState<ReadinessCheck[] | null>(null);
   const [ready, setReady] = useState(true);
+  const [readinessOpen, setReadinessOpen] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // Hızlı gönder: ada göre ara → seçili ürünleri kategori seçmeden gönder
   const [quickSearch, setQuickSearch] = useState("");
@@ -112,6 +114,10 @@ export function MarketplaceProductMatchPanel({
     void loadReadiness();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (checks && !ready) setReadinessOpen(true);
+  }, [checks, ready]);
 
   function initCells(rows: ProductRow[], attributes: Attr[], autofill: boolean) {
     const next: Record<string, Record<number, CellValue>> = {};
@@ -473,61 +479,70 @@ export function MarketplaceProductMatchPanel({
   const failedChecks = checks?.filter((c) => !c.ok && !c.optional) ?? [];
 
   return (
-    <div className="space-y-4">
+    <div className="min-w-0 max-w-full space-y-3 overflow-hidden">
       {checks ? (
         <div
-          className={`rounded-lg border p-4 ${
+          className={`rounded-lg border ${
             ready ? "border-green-200 bg-green-50" : "border-amber-300 bg-amber-50"
           }`}
         >
-          <div className="flex items-center justify-between gap-2">
+          <button
+            type="button"
+            className="flex w-full items-center justify-between gap-2 p-3 text-left"
+            onClick={() => setReadinessOpen((v) => !v)}
+          >
             <p className="text-sm font-semibold">
               {ready
-                ? "Gönderime hazır — tüm ayarlar tamam"
+                ? "✓ Gönderime hazır"
                 : `Gönderim öncesi ${failedChecks.length} eksik var`}
             </p>
-            <button
-              type="button"
-              className="text-xs text-zinc-500 underline"
-              onClick={() => void loadReadiness()}
-            >
-              Yenile
-            </button>
-          </div>
-          <ul className="mt-2 grid gap-1 sm:grid-cols-2">
-            {checks.map((c) => {
-              const mark = c.ok ? "✓" : c.optional ? "○" : "✗";
-              const markCls = c.ok ? "text-green-600" : c.optional ? "text-zinc-400" : "text-amber-600";
-              return (
-                <li key={c.key} className="flex items-start gap-2 text-xs">
-                  <span className={markCls}>{mark}</span>
-                  <span>
-                    <span className="font-medium">{c.label}</span>
-                    <span className="text-zinc-500"> — {c.detail}</span>
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-          {!ready ? (
-            <p className="mt-2 text-xs text-amber-900">
-              Eksikleri <strong>Entegrasyon ayarları</strong> sekmesinden tamamlayın, sonra “Yenile”ye basın.
-            </p>
+            <span className="text-xs text-zinc-500">{readinessOpen ? "Gizle" : "Detay"}</span>
+          </button>
+          {readinessOpen || !ready ? (
+            <div className="border-t border-inherit px-3 pb-3">
+              <div className="mb-2 flex justify-end">
+                <button
+                  type="button"
+                  className="text-xs text-zinc-500 underline"
+                  onClick={() => void loadReadiness()}
+                >
+                  Yenile
+                </button>
+              </div>
+              <ul className="grid gap-1 sm:grid-cols-2">
+                {checks.map((c) => {
+                  const mark = c.ok ? "✓" : c.optional ? "○" : "✗";
+                  const markCls = c.ok ? "text-green-600" : c.optional ? "text-zinc-400" : "text-amber-600";
+                  return (
+                    <li key={c.key} className="flex items-start gap-2 text-xs">
+                      <span className={markCls}>{mark}</span>
+                      <span>
+                        <span className="font-medium">{c.label}</span>
+                        <span className="text-zinc-500"> — {c.detail}</span>
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+              {!ready ? (
+                <p className="mt-2 text-xs text-amber-900">
+                  Eksikleri <strong>Entegrasyon ayarları</strong> sekmesinden tamamlayın.
+                </p>
+              ) : null}
+            </div>
           ) : null}
         </div>
       ) : null}
 
-      <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-        <p className="text-sm font-semibold text-emerald-900">Hızlı gönder — ada göre bul & seçili gönder</p>
-        <p className="mt-1 text-xs text-emerald-800">
-          Yeni bir ürün/paketi kategori seçmeden buradan gönderin. Ada göre arayın, göndermek
-          istediklerinizi işaretleyin, <strong>Seçiliyi gönder</strong>&apos;e basın. Sadece
-          seçtikleriniz gönderilir — tüm ürünler değil.
+      <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+        <p className="text-sm font-semibold text-emerald-900">Hızlı gönder</p>
+        <p className="mt-0.5 text-xs text-emerald-800">
+          Kategori seçmeden ada göre ara, seçili ürünleri gönder.
         </p>
-        <div className="mt-3 flex flex-wrap items-end gap-2">
+        <div className="mt-2 flex flex-wrap items-center gap-2">
           <input
-            className={`${inputClass} min-w-[16rem] flex-1`}
-            placeholder="Ürün/paket adı ara…"
+            className={`${inputClass} min-w-0 flex-1 basis-[12rem]`}
+            placeholder="Ürün adı ara…"
             value={quickSearch}
             onChange={(e) => setQuickSearch(e.target.value)}
             onKeyDown={(e) => {
@@ -543,7 +558,7 @@ export function MarketplaceProductMatchPanel({
             disabled={quickBusy || quickSelected.size === 0}
             onClick={() => void quickSend()}
           >
-            {quickBusy ? "Gönderiliyor…" : `Seçiliyi gönder (${quickSelected.size})`}
+            {quickBusy ? "…" : `Gönder (${quickSelected.size})`}
           </button>
         </div>
         {quickSearched && quickResults.length === 0 ? (
@@ -569,11 +584,11 @@ export function MarketplaceProductMatchPanel({
                   ) : (
                     <div className="h-8 w-8 rounded bg-zinc-100" />
                   )}
-                  <span className="min-w-[10rem] flex-1">
-                    <span className="font-medium leading-tight">{p.title}</span>
-                    <span className="block text-xs text-zinc-500">
+                  <span className="min-w-0 flex-1 truncate">
+                    <span className="block truncate font-medium leading-tight">{p.title}</span>
+                    <span className="block truncate text-xs text-zinc-500">
                       {p.barcode ? `Barkod: ${p.barcode}` : (
-                        <span className="text-red-600">Barkod yok — otomatik üretilecek</span>
+                        <span className="text-red-600">Barkod yok</span>
                       )}{" "}
                       · stok {p.stockQty}
                     </span>
@@ -586,20 +601,18 @@ export function MarketplaceProductMatchPanel({
         ) : null}
       </div>
 
-      <div className="rounded-lg border border-zinc-200 bg-white p-4">
-        <p className="text-sm font-semibold">Ürün eşleştirme & gönderim (kategori + özellik düzenleme)</p>
-        <p className="mt-1 text-xs text-zinc-500">
-          Önce <strong>Trendyol&apos;dan çek</strong> ile mağazanızdaki mevcut ürünleri içe aktarın (barkod ile
-          eşleşir). Kategori seç → ürünler listelenir. Reddedilen ürünlerin hata nedeni <strong>Durum</strong>{" "}
-          sütununda görünür; özellikleri düzeltip <strong>güncelle</strong> gönderin.
+      <div className="rounded-lg border border-zinc-200 bg-white p-3">
+        <p className="text-sm font-semibold">Kategori listesi & özellik düzenleme</p>
+        <p className="mt-0.5 text-xs text-zinc-500">
+          Kategori seç → ürünleri getir. Özellikler satırdaki <strong>Özellikler</strong> ile açılır.
         </p>
         {!tablesReady ? (
           <p className="mt-2 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
             Pazaryeri tabloları için Prisma client güncellenmeli (deploy sonrası hazır olur).
           </p>
         ) : null}
-        <div className="mt-3 flex flex-wrap items-end gap-2">
-          <div className="min-w-[16rem] flex-1">
+        <div className="mt-2 flex flex-wrap items-end gap-2">
+          <div className="min-w-0 flex-1 basis-[12rem]">
             <AdminField label="Kategori">
               <select
                 className={inputClass}
@@ -636,53 +649,54 @@ export function MarketplaceProductMatchPanel({
       </div>
 
       {trCatId && products.length > 0 ? (
-        <div className="rounded-lg border border-zinc-200 bg-white">
-          <div className="flex flex-wrap items-center gap-2 border-b p-3">
-            <input
-              className={`${inputClass} max-w-[16rem]`}
-              placeholder="Ürün ara…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            <button type="button" className={btnSecondary} onClick={autoFillAll}>
-              Otomatik doldur
-            </button>
-            <label className="flex items-center gap-1 text-xs text-zinc-600">
-              <input type="checkbox" checked={showAll} onChange={(e) => setShowAll(e.target.checked)} />
-              Tüm özellikler
-            </label>
-            <AdminField label="Durum filtresi">
+        <div className="min-w-0 max-w-full rounded-lg border border-zinc-200 bg-white">
+          <div className="space-y-2 border-b p-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                className={`${inputClass} w-full min-w-0 sm:max-w-[14rem] sm:flex-1`}
+                placeholder="Ürün ara…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
               <select
                 className={`${inputClass} text-xs`}
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
+                aria-label="Durum filtresi"
               >
-                <option value="all">Tümü</option>
+                <option value="all">Tüm durumlar</option>
                 <option value="rejected">Reddedildi</option>
                 <option value="pending">Onay bekliyor</option>
                 <option value="active">Yayında</option>
                 <option value="inactive">Pasif</option>
                 <option value="none">Gönderilmedi</option>
               </select>
-            </AdminField>
-            <div className="ml-auto flex gap-2">
+              <button type="button" className={btnSecondary} onClick={autoFillAll}>
+                Otomatik doldur
+              </button>
+              <label className="flex items-center gap-1 whitespace-nowrap text-xs text-zinc-600">
+                <input type="checkbox" checked={showAll} onChange={(e) => setShowAll(e.target.checked)} />
+                Tüm özellikler
+              </label>
+            </div>
+            <div className="flex flex-wrap gap-2">
               <button type="button" className={btnSecondary} disabled={sending} onClick={() => void refreshBatchStatus()}>
-                {sending ? "…" : "Trendyol'da doğrula"}
+                {sending ? "…" : "Doğrula"}
               </button>
               <button type="button" className={btnSecondary} disabled={sending} onClick={() => void saveSelected()}>
-                {sending ? "…" : selected.size ? `Seçiliyi kaydet (${selected.size})` : "Tümünü kaydet"}
+                {sending ? "…" : selected.size ? `Kaydet (${selected.size})` : "Kaydet"}
               </button>
               <button type="button" className={btnPrimary} disabled={sending || selected.size === 0} onClick={() => void sendSelected()}>
-                {sending ? "Gönderiliyor…" : sendLabel}
+                {sending ? "…" : sendLabel}
               </button>
             </div>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full table-fixed text-sm">
               <thead className="bg-zinc-50 text-xs text-zinc-500">
                 <tr>
-                  <th className="p-2 text-left">
+                  <th className="w-8 p-2 text-left">
                     <input
                       type="checkbox"
                       checked={selected.size === visibleProducts.length && visibleProducts.length > 0}
@@ -690,89 +704,114 @@ export function MarketplaceProductMatchPanel({
                     />
                   </th>
                   <th className="p-2 text-left">Ürün</th>
-                  {perProductAttrs.map((a) => (
-                    <th key={a.attributeId} className="p-2 text-left">
-                      {a.attributeName}
-                      {a.required ? <span className="text-red-600"> *</span> : null}
-                    </th>
-                  ))}
-                  <th className="p-2 text-left">Durum</th>
+                  <th className="w-24 p-2 text-left">Durum</th>
+                  <th className="w-20 p-2 text-left" />
                 </tr>
               </thead>
               <tbody>
                 {visibleProducts.map((p) => {
                   const status = STATUS_LABEL[p.listingStatus] ?? STATUS_LABEL.none;
+                  const isExpanded = expandedId === p.id;
                   return (
-                    <tr key={p.id} className="border-t align-top">
-                      <td className="p-2">
-                        <input
-                          type="checkbox"
-                          checked={selected.has(p.id)}
-                          onChange={() => toggleSelect(p.id)}
-                        />
-                      </td>
-                      <td className="p-2">
-                        <div className="flex items-center gap-2">
-                          {p.imageUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={p.imageUrl} alt="" className="h-9 w-9 rounded object-cover" />
-                          ) : (
-                            <div className="h-9 w-9 rounded bg-zinc-100" />
-                          )}
-                          <div className="min-w-[10rem]">
-                            <p className="font-medium leading-tight">{p.title}</p>
-                            <p className="text-xs text-zinc-500">
-                              {p.barcode ? (
-                                `Barkod: ${p.barcode}`
-                              ) : (
-                                <span className="text-red-600">Barkod yok — gönderilemez</span>
-                              )}{" "}
-                              · stok {p.stockQty}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      {perProductAttrs.map((a) => {
-                        const c = cells[p.id]?.[a.attributeId] ?? { valueId: "", custom: "" };
-                        const tpl = template[a.attributeId];
-                        return (
-                          <td key={a.attributeId} className="p-2">
-                            {a.values.length > 0 ? (
-                              <select
-                                className={`${inputClass} min-w-[8rem] text-xs`}
-                                value={c.valueId}
-                                onChange={(e) =>
-                                  setCell(p.id, a.attributeId, { valueId: e.target.value, custom: "" })
-                                }
-                              >
-                                <option value="">{tpl ? `Şablon (${tpl})` : "—"}</option>
-                                {a.values.map((v) => (
-                                  <option key={v.id} value={v.id}>
-                                    {v.name}
-                                  </option>
-                                ))}
-                              </select>
-                            ) : a.allowCustom ? (
-                              <input
-                                className={`${inputClass} min-w-[8rem] text-xs`}
-                                value={c.custom}
-                                onChange={(e) =>
-                                  setCell(p.id, a.attributeId, { valueId: "", custom: e.target.value })
-                                }
-                              />
+                    <Fragment key={p.id}>
+                      <tr className="border-t align-top">
+                        <td className="p-2">
+                          <input
+                            type="checkbox"
+                            checked={selected.has(p.id)}
+                            onChange={() => toggleSelect(p.id)}
+                          />
+                        </td>
+                        <td className="p-2">
+                          <div className="flex min-w-0 items-center gap-2">
+                            {p.imageUrl ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={p.imageUrl} alt="" className="h-8 w-8 shrink-0 rounded object-cover" />
                             ) : (
-                              <span className="text-xs text-zinc-400">—</span>
+                              <div className="h-8 w-8 shrink-0 rounded bg-zinc-100" />
                             )}
+                            <div className="min-w-0">
+                              <p className="truncate font-medium leading-tight" title={p.title}>
+                                {p.title}
+                              </p>
+                              <p className="truncate text-xs text-zinc-500">
+                                {p.barcode ? (
+                                  `Barkod: ${p.barcode}`
+                                ) : (
+                                  <span className="text-red-600">Barkod yok</span>
+                                )}{" "}
+                                · stok {p.stockQty}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-2">
+                          <span className={`text-xs ${status.cls}`}>{status.text}</span>
+                          {p.lastError ? (
+                            <p className="mt-0.5 line-clamp-2 text-[11px] text-red-600" title={p.lastError}>
+                              {p.lastError}
+                            </p>
+                          ) : null}
+                        </td>
+                        <td className="p-2">
+                          {perProductAttrs.length > 0 ? (
+                            <button
+                              type="button"
+                              className="text-xs text-zinc-600 underline"
+                              onClick={() => setExpandedId(isExpanded ? null : p.id)}
+                            >
+                              {isExpanded ? "Gizle" : "Özellikler"}
+                            </button>
+                          ) : null}
+                        </td>
+                      </tr>
+                      {isExpanded && perProductAttrs.length > 0 ? (
+                        <tr className="border-t bg-zinc-50">
+                          <td colSpan={4} className="p-3">
+                            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                              {perProductAttrs.map((a) => {
+                                const c = cells[p.id]?.[a.attributeId] ?? { valueId: "", custom: "" };
+                                const tpl = template[a.attributeId];
+                                return (
+                                  <div key={a.attributeId} className="min-w-0">
+                                    <label className="mb-0.5 block truncate text-[11px] font-medium text-zinc-600">
+                                      {a.attributeName}
+                                      {a.required ? <span className="text-red-600"> *</span> : null}
+                                    </label>
+                                    {a.values.length > 0 ? (
+                                      <select
+                                        className={`${inputClass} w-full min-w-0 text-xs`}
+                                        value={c.valueId}
+                                        onChange={(e) =>
+                                          setCell(p.id, a.attributeId, { valueId: e.target.value, custom: "" })
+                                        }
+                                      >
+                                        <option value="">{tpl ? `Şablon (${tpl})` : "—"}</option>
+                                        {a.values.map((v) => (
+                                          <option key={v.id} value={v.id}>
+                                            {v.name}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    ) : a.allowCustom ? (
+                                      <input
+                                        className={`${inputClass} w-full min-w-0 text-xs`}
+                                        value={c.custom}
+                                        onChange={(e) =>
+                                          setCell(p.id, a.attributeId, { valueId: "", custom: e.target.value })
+                                        }
+                                      />
+                                    ) : (
+                                      <span className="text-xs text-zinc-400">—</span>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
                           </td>
-                        );
-                      })}
-                      <td className="p-2">
-                        <span className={`text-xs ${status.cls}`}>{status.text}</span>
-                        {p.lastError ? (
-                          <p className="mt-0.5 max-w-[12rem] text-[11px] text-red-600">{p.lastError}</p>
-                        ) : null}
-                      </td>
-                    </tr>
+                        </tr>
+                      ) : null}
+                    </Fragment>
                   );
                 })}
               </tbody>
