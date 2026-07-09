@@ -12,6 +12,19 @@ type CardInitResponse = {
   error?: string;
 };
 
+/** innerHTML script çalıştırmaz — iyzico checkoutFormContent için gerekli */
+function mountHtmlWithScripts(host: HTMLElement, html: string) {
+  host.innerHTML = html;
+  host.querySelectorAll("script").forEach((old) => {
+    const script = document.createElement("script");
+    for (const attr of old.attributes) {
+      script.setAttribute(attr.name, attr.value);
+    }
+    script.textContent = old.textContent;
+    old.replaceWith(script);
+  });
+}
+
 export function CardCheckout({
   orderNumber,
   paymentToken,
@@ -52,12 +65,14 @@ export function CardCheckout({
           return;
         }
         if (j.provider === "iyzico") {
-          if (j.checkoutFormContent) {
-            setCheckoutHtml(j.checkoutFormContent);
+          const pageUrl = j.paymentPageUrl?.trim();
+          const formHtml = j.checkoutFormContent?.trim();
+          if (pageUrl) {
+            setIframeUrl(pageUrl);
             return;
           }
-          if (j.paymentPageUrl) {
-            setIframeUrl(j.paymentPageUrl);
+          if (formHtml) {
+            setCheckoutHtml(formHtml);
             return;
           }
         }
@@ -71,7 +86,7 @@ export function CardCheckout({
 
   useEffect(() => {
     if (checkoutHtml && formHostRef.current) {
-      formHostRef.current.innerHTML = checkoutHtml;
+      mountHtmlWithScripts(formHostRef.current, checkoutHtml);
     }
   }, [checkoutHtml]);
 

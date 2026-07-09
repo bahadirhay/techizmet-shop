@@ -1,6 +1,7 @@
 import type { ThemeShellSectionsContent } from "@/lib/theme-shell-sections-content";
 import { ThemeShellInjectedStyles } from "@/components/store/ThemeShellInjectedStyles";
 import { ThemeShellListingCartBridge } from "@/components/store/ThemeShellListingCartBridge";
+import { ThemeShellListingCartBridgeScript } from "@/components/store/ThemeShellListingCartBridgeScript";
 import { ThemeShellProductScripts } from "@/components/store/ThemeShellProductScripts";
 import { ThemeShellSectionStyles } from "@/components/store/ThemeShellSectionStyles";
 import { ThemeShellVitrinBoot } from "@/components/store/ThemeShellVitrinBoot";
@@ -34,7 +35,12 @@ export function ThemeShellSectionsView({
           dangerouslySetInnerHTML={{ __html: content.mainHtml }}
         />
       </div>
-      {withCartBridge ? <ThemeShellListingCartBridge /> : null}
+      {withCartBridge ? (
+        <>
+          <ThemeShellListingCartBridgeScript />
+          <ThemeShellListingCartBridge />
+        </>
+      ) : null}
       {bootVitrin ? <ThemeShellVitrinBoot /> : null}
       {bootVitrin ? (
         <ThemeShellProductScripts scripts={mergeThemeShellVitrinEngineScripts([])} />

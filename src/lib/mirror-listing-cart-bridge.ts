@@ -222,6 +222,7 @@ export const MIRROR_LISTING_CART_BRIDGE_JS = `(function(){
   function boot(){
     neutralizeListingForms();
   }
+  try{window.__knListingCartBoot=boot;}catch(e){}
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot);
   else boot();
 })();`;

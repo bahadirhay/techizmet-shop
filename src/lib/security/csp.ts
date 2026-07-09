@@ -1,20 +1,23 @@
-/** Mağaza vitrini CSP — PayTR, Instagram/YouTube embed, GA/FB Pixel ile uyumlu */
+/** Mağaza vitrini CSP — PayTR, iyzico, Instagram/YouTube embed, GA/FB Pixel ile uyumlu */
+
+const IYZICO_FRAME = "https://cpp.iyzipay.com https://sandbox-cpp.iyzipay.com";
+const IYZICO_SCRIPT = "https://cdn.iyzipay.com https://sandbox-static.iyzipay.com";
 
 export function storeContentSecurityPolicy(): string {
   const devEval = process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : "";
   return [
     "default-src 'self'",
     "base-uri 'self'",
-    "form-action 'self' https://www.paytr.com",
+    `form-action 'self' https://www.paytr.com ${IYZICO_FRAME}`,
     "frame-ancestors 'self'",
     "object-src 'none'",
-    `script-src 'self' 'unsafe-inline'${devEval} https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net https://www.paytr.com`,
+    `script-src 'self' 'unsafe-inline'${devEval} https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net https://www.paytr.com ${IYZICO_SCRIPT}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data: https:",
     "media-src 'self' https: blob:",
     "connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com https://connect.facebook.net https://www.facebook.com",
-    "frame-src 'self' https://www.paytr.com https://www.instagram.com https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://www.google.com https://maps.google.com https://www.openstreetmap.org",
+    `frame-src 'self' https://www.paytr.com ${IYZICO_FRAME} https://www.instagram.com https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://www.google.com https://maps.google.com https://www.openstreetmap.org`,
     "upgrade-insecure-requests",
   ].join("; ");
 }

@@ -3,6 +3,7 @@ import { ThemeShellDeferredStyles } from "@/components/store/ThemeShellDeferredS
 import { ThemeShellInjectedStyles } from "@/components/store/ThemeShellInjectedStyles";
 import { StreetFoodFundHero } from "@/components/store/StreetFoodFundHero";
 import { ThemeShellListingCartBridge } from "@/components/store/ThemeShellListingCartBridge";
+import { ThemeShellListingCartBridgeScript } from "@/components/store/ThemeShellListingCartBridgeScript";
 import { ThemeShellProductScripts } from "@/components/store/ThemeShellProductScripts";
 import { ThemeShellVitrinBoot } from "@/components/store/ThemeShellVitrinBoot";
 
@@ -23,6 +24,7 @@ export function ThemeShellHomeView({ content }: { content: ThemeShellHomeContent
         />
       </div>
       <StreetFoodFundHero />
+      <ThemeShellListingCartBridgeScript />
       <ThemeShellListingCartBridge />
       <ThemeShellVitrinBoot />
       <ThemeShellProductScripts scripts={content.scripts} />

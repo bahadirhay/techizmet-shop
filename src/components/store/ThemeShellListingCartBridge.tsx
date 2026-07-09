@@ -1,12 +1,20 @@
 "use client";
 
-import { useEffect } from "react";
+import { useLayoutEffect } from "react";
 import { MIRROR_LISTING_CART_BRIDGE_JS } from "@/lib/mirror-listing-cart-bridge";
 
-/** Sepete ekle köprüsü — React <script> SSR'da çalışmaz, DOM'a enjekte edilir */
+function callListingCartBoot() {
+  const w = window as Window & { __knListingCartBoot?: () => void };
+  w.__knListingCartBoot?.();
+}
+
+/** SSR script yoksa yedek — canlı katalog patch sonrası boot tekrar çağrılır */
 export function ThemeShellListingCartBridge() {
-  useEffect(() => {
-    if (document.getElementById("kn-listing-cart-bridge")) return;
+  useLayoutEffect(() => {
+    if (document.getElementById("kn-listing-cart-bridge")) {
+      callListingCartBoot();
+      return;
+    }
     const el = document.createElement("script");
     el.id = "kn-listing-cart-bridge";
     el.textContent = MIRROR_LISTING_CART_BRIDGE_JS;
@@ -15,3 +23,5 @@ export function ThemeShellListingCartBridge() {
 
   return null;
 }
+
+export { callListingCartBoot };

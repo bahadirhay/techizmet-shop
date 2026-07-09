@@ -193,10 +193,16 @@ export async function initializeIyzicoCheckout(
     };
   }
 
+  const paymentPageUrl =
+    res.paymentPageUrl?.trim() ||
+    (cfg.testMode
+      ? `https://sandbox-cpp.iyzipay.com?token=${encodeURIComponent(res.token)}`
+      : `https://cpp.iyzipay.com?token=${encodeURIComponent(res.token)}`);
+
   return {
     ok: true,
     token: res.token,
-    paymentPageUrl: res.paymentPageUrl ?? "",
+    paymentPageUrl,
     checkoutFormContent: res.checkoutFormContent,
   };
 }

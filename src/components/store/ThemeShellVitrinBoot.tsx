@@ -17,6 +17,7 @@ import {
 import { installMirrorStreetFoodBar } from "@/lib/mirror-street-food-bar";
 import { installMirrorStreetFoodFundPage } from "@/lib/mirror-street-food-fund-page";
 import { bootTestimonialSections } from "@/lib/mirror-testimonial-section";
+import { callListingCartBoot } from "@/components/store/ThemeShellListingCartBridge";
 
 /** reveal-text animasyonu tema kabuğunda çalışmaz — statik metni göster */
 function bootRevealingTextSection() {
@@ -53,6 +54,7 @@ async function hydrateThemeShellCatalog(doc: Document): Promise<void> {
   if (mirrorCatalogAlreadyHydrated(doc, locale)) {
     const map = readCatalogPriceMapFromDocument(doc);
     if (map) applyCatalogPricesToDocument(doc, map);
+    callListingCartBoot();
     return;
   }
   const payload = await fetchLiveStoreCatalog();
@@ -62,6 +64,7 @@ async function hydrateThemeShellCatalog(doc: Document): Promise<void> {
     const map = readCatalogPriceMapFromDocument(doc);
     if (map) applyCatalogPricesToDocument(doc, map);
   }
+  callListingCartBoot();
 }
 
 export function ThemeShellVitrinBoot() {
@@ -69,6 +72,7 @@ export function ThemeShellVitrinBoot() {
     const run = () => {
       bootThemeShellVitrinFeatures();
       forceMirrorResponsiveImagesInDocument(document, { themeShell: true });
+      callListingCartBoot();
       void hydrateThemeShellCatalog(document);
     };
     run();
