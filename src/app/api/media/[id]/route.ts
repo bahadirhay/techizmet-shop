@@ -2,10 +2,11 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { resizeImageBuffer } from "@/lib/image-resize";
+import { resizeImageBuffer, toMarketplaceJpegBuffer } from "@/lib/image-resize";
 import sharp from "sharp";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 30;
 
 async function readUploadsFile(url: string): Promise<Buffer | null> {
   const path = url.split("?")[0]?.trim();
@@ -17,12 +18,21 @@ async function readUploadsFile(url: string): Promise<Buffer | null> {
   }
 }
 
-function parseWidth(req: NextRequest): number | null {
+function parseWidth(req: NextRequest, opts?: { min?: number; max?: number }): number | null {
   const raw = req.nextUrl.searchParams.get("width") ?? req.nextUrl.searchParams.get("w");
   if (!raw) return null;
   const n = Number(raw);
   if (!Number.isFinite(n)) return null;
-  return Math.min(2000, Math.max(48, Math.round(n)));
+  const min = opts?.min ?? 48;
+  const max = opts?.max ?? 2000;
+  return Math.min(max, Math.max(min, Math.round(n)));
+}
+
+function wantsAmazonJpeg(req: NextRequest): boolean {
+  const format = (req.nextUrl.searchParams.get("format") ?? req.nextUrl.searchParams.get("fm") ?? "")
+    .toLowerCase()
+    .trim();
+  return format === "jpeg" || format === "jpg" || req.nextUrl.searchParams.get("amazon") === "1";
 }
 
 /** Neon DB'de saklanan medya — logo, ürün görseli, video vb. */
@@ -50,13 +60,22 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
     return NextResponse.json({ error: "Dosya bulunamadı" }, { status: 404 });
   }
 
-  const width = parseWidth(req);
+  const amazonJpeg = wantsAmazonJpeg(req);
+  const width = parseWidth(req, amazonJpeg ? { min: 1000, max: 2500 } : undefined);
   let out = body;
   let mimeType = row.mimeType || "application/octet-stream";
   const acceptsWebp = req.headers.get("accept")?.includes("image/webp") ?? false;
 
   if (mimeType.startsWith("image/") && !mimeType.includes("gif")) {
-    if (width) {
+    if (amazonJpeg) {
+      const targetLong = width ?? 1600;
+      const jpeg = await toMarketplaceJpegBuffer(body, {
+        minLongestSide: 1000,
+        maxLongestSide: Math.max(1000, Math.min(2500, targetLong)),
+      });
+      out = jpeg.body;
+      mimeType = jpeg.mimeType;
+    } else if (width) {
       const resized = await resizeImageBuffer(body, width, mimeType);
       out = resized.body;
       mimeType = resized.mimeType;
@@ -70,13 +89,15 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
     mimeType = resized.mimeType;
   }
 
-  return new NextResponse(new Uint8Array(out), {
-    headers: {
-      "Content-Type": mimeType,
-      "Content-Length": String(out.length),
-      "Cache-Control": "public, max-age=31536000, immutable",
-      "Vary": "Accept",
-      ...(row.filename ? { "Content-Disposition": `inline; filename="${row.filename.replace(/"/g, "")}"` } : {}),
-    },
-  });
+  const headers: Record<string, string> = {
+    "Content-Type": mimeType,
+    "Content-Length": String(out.length),
+    "Cache-Control": "public, max-age=31536000, immutable",
+  };
+  if (!amazonJpeg) headers.Vary = "Accept";
+  if (row.filename) {
+    headers["Content-Disposition"] = `inline; filename="${row.filename.replace(/"/g, "")}"`;
+  }
+
+  return new NextResponse(new Uint8Array(out), { headers });
 }

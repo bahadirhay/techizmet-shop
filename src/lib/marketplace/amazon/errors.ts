@@ -16,8 +16,20 @@ export function formatAmazonListingError(message: string): string {
 
   if (message.includes("katalogda olmaması") || message.includes("13013")) {
     return (
-      "Ürün henüz Amazon kataloğunda oluşturulamadı (marka onayı bekleniyor olabilir). " +
-      "Marka onayından sonra panelden ürünü yeniden gönderin."
+      "Ürün henüz Amazon kataloğunda oluşturulamadı (marka onayı veya görsel hataları giderildikten sonra yeniden gönderin). " +
+      "Panelden ürünü tekrar Amazon'a gönderin."
+    );
+  }
+
+  if (
+    message.includes("zaman aşımı") ||
+    message.includes("indirilemedi") ||
+    message.includes("Resim dosya türünüz desteklenmiyor") ||
+    message.includes("unsupported image")
+  ) {
+    return (
+      "Görsel Amazon gereksinimlerine uymuyor veya indirilemedi. Admin panelden ürünü yeniden gönderin " +
+      "(görseller artık JPEG, min 1000px olarak iletilir)."
     );
   }
 

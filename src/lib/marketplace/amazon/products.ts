@@ -12,8 +12,8 @@ import { minorToAmazonPrice } from "@/lib/marketplace/amazon/inventory";
 import { buildPlatformListingTitle } from "@/lib/marketplace/title-rules";
 import { upsertProductMarketplaceListing } from "@/lib/marketplace/catalog-import";
 import { marketplaceCategoryMappingDb } from "@/lib/marketplace/prisma-marketplace";
+import { toAmazonListingImageUrls } from "@/lib/marketplace/amazon/image-url";
 import { htmlToPlainText } from "@/lib/product-content-format";
-import { toAbsoluteMediaUrl } from "@/lib/seo/site-url";
 import { formatAmazonListingError } from "@/lib/marketplace/amazon/errors";
 
 const DEFAULT_MARKETPLACE_ID = AMAZON_TR_MARKETPLACE_ID;
@@ -129,6 +129,7 @@ type AmazonPushProduct = {
   marketplaceMarkupPercentJson: string | null;
   brand?: { name: string | null } | null;
   category?: { title: string | null } | null;
+  imageUrl?: string | null;
   images?: { url: string }[];
 };
 
@@ -210,9 +211,12 @@ function buildAmazonAttributes(
     bulletPoints.push(title.slice(0, 100));
   }
 
-  const images = (product.images ?? [])
-    .map((i) => toAbsoluteMediaUrl(i.url))
-    .filter((u): u is string => Boolean(u && u.startsWith("http")));
+  const imageSources: string[] = [];
+  if (product.imageUrl?.trim()) imageSources.push(product.imageUrl.trim());
+  for (const img of product.images ?? []) {
+    if (img.url?.trim()) imageSources.push(img.url.trim());
+  }
+  const images = toAmazonListingImageUrls(imageSources);
 
   const attrs: Record<string, unknown> = {
     condition_type: [{ value: "new_new", marketplace_id: marketplaceId }],
