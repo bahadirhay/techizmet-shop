@@ -164,9 +164,9 @@ export async function proxy(request: NextRequest) {
 
   const locale = resolveLocaleFromRequest(request);
 
-  // Amazon görsel crawler — locale çerezi ve Vary:Cookie gönderme
+  // Amazon görsel crawler — /amazon-img/*.jpg middleware dışı; media?amazon=1 de çerezsiz
   if (
-    pathname.startsWith("/api/amazon-image/") ||
+    pathname.startsWith("/amazon-img/") ||
     (pathname.startsWith("/api/media/") && request.nextUrl.searchParams.get("amazon") === "1")
   ) {
     return nextWithLocaleRequest(request, locale);

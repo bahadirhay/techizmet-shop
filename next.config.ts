@@ -85,8 +85,8 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       {
-        source: "/api/amazon-image/:id.jpg",
-        destination: "/api/amazon-image/:id",
+        source: "/amazon-img/:id.jpg",
+        destination: "/api/media/:id?format=jpeg&width=1600&amazon=1",
       },
     ];
   },
@@ -159,7 +159,7 @@ const nextConfig: NextConfig = {
       { source: "/pages/:path*", headers: [...storeShellNoEdgeCache] },
       { source: "/sokak-dostlari", headers: [...storeShellNoEdgeCache] },
       { source: "/api/admin/:path*", headers: [...noStore] },
-      { source: "/api/amazon-image/:path*", headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }] },
+      { source: "/amazon-img/:path*", headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }] },
       { source: "/_mirror-prebuilt/:path*.html", headers: [...prebuiltHtmlCache] },
       { source: "/_mirror-prebuilt/:path*", headers: [...prebuiltCache] },
       {
