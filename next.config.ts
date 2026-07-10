@@ -82,6 +82,14 @@ const nextConfig: NextConfig = {
       ...legacyProductRedirects,
     ];
   },
+  async rewrites() {
+    return [
+      {
+        source: "/api/amazon-image/:id.jpg",
+        destination: "/api/amazon-image/:id",
+      },
+    ];
+  },
   async headers() {
     const noStore = [
       { key: "Cache-Control", value: "private, no-store, max-age=0, must-revalidate" },
@@ -151,6 +159,7 @@ const nextConfig: NextConfig = {
       { source: "/pages/:path*", headers: [...storeShellNoEdgeCache] },
       { source: "/sokak-dostlari", headers: [...storeShellNoEdgeCache] },
       { source: "/api/admin/:path*", headers: [...noStore] },
+      { source: "/api/amazon-image/:path*", headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }] },
       { source: "/_mirror-prebuilt/:path*.html", headers: [...prebuiltHtmlCache] },
       { source: "/_mirror-prebuilt/:path*", headers: [...prebuiltCache] },
       {
