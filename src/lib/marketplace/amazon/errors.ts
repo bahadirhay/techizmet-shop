@@ -9,9 +9,13 @@ export function formatAmazonListingError(message: string): string {
     message.includes("approvalrequest")
   ) {
     const brand = brandFromUrl ? decodeURIComponent(brandFromUrl.replace(/\+/g, " ")) : "markanız";
+    const hint =
+      brand === "Anatolian"
+        ? " (Amazon'da onaylı ad «Anatolian Paw» — panelden yeniden gönderin)"
+        : "";
     return url
-      ? `Marka onayı gerekli (${brand}) — Seller Central formu: ${url}`
-      : `Marka onayı gerekli (${brand}): ${message.slice(0, 180)}`;
+      ? `Marka onayı gerekli (${brand})${hint} — Seller Central: ${url}`
+      : `Marka onayı gerekli (${brand})${hint}: ${message.slice(0, 180)}`;
   }
 
   if (message.includes("katalogda olmaması") || message.includes("13013")) {

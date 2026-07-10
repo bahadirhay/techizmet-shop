@@ -96,7 +96,14 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
   };
   if (!amazonJpeg) headers.Vary = "Accept";
   if (row.filename) {
-    headers["Content-Disposition"] = `inline; filename="${row.filename.replace(/"/g, "")}"`;
+    const safeName = row.filename.replace(/"/g, "");
+    const dispositionName =
+      amazonJpeg && mimeType === "image/jpeg"
+        ? safeName.replace(/\.[^.]+$/i, ".jpg")
+        : safeName;
+    headers["Content-Disposition"] = `inline; filename="${dispositionName}"`;
+  } else if (amazonJpeg && mimeType === "image/jpeg") {
+    headers["Content-Disposition"] = `inline; filename="${id.trim()}.jpg"`;
   }
 
   return new NextResponse(new Uint8Array(out), { headers });

@@ -12,7 +12,7 @@ import { minorToAmazonPrice } from "@/lib/marketplace/amazon/inventory";
 import { buildPlatformListingTitle } from "@/lib/marketplace/title-rules";
 import { upsertProductMarketplaceListing } from "@/lib/marketplace/catalog-import";
 import { marketplaceCategoryMappingDb } from "@/lib/marketplace/prisma-marketplace";
-import { toAmazonListingImageUrls } from "@/lib/marketplace/amazon/image-url";
+import { toAmazonListingImageUrls, resolveAmazonImageOrigin } from "@/lib/marketplace/amazon/image-url";
 import { htmlToPlainText } from "@/lib/product-content-format";
 import { formatAmazonListingError } from "@/lib/marketplace/amazon/errors";
 
@@ -180,14 +180,26 @@ async function resolveAmazonProductType(
   return mapping?.platformCategoryId?.trim() || fallback;
 }
 
+/** Amazon'da onaylı marka adı — DB'de kısaltılmış "Anatolian" gelse bile tam ad kullanılır. */
+function resolveAmazonBrandName(product: AmazonPushProduct, config: Record<string, string>): string {
+  const fromConfig = config.amazonBrandName?.trim();
+  if (fromConfig) return fromConfig;
+  const fromProduct = product.brand?.name?.trim();
+  if (!fromProduct || fromProduct === "Anatolian" || fromProduct.toLowerCase() === "anatolian paw") {
+    return "Anatolian Paw";
+  }
+  return fromProduct;
+}
+
 /** Bir ürün için Amazon Listings Items attribute gövdesini oluşturur. */
 function buildAmazonAttributes(
   product: AmazonPushProduct,
   marketplaceId: string,
   productType: string,
   config: Record<string, string>,
+  imageOrigin?: string,
 ): Record<string, unknown> {
-  const brandName = product.brand?.name?.trim() || "Anatolian Paw";
+  const brandName = resolveAmazonBrandName(product, config);
   const title = buildPlatformListingTitle("amazon_tr", product.title, brandName, {
     categoryTitles: product.category?.title ? [product.category.title] : [],
   });
@@ -216,7 +228,7 @@ function buildAmazonAttributes(
   for (const img of product.images ?? []) {
     if (img.url?.trim()) imageSources.push(img.url.trim());
   }
-  const images = toAmazonListingImageUrls(imageSources);
+  const images = toAmazonListingImageUrls(imageSources, imageOrigin);
 
   const attrs: Record<string, unknown> = {
     condition_type: [{ value: "new_new", marketplace_id: marketplaceId }],
@@ -362,6 +374,7 @@ export async function syncProductsToAmazon(
   }
 
   const marketplaceId = resolveAmazonMarketplaceId(config);
+  const imageOrigin = resolveAmazonImageOrigin(config);
   const publishable = products.filter((p) => p.stockQty >= 0 && p.priceMinor > 0);
 
   if (products.length > 0 && publishable.length === 0) {
@@ -394,7 +407,7 @@ export async function syncProductsToAmazon(
         body: {
           productType,
           requirements: "LISTING",
-          attributes: buildAmazonAttributes(product, marketplaceId, productType, config),
+          attributes: buildAmazonAttributes(product, marketplaceId, productType, config, imageOrigin),
         },
       },
     );

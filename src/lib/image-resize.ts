@@ -48,6 +48,7 @@ export async function toMarketplaceJpegBuffer(
     .rotate()
     .resize(targetW, targetH, { fit: "inside", withoutEnlargement: false })
     .jpeg({ quality: 90, mozjpeg: true })
+    .withMetadata({ density: 72 })
     .toBuffer();
 
   return { body, mimeType: "image/jpeg" };
