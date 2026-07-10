@@ -83,12 +83,14 @@ const nextConfig: NextConfig = {
     ];
   },
   async rewrites() {
-    return [
-      {
-        source: "/amazon-img/:id.jpg",
-        destination: "/api/media/:id?format=jpeg&width=1600&amazon=1",
-      },
-    ];
+    return {
+      beforeFiles: [
+        {
+          source: "/amazon-img/:id.jpg",
+          destination: "/api/media/:id?format=jpeg&width=1600&amazon=1",
+        },
+      ],
+    };
   },
   async headers() {
     const noStore = [
