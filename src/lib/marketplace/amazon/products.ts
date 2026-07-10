@@ -180,15 +180,12 @@ async function resolveAmazonProductType(
   return mapping?.platformCategoryId?.trim() || fallback;
 }
 
-/** Amazon'da onaylı marka adı — DB'de kısaltılmış "Anatolian" gelse bile tam ad kullanılır. */
+/** Amazon'da onaylı marka adı — bu mağaza için her zaman tam ad kullanılır. */
 function resolveAmazonBrandName(product: AmazonPushProduct, config: Record<string, string>): string {
   const fromConfig = config.amazonBrandName?.trim();
   if (fromConfig) return fromConfig;
-  const fromProduct = product.brand?.name?.trim();
-  if (!fromProduct || fromProduct === "Anatolian" || fromProduct.toLowerCase() === "anatolian paw") {
-    return "Anatolian Paw";
-  }
-  return fromProduct;
+  void product;
+  return "Anatolian Paw";
 }
 
 /** Bir ürün için Amazon Listings Items attribute gövdesini oluşturur. */

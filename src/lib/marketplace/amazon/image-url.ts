@@ -1,7 +1,5 @@
 import { getPublicSiteUrl, normalizeSiteUrl, toAbsoluteMediaUrl } from "@/lib/seo/site-url";
 
-const AMAZON_IMAGE_QUERY = "format=jpeg&width=1600&amazon=1";
-
 function amazonOrigin(siteOrigin?: string): string {
   return (siteOrigin ?? getPublicSiteUrl()).replace(/\/$/, "");
 }
@@ -16,9 +14,9 @@ export function toAmazonListingImageUrl(
 
   const origin = amazonOrigin(siteOrigin);
 
-  const mediaId = abs.match(/\/api\/media\/([^/?#]+)/i)?.[1];
+  const mediaId = abs.match(/\/api\/(?:media|amazon-image)\/([^/?#]+)/i)?.[1]?.replace(/\.jpe?g$/i, "");
   if (mediaId) {
-    return `${origin}/api/media/${mediaId}?${AMAZON_IMAGE_QUERY}`;
+    return `${origin}/api/amazon-image/${mediaId}.jpg`;
   }
 
   if (abs.includes("/api/resize-image")) {
