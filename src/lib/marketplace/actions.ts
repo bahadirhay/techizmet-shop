@@ -215,7 +215,7 @@ export async function syncMarketplaceInventory(
           listPriceMinor: prices.listPriceMinor,
         };
       });
-    const result = await syncAmazonPriceAndInventory(creds, token.accessToken, marketplaceId, items);
+    const result = await syncAmazonPriceAndInventory(creds, token.accessToken, marketplaceId, items, config);
     return { ok: result.ok, itemsCount: result.sent, message: result.message };
   }
 

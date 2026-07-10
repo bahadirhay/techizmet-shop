@@ -8,7 +8,7 @@ import {
   AMAZON_TR_MARKETPLACE_ID,
 } from "@/lib/marketplace/amazon/client";
 import { toMarketplaceSyncPrices } from "@/lib/marketplace/product-prices";
-import { minorToAmazonPrice } from "@/lib/marketplace/amazon/inventory";
+import { minorToAmazonPrice, buildAmazonGiftAttributes } from "@/lib/marketplace/amazon/inventory";
 import { buildPlatformListingTitle } from "@/lib/marketplace/title-rules";
 import { upsertProductMarketplaceListing } from "@/lib/marketplace/catalog-import";
 import { marketplaceCategoryMappingDb } from "@/lib/marketplace/prisma-marketplace";
@@ -248,6 +248,7 @@ function buildAmazonAttributes(
         our_price: [{ schedule: [{ value_with_tax: minorToAmazonPrice(prices.salePriceMinor) }] }],
       },
     ],
+    ...buildAmazonGiftAttributes(marketplaceId, config),
   };
 
   if (prices.listPriceMinor > prices.salePriceMinor) {

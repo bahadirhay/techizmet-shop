@@ -15,6 +15,32 @@ export function minorToAmazonPrice(minor: number): number {
   return Math.round(minor) / 100;
 }
 
+/** Hediye mesajı / hediye paketi — varsayılan Hayır (mağazada yok). */
+export function resolveAmazonGiftOptions(config: Record<string, string>): {
+  canBeGiftMessaged: boolean;
+  isGiftWrapAvailable: boolean;
+} {
+  const parse = (raw?: string) => {
+    const v = raw?.trim().toLowerCase();
+    return v === "true" || v === "1" || v === "yes" || v === "evet";
+  };
+  return {
+    canBeGiftMessaged: parse(config.amazonGiftMessage ?? config.amazonCanBeGiftMessaged),
+    isGiftWrapAvailable: parse(config.amazonGiftWrap ?? config.amazonGiftWrapAvailable),
+  };
+}
+
+export function buildAmazonGiftAttributes(
+  marketplaceId: string,
+  config: Record<string, string>,
+): Record<string, unknown> {
+  const gift = resolveAmazonGiftOptions(config);
+  return {
+    can_be_gift_messaged: [{ value: gift.canBeGiftMessaged, marketplace_id: marketplaceId }],
+    is_gift_wrap_available: [{ value: gift.isGiftWrapAvailable, marketplace_id: marketplaceId }],
+  };
+}
+
 /**
  * Amazon fiyat teklifi attribute'u. purchasable_offer canlı satış fiyatını,
  * list_price ise üstü çizili liste fiyatını taşır.
@@ -24,6 +50,7 @@ export function buildAmazonOfferPatches(
   salePriceMinor: number,
   listPriceMinor: number,
   quantity: number,
+  config: Record<string, string> = {},
 ): { op: "replace"; path: string; value: unknown }[] {
   const patches: { op: "replace"; path: string; value: unknown }[] = [];
 
@@ -57,6 +84,18 @@ export function buildAmazonOfferPatches(
       ],
     });
   }
+
+  const gift = resolveAmazonGiftOptions(config);
+  patches.push({
+    op: "replace",
+    path: "/attributes/can_be_gift_messaged",
+    value: [{ value: gift.canBeGiftMessaged, marketplace_id: marketplaceId }],
+  });
+  patches.push({
+    op: "replace",
+    path: "/attributes/is_gift_wrap_available",
+    value: [{ value: gift.isGiftWrapAvailable, marketplace_id: marketplaceId }],
+  });
 
   return patches;
 }
@@ -96,6 +135,7 @@ export async function syncAmazonPriceAndInventory(
   accessToken: string,
   marketplaceId: string,
   items: AmazonInventoryItem[],
+  config: Record<string, string> = {},
 ): Promise<{ ok: boolean; sent: number; message: string; errors: string[] }> {
   const valid = items.filter((i) => i.sku.trim());
   if (valid.length === 0) {
@@ -128,6 +168,7 @@ export async function syncAmazonPriceAndInventory(
             item.salePriceMinor,
             item.listPriceMinor,
             item.quantity,
+            config,
           ),
         },
       },
