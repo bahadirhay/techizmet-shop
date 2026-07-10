@@ -16,7 +16,7 @@ export function toAmazonListingImageUrl(
 
   const mediaId = abs.match(/\/api\/(?:media|amazon-img)\/([^/?#]+)/i)?.[1]?.replace(/\.jpe?g$/i, "");
   if (mediaId) {
-    return `${origin}/amazon-img/${mediaId}`;
+    return `${origin}/api/media/${mediaId}?format=jpeg&width=1600&amazon=1`;
   }
 
   if (abs.includes("/api/resize-image")) {
