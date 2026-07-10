@@ -82,16 +82,6 @@ const nextConfig: NextConfig = {
       ...legacyProductRedirects,
     ];
   },
-  async rewrites() {
-    return {
-      beforeFiles: [
-        {
-          source: "/amazon-img/:id.jpg",
-          destination: "/api/media/:id?format=jpeg&width=1600&amazon=1",
-        },
-      ],
-    };
-  },
   async headers() {
     const noStore = [
       { key: "Cache-Control", value: "private, no-store, max-age=0, must-revalidate" },
