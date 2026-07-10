@@ -335,19 +335,25 @@ export function MarketplaceIntegrationsClient({
   async function runSync() {
     setSyncBusy(true);
     setMsg(null);
-    const res = await fetch("/api/admin/integrations/marketplaces/sync", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ platform: selected }),
-    });
-    const json = (await res.json()) as { result?: { message: string; ok: boolean }; error?: string };
-    setSyncBusy(false);
-    if (!res.ok) {
-      setMsg(json.error ?? "Senkron başarısız");
-      return;
+    try {
+      const res = await fetch("/api/admin/integrations/marketplaces/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ platform: selected }),
+      });
+      const json = (await res.json()) as { result?: { message: string; ok: boolean }; error?: string };
+      if (!res.ok) {
+        setMsg(`✗ ${json.error ?? "Senkron başarısız"}`);
+        return;
+      }
+      const r = json.result;
+      setMsg(`${r?.ok ? "✓" : "✗"} ${r?.message ?? "Tamam"}`);
+      if (selected === "amazon_tr" && r?.ok) setView("products");
+    } catch {
+      setMsg("✗ Bağlantı hatası — tekrar deneyin");
+    } finally {
+      setSyncBusy(false);
     }
-    setMsg(json.result?.message ?? "Tamam");
-    window.location.reload();
   }
 
   const current = rows.find((r) => r.platform === selected);

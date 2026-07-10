@@ -364,6 +364,16 @@ export async function syncProductsToAmazon(
   const marketplaceId = resolveAmazonMarketplaceId(config);
   const publishable = products.filter((p) => p.stockQty >= 0 && p.priceMinor > 0);
 
+  if (products.length > 0 && publishable.length === 0) {
+    return {
+      ok: false,
+      sent: 0,
+      message:
+        "Gönderilecek geçerli ürün yok (fiyatı 0 olan veya eksik ürünler atlanır). Mağazada fiyatları kontrol edin.",
+      errors: [],
+    };
+  }
+
   let accepted = 0;
   let rejected = 0;
   const errors: string[] = [];

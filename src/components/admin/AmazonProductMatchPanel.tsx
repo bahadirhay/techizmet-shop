@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AdminField, btnPrimary, btnSecondary, inputClass } from "@/components/admin/AdminForm";
 import { amazonBrandApprovalUrl } from "@/lib/marketplace/amazon/errors";
 
@@ -30,6 +30,8 @@ const STATUS_LABEL: Record<string, { text: string; cls: string }> = {
   error: { text: "hata", cls: "text-red-600" },
 };
 
+const RESEND_STATUSES = new Set(["pending", "rejected", "exported", "error"]);
+
 function ErrorText({ text }: { text: string }) {
   const parts = text.split(/(https:\/\/[^\s]+)/g);
   return (
@@ -44,6 +46,33 @@ function ErrorText({ text }: { text: string }) {
         ),
       )}
     </p>
+  );
+}
+
+function StatusMessage({ msg, errors }: { msg: string; errors: string[] }) {
+  const isError =
+    msg.startsWith("✗") ||
+    msg.toLowerCase().includes("başarısız") ||
+    msg.toLowerCase().includes("hata") ||
+    msg.toLowerCase().includes("reddedildi");
+  const isSuccess = msg.startsWith("✓") || msg.includes("gönderildi");
+  const cls = isError
+    ? "border-red-300 bg-red-50 text-red-950"
+    : isSuccess
+      ? "border-green-300 bg-green-50 text-green-950"
+      : "border-blue-300 bg-blue-50 text-blue-950";
+
+  return (
+    <div className={`rounded-lg border px-4 py-3 text-sm ${cls}`}>
+      <p className="font-medium">{msg}</p>
+      {errors.length > 0 ? (
+        <ul className="mt-2 list-inside list-disc space-y-1 text-xs">
+          {errors.map((e, i) => (
+            <li key={i}>{e}</li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
   );
 }
 
@@ -63,45 +92,52 @@ export function AmazonProductMatchPanel({
   const [sending, setSending] = useState(false);
   const [verifyBusy, setVerifyBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [errors, setErrors] = useState<string[]>([]);
   const [loaded, setLoaded] = useState(false);
 
-  async function loadProducts() {
+  const loadProducts = useCallback(async () => {
     setBusy(true);
     setMsg(null);
+    setErrors([]);
     try {
       const qs = new URLSearchParams();
       if (localCategoryId) qs.set("categoryId", localCategoryId);
       const res = await fetch(`/api/admin/integrations/marketplaces/amazon/products?${qs}`);
       const json = (await res.json().catch(() => ({}))) as { products?: ProductRow[]; error?: string };
       if (!res.ok) {
-        setMsg(json.error ?? "Ürünler yüklenemedi");
+        setMsg(`✗ ${json.error ?? "Ürünler yüklenemedi"}`);
         return;
       }
       setProducts(json.products ?? []);
       setSelected(new Set());
       setLoaded(true);
-      setMsg(`${json.products?.length ?? 0} ürün listelendi`);
+      setMsg(`✓ ${json.products?.length ?? 0} ürün listelendi`);
     } catch {
-      setMsg("Bağlantı hatası — tekrar deneyin");
+      setMsg("✗ Bağlantı hatası — tekrar deneyin");
     } finally {
       setBusy(false);
     }
-  }
+  }, [localCategoryId]);
+
+  useEffect(() => {
+    if (tablesReady) void loadProducts();
+  }, [tablesReady, loadProducts]);
 
   async function verifyOnAmazon() {
     setVerifyBusy(true);
     setMsg("Amazon'da ilan durumları kontrol ediliyor…");
+    setErrors([]);
     try {
       const res = await fetch("/api/admin/integrations/marketplaces/amazon/verify", { method: "POST" });
       const json = (await res.json().catch(() => ({}))) as { message?: string; error?: string };
       if (!res.ok) {
-        setMsg(json.error ?? "Doğrulama başarısız");
+        setMsg(`✗ ${json.error ?? "Doğrulama başarısız"}`);
         return;
       }
-      setMsg(json.message ?? "Doğrulandı");
+      setMsg(`✓ ${json.message ?? "Doğrulandı"}`);
       if (loaded) await loadProducts();
     } catch {
-      setMsg("Doğrulama hatası");
+      setMsg("✗ Doğrulama hatası");
     } finally {
       setVerifyBusy(false);
     }
@@ -116,19 +152,24 @@ export function AmazonProductMatchPanel({
     });
   }
 
+  const visibleProducts = products.filter((p) => {
+    if (statusFilter !== "all" && p.listingStatus !== statusFilter) return false;
+    return search.trim() ? p.searchText.includes(search.trim().toLocaleLowerCase("tr")) : true;
+  });
+
   function toggleAll() {
     if (selected.size === visibleProducts.length) setSelected(new Set());
     else setSelected(new Set(visibleProducts.map((p) => p.id)));
   }
 
-  async function sendSelected() {
-    const ids = [...selected];
+  async function sendProductIds(ids: string[], label: string) {
     if (ids.length === 0) {
-      setMsg("Gönderilecek ürün seçin");
+      setMsg("⚠️ Gönderilecek ürün yok");
       return;
     }
     setSending(true);
-    setMsg(`${ids.length} ürün Amazon'a gönderiliyor… (birkaç dakika sürebilir)`);
+    setErrors([]);
+    setMsg(`${label} — ${ids.length} ürün Amazon'a gönderiliyor… (30–120 sn sürebilir)`);
     try {
       const res = await fetch("/api/admin/integrations/marketplaces/amazon/send", {
         method: "POST",
@@ -136,26 +177,71 @@ export function AmazonProductMatchPanel({
         body: JSON.stringify({ productIds: ids }),
       });
       const json = (await res.json().catch(() => ({}))) as {
-        result?: { ok: boolean; message: string };
+        result?: { ok: boolean; message: string; errors?: string[] };
         error?: string;
       };
       if (!res.ok) {
-        setMsg(json.error ?? "Gönderim başarısız");
+        setMsg(`✗ ${json.error ?? "Gönderim başarısız"}`);
         return;
       }
-      setMsg(json.result?.message ?? "Gönderildi");
-      if (loaded) await loadProducts();
+      const r = json.result;
+      setErrors(r?.errors ?? []);
+      setMsg(`${r?.ok ? "✓" : "✗"} ${r?.message ?? "Gönderildi"}`);
+      await loadProducts();
     } catch {
-      setMsg("Gönderim hatası veya zaman aşımı");
+      setMsg("✗ Gönderim hatası veya zaman aşımı — tekrar deneyin");
     } finally {
       setSending(false);
     }
   }
 
-  const visibleProducts = products.filter((p) => {
-    if (statusFilter !== "all" && p.listingStatus !== statusFilter) return false;
-    return search.trim() ? p.searchText.includes(search.trim().toLocaleLowerCase("tr")) : true;
-  });
+  async function sendSelected() {
+    const ids = [...selected];
+    if (ids.length === 0) {
+      setMsg("⚠️ Önce listeden ürün seçin (checkbox) veya «Eksik ilanları güncelle» kullanın");
+      return;
+    }
+    await sendProductIds(ids, "Seçili ürünler");
+  }
+
+  async function resendIncomplete() {
+    setSending(true);
+    setErrors([]);
+    setMsg("Amazon'daki eksik/hatalı ilanlar güncelleniyor…");
+    try {
+      const res = await fetch("/api/admin/integrations/marketplaces/amazon/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resendIncomplete: true }),
+      });
+      const json = (await res.json().catch(() => ({}))) as {
+        result?: { ok: boolean; message: string; errors?: string[] };
+        error?: string;
+      };
+      if (!res.ok) {
+        setMsg(`✗ ${json.error ?? "Güncelleme başarısız"}`);
+        return;
+      }
+      const r = json.result;
+      setErrors(r?.errors ?? []);
+      setMsg(`${r?.ok ? "✓" : "✗"} ${r?.message ?? "Güncellendi"}`);
+      await loadProducts();
+    } catch {
+      setMsg("✗ Güncelleme hatası veya zaman aşımı");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  function selectIncomplete() {
+    const ids = products.filter((p) => RESEND_STATUSES.has(p.listingStatus)).map((p) => p.id);
+    if (ids.length === 0) {
+      setMsg("⚠️ Eksik/hatalı ilan bulunamadı — «Eksik ilanları güncelle» ile doğrudan yeniden gönderebilirsiniz");
+      return;
+    }
+    setSelected(new Set(ids));
+    setMsg(`✓ ${ids.length} eksik/hatalı ilan seçildi — «Seçiliyi güncelle» ile gönderin`);
+  }
 
   const selectedRows = products.filter((p) => selected.has(p.id));
   const sendLabel =
@@ -174,35 +260,39 @@ export function AmazonProductMatchPanel({
     rejected: products.filter((p) => p.listingStatus === "rejected").length,
   };
 
+  const incompleteCount = products.filter((p) => RESEND_STATUSES.has(p.listingStatus)).length;
+
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border border-amber-300 bg-amber-50 p-4">
-        <p className="text-sm font-semibold text-amber-950">Yeni marka: Amazon onayı gerekir</p>
-        <p className="mt-1 text-xs text-amber-900">
-          <strong>Anatolian Paw</strong> gibi yeni markalar Amazon&apos;da önce onaylanmalıdır. Onay
-          olmadan ilan kataloga eklenemez (&quot;marka onaylanmamış&quot; / &quot;katalogda yok&quot;
-          hataları). Formu doldurun; onay genelde birkaç gün sürer. Sonra ürünü panelden yeniden
-          gönderin.
+      <div className="rounded-lg border border-green-300 bg-green-50 p-4">
+        <p className="text-sm font-semibold text-green-950">Marka onaylandı: Anatolian Paw</p>
+        <p className="mt-1 text-xs text-green-900">
+          Amazon marka onayınız tamamlandı. Dün gönderilen ilanlar Seller Central&apos;da
+          &quot;Eksik bilgi&quot; görünebilir — aşağıdaki <strong>Eksik ilanları güncelle</strong>{" "}
+          ile aynı SKU üzerinden yeniden gönderilir (görsel, marka ve PET_FOOD alanları güncellenir).
+          Amazon işleme 5–30 dakika sürebilir.
         </p>
         <a
           href={amazonBrandApprovalUrl("Anatolian Paw")}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-2 inline-block text-xs font-medium text-amber-950 underline"
+          className="mt-2 inline-block text-xs text-green-800 underline"
         >
-          Anatolian Paw marka onay formu (Seller Central TR) →
+          Seller Central marka sayfası →
         </a>
       </div>
 
       <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
         <p className="text-sm font-semibold text-blue-950">Amazon ürün gönderimi</p>
         <p className="mt-1 text-xs text-blue-900">
-          Köpek maması/ödülü ürünleri otomatik <strong>PET_FOOD</strong> türüyle gönderilir. Kategori
-          seçip tüm ürünleri listeleyin, göndermek istediklerinizi işaretleyin. Reddedilenlerin hata
-          nedeni <strong>Durum</strong> sütununda görünür; düzeltip tekrar gönderin. Toplu katalog çekme
-          draft uygulamalarda kısıtlı — durum için <strong>Amazon&apos;da doğrula</strong> kullanın.
+          Köpek maması/ödülü ürünleri otomatik <strong>PET_FOOD</strong> türüyle gönderilir.
+          Daha önce gönderilmiş ürünler aynı SKU ile <strong>güncellenir</strong> (yeni ilan
+          oluşturulmaz). Seller Central&apos;da &quot;Eksik bilgi&quot; görünenler için önce{" "}
+          <strong>Eksik ilanları güncelle</strong> kullanın.
         </p>
       </div>
+
+      {msg ? <StatusMessage msg={msg} errors={errors} /> : null}
 
       <div className="rounded-lg border border-zinc-200 bg-white p-4">
         <p className="text-sm font-semibold">Ürün listesi & gönderim</p>
@@ -228,10 +318,24 @@ export function AmazonProductMatchPanel({
               </select>
             </AdminField>
           </div>
-          <button type="button" className={btnPrimary} disabled={busy} onClick={() => void loadProducts()}>
-            {busy ? "Yükleniyor…" : "Ürünleri getir"}
+          <button type="button" className={btnSecondary} disabled={busy} onClick={() => void loadProducts()}>
+            {busy ? "Yükleniyor…" : "Listeyi yenile"}
+          </button>
+          <button
+            type="button"
+            className={btnPrimary}
+            disabled={sending || verifyBusy}
+            onClick={() => void resendIncomplete()}
+          >
+            {sending ? "Gönderiliyor…" : "Eksik ilanları güncelle"}
           </button>
         </div>
+        {incompleteCount > 0 ? (
+          <p className="mt-2 text-xs text-amber-800">
+            {incompleteCount} ürün eksik/onayda/hatalı — «Eksik ilanları güncelle» ile hepsini
+            yeniden gönderebilirsiniz.
+          </p>
+        ) : null}
       </div>
 
       {loaded && products.length > 0 ? (
@@ -264,7 +368,15 @@ export function AmazonProductMatchPanel({
                 <option value="rejected">Reddedildi</option>
               </select>
             </AdminField>
-            <div className="ml-auto flex gap-2">
+            <div className="ml-auto flex flex-wrap gap-2">
+              <button
+                type="button"
+                className={btnSecondary}
+                disabled={sending}
+                onClick={() => selectIncomplete()}
+              >
+                Eksikleri seç
+              </button>
               <button
                 type="button"
                 className={btnSecondary}
@@ -276,7 +388,7 @@ export function AmazonProductMatchPanel({
               <button
                 type="button"
                 className={btnPrimary}
-                disabled={sending || selected.size === 0}
+                disabled={sending}
                 onClick={() => void sendSelected()}
               >
                 {sending ? "Gönderiliyor…" : sendLabel}
@@ -359,8 +471,6 @@ export function AmazonProductMatchPanel({
       {loaded && products.length === 0 && !busy ? (
         <p className="text-sm text-zinc-500">Bu kategoride yayında ürün bulunamadı.</p>
       ) : null}
-
-      {msg ? <p className="text-sm text-zinc-700">{msg}</p> : null}
     </div>
   );
 }

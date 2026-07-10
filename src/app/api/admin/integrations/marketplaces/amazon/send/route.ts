@@ -3,7 +3,7 @@ import { requireStaffApi } from "@/lib/staff-auth";
 import { prisma } from "@/lib/prisma";
 import { syncProductsToAmazon } from "@/lib/marketplace/amazon/products";
 
-type Body = { productIds?: string[] };
+type Body = { productIds?: string[]; resendIncomplete?: boolean };
 
 export const maxDuration = 120;
 
@@ -12,9 +12,36 @@ export async function POST(req: Request) {
   if (auth instanceof NextResponse) return auth;
 
   const body = (await req.json()) as Body;
-  const productIds = Array.isArray(body.productIds) ? body.productIds.filter(Boolean) : [];
+  let productIds = Array.isArray(body.productIds) ? body.productIds.filter(Boolean) : [];
+
+  if (body.resendIncomplete) {
+    const listings = await prisma.marketplaceProductListing.findMany({
+      where: {
+        siteId: auth.siteId,
+        platform: "amazon_tr",
+        listingStatus: { in: ["pending", "rejected", "exported", "error"] },
+      },
+      select: { productId: true },
+    });
+    productIds = [...new Set(listings.map((l) => l.productId))];
+    if (productIds.length === 0) {
+      const anyListing = await prisma.marketplaceProductListing.findMany({
+        where: { siteId: auth.siteId, platform: "amazon_tr" },
+        select: { productId: true },
+      });
+      productIds = [...new Set(anyListing.map((l) => l.productId))];
+    }
+  }
+
   if (productIds.length === 0) {
-    return NextResponse.json({ error: "Gönderilecek ürün seçin" }, { status: 400 });
+    return NextResponse.json(
+      {
+        error: body.resendIncomplete
+          ? "Güncellenecek Amazon ilanı bulunamadı"
+          : "Gönderilecek ürün seçin",
+      },
+      { status: 400 },
+    );
   }
 
   const integration = await prisma.marketplaceIntegration.findFirst({
