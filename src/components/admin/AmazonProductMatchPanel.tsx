@@ -101,6 +101,7 @@ export function AmazonProductMatchPanel({
   const [statusFilter, setStatusFilter] = useState("all");
   const [busy, setBusy] = useState(false);
   const [sending, setSending] = useState(false);
+  const [offerBusy, setOfferBusy] = useState(false);
   const [verifyBusy, setVerifyBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
@@ -224,6 +225,53 @@ export function AmazonProductMatchPanel({
     await sendProductIds(ids, "Seçili ürünler");
   }
 
+  async function syncOffers(ids: string[], label: string) {
+    if (ids.length === 0) {
+      setMsg("⚠️ Teklif gönderilecek ürün yok — ASIN'i olan eksik ilan bulunamadı");
+      return;
+    }
+    setOfferBusy(true);
+    setErrors([]);
+    setMsg(`${label} — ${ids.length} ürün için fiyat/stok Amazon'a gönderiliyor…`);
+    try {
+      const res = await fetch("/api/admin/integrations/marketplaces/amazon/offers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productIds: ids }),
+      });
+      const json = (await res.json().catch(() => ({}))) as {
+        result?: { ok: boolean; message: string };
+        error?: string;
+      };
+      if (!res.ok) {
+        setMsg(`✗ ${json.error ?? "Teklif gönderimi başarısız"}`);
+        return;
+      }
+      setMsg(`${json.result?.ok ? "✓" : "✗"} ${json.result?.message ?? "Teklif gönderildi"}`);
+      await loadProducts({ syncAmazon: true });
+    } catch {
+      setMsg("✗ Teklif gönderimi hatası");
+    } finally {
+      setOfferBusy(false);
+    }
+  }
+
+  async function syncOffersForIncomplete() {
+    const ids = products
+      .filter((p) => p.amazonAsin && RESEND_STATUSES.has(p.listingStatus))
+      .map((p) => p.id);
+    await syncOffers(ids, "Eksik teklifli ilanlar");
+  }
+
+  async function syncOffersSelected() {
+    const ids = [...selected];
+    if (ids.length === 0) {
+      setMsg("⚠️ Önce ürün seçin veya «Eksik teklif & stok» kullanın");
+      return;
+    }
+    await syncOffers(ids, "Seçili ürünler");
+  }
+
   async function resendIncomplete() {
     setSending(true);
     setErrors([]);
@@ -281,6 +329,9 @@ export function AmazonProductMatchPanel({
   };
 
   const incompleteCount = products.filter((p) => RESEND_STATUSES.has(p.listingStatus)).length;
+  const offerIncompleteCount = products.filter(
+    (p) => p.amazonAsin && RESEND_STATUSES.has(p.listingStatus),
+  ).length;
 
   return (
     <div className="space-y-4">
@@ -349,7 +400,22 @@ export function AmazonProductMatchPanel({
           >
             {sending ? "Gönderiliyor…" : "Eksik ilanları güncelle"}
           </button>
+          <button
+            type="button"
+            className={btnSecondary}
+            disabled={offerBusy || sending || verifyBusy}
+            onClick={() => void syncOffersForIncomplete()}
+          >
+            {offerBusy ? "Gönderiliyor…" : "Eksik teklif & stok"}
+          </button>
         </div>
+        {offerIncompleteCount > 0 ? (
+          <p className="mt-2 text-xs text-amber-800">
+            {offerIncompleteCount} ürün Amazon&apos;da ASIN ile görünüyor ama teklif/stok eksik
+            (Seller Central: &quot;Teklif yok&quot;) — «Eksik teklif & stok» ile fiyat ve envanteri
+            gönderin.
+          </p>
+        ) : null}
         {incompleteCount > 0 ? (
           <p className="mt-2 text-xs text-amber-800">
             {incompleteCount} ürün eksik/onayda/hatalı — «Eksik ilanları güncelle» ile hepsini
@@ -400,7 +466,15 @@ export function AmazonProductMatchPanel({
               <button
                 type="button"
                 className={btnSecondary}
-                disabled={verifyBusy || sending}
+                disabled={offerBusy || sending}
+                onClick={() => void syncOffersSelected()}
+              >
+                {offerBusy ? "…" : "Teklif & stok gönder"}
+              </button>
+              <button
+                type="button"
+                className={btnSecondary}
+                disabled={verifyBusy || sending || offerBusy}
                 onClick={() => void verifyOnAmazon()}
               >
                 {verifyBusy ? "…" : "Amazon'da doğrula"}
@@ -408,7 +482,7 @@ export function AmazonProductMatchPanel({
               <button
                 type="button"
                 className={btnPrimary}
-                disabled={sending}
+                disabled={sending || offerBusy}
                 onClick={() => void sendSelected()}
               >
                 {sending ? "Gönderiliyor…" : sendLabel}

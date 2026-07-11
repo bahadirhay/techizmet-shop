@@ -71,8 +71,10 @@ export async function POST(req: Request) {
   const result = await syncProductsToAmazon(products, config, auth.siteId);
 
   const creds = parseAmazonConfig(config);
-  if (result.sent > 0 && creds) {
-    await reconcileAmazonListings(auth.siteId, creds, config, { productIds });
+  if (creds) {
+    if (result.sent > 0) {
+      await reconcileAmazonListings(auth.siteId, creds, config, { productIds });
+    }
   }
 
   await prisma.marketplaceSyncLog.create({

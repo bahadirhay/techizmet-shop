@@ -41,8 +41,44 @@ export function buildAmazonGiftAttributes(
   };
 }
 
+/** Teklif (fiyat/stok/hediye) attribute gövdesi — LISTING_OFFER_ONLY PUT için. */
+export function buildAmazonOfferAttributes(
+  marketplaceId: string,
+  salePriceMinor: number,
+  listPriceMinor: number,
+  quantity: number,
+  config: Record<string, string> = {},
+): Record<string, unknown> {
+  const attrs: Record<string, unknown> = {
+    condition_type: [{ value: "new_new", marketplace_id: marketplaceId }],
+    fulfillment_availability: [
+      { fulfillment_channel_code: "DEFAULT", quantity: Math.max(0, Math.round(quantity)) },
+    ],
+    purchasable_offer: [
+      {
+        marketplace_id: marketplaceId,
+        currency: "TRY",
+        our_price: [{ schedule: [{ value_with_tax: minorToAmazonPrice(salePriceMinor) }] }],
+      },
+    ],
+    ...buildAmazonGiftAttributes(marketplaceId, config),
+  };
+
+  if (listPriceMinor > salePriceMinor) {
+    attrs.list_price = [
+      {
+        marketplace_id: marketplaceId,
+        currency: "TRY",
+        value: minorToAmazonPrice(listPriceMinor),
+      },
+    ];
+  }
+
+  return attrs;
+}
+
 /**
- * Amazon fiyat teklifi attribute'u. purchasable_offer canlı satış fiyatını,
+ * Amazon fiyat teklifi PATCH listesi. purchasable_offer canlı satış fiyatını,
  * list_price ise üstü çizili liste fiyatını taşır.
  */
 export function buildAmazonOfferPatches(
@@ -53,6 +89,12 @@ export function buildAmazonOfferPatches(
   config: Record<string, string> = {},
 ): { op: "replace"; path: string; value: unknown }[] {
   const patches: { op: "replace"; path: string; value: unknown }[] = [];
+
+  patches.push({
+    op: "replace",
+    path: "/attributes/condition_type",
+    value: [{ value: "new_new", marketplace_id: marketplaceId }],
+  });
 
   patches.push({
     op: "replace",
@@ -126,9 +168,49 @@ async function fetchListingProductType(
   return fromPt ? String(fromPt) : null;
 }
 
+async function pushAmazonOfferPut(
+  creds: AmazonSpApiCredentials,
+  accessToken: string,
+  marketplaceId: string,
+  sku: string,
+  productType: string,
+  item: AmazonInventoryItem,
+  config: Record<string, string>,
+): Promise<{ ok: boolean; issueMsg?: string }> {
+  const qs = new URLSearchParams({ marketplaceIds: marketplaceId, issueLocale: "tr_TR" });
+  const res = await amazonSpApiRequest(
+    creds,
+    accessToken,
+    `/listings/2021-08-01/items/${encodeURIComponent(creds.sellerId)}/${encodeURIComponent(sku)}?${qs}`,
+    {
+      method: "PUT",
+      body: {
+        productType,
+        requirements: "LISTING_OFFER_ONLY",
+        attributes: buildAmazonOfferAttributes(
+          marketplaceId,
+          item.salePriceMinor,
+          item.listPriceMinor,
+          item.quantity,
+          config,
+        ),
+      },
+    },
+  );
+
+  const json = res.json as { status?: string; issues?: { message?: string }[] } | null;
+  if (res.ok && (json?.status === "ACCEPTED" || json?.status === "VALID")) {
+    return { ok: true };
+  }
+  const issueMsg =
+    json?.issues?.map((x) => x.message).filter(Boolean).join("; ") ||
+    `HTTP ${res.status}: ${res.text.slice(0, 160)}`;
+  return { ok: false, issueMsg };
+}
+
 /**
  * Var olan Amazon listing'lerinde stok ve fiyatı günceller (Listings Items PATCH).
- * Yalnızca SKU'su olan ürünler işlenir; listing bulunamayan SKU'lar atlanır.
+ * PATCH başarısız olursa LISTING_OFFER_ONLY PUT denenir (katalog eşleşmesi / teklif yok).
  */
 export async function syncAmazonPriceAndInventory(
   creds: AmazonSpApiCredentials,
@@ -177,11 +259,25 @@ export async function syncAmazonPriceAndInventory(
     const json = res.json as { status?: string; issues?: { message?: string }[] } | null;
     if (res.ok && (json?.status === "ACCEPTED" || json?.status === "VALID")) {
       sent++;
-    } else {
-      const issueMsg =
-        json?.issues?.map((x) => x.message).filter(Boolean).join("; ") ||
-        `HTTP ${res.status}: ${res.text.slice(0, 160)}`;
-      if (errors.length < 5) errors.push(`${item.sku}: ${issueMsg}`);
+      continue;
+    }
+
+    const patchIssueMsg =
+      json?.issues?.map((x) => x.message).filter(Boolean).join("; ") ||
+      `HTTP ${res.status}: ${res.text.slice(0, 160)}`;
+    const offerPut = await pushAmazonOfferPut(
+      creds,
+      accessToken,
+      marketplaceId,
+      item.sku,
+      productType,
+      item,
+      config,
+    );
+    if (offerPut.ok) {
+      sent++;
+    } else if (errors.length < 5) {
+      errors.push(`${item.sku}: ${offerPut.issueMsg ?? patchIssueMsg}`);
     }
   }
 

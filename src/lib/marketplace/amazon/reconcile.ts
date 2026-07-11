@@ -7,24 +7,7 @@ import {
 } from "@/lib/marketplace/amazon/client";
 import { upsertProductMarketplaceListing } from "@/lib/marketplace/catalog-import";
 import { formatAmazonListingError } from "@/lib/marketplace/amazon/errors";
-
-function resolveListingSku(
-  metaJson: string | null,
-  product: { sku: string | null; slug: string; barcode: string | null; id: string },
-): string {
-  if (metaJson) {
-    try {
-      const meta = JSON.parse(metaJson) as { sku?: string };
-      if (meta.sku?.trim()) return meta.sku.trim();
-    } catch {
-      /* metaJson bozuk */
-    }
-  }
-  return (product.sku?.trim() || product.slug?.trim() || product.barcode?.trim() || product.id).slice(
-    0,
-    40,
-  );
-}
+import { resolveAmazonListingSku } from "@/lib/marketplace/amazon/sku";
 
 function mergeListingMeta(existing: string | null, sku: string, asin?: string): string {
   let meta: Record<string, unknown> = {};
@@ -230,7 +213,7 @@ export async function reconcileAmazonListings(
   let notFound = 0;
 
   for (const listing of listings) {
-    const sku = resolveListingSku(listing.metaJson, listing.product);
+    const sku = resolveAmazonListingSku(listing.metaJson, listing.product);
     const result = await fetchAmazonListingStatus(creds, token.accessToken, marketplaceId, sku);
 
     if (!result.found && result.lastError?.includes("bulunamadı")) notFound++;

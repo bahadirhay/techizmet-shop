@@ -23,6 +23,7 @@ import { fetchAmazonOrders } from "@/lib/marketplace/amazon/orders";
 import { importAmazonOrders } from "@/lib/marketplace/amazon/import-orders";
 import { syncAmazonPriceAndInventory } from "@/lib/marketplace/amazon/inventory";
 import { syncProductsToAmazon } from "@/lib/marketplace/amazon/products";
+import { resolveAmazonListingSku } from "@/lib/marketplace/amazon/sku";
 import { syncProductsToTrendyol } from "@/lib/marketplace/trendyol";
 import { fetchTrendyolCatalog } from "@/lib/marketplace/trendyol/products";
 import { fetchHepsiburadaCatalog } from "@/lib/marketplace/hepsiburada/products";
@@ -204,17 +205,28 @@ export async function syncMarketplaceInventory(
       return { ok: false, itemsCount: 0, message: token.error ?? "Amazon token alınamadı" };
     }
     const marketplaceId = resolveAmazonMarketplaceId(config);
+    const listings = await prisma.marketplaceProductListing.findMany({
+      where: {
+        siteId,
+        platform: "amazon_tr",
+        productId: { in: products.map((p) => p.id) },
+      },
+      select: { productId: true, metaJson: true },
+    });
+    const listingByProduct = new Map(listings.map((l) => [l.productId, l.metaJson]));
     const items = products
-      .filter((p) => p.sku?.trim())
       .map((p) => {
+        const sku = resolveAmazonListingSku(listingByProduct.get(p.id) ?? null, p);
+        if (!sku.trim()) return null;
         const prices = toMarketplaceSyncPrices(p, "amazon_tr");
         return {
-          sku: p.sku!.trim(),
+          sku,
           quantity: p.stockQty,
           salePriceMinor: prices.salePriceMinor,
           listPriceMinor: prices.listPriceMinor,
         };
-      });
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null);
     const result = await syncAmazonPriceAndInventory(creds, token.accessToken, marketplaceId, items, config);
     return { ok: result.ok, itemsCount: result.sent, message: result.message };
   }

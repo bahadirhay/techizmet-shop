@@ -8,7 +8,8 @@ import {
   AMAZON_TR_MARKETPLACE_ID,
 } from "@/lib/marketplace/amazon/client";
 import { toMarketplaceSyncPrices } from "@/lib/marketplace/product-prices";
-import { minorToAmazonPrice, buildAmazonGiftAttributes } from "@/lib/marketplace/amazon/inventory";
+import { minorToAmazonPrice, buildAmazonGiftAttributes, syncAmazonPriceAndInventory } from "@/lib/marketplace/amazon/inventory";
+import { resolveAmazonListingSku } from "@/lib/marketplace/amazon/sku";
 import { buildPlatformListingTitle } from "@/lib/marketplace/title-rules";
 import { upsertProductMarketplaceListing } from "@/lib/marketplace/catalog-import";
 import { marketplaceCategoryMappingDb } from "@/lib/marketplace/prisma-marketplace";
@@ -135,10 +136,7 @@ type AmazonPushProduct = {
 
 /** Amazon seller SKU: ürün SKU'su yoksa slug/barkoddan üretilir (stabil olmalı). */
 function resolveAmazonSku(product: AmazonPushProduct): string {
-  return (product.sku?.trim() || product.slug?.trim() || product.barcode?.trim() || product.id).slice(
-    0,
-    40,
-  );
+  return resolveAmazonListingSku(null, product);
 }
 
 /** GTIN tipini uzunluktan çıkarır (13=EAN, 12=UPC, aksi halde GTIN). */
@@ -387,7 +385,10 @@ export async function syncProductsToAmazon(
 
   let accepted = 0;
   let rejected = 0;
+  let offersPushed = 0;
   const errors: string[] = [];
+  const offerItems: { sku: string; quantity: number; salePriceMinor: number; listPriceMinor: number }[] =
+    [];
 
   for (const product of publishable) {
     const sku = resolveAmazonSku(product);
@@ -424,6 +425,13 @@ export async function syncProductsToAmazon(
 
     if (res.ok && (status === "ACCEPTED" || status === "VALID")) {
       accepted++;
+      const prices = toMarketplaceSyncPrices(product, "amazon_tr");
+      offerItems.push({
+        sku,
+        quantity: product.stockQty,
+        salePriceMinor: prices.salePriceMinor,
+        listPriceMinor: prices.listPriceMinor,
+      });
       if (siteId) {
         await upsertProductMarketplaceListing(siteId, product.id, "amazon_tr", {
           barcode: product.barcode?.trim() ?? null,
@@ -447,12 +455,35 @@ export async function syncProductsToAmazon(
     }
   }
 
+  if (offerItems.length > 0) {
+    const offerResult = await syncAmazonPriceAndInventory(
+      creds,
+      token.accessToken,
+      marketplaceId,
+      offerItems,
+      config,
+    );
+    offersPushed = offerResult.sent;
+    if (offerResult.errors.length) {
+      for (const e of offerResult.errors.slice(0, 4)) {
+        if (errors.length < 8) errors.push(e);
+      }
+    }
+  }
+
   const errNote = errors.length ? ` · Hata örnekleri: ${errors.slice(0, 3).join(" | ")}` : "";
+  const offerNote =
+    offersPushed > 0
+      ? ` ${offersPushed} ürün için teklif/stok gönderildi.`
+      : accepted > 0
+        ? " Teklif/stok gönderilemedi — «Teklif & stok gönder» ile yeniden deneyin."
+        : "";
   return {
     ok: accepted > 0,
     sent: accepted,
     message:
       `${accepted} ürün Amazon'a gönderildi (onay bekliyor), ${rejected} reddedildi.` +
+      offerNote +
       " Amazon ilanları birkaç dakikada işlenir; Amazon Seller Central → Envanter'den görebilirsiniz." +
       errNote,
     errors,
