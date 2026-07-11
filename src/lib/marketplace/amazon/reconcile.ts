@@ -2,7 +2,6 @@ import { prisma } from "@/lib/prisma";
 import {
   amazonSpApiRequest,
   getAmazonAccessToken,
-  parseAmazonConfig,
   resolveAmazonMarketplaceId,
   type AmazonSpApiCredentials,
 } from "@/lib/marketplace/amazon/client";
@@ -27,13 +26,40 @@ function resolveListingSku(
   );
 }
 
+function mergeListingMeta(existing: string | null, sku: string, asin?: string): string {
+  let meta: Record<string, unknown> = {};
+  if (existing) {
+    try {
+      meta = JSON.parse(existing) as Record<string, unknown>;
+    } catch {
+      /* metaJson bozuk */
+    }
+  }
+  meta.sku = sku;
+  if (asin) meta.asin = asin;
+  return JSON.stringify(meta);
+}
+
 function mapAmazonSummaryStatus(raw: Record<string, unknown> | undefined): "active" | "inactive" | "pending" {
   const status = String(raw?.status ?? "").toUpperCase();
   if (status.includes("INACTIVE") || status.includes("SUPPRESSED")) return "inactive";
-  if (status.includes("BUYABLE") || status.includes("DISCOVERABLE") || status.includes("ACTIVE")) {
-    return "active";
-  }
+  if (status.includes("BUYABLE")) return "active";
+  if (status.includes("DISCOVERABLE") || status.includes("ACTIVE")) return "active";
+  if (status.includes("INCOMPLETE")) return "pending";
   return "pending";
+}
+
+function extractAmazonErrorMessages(
+  issues?: { message?: string; severity?: string }[],
+): string {
+  return (
+    issues
+      ?.filter((x) => (x.severity ?? "ERROR").toUpperCase() === "ERROR")
+      .map((x) => x.message)
+      .filter(Boolean)
+      .map((m) => formatAmazonListingError(String(m)))
+      .join("; ") ?? ""
+  );
 }
 
 async function fetchAmazonListingStatus(
@@ -72,23 +98,31 @@ async function fetchAmazonListingStatus(
     summaries?: Record<string, unknown>[];
     issues?: { message?: string; severity?: string }[];
   } | null;
-  const errors =
-    json?.issues
-      ?.filter((x) => (x.severity ?? "ERROR").toUpperCase() === "ERROR")
-      .map((x) => x.message)
-      .filter(Boolean)
-      .map((m) => formatAmazonListingError(String(m)))
-      .join("; ") ?? "";
+  const errors = extractAmazonErrorMessages(json?.issues);
+  const summary = json?.summaries?.[0];
+  const asin = summary?.asin ? String(summary.asin) : undefined;
+  const summaryStatus = mapAmazonSummaryStatus(summary);
+
+  // ASIN varsa ürün Amazon kataloğunda — eski gönderim hatası olsa bile "reddedildi" değil
+  if (asin) {
+    let listingStatus: "active" | "inactive" | "pending" | "rejected" = summaryStatus;
+    if (errors && listingStatus === "active") listingStatus = "pending";
+    if (errors && listingStatus !== "inactive") listingStatus = "pending";
+    return {
+      found: true,
+      listingStatus,
+      lastError: errors || null,
+      asin,
+    };
+  }
 
   if (errors) {
     return { found: true, listingStatus: "rejected", lastError: errors };
   }
 
-  const summary = json?.summaries?.[0];
-  const asin = summary?.asin ? String(summary.asin) : undefined;
   return {
     found: true,
-    listingStatus: mapAmazonSummaryStatus(summary),
+    listingStatus: summaryStatus,
     lastError: null,
     asin,
   };
@@ -99,6 +133,7 @@ export async function reconcileAmazonListings(
   siteId: string,
   creds: AmazonSpApiCredentials,
   config: Record<string, string>,
+  options?: { productIds?: string[] },
 ): Promise<{
   ok: boolean;
   message: string;
@@ -122,11 +157,13 @@ export async function reconcileAmazonListings(
   }
 
   const marketplaceId = resolveAmazonMarketplaceId(config);
+  const productIds = options?.productIds?.filter(Boolean);
   const listings = await prisma.marketplaceProductListing.findMany({
     where: {
       siteId,
       platform: "amazon_tr",
-      listingStatus: { in: ["pending", "active", "inactive", "rejected", "exported"] },
+      listingStatus: { in: ["pending", "active", "inactive", "rejected", "exported", "error"] },
+      ...(productIds?.length ? { productId: { in: productIds } } : {}),
     },
     include: {
       product: { select: { id: true, sku: true, slug: true, barcode: true } },
@@ -164,15 +201,15 @@ export async function reconcileAmazonListings(
       barcode: result.asin ?? listing.barcode,
       listingStatus: result.listingStatus,
       lastError: result.lastError,
-      metaJson: listing.metaJson ?? JSON.stringify({ sku }),
+      metaJson: mergeListingMeta(listing.metaJson, sku, result.asin),
     });
   }
 
   return {
     ok: true,
     message:
-      `${listings.length} ilan kontrol edildi: ${active} yayında, ${pending} işlemde/pasif, ` +
-      `${rejected} reddedildi/hatalı, ${notFound} Amazon'da yok.`,
+      `${listings.length} ilan Amazon'dan güncellendi: ${active} yayında, ${pending} işlemde/eksik, ` +
+      `${rejected} reddedildi, ${notFound} bulunamadı.`,
     checked: listings.length,
     active,
     pending,

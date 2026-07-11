@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { requireStaffApi } from "@/lib/staff-auth";
 import { prisma } from "@/lib/prisma";
+import { parseAmazonConfig } from "@/lib/marketplace/amazon/client";
 import { syncProductsToAmazon } from "@/lib/marketplace/amazon/products";
+import { reconcileAmazonListings } from "@/lib/marketplace/amazon/reconcile";
 
 type Body = { productIds?: string[]; resendIncomplete?: boolean };
 
@@ -67,6 +69,11 @@ export async function POST(req: Request) {
   });
 
   const result = await syncProductsToAmazon(products, config, auth.siteId);
+
+  const creds = parseAmazonConfig(config);
+  if (result.sent > 0 && creds) {
+    await reconcileAmazonListings(auth.siteId, creds, config, { productIds });
+  }
 
   await prisma.marketplaceSyncLog.create({
     data: {

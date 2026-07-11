@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { requireStaffApi } from "@/lib/staff-auth";
 import { prisma } from "@/lib/prisma";
 import { marketplaceProductListingDb } from "@/lib/marketplace/prisma-marketplace";
+import { parseAmazonConfig } from "@/lib/marketplace/amazon/client";
+import { reconcileAmazonListings } from "@/lib/marketplace/amazon/reconcile";
+
+export const maxDuration = 120;
 
 export async function GET(req: Request) {
   const auth = await requireStaffApi("store.integrations");
@@ -10,6 +14,25 @@ export async function GET(req: Request) {
   const params = new URL(req.url).searchParams;
   const categoryId = params.get("categoryId")?.trim() || "";
   const search = params.get("q")?.trim().toLocaleLowerCase("tr") || "";
+  const syncAmazon = params.get("syncAmazon") === "1";
+
+  if (syncAmazon && marketplaceProductListingDb()) {
+    const integration = await prisma.marketplaceIntegration.findFirst({
+      where: { siteId: auth.siteId, platform: "amazon_tr" },
+    });
+    if (integration) {
+      let config: Record<string, string> = {};
+      try {
+        config = JSON.parse(integration.configJson ?? "{}") as Record<string, string>;
+      } catch {
+        config = {};
+      }
+      const creds = parseAmazonConfig(config);
+      if (creds) {
+        await reconcileAmazonListings(auth.siteId, creds, config);
+      }
+    }
+  }
 
   const where: Record<string, unknown> = { siteId: auth.siteId, published: true };
   if (categoryId) {
@@ -37,7 +60,7 @@ export async function GET(req: Request) {
 
   const statusByProduct = new Map<
     string,
-    { status: string; error: string | null; metaJson: string | null }
+    { status: string; error: string | null; metaJson: string | null; barcode: string | null }
   >();
   const listingDb = marketplaceProductListingDb();
   if (listingDb) {
@@ -47,13 +70,14 @@ export async function GET(req: Request) {
         platform: "amazon_tr",
         productId: { in: products.map((p) => p.id) },
       },
-      select: { productId: true, listingStatus: true, lastError: true, metaJson: true },
+      select: { productId: true, listingStatus: true, lastError: true, metaJson: true, barcode: true },
     });
     for (const l of listings) {
       statusByProduct.set(l.productId, {
         status: l.listingStatus,
         error: l.lastError,
         metaJson: l.metaJson,
+        barcode: l.barcode,
       });
     }
   }
@@ -66,10 +90,12 @@ export async function GET(req: Request) {
         .toLocaleLowerCase("tr");
       const listing = statusByProduct.get(p.id);
       let amazonSku: string | null = p.sku;
+      let amazonAsin: string | null = listing?.barcode ?? null;
       if (listing?.metaJson) {
         try {
-          const meta = JSON.parse(listing.metaJson) as { sku?: string };
+          const meta = JSON.parse(listing.metaJson) as { sku?: string; asin?: string };
           if (meta.sku?.trim()) amazonSku = meta.sku.trim();
+          if (meta.asin?.trim()) amazonAsin = meta.asin.trim();
         } catch {
           /* metaJson bozuk */
         }
@@ -79,6 +105,7 @@ export async function GET(req: Request) {
         title: p.title,
         sku: p.sku,
         amazonSku,
+        amazonAsin,
         barcode: p.barcode,
         imageUrl: p.imageUrl ?? p.images[0]?.url ?? null,
         categoryId: p.categoryId,

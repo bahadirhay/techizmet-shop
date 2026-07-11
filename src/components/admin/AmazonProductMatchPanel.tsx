@@ -11,6 +11,7 @@ type ProductRow = {
   title: string;
   sku: string | null;
   amazonSku: string | null;
+  amazonAsin: string | null;
   barcode: string | null;
   imageUrl: string | null;
   categoryTitle: string | null;
@@ -19,6 +20,16 @@ type ProductRow = {
   listingStatus: string;
   lastError: string | null;
 };
+
+function rowStatusLabel(p: ProductRow): { text: string; cls: string } {
+  if (p.listingStatus === "pending" && p.amazonAsin) {
+    return { text: "Amazon'da (eksik teklif)", cls: "text-amber-600" };
+  }
+  if (p.listingStatus === "active" && p.amazonAsin) {
+    return { text: "yayında", cls: "text-green-600" };
+  }
+  return STATUS_LABEL[p.listingStatus] ?? STATUS_LABEL.none;
+}
 
 const STATUS_LABEL: Record<string, { text: string; cls: string }> = {
   none: { text: "gönderilmedi", cls: "text-zinc-400" },
@@ -32,10 +43,10 @@ const STATUS_LABEL: Record<string, { text: string; cls: string }> = {
 
 const RESEND_STATUSES = new Set(["pending", "rejected", "exported", "error"]);
 
-function ErrorText({ text }: { text: string }) {
+function ErrorText({ text, muted }: { text: string; muted?: boolean }) {
   const parts = text.split(/(https:\/\/[^\s]+)/g);
   return (
-    <p className="mt-0.5 max-w-[14rem] text-[11px] text-red-600">
+    <p className={`mt-0.5 max-w-[14rem] text-[11px] ${muted ? "text-amber-700" : "text-red-600"}`}>
       {parts.map((part, i) =>
         part.startsWith("https://") ? (
           <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="underline">
@@ -95,13 +106,18 @@ export function AmazonProductMatchPanel({
   const [errors, setErrors] = useState<string[]>([]);
   const [loaded, setLoaded] = useState(false);
 
-  const loadProducts = useCallback(async () => {
+  const loadProducts = useCallback(async (options?: { syncAmazon?: boolean }) => {
     setBusy(true);
-    setMsg(null);
-    setErrors([]);
+    if (options?.syncAmazon) {
+      setMsg("Amazon'dan güncel durumlar alınıyor…");
+    } else {
+      setMsg(null);
+      setErrors([]);
+    }
     try {
       const qs = new URLSearchParams();
       if (localCategoryId) qs.set("categoryId", localCategoryId);
+      if (options?.syncAmazon) qs.set("syncAmazon", "1");
       const res = await fetch(`/api/admin/integrations/marketplaces/amazon/products?${qs}`);
       const json = (await res.json().catch(() => ({}))) as { products?: ProductRow[]; error?: string };
       if (!res.ok) {
@@ -111,7 +127,11 @@ export function AmazonProductMatchPanel({
       setProducts(json.products ?? []);
       setSelected(new Set());
       setLoaded(true);
-      setMsg(`✓ ${json.products?.length ?? 0} ürün listelendi`);
+      setMsg(
+        options?.syncAmazon
+          ? `✓ Amazon durumları güncellendi · ${json.products?.length ?? 0} ürün`
+          : `✓ ${json.products?.length ?? 0} ürün listelendi`,
+      );
     } catch {
       setMsg("✗ Bağlantı hatası — tekrar deneyin");
     } finally {
@@ -120,7 +140,7 @@ export function AmazonProductMatchPanel({
   }, [localCategoryId]);
 
   useEffect(() => {
-    if (tablesReady) void loadProducts();
+    if (tablesReady) void loadProducts({ syncAmazon: true });
   }, [tablesReady, loadProducts]);
 
   async function verifyOnAmazon() {
@@ -135,7 +155,7 @@ export function AmazonProductMatchPanel({
         return;
       }
       setMsg(`✓ ${json.message ?? "Doğrulandı"}`);
-      if (loaded) await loadProducts();
+      await loadProducts();
     } catch {
       setMsg("✗ Doğrulama hatası");
     } finally {
@@ -187,7 +207,7 @@ export function AmazonProductMatchPanel({
       const r = json.result;
       setErrors(r?.errors ?? []);
       setMsg(`${r?.ok ? "✓" : "✗"} ${r?.message ?? "Gönderildi"}`);
-      await loadProducts();
+      await loadProducts({ syncAmazon: true });
     } catch {
       setMsg("✗ Gönderim hatası veya zaman aşımı — tekrar deneyin");
     } finally {
@@ -225,7 +245,7 @@ export function AmazonProductMatchPanel({
       const r = json.result;
       setErrors(r?.errors ?? []);
       setMsg(`${r?.ok ? "✓" : "✗"} ${r?.message ?? "Güncellendi"}`);
-      await loadProducts();
+      await loadProducts({ syncAmazon: true });
     } catch {
       setMsg("✗ Güncelleme hatası veya zaman aşımı");
     } finally {
@@ -318,8 +338,8 @@ export function AmazonProductMatchPanel({
               </select>
             </AdminField>
           </div>
-          <button type="button" className={btnSecondary} disabled={busy} onClick={() => void loadProducts()}>
-            {busy ? "Yükleniyor…" : "Listeyi yenile"}
+          <button type="button" className={btnSecondary} disabled={busy || verifyBusy} onClick={() => void loadProducts({ syncAmazon: true })}>
+            {busy ? "Yükleniyor…" : "Amazon'dan güncelle"}
           </button>
           <button
             type="button"
@@ -416,7 +436,10 @@ export function AmazonProductMatchPanel({
               </thead>
               <tbody>
                 {visibleProducts.map((p) => {
-                  const status = STATUS_LABEL[p.listingStatus] ?? STATUS_LABEL.none;
+                  const status = rowStatusLabel(p);
+                  const warnOnly =
+                    Boolean(p.amazonAsin) &&
+                    (p.listingStatus === "pending" || p.listingStatus === "inactive");
                   return (
                     <tr key={p.id} className="border-t align-top">
                       <td className="p-2">
@@ -442,6 +465,7 @@ export function AmazonProductMatchPanel({
                       <td className="p-2 text-xs text-zinc-600">{p.categoryTitle ?? "—"}</td>
                       <td className="p-2 text-xs text-zinc-600">
                         <p>SKU: {p.amazonSku || p.sku || "—"}</p>
+                        {p.amazonAsin ? <p>ASIN: {p.amazonAsin}</p> : null}
                         <p>
                           Barkod:{" "}
                           {p.barcode ? (
@@ -454,7 +478,7 @@ export function AmazonProductMatchPanel({
                       <td className="p-2 text-xs">{p.stockQty}</td>
                       <td className="p-2">
                         <span className={`text-xs ${status.cls}`}>{status.text}</span>
-                        {p.lastError ? <ErrorText text={p.lastError} /> : null}
+                        {p.lastError ? <ErrorText text={p.lastError} muted={warnOnly} /> : null}
                       </td>
                     </tr>
                   );
