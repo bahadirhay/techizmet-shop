@@ -8,7 +8,7 @@ import {
   AMAZON_TR_MARKETPLACE_ID,
 } from "@/lib/marketplace/amazon/client";
 import { toMarketplaceSyncPrices } from "@/lib/marketplace/product-prices";
-import { minorToAmazonPrice, buildAmazonGiftAttributes, syncAmazonPriceAndInventory } from "@/lib/marketplace/amazon/inventory";
+import { minorToAmazonPrice, buildAmazonGiftAttributes, syncAmazonOffersWithRetry } from "@/lib/marketplace/amazon/inventory";
 import { resolveAmazonListingSku } from "@/lib/marketplace/amazon/sku";
 import { buildPlatformListingTitle } from "@/lib/marketplace/title-rules";
 import { upsertProductMarketplaceListing } from "@/lib/marketplace/catalog-import";
@@ -456,7 +456,7 @@ export async function syncProductsToAmazon(
   }
 
   if (offerItems.length > 0) {
-    const offerResult = await syncAmazonPriceAndInventory(
+    const offerResult = await syncAmazonOffersWithRetry(
       creds,
       token.accessToken,
       marketplaceId,

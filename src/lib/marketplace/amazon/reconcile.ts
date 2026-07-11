@@ -8,6 +8,8 @@ import {
 import { upsertProductMarketplaceListing } from "@/lib/marketplace/catalog-import";
 import { formatAmazonListingError } from "@/lib/marketplace/amazon/errors";
 import { resolveAmazonListingSku } from "@/lib/marketplace/amazon/sku";
+import { syncAmazonOffersWithRetry, type AmazonInventoryItem } from "@/lib/marketplace/amazon/inventory";
+import { toMarketplaceSyncPrices } from "@/lib/marketplace/product-prices";
 
 function mergeListingMeta(existing: string | null, sku: string, asin?: string): string {
   let meta: Record<string, unknown> = {};
@@ -157,7 +159,7 @@ export async function reconcileAmazonListings(
   siteId: string,
   creds: AmazonSpApiCredentials,
   config: Record<string, string>,
-  options?: { productIds?: string[] },
+  options?: { productIds?: string[]; pushPendingOffers?: boolean },
 ): Promise<{
   ok: boolean;
   message: string;
@@ -166,6 +168,7 @@ export async function reconcileAmazonListings(
   pending: number;
   rejected: number;
   notFound: number;
+  offersPushed?: number;
 }> {
   const token = await getAmazonAccessToken(creds);
   if (!token.accessToken) {
@@ -177,6 +180,7 @@ export async function reconcileAmazonListings(
       pending: 0,
       rejected: 0,
       notFound: 0,
+      offersPushed: 0,
     };
   }
 
@@ -204,8 +208,29 @@ export async function reconcileAmazonListings(
       pending: 0,
       rejected: 0,
       notFound: 0,
+      offersPushed: 0,
     };
   }
+
+  const pushPendingOffers = options?.pushPendingOffers ?? false;
+  const productRows = pushPendingOffers
+    ? await prisma.storeProduct.findMany({
+        where: { siteId, id: { in: listings.map((l) => l.productId) } },
+        select: {
+          id: true,
+          sku: true,
+          slug: true,
+          barcode: true,
+          stockQty: true,
+          priceMinor: true,
+          compareAtMinor: true,
+          marketplacePricesJson: true,
+          marketplaceMarkupPercentJson: true,
+        },
+      })
+    : [];
+  const productById = new Map(productRows.map((p) => [p.id, p]));
+  const offerQueue: AmazonInventoryItem[] = [];
 
   let active = 0;
   let pending = 0;
@@ -227,17 +252,45 @@ export async function reconcileAmazonListings(
       lastError: result.lastError,
       metaJson: mergeListingMeta(listing.metaJson, sku, result.asin),
     });
+
+    if (pushPendingOffers && result.asin && result.listingStatus !== "active") {
+      const product = productById.get(listing.productId);
+      if (product) {
+        const prices = toMarketplaceSyncPrices(product, "amazon_tr");
+        offerQueue.push({
+          sku,
+          quantity: product.stockQty,
+          salePriceMinor: prices.salePriceMinor,
+          listPriceMinor: prices.listPriceMinor,
+        });
+      }
+    }
   }
+
+  let offersPushed = 0;
+  if (offerQueue.length > 0) {
+    const offerResult = await syncAmazonOffersWithRetry(
+      creds,
+      token.accessToken,
+      marketplaceId,
+      offerQueue,
+      config,
+    );
+    offersPushed = offerResult.sent;
+  }
+
+  const offerNote = offersPushed > 0 ? ` · ${offersPushed} teklif/stok gönderildi` : "";
 
   return {
     ok: true,
     message:
       `${listings.length} ilan Amazon'dan güncellendi: ${active} yayında, ${pending} işlemde/eksik, ` +
-      `${rejected} reddedildi, ${notFound} bulunamadı.`,
+      `${rejected} reddedildi, ${notFound} bulunamadı${offerNote}.`,
     checked: listings.length,
     active,
     pending,
     rejected,
     notFound,
+    offersPushed,
   };
 }

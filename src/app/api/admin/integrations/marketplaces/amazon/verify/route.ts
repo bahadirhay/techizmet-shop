@@ -35,6 +35,6 @@ export async function POST() {
     return NextResponse.json({ error: "Amazon SP-API bilgileri eksik" }, { status: 400 });
   }
 
-  const result = await reconcileAmazonListings(auth.siteId, creds, config);
+  const result = await reconcileAmazonListings(auth.siteId, creds, config, { pushPendingOffers: true });
   return NextResponse.json(result);
 }

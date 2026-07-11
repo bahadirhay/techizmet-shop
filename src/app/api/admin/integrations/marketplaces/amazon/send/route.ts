@@ -73,7 +73,10 @@ export async function POST(req: Request) {
   const creds = parseAmazonConfig(config);
   if (creds) {
     if (result.sent > 0) {
-      await reconcileAmazonListings(auth.siteId, creds, config, { productIds });
+      await reconcileAmazonListings(auth.siteId, creds, config, {
+        productIds,
+        pushPendingOffers: true,
+      });
     }
   }
 

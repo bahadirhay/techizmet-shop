@@ -29,7 +29,7 @@ export async function GET(req: Request) {
       }
       const creds = parseAmazonConfig(config);
       if (creds) {
-        await reconcileAmazonListings(auth.siteId, creds, config);
+        await reconcileAmazonListings(auth.siteId, creds, config, { pushPendingOffers: true });
       }
     }
   }

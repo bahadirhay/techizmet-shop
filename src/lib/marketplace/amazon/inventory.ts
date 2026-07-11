@@ -142,6 +142,32 @@ export function buildAmazonOfferPatches(
   return patches;
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function resolveFallbackProductType(config: Record<string, string>): string {
+  const raw = config.amazonDefaultProductType?.trim();
+  if (!raw || raw.toUpperCase() === "PRODUCT") return "PET_FOOD";
+  return raw;
+}
+
+/** Listing var mı (404 değilse) — productType gelmese bile teklif gönderilebilir. */
+async function amazonListingExists(
+  creds: AmazonSpApiCredentials,
+  accessToken: string,
+  marketplaceId: string,
+  sku: string,
+): Promise<boolean> {
+  const qs = new URLSearchParams({ marketplaceIds: marketplaceId });
+  const res = await amazonSpApiRequest(
+    creds,
+    accessToken,
+    `/listings/2021-08-01/items/${encodeURIComponent(creds.sellerId)}/${encodeURIComponent(sku)}?${qs}`,
+  );
+  return res.ok && res.status !== 404;
+}
+
 /** Bir SKU'nun mevcut listing'inden productType'ı okur (PATCH için gerekir). */
 async function fetchListingProductType(
   creds: AmazonSpApiCredentials,
@@ -166,6 +192,25 @@ async function fetchListingProductType(
   const productTypes = (json?.productTypes as Record<string, unknown>[]) ?? [];
   const fromPt = productTypes[0]?.productType;
   return fromPt ? String(fromPt) : null;
+}
+
+/** Amazon listing işlenirken productType gecikebilir — kısa aralıklarla tekrar dene. */
+async function resolveListingProductType(
+  creds: AmazonSpApiCredentials,
+  accessToken: string,
+  marketplaceId: string,
+  sku: string,
+  config: Record<string, string>,
+): Promise<string | null> {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const productType = await fetchListingProductType(creds, accessToken, marketplaceId, sku);
+    if (productType) return productType;
+    if (await amazonListingExists(creds, accessToken, marketplaceId, sku)) {
+      return resolveFallbackProductType(config);
+    }
+    if (attempt < 2) await sleep(5000);
+  }
+  return null;
 }
 
 async function pushAmazonOfferPut(
@@ -218,18 +263,31 @@ export async function syncAmazonPriceAndInventory(
   marketplaceId: string,
   items: AmazonInventoryItem[],
   config: Record<string, string> = {},
-): Promise<{ ok: boolean; sent: number; message: string; errors: string[] }> {
+): Promise<{ ok: boolean; sent: number; message: string; errors: string[]; successSkus: string[] }> {
   const valid = items.filter((i) => i.sku.trim());
   if (valid.length === 0) {
-    return { ok: false, sent: 0, message: "SKU'su olan ürün yok — Amazon stok/fiyat için SKU zorunlu", errors: [] };
+    return {
+      ok: false,
+      sent: 0,
+      message: "SKU'su olan ürün yok — Amazon stok/fiyat için SKU zorunlu",
+      errors: [],
+      successSkus: [],
+    };
   }
 
   let sent = 0;
   let skipped = 0;
   const errors: string[] = [];
+  const successSkus: string[] = [];
 
   for (const item of valid) {
-    const productType = await fetchListingProductType(creds, accessToken, marketplaceId, item.sku);
+    const productType = await resolveListingProductType(
+      creds,
+      accessToken,
+      marketplaceId,
+      item.sku,
+      config,
+    );
     if (!productType) {
       skipped++;
       if (errors.length < 5) errors.push(`${item.sku}: Amazon'da listing bulunamadı (önce ürünü gönderin)`);
@@ -259,6 +317,7 @@ export async function syncAmazonPriceAndInventory(
     const json = res.json as { status?: string; issues?: { message?: string }[] } | null;
     if (res.ok && (json?.status === "ACCEPTED" || json?.status === "VALID")) {
       sent++;
+      successSkus.push(item.sku);
       continue;
     }
 
@@ -276,6 +335,7 @@ export async function syncAmazonPriceAndInventory(
     );
     if (offerPut.ok) {
       sent++;
+      successSkus.push(item.sku);
     } else if (errors.length < 5) {
       errors.push(`${item.sku}: ${offerPut.issueMsg ?? patchIssueMsg}`);
     }
@@ -287,6 +347,48 @@ export async function syncAmazonPriceAndInventory(
     ok: sent > 0,
     sent,
     message: `${sent}/${valid.length} ürün stok/fiyat güncellendi${skipNote}${errNote}`,
+    errors,
+    successSkus,
+  };
+}
+
+/** Yeni gönderilen ilanlarda Amazon işlemesi gecikebilir — başarısız SKU'ları birkaç kez dener. */
+export async function syncAmazonOffersWithRetry(
+  creds: AmazonSpApiCredentials,
+  accessToken: string,
+  marketplaceId: string,
+  items: AmazonInventoryItem[],
+  config: Record<string, string> = {},
+  options?: { rounds?: number; delayMs?: number },
+): Promise<{ ok: boolean; sent: number; message: string; errors: string[] }> {
+  const rounds = options?.rounds ?? 3;
+  const delayMs = options?.delayMs ?? 6000;
+  const valid = items.filter((i) => i.sku.trim());
+  const sentSkus = new Set<string>();
+  const errors: string[] = [];
+  let pending = valid;
+
+  for (let round = 0; round < rounds && pending.length > 0; round++) {
+    if (round > 0) await sleep(delayMs);
+    const result = await syncAmazonPriceAndInventory(
+      creds,
+      accessToken,
+      marketplaceId,
+      pending,
+      config,
+    );
+    for (const sku of result.successSkus) sentSkus.add(sku);
+    pending = pending.filter((item) => !sentSkus.has(item.sku));
+    for (const err of result.errors) {
+      if (!errors.includes(err) && errors.length < 8) errors.push(err);
+    }
+  }
+
+  const errNote = errors.length ? ` · Hata: ${errors.slice(0, 3).join(" | ")}` : "";
+  return {
+    ok: sentSkus.size > 0,
+    sent: sentSkus.size,
+    message: `${sentSkus.size}/${valid.length} ürün teklif/stok güncellendi${errNote}`,
     errors,
   };
 }
