@@ -7,7 +7,7 @@ import {
 } from "@/lib/marketplace/amazon/client";
 import { upsertProductMarketplaceListing } from "@/lib/marketplace/catalog-import";
 import { formatAmazonListingError } from "@/lib/marketplace/amazon/errors";
-import { resolveAmazonListingSku } from "@/lib/marketplace/amazon/sku";
+import { resolveAmazonSkuForSync } from "@/lib/marketplace/amazon/sku";
 import { syncAmazonOffersWithRetry, type AmazonInventoryItem } from "@/lib/marketplace/amazon/inventory";
 import { toMarketplaceSyncPrices } from "@/lib/marketplace/product-prices";
 
@@ -224,7 +224,14 @@ export async function reconcileAmazonListings(
   let notFound = 0;
 
   for (const listing of listings) {
-    const sku = resolveAmazonListingSku(listing.metaJson, listing.product);
+    const sku = await resolveAmazonSkuForSync(
+      creds,
+      token.accessToken,
+      marketplaceId,
+      listing.metaJson,
+      listing.product,
+      listing.barcode,
+    );
     const result = await fetchAmazonListingStatus(creds, token.accessToken, marketplaceId, sku);
 
     if (!result.found && result.lastError?.includes("bulunamadı")) notFound++;

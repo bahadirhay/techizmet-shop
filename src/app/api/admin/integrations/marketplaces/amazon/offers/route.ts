@@ -7,9 +7,10 @@ import {
   resolveAmazonMarketplaceId,
 } from "@/lib/marketplace/amazon/client";
 import { reconcileAmazonListings } from "@/lib/marketplace/amazon/reconcile";
+import { upsertProductMarketplaceListing } from "@/lib/marketplace/catalog-import";
 import { getIntegrationConfig } from "@/lib/marketplace/actions";
 import { syncAmazonOffersWithRetry } from "@/lib/marketplace/amazon/inventory";
-import { resolveAmazonListingSku } from "@/lib/marketplace/amazon/sku";
+import { resolveAmazonSkuForSync } from "@/lib/marketplace/amazon/sku";
 import { toMarketplaceSyncPrices } from "@/lib/marketplace/product-prices";
 
 type Body = { productIds?: string[]; incompleteOnly?: boolean };
@@ -72,6 +73,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: token.error ?? "Amazon token alınamadı" }, { status: 502 });
   }
 
+  const marketplaceId = resolveAmazonMarketplaceId(config);
+
   const products = await prisma.storeProduct.findMany({
     where: { siteId: auth.siteId, id: { in: productIds } },
     select: {
@@ -88,27 +91,54 @@ export async function POST(req: Request) {
   });
   const listings = await prisma.marketplaceProductListing.findMany({
     where: { siteId: auth.siteId, platform: "amazon_tr", productId: { in: productIds } },
-    select: { productId: true, metaJson: true },
+    select: { productId: true, metaJson: true, barcode: true, listingStatus: true },
   });
-  const listingByProduct = new Map(listings.map((l) => [l.productId, l.metaJson]));
-  const items = products.map((p) => {
+  const listingByProduct = new Map(listings.map((l) => [l.productId, l]));
+
+  const items: {
+    sku: string;
+    quantity: number;
+    salePriceMinor: number;
+    listPriceMinor: number;
+    productId: string;
+  }[] = [];
+
+  for (const p of products) {
+    const listing = listingByProduct.get(p.id);
     const prices = toMarketplaceSyncPrices(p, "amazon_tr");
-    return {
-      sku: resolveAmazonListingSku(listingByProduct.get(p.id) ?? null, p),
+    const sku = await resolveAmazonSkuForSync(
+      creds,
+      token.accessToken,
+      marketplaceId,
+      listing?.metaJson ?? null,
+      p,
+      listing?.barcode ?? null,
+    );
+    items.push({
+      productId: p.id,
+      sku,
       quantity: p.stockQty,
       salePriceMinor: prices.salePriceMinor,
       listPriceMinor: prices.listPriceMinor,
-    };
-  });
+    });
+  }
 
-  const marketplaceId = resolveAmazonMarketplaceId(config);
   const offerResult = await syncAmazonOffersWithRetry(
     creds,
     token.accessToken,
     marketplaceId,
-    items,
+    items.map(({ productId: _pid, ...item }) => item),
     config,
   );
+
+  for (const item of items) {
+    const listing = listingByProduct.get(item.productId);
+    if (!listing) continue;
+    await upsertProductMarketplaceListing(auth.siteId, item.productId, "amazon_tr", {
+      listingStatus: listing.listingStatus,
+      metaPatch: { sku: item.sku },
+    });
+  }
 
   await reconcileAmazonListings(auth.siteId, creds, config, { productIds, pushPendingOffers: false });
 
