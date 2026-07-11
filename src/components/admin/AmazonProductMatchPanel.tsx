@@ -22,11 +22,11 @@ type ProductRow = {
 };
 
 function rowStatusLabel(p: ProductRow): { text: string; cls: string } {
+  if (p.listingStatus === "active") {
+    return { text: "yayında", cls: "text-green-600" };
+  }
   if (p.listingStatus === "pending" && p.amazonAsin) {
     return { text: "Amazon'da (eksik teklif)", cls: "text-amber-600" };
-  }
-  if (p.listingStatus === "active" && p.amazonAsin) {
-    return { text: "yayında", cls: "text-green-600" };
   }
   return STATUS_LABEL[p.listingStatus] ?? STATUS_LABEL.none;
 }
@@ -478,7 +478,9 @@ export function AmazonProductMatchPanel({
                       <td className="p-2 text-xs">{p.stockQty}</td>
                       <td className="p-2">
                         <span className={`text-xs ${status.cls}`}>{status.text}</span>
-                        {p.lastError ? <ErrorText text={p.lastError} muted={warnOnly} /> : null}
+                        {p.lastError && p.listingStatus !== "active" ? (
+                          <ErrorText text={p.lastError} muted={warnOnly} />
+                        ) : null}
                       </td>
                     </tr>
                   );

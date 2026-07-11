@@ -40,13 +40,57 @@ function mergeListingMeta(existing: string | null, sku: string, asin?: string): 
   return JSON.stringify(meta);
 }
 
+function normalizeSummaryStatus(raw: Record<string, unknown> | undefined): string {
+  const s = raw?.status;
+  if (Array.isArray(s)) return s.map((x) => String(x).toUpperCase()).join(" ");
+  return String(s ?? "").toUpperCase();
+}
+
 function mapAmazonSummaryStatus(raw: Record<string, unknown> | undefined): "active" | "inactive" | "pending" {
-  const status = String(raw?.status ?? "").toUpperCase();
+  const status = normalizeSummaryStatus(raw);
   if (status.includes("INACTIVE") || status.includes("SUPPRESSED")) return "inactive";
+  // BUYABLE = satışa açık — issues listesindeki eski uyarılar durumu düşürmez
   if (status.includes("BUYABLE")) return "active";
-  if (status.includes("DISCOVERABLE") || status.includes("ACTIVE")) return "active";
+  if (status.includes("DISCOVERABLE")) return "pending";
+  if (status.includes("ACTIVE")) return "active";
   if (status.includes("INCOMPLETE")) return "pending";
   return "pending";
+}
+
+function isOfferOnlyIssueMessage(msg: string): boolean {
+  const m = msg.toLowerCase();
+  return (
+    m.includes("teklif") ||
+    m.includes("offer") ||
+    m.includes("fiyat") ||
+    m.includes("price") ||
+    m.includes("stok") ||
+    m.includes("quantity") ||
+    m.includes("hediye") ||
+    m.includes("gift")
+  );
+}
+
+function resolveListingErrors(
+  summaryStatus: "active" | "inactive" | "pending",
+  rawIssues?: { message?: string; severity?: string }[],
+): string | null {
+  if (summaryStatus === "active") return null;
+
+  const errors = extractAmazonErrorMessages(rawIssues);
+  if (!errors) return null;
+
+  // Katalogda görünür ama teklif eksik — eski görsel/marka uyarılarını gösterme
+  if (summaryStatus === "pending") {
+    const parts = errors.split("; ").filter(Boolean);
+    const offerParts = parts.filter(isOfferOnlyIssueMessage);
+    if (offerParts.length > 0) return offerParts.join("; ");
+    if (parts.some((p) => p.includes("Görsel Amazon"))) {
+      return "Amazon'da teklif/stok bilgisi eksik olabilir — Seller Central veya «Stok & fiyat güncelle» kullanın.";
+    }
+  }
+
+  return errors;
 }
 
 function extractAmazonErrorMessages(
@@ -98,24 +142,21 @@ async function fetchAmazonListingStatus(
     summaries?: Record<string, unknown>[];
     issues?: { message?: string; severity?: string }[];
   } | null;
-  const errors = extractAmazonErrorMessages(json?.issues);
   const summary = json?.summaries?.[0];
   const asin = summary?.asin ? String(summary.asin) : undefined;
   const summaryStatus = mapAmazonSummaryStatus(summary);
+  const lastError = resolveListingErrors(summaryStatus, json?.issues);
 
-  // ASIN varsa ürün Amazon kataloğunda — eski gönderim hatası olsa bile "reddedildi" değil
   if (asin) {
-    let listingStatus: "active" | "inactive" | "pending" | "rejected" = summaryStatus;
-    if (errors && listingStatus === "active") listingStatus = "pending";
-    if (errors && listingStatus !== "inactive") listingStatus = "pending";
     return {
       found: true,
-      listingStatus,
-      lastError: errors || null,
+      listingStatus: summaryStatus,
+      lastError,
       asin,
     };
   }
 
+  const errors = extractAmazonErrorMessages(json?.issues);
   if (errors) {
     return { found: true, listingStatus: "rejected", lastError: errors };
   }
