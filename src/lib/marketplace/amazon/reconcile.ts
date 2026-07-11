@@ -11,20 +11,6 @@ import { resolveAmazonListingSku } from "@/lib/marketplace/amazon/sku";
 import { syncAmazonOffersWithRetry, type AmazonInventoryItem } from "@/lib/marketplace/amazon/inventory";
 import { toMarketplaceSyncPrices } from "@/lib/marketplace/product-prices";
 
-function mergeListingMeta(existing: string | null, sku: string, asin?: string): string {
-  let meta: Record<string, unknown> = {};
-  if (existing) {
-    try {
-      meta = JSON.parse(existing) as Record<string, unknown>;
-    } catch {
-      /* metaJson bozuk */
-    }
-  }
-  meta.sku = sku;
-  if (asin) meta.asin = asin;
-  return JSON.stringify(meta);
-}
-
 function normalizeSummaryStatus(raw: Record<string, unknown> | undefined): string {
   const s = raw?.status;
   if (Array.isArray(s)) return s.map((x) => String(x).toUpperCase()).join(" ");
@@ -250,7 +236,7 @@ export async function reconcileAmazonListings(
       barcode: result.asin ?? listing.barcode,
       listingStatus: result.listingStatus,
       lastError: result.lastError,
-      metaJson: mergeListingMeta(listing.metaJson, sku, result.asin),
+      metaPatch: { sku, ...(result.asin ? { asin: result.asin } : {}) },
     });
 
     if (pushPendingOffers && result.asin && result.listingStatus !== "active") {

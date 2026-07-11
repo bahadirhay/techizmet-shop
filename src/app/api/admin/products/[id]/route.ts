@@ -19,6 +19,7 @@ import { resolveProductCategorySelection, syncProductCategoryLinks } from "@/lib
 import { resolveProductSeoFields } from "@/lib/admin/product-seo/ensure-seo";
 import { SITE_DEFAULT_EXPLORE_SENTINEL } from "@/lib/product-explore-looks";
 import { productAdminErrorResponse } from "@/lib/admin/product-api-errors";
+import { getMarketplaceSyncForProduct } from "@/lib/marketplace/get-product-marketplace-sync";
 import {
   notifyPublishedProduct,
   shouldReindexPublishedProduct,
@@ -272,7 +273,11 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       /* stok kartı senkronu isteğe bağlı */
     }
 
-    return NextResponse.json({ product });
+    const marketplaceSync = product
+      ? await getMarketplaceSyncForProduct(auth.siteId, product.id)
+      : null;
+
+    return NextResponse.json({ product, marketplaceSync });
   } catch (e) {
     return productAdminErrorResponse(e);
   }

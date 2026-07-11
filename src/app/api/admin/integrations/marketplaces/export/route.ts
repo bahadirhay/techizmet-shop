@@ -24,6 +24,7 @@ export async function GET(req: Request) {
       await upsertProductMarketplaceListing(auth.siteId, p.id, platform, {
         barcode: p.barcode?.trim() ?? null,
         listingStatus: "exported",
+        contentSyncedAt: p.updatedAt,
       });
     }
   }

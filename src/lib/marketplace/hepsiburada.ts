@@ -28,6 +28,7 @@ export async function syncProductsToHepsiburada(
     sku: string | null;
     priceMinor: number;
     stockQty: number;
+    updatedAt?: Date;
     brand?: { name: string } | null;
   }[],
   config: Record<string, string>,
@@ -108,6 +109,7 @@ export async function syncProductsToHepsiburada(
         await upsertProductMarketplaceListing(options.siteId, p.id, "hepsiburada", {
           barcode: p.barcode?.trim() ?? null,
           listingStatus: "pending",
+          contentSyncedAt: p.updatedAt,
         });
       }
     }

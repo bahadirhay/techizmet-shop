@@ -271,6 +271,7 @@ export async function pushMarketplaceProducts(
       await upsertProductMarketplaceListing(siteId, p.id, platform, {
         barcode: p.barcode?.trim() ?? null,
         listingStatus: "exported",
+        contentSyncedAt: p.updatedAt,
       });
     }
   }

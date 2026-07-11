@@ -4,10 +4,23 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { AdminListRowActions } from "@/components/admin/AdminListRowActions";
-import { MarketplacePlatformBadges } from "@/components/admin/MarketplacePlatformBadges";
+import {
+  MarketplacePlatformBadges,
+  MarketplaceSyncLegend,
+} from "@/components/admin/MarketplacePlatformBadges";
+import {
+  MarketplaceSyncSummaryBar,
+  type SyncFilter,
+} from "@/components/admin/MarketplaceSyncSummaryBar";
 import { btnSecondary } from "@/components/admin/AdminForm";
 import { formatTry } from "@/lib/admin/money";
 import { parseProductBadges, badgePreset, type ProductBadgeId } from "@/lib/product-badges";
+import {
+  productMatchesSyncFilter,
+  summarizeMarketplaceSyncTotals,
+  type MarketplaceSyncState,
+  type ProductMarketplaceSyncSummary,
+} from "@/lib/marketplace/listing-sync-state";
 
 export type ProductRow = {
   id: string;
@@ -26,17 +39,20 @@ export type ProductRow = {
   categoryTitle: string | null;
   brandName: string | null;
   variantCount: number;
-  marketplaces: { platform: string; status: string }[];
+  marketplaces: { platform: string; status: string; syncState?: MarketplaceSyncState }[];
+  marketplaceSync?: ProductMarketplaceSyncSummary;
 };
 
 export function ProductsBulkTable({
   products,
   categories,
   brands,
+  hasActiveMarketplaces = false,
 }: {
   products: ProductRow[];
   categories: { id: string; title: string }[];
   brands: { id: string; name: string }[];
+  hasActiveMarketplaces?: boolean;
 }) {
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -45,18 +61,26 @@ export function ProductsBulkTable({
   const [bulkCategory, setBulkCategory] = useState("");
   const [bulkBrand, setBulkBrand] = useState("");
   const [query, setQuery] = useState("");
+  const [syncFilter, setSyncFilter] = useState<SyncFilter>("all");
+
+  const syncTotals = useMemo(
+    () => summarizeMarketplaceSyncTotals(products.map((p) => p.marketplaceSync).filter(Boolean) as ProductMarketplaceSyncSummary[]),
+    [products],
+  );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return products;
-    return products.filter(
-      (p) =>
+    return products.filter((p) => {
+      if (!productMatchesSyncFilter(p.marketplaceSync, syncFilter)) return false;
+      if (!q) return true;
+      return (
         p.title.toLowerCase().includes(q) ||
         p.slug.toLowerCase().includes(q) ||
         (p.sku?.toLowerCase().includes(q) ?? false) ||
-        (p.collectionTitle?.toLowerCase().includes(q) ?? false),
-    );
-  }, [products, query]);
+        (p.collectionTitle?.toLowerCase().includes(q) ?? false)
+      );
+    });
+  }, [products, query, syncFilter]);
 
   const allIds = useMemo(() => filtered.map((p) => p.id), [filtered]);
   const allSelected = filtered.length > 0 && selected.size === filtered.length;
@@ -98,6 +122,12 @@ export function ProductsBulkTable({
 
   return (
     <div>
+      <MarketplaceSyncSummaryBar
+        totals={syncTotals}
+        filter={syncFilter}
+        onFilterChange={setSyncFilter}
+        hasActivePlatforms={hasActiveMarketplaces}
+      />
       <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border bg-white p-3">
         <input
           type="search"
@@ -175,9 +205,7 @@ export function ProductsBulkTable({
           Sil
         </button>
         {err ? <span className="text-sm text-red-600">{err}</span> : null}
-        <span className="text-xs text-zinc-400" title="Trendyol, Hepsiburada, Amazon vb.">
-          Rozetler: TY · HB · AMZ · n11 · ÇS · PZR
-        </span>
+        <MarketplaceSyncLegend />
       </div>
 
       <div className="admin-table-wrap">

@@ -1,4 +1,5 @@
 import { findProductByBarcodeOrSku } from "@/lib/marketplace/import-helpers";
+import { mergeListingMetaJson } from "@/lib/marketplace/listing-sync-state";
 import {
   MARKETPLACE_PRISMA_STALE_MSG,
   marketplaceProductListingDb,
@@ -40,13 +41,38 @@ export async function upsertProductMarketplaceListing(
     barcode?: string | null;
     listingStatus: string;
     lastError?: string | null;
+    /** Tam metaJson değişimi — mümkünse metaPatch kullanın */
     metaJson?: string | null;
+    /** Mevcut meta ile birleştirilir */
+    metaPatch?: Record<string, unknown>;
+    /** İçerik gönderiminde ürünün updatedAt değeri (metaJson.syncedProductUpdatedAt) */
+    contentSyncedAt?: Date;
   },
 ): Promise<boolean> {
   const listingDb = marketplaceProductListingDb();
   if (!listingDb) return false;
 
   const now = new Date();
+  const hasMetaChange =
+    data.metaJson !== undefined || data.metaPatch !== undefined || data.contentSyncedAt !== undefined;
+
+  let nextMeta: string | null | undefined;
+  if (data.metaJson !== undefined) {
+    nextMeta = data.contentSyncedAt
+      ? mergeListingMetaJson(data.metaJson, {}, data.contentSyncedAt)
+      : data.metaJson;
+  } else if (data.metaPatch !== undefined || data.contentSyncedAt !== undefined) {
+    const existing = await prisma.marketplaceProductListing.findUnique({
+      where: { siteId_platform_productId: { siteId, platform, productId } },
+      select: { metaJson: true },
+    });
+    nextMeta = mergeListingMetaJson(
+      existing?.metaJson ?? null,
+      data.metaPatch ?? {},
+      data.contentSyncedAt,
+    );
+  }
+
   await listingDb.upsert({
     where: {
       siteId_platform_productId: { siteId, platform, productId },
@@ -59,14 +85,14 @@ export async function upsertProductMarketplaceListing(
       listingStatus: data.listingStatus,
       lastSyncAt: now,
       lastError: data.lastError ?? null,
-      metaJson: data.metaJson ?? null,
+      metaJson: nextMeta ?? null,
     },
     update: {
-      barcode: data.barcode ?? null,
+      ...(data.barcode !== undefined ? { barcode: data.barcode } : {}),
       listingStatus: data.listingStatus,
       lastSyncAt: now,
-      lastError: data.lastError ?? null,
-      metaJson: data.metaJson ?? null,
+      ...(data.lastError !== undefined ? { lastError: data.lastError } : {}),
+      ...(hasMetaChange ? { metaJson: nextMeta ?? null } : {}),
     },
   });
   return true;

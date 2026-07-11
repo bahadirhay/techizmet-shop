@@ -128,6 +128,7 @@ type AmazonPushProduct = {
   categoryId: string | null;
   marketplacePricesJson: string | null;
   marketplaceMarkupPercentJson: string | null;
+  updatedAt: Date;
   brand?: { name: string | null } | null;
   category?: { title: string | null } | null;
   imageUrl?: string | null;
@@ -437,7 +438,8 @@ export async function syncProductsToAmazon(
           barcode: product.barcode?.trim() ?? null,
           listingStatus: "pending",
           lastError: null,
-          metaJson: JSON.stringify({ sku, submissionId: json?.submissionId, productType }),
+          metaPatch: { sku, submissionId: json?.submissionId, productType },
+          contentSyncedAt: product.updatedAt,
         });
       }
     } else {
@@ -449,7 +451,7 @@ export async function syncProductsToAmazon(
           barcode: product.barcode?.trim() ?? null,
           listingStatus: "rejected",
           lastError: reason,
-          metaJson: JSON.stringify({ sku, productType }),
+          metaPatch: { sku, productType },
         });
       }
     }

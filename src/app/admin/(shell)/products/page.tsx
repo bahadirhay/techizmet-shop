@@ -2,13 +2,19 @@ import Link from "next/link";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { ProductsBulkTable } from "@/components/admin/ProductsBulkTable";
 import { ProductsExcelPanel } from "@/components/admin/ProductsExcelPanel";
+import { MarketplaceSyncAlertBanner } from "@/components/admin/MarketplaceSyncAlertBanner";
 import { btnPrimary } from "@/components/admin/AdminForm";
+import {
+  getActiveMarketplacePlatforms,
+  getMarketplaceSyncForProducts,
+} from "@/lib/marketplace/get-product-marketplace-sync";
+import type { MarketplaceSyncState } from "@/lib/marketplace/listing-sync-state";
 import { prisma } from "@/lib/prisma";
 import { requireStaffPage } from "@/lib/staff-auth";
 
 export default async function ProductsPage() {
   const auth = await requireStaffPage();
-  const [products, categories, brands, marketplaceListings] = await Promise.all([
+  const [products, categories, brands, activePlatforms] = await Promise.all([
     prisma.storeProduct.findMany({
       where: { siteId: auth.siteId },
       orderBy: { updatedAt: "desc" },
@@ -29,45 +35,51 @@ export default async function ProductsPage() {
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),
-    prisma.marketplaceProductListing.findMany({
-      where: { siteId: auth.siteId },
-      select: { productId: true, platform: true, listingStatus: true },
-    }),
+    getActiveMarketplacePlatforms(auth.siteId),
   ]);
 
-  const listingsByProduct = new Map<string, { platform: string; status: string }[]>();
-  for (const listing of marketplaceListings) {
-    const list = listingsByProduct.get(listing.productId) ?? [];
-    list.push({ platform: listing.platform, status: listing.listingStatus });
-    listingsByProduct.set(listing.productId, list);
-  }
+  const syncByProduct = await getMarketplaceSyncForProducts(
+    auth.siteId,
+    products.map((p) => ({ id: p.id, updatedAt: p.updatedAt })),
+  );
 
-  const rows = products.map((p) => ({
-    id: p.id,
-    kind: p.kind,
-    title: p.title,
-    slug: p.slug,
-    sku: p.sku,
-    barcode: p.barcode,
-    imageUrl: p.imageUrl,
-    published: p.published,
-    priceMinor: p.priceMinor,
-    stockQty: p.stockQty,
-    lowStockThreshold: p.lowStockThreshold,
-    badgesJson: p.badgesJson,
-    collectionTitle: p.collection?.title ?? null,
-    categoryTitle: p.category?.title ?? null,
-    brandName: p.brand?.name ?? null,
-    variantCount: p.variants.length,
-    marketplaces: listingsByProduct.get(p.id) ?? [],
-  }));
+  const rows = products.map((p) => {
+    const marketplaceSync = syncByProduct.get(p.id);
+    const marketplaces =
+      marketplaceSync?.platforms.map((row) => ({
+        platform: row.platform,
+        status: row.listingStatus ?? "none",
+        syncState: row.state as MarketplaceSyncState,
+      })) ?? [];
+
+    return {
+      id: p.id,
+      kind: p.kind,
+      title: p.title,
+      slug: p.slug,
+      sku: p.sku,
+      barcode: p.barcode,
+      imageUrl: p.imageUrl,
+      published: p.published,
+      priceMinor: p.priceMinor,
+      stockQty: p.stockQty,
+      lowStockThreshold: p.lowStockThreshold,
+      badgesJson: p.badgesJson,
+      collectionTitle: p.collection?.title ?? null,
+      categoryTitle: p.category?.title ?? null,
+      brandName: p.brand?.name ?? null,
+      variantCount: p.variants.length,
+      marketplaces,
+      marketplaceSync,
+    };
+  });
 
   return (
     <div>
       <AdminPageHeader
         breadcrumb={[{ label: "Ürünler" }]}
         title="Ürün yönetimi"
-        description="Çoklu seçim, Excel dışa/içe aktarma, toplu yayın ve stok. Pazaryeri rozetleri: entegrasyon → Katalog çek."
+        description="Pazaryeri rozetleri: güncel, güncelleme bekliyor (!) veya pazaryerinde yok. İçerik gönderdikten sonra rozet yeşile döner."
         actions={
           <div className="flex flex-wrap gap-2">
             <Link
@@ -100,8 +112,14 @@ export default async function ProductsPage() {
           </div>
         }
       />
+      <MarketplaceSyncAlertBanner />
       <ProductsExcelPanel />
-      <ProductsBulkTable products={rows} categories={categories} brands={brands} />
+      <ProductsBulkTable
+        products={rows}
+        categories={categories}
+        brands={brands}
+        hasActiveMarketplaces={activePlatforms.length > 0}
+      />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { resolveTrendyolCategoryBrand } from "@/lib/marketplace/category-mapping
 import { resolveTrendyolAttributes, mergeTrendyolAttributes, parseProductAttributes } from "@/lib/marketplace/attribute-mapping";
 import type { TrendyolPayloadAttribute } from "@/lib/marketplace/attribute-mapping";
 import { marketplaceProductListingDb } from "@/lib/marketplace/prisma-marketplace";
+import { upsertProductMarketplaceListing } from "@/lib/marketplace/catalog-import";
 import { buildPlatformListingTitle } from "@/lib/marketplace/title-rules";
 import { parseTrendyolConfig, trendyolApiBase } from "@/lib/marketplace/trendyol/client";
 import { trendyolAuthHeaders } from "@/lib/marketplace/trendyol/headers";
@@ -61,6 +62,7 @@ type SyncProductInput = {
   vatRate?: number | null;
   desi?: number | null;
   weightGrams?: number | null;
+  updatedAt: Date;
 };
 
 function num(v: string | undefined | null): number | undefined {
@@ -199,48 +201,24 @@ async function sendTrendyolProductBatch(
   }
 
   if (siteId) {
-    const listingDb = marketplaceProductListingDb();
-    if (listingDb) {
-      const now = new Date();
-      const meta = batchRequestId ? JSON.stringify({ batchRequestId }) : null;
-      for (const p of sentProducts) {
-        const bc = p.barcode?.trim() ?? "";
-        const result = batchByBarcode.get(bc);
-        const listingStatus = result?.status ?? (batchRequestId ? "pending" : "rejected");
-        const lastError =
-          result?.error ??
-          (batchRequestId && !result
-            ? "Batch sonucu henüz yok — Trendyol'da doğrula"
-            : !batchRequestId
-              ? "Trendyol batch ID alınamadı"
-              : null);
-        await listingDb.upsert({
-          where: {
-            siteId_platform_productId: {
-              siteId,
-              platform: "trendyol",
-              productId: p.id,
-            },
-          },
-          create: {
-            siteId,
-            platform: "trendyol",
-            productId: p.id,
-            barcode: bc || null,
-            listingStatus,
-            lastSyncAt: now,
-            lastError,
-            metaJson: meta,
-          },
-          update: {
-            barcode: bc || null,
-            listingStatus,
-            lastSyncAt: now,
-            lastError,
-            metaJson: meta,
-          },
-        });
-      }
+    for (const p of sentProducts) {
+      const bc = p.barcode?.trim() ?? "";
+      const result = batchByBarcode.get(bc);
+      const listingStatus = result?.status ?? (batchRequestId ? "pending" : "rejected");
+      const lastError =
+        result?.error ??
+        (batchRequestId && !result
+          ? "Batch sonucu henüz yok — Trendyol'da doğrula"
+          : !batchRequestId
+            ? "Trendyol batch ID alınamadı"
+            : null);
+      await upsertProductMarketplaceListing(siteId, p.id, "trendyol", {
+        barcode: bc || null,
+        listingStatus,
+        lastError,
+        metaPatch: batchRequestId ? { batchRequestId } : undefined,
+        contentSyncedAt: listingStatus !== "rejected" ? p.updatedAt : undefined,
+      });
     }
   }
 

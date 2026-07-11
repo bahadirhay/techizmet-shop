@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { storeMarketplaceSyncAlert } from "@/components/admin/MarketplaceSyncAlertBanner";
 import { AdminField, btnPrimary, btnSecondary, inputClass } from "@/components/admin/AdminForm";
 import { ProductMediaEditor } from "@/components/admin/ProductMediaEditor";
 import { minorToTry } from "@/lib/admin/money";
@@ -251,7 +252,15 @@ export function ProductForm({
         body: JSON.stringify(payload),
       });
       const raw = await res.text();
-      let json: { error?: string; product?: { id: string } } = {};
+      let json: {
+        error?: string;
+        product?: { id: string };
+        marketplaceSync?: {
+          stalePlatforms: string[];
+          notListedPlatforms: string[];
+          needsAttentionPlatforms: string[];
+        };
+      } = {};
       if (raw.trim()) {
         try {
           json = JSON.parse(raw) as { error?: string; product?: { id: string } };
@@ -262,6 +271,14 @@ export function ProductForm({
       if (!res.ok) {
         setErr(json.error ?? `Kayıt başarısız (${res.status})`);
         return;
+      }
+      if (json.marketplaceSync) {
+        storeMarketplaceSyncAlert({
+          title: form.title || "Ürün",
+          stalePlatforms: json.marketplaceSync.stalePlatforms,
+          notListedPlatforms: json.marketplaceSync.notListedPlatforms,
+          needsAttentionPlatforms: json.marketplaceSync.needsAttentionPlatforms,
+        });
       }
       router.push("/admin/products");
       router.refresh();
