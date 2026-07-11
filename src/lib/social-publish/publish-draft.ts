@@ -154,6 +154,7 @@ export async function publishSocialContentDraft(
     data: {
       status: "published",
       publishedUrl: result.publishedUrl ?? null,
+      externalId: result.externalId ?? null,
       publishedAt: new Date(),
       publishError: null,
       scheduledAt: null,

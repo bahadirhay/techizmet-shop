@@ -87,6 +87,59 @@ export async function publishToFacebookPage(params: {
   }
 }
 
+export type InstagramMediaInsight = {
+  mediaId: string;
+  reach: number | null;
+  likes: number | null;
+  comments: number | null;
+  saved: number | null;
+};
+
+async function graphGet(path: string, token: string): Promise<Record<string, unknown> | null> {
+  const res = await fetch(`${GRAPH}${path}${path.includes("?") ? "&" : "?"}access_token=${encodeURIComponent(token)}`);
+  const json = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+  if (!res.ok || !json || json.error) return null;
+  return json;
+}
+
+/** Tek bir Instagram gönderisinin erişim/etkileşim metrikleri (instagram_manage_insights izni gerekir) */
+export async function fetchInstagramMediaInsights(
+  mediaId: string,
+  config: MetaConfig,
+): Promise<InstagramMediaInsight | null> {
+  if (!config.accessToken || !mediaId) return null;
+  const json = await graphGet(`/${mediaId}/insights?metric=reach,likes,comments,saved`, config.accessToken);
+  const data = json?.data as { name?: string; values?: { value?: number }[] }[] | undefined;
+  if (!data) return null;
+  const valueFor = (name: string) => data.find((d) => d.name === name)?.values?.[0]?.value ?? null;
+  return {
+    mediaId,
+    reach: valueFor("reach"),
+    likes: valueFor("likes"),
+    comments: valueFor("comments"),
+    saved: valueFor("saved"),
+  };
+}
+
+/** Hesap seviyesinde son 30 gün erişim/profil ziyareti özeti (instagram_manage_insights izni gerekir) */
+export async function fetchInstagramAccountInsights(
+  config: MetaConfig,
+): Promise<{ impressions: number | null; reach: number | null; profileViews: number | null } | null> {
+  if (!config.accessToken || !config.instagramAccountId) return null;
+  const json = await graphGet(
+    `/${config.instagramAccountId}/insights?metric=impressions,reach,profile_views&period=days_28`,
+    config.accessToken,
+  );
+  const data = json?.data as { name?: string; values?: { value?: number }[] }[] | undefined;
+  if (!data) return null;
+  const valueFor = (name: string) => data.find((d) => d.name === name)?.values?.[0]?.value ?? null;
+  return {
+    impressions: valueFor("impressions"),
+    reach: valueFor("reach"),
+    profileViews: valueFor("profile_views"),
+  };
+}
+
 export async function testMetaConnection(config: MetaConfig): Promise<{ ok: boolean; message: string }> {
   if (!config.accessToken) return { ok: false, message: "Erişim jetonu eksik" };
   if (!config.instagramAccountId) return { ok: false, message: "Instagram Business hesap ID eksik" };

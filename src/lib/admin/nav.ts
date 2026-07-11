@@ -49,6 +49,7 @@ export type AdminNavGroup = {
 
 export const MARKETPLACE_NAV_ITEMS: AdminNavLink[] = [
   { href: "/admin/integrations", label: "Tüm Platformlar", perm: "store.integrations" },
+  { href: "/admin/integrations/insights", label: "Performans & AI Öneriler", perm: "store.integrations" },
   ...MARKETPLACE_PLATFORMS.map((p) => ({
     href: `/admin/integrations?platform=${p.id}`,
     label: p.label,
@@ -369,6 +370,7 @@ export const ADMIN_PAGE_TITLES: Record<string, string> = {
   "/admin/orders": "Siparişler",
   "/admin/campaigns": "Kampanyalar",
   "/admin/marketing/social": "Sosyal içerik stüdyosu",
+  "/admin/integrations/insights": "Performans & AI Öneriler",
   "/admin/street-food-fund": "Sokak Dostları Mama Fonu",
   "/admin/campaigns/new": "Yeni Kampanya",
   "/admin/home": "Ana Sayfa",

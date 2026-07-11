@@ -9,97 +9,98 @@ datasource db {
 }
 
 model StoreSite {
-  id              String   @id @default(cuid())
-  slug            String   @unique
-  name            String
-  currency        String   @default("TRY")
-  locale          String   @default("tr")
-  themeId         String   @default("techizmet-shop")
-  themeTokensJson String?
-  headerBlocks    String?
-  footerBlocks    String?
-  settingsJson    String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  pages           ShopPage[]
-  staffUsers      ShopStaffUser[]
-  staffRoles      ShopStaffRole[]
-  collections     StoreCollection[]
-  categories      StoreCategory[]
-  brands          StoreBrand[]
-  products        StoreProduct[]
-  media           StoreMedia[]
-  carriers        ShippingCarrier[]
-  marketplaces    MarketplaceIntegration[]
-  marketplaceSyncLogs MarketplaceSyncLog[]
-  marketplaceCategoryMappings MarketplaceCategoryMapping[]
-  marketplaceCommissionRules MarketplaceCommissionRule[]
-  marketplaceProductListings MarketplaceProductListing[]
-  trendyolQuestions TrendyolQuestion[]
-  orders          StoreOrder[]
-  customers       StoreCustomer[]
-  customerGroups  CustomerGroup[]
-  campaigns       StoreCampaign[]
-  cookieConsentLogs CookieConsentLog[]
-  visitorProfiles   VisitorProfile[]
-  storeEvents       StoreEvent[]
-  cartAbandonments  CartAbandonment[]
-  whatsappLeads     WhatsAppLead[]
-  whatsappBotNodes  WhatsAppBotNode[]
-  assistantKnowledgeEntries AssistantKnowledgeEntry[]
-  assistantConversations    AssistantConversation[]
-  instagramPosts    StoreInstagramPost[]
-  navMenuItems      NavMenuItem[]
-  blogPosts         StoreBlogPost[]
-  priceChangeBatches StorePriceChangeBatch[]
-  passwordResetTokens PasswordResetToken[]
-  financeCategories FinanceCategory[]
-  financeAccounts   FinanceAccount[]
-  financeTransactions FinanceTransaction[]
-  financeCounterparties FinanceCounterparty[]
-  financeInvoices       FinanceInvoice[]
-  financeInvoiceApprovalLogs FinanceInvoiceApprovalLog[]
-  financePostingTemplates FinancePostingTemplate[]
-  financeInvoicePostJobs   FinanceInvoicePostJob[]
-  financeInvoiceLineTemplates FinanceInvoiceLineTemplate[]
-  taxObligations           TaxObligation[]
-  invoiceEntries           InvoiceEntry[]
-  stockItems               StockItem[]
-  stockMovements           StockMovement[]
+  id                              String                           @id @default(cuid())
+  slug                            String                           @unique
+  name                            String
+  currency                        String                           @default("TRY")
+  locale                          String                           @default("tr")
+  themeId                         String                           @default("techizmet-shop")
+  themeTokensJson                 String?
+  headerBlocks                    String?
+  footerBlocks                    String?
+  settingsJson                    String?
+  createdAt                       DateTime                         @default(now())
+  updatedAt                       DateTime                         @updatedAt
+  pages                           ShopPage[]
+  staffUsers                      ShopStaffUser[]
+  staffRoles                      ShopStaffRole[]
+  collections                     StoreCollection[]
+  categories                      StoreCategory[]
+  brands                          StoreBrand[]
+  products                        StoreProduct[]
+  media                           StoreMedia[]
+  carriers                        ShippingCarrier[]
+  marketplaces                    MarketplaceIntegration[]
+  marketplaceSyncLogs             MarketplaceSyncLog[]
+  marketplaceCategoryMappings     MarketplaceCategoryMapping[]
+  marketplaceCommissionRules      MarketplaceCommissionRule[]
+  marketplaceProductListings      MarketplaceProductListing[]
+  trendyolQuestions               TrendyolQuestion[]
+  storePerformanceInsights        StorePerformanceInsight[]
+  orders                          StoreOrder[]
+  customers                       StoreCustomer[]
+  customerGroups                  CustomerGroup[]
+  campaigns                       StoreCampaign[]
+  cookieConsentLogs               CookieConsentLog[]
+  visitorProfiles                 VisitorProfile[]
+  storeEvents                     StoreEvent[]
+  cartAbandonments                CartAbandonment[]
+  whatsappLeads                   WhatsAppLead[]
+  whatsappBotNodes                WhatsAppBotNode[]
+  assistantKnowledgeEntries       AssistantKnowledgeEntry[]
+  assistantConversations          AssistantConversation[]
+  instagramPosts                  StoreInstagramPost[]
+  navMenuItems                    NavMenuItem[]
+  blogPosts                       StoreBlogPost[]
+  priceChangeBatches              StorePriceChangeBatch[]
+  passwordResetTokens             PasswordResetToken[]
+  financeCategories               FinanceCategory[]
+  financeAccounts                 FinanceAccount[]
+  financeTransactions             FinanceTransaction[]
+  financeCounterparties           FinanceCounterparty[]
+  financeInvoices                 FinanceInvoice[]
+  financeInvoiceApprovalLogs      FinanceInvoiceApprovalLog[]
+  financePostingTemplates         FinancePostingTemplate[]
+  financeInvoicePostJobs          FinanceInvoicePostJob[]
+  financeInvoiceLineTemplates     FinanceInvoiceLineTemplate[]
+  taxObligations                  TaxObligation[]
+  invoiceEntries                  InvoiceEntry[]
+  stockItems                      StockItem[]
+  stockMovements                  StockMovement[]
   financeInvoiceLineStockMappings FinanceInvoiceLineStockMapping[]
-  productRecipes           ProductRecipe[]
-  packagingRuns            PackagingRun[]
-  streetFoodCampaigns      StreetFoodCampaign[]
-  streetFoodContributions  StreetFoodContribution[]
-  streetFoodDonations      StreetFoodDonation[]
-  socialContentDrafts      SocialContentDraft[]
-  cardPaymentIntents       StoreCardPaymentIntent[]
+  productRecipes                  ProductRecipe[]
+  packagingRuns                   PackagingRun[]
+  streetFoodCampaigns             StreetFoodCampaign[]
+  streetFoodContributions         StreetFoodContribution[]
+  streetFoodDonations             StreetFoodDonation[]
+  socialContentDrafts             SocialContentDraft[]
+  cardPaymentIntents              StoreCardPaymentIntent[]
 
   @@map("site")
   @@schema("shop")
 }
 
 model StoreBlogPost {
-  id               String    @id @default(cuid())
-  siteId           String
-  site             StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  slug             String
-  titleTr          String
-  titleEn          String?
-  excerptTr        String?
-  excerptEn        String?
-  bodyTr           String    @default("")
-  bodyEn           String?
-  imageUrl         String?
-  author           String?
-  publishedAt      DateTime?
-  published        Boolean   @default(false)
-  featuredOnHome   Boolean   @default(false)
-  sortOrder        Int       @default(0)
-  seoTitle         String?
-  seoDescription   String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id             String    @id @default(cuid())
+  siteId         String
+  site           StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  slug           String
+  titleTr        String
+  titleEn        String?
+  excerptTr      String?
+  excerptEn      String?
+  bodyTr         String    @default("")
+  bodyEn         String?
+  imageUrl       String?
+  author         String?
+  publishedAt    DateTime?
+  published      Boolean   @default(false)
+  featuredOnHome Boolean   @default(false)
+  sortOrder      Int       @default(0)
+  seoTitle       String?
+  seoDescription String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   @@unique([siteId, slug])
   @@index([siteId, published, sortOrder])
@@ -108,14 +109,14 @@ model StoreBlogPost {
 }
 
 model SocialContentDraft {
-  id            String    @id @default(cuid())
+  id            String       @id @default(cuid())
   siteId        String
-  site          StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  site          StoreSite    @relation(fields: [siteId], references: [id], onDelete: Cascade)
   productId     String
   product       StoreProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
   platform      String
-  format        String    @default("post")
-  status        String    @default("draft")
+  format        String       @default("post")
+  status        String       @default("draft")
   title         String?
   caption       String?
   hook          String?
@@ -127,11 +128,15 @@ model SocialContentDraft {
   mediaUrlsJson String?
   aiProvider    String?
   publishedUrl  String?
+  /**
+   * Platform tarafındaki gönderi/medya id'si (ör. Instagram media id) — insights sorguları için gerekli
+   */
+  externalId    String?
   publishedAt   DateTime?
   publishError  String?
   scheduledAt   DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
   @@unique([siteId, productId, platform])
   @@index([siteId, status])
@@ -151,9 +156,13 @@ model NavMenuItem {
   children     NavMenuItem[] @relation("NavMenuTree")
   labelTr      String
   labelEn      String
-  /** url | page | category | collection | collections_auto */
+  /**
+   * url | page | category | collection | collections_auto
+   */
   linkType     String        @default("url")
-  /** pageKey, categoryId, collection slug — linkType’a göre */
+  /**
+   * pageKey, categoryId, collection slug — linkType’a göre
+   */
   linkTarget   String?
   href         String
   sortOrder    Int           @default(0)
@@ -182,20 +191,20 @@ model CookieConsentLog {
 }
 
 model VisitorProfile {
-  id           String    @id @default(cuid())
-  siteId       String
-  site         StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  visitorKey   String
-  customerId   String?
-  customer     StoreCustomer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  firstSeenAt  DateTime  @default(now())
-  lastSeenAt   DateTime  @default(now())
-  utmSource    String?
-  utmMedium    String?
-  utmCampaign  String?
-  deviceType   String?
-  userAgent    String?
-  events       StoreEvent[]
+  id               String            @id @default(cuid())
+  siteId           String
+  site             StoreSite         @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  visitorKey       String
+  customerId       String?
+  customer         StoreCustomer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  firstSeenAt      DateTime          @default(now())
+  lastSeenAt       DateTime          @default(now())
+  utmSource        String?
+  utmMedium        String?
+  utmCampaign      String?
+  deviceType       String?
+  userAgent        String?
+  events           StoreEvent[]
   cartAbandonments CartAbandonment[]
 
   @@unique([siteId, visitorKey])
@@ -206,15 +215,15 @@ model VisitorProfile {
 }
 
 model StoreEvent {
-  id           String   @id @default(cuid())
-  siteId       String
-  site         StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  visitorKey   String
-  visitor      VisitorProfile @relation(fields: [siteId, visitorKey], references: [siteId, visitorKey], onDelete: Cascade)
-  customerId   String?
-  eventType    String
-  payloadJson  String   @default("{}")
-  createdAt    DateTime @default(now())
+  id          String         @id @default(cuid())
+  siteId      String
+  site        StoreSite      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  visitorKey  String
+  visitor     VisitorProfile @relation(fields: [siteId, visitorKey], references: [siteId, visitorKey], onDelete: Cascade)
+  customerId  String?
+  eventType   String
+  payloadJson String         @default("{}")
+  createdAt   DateTime       @default(now())
 
   @@index([siteId, visitorKey, createdAt])
   @@index([siteId, eventType, createdAt])
@@ -224,27 +233,27 @@ model StoreEvent {
 }
 
 model CartAbandonment {
-  id               String    @id @default(cuid())
-  siteId           String
-  site             StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  visitorKey       String
-  visitor          VisitorProfile @relation(fields: [siteId, visitorKey], references: [siteId, visitorKey], onDelete: Cascade)
-  customerId       String?
-  itemsJson        String
-  cartValueMinor   Int       @default(0)
-  itemCount        Int       @default(0)
-  status           String    @default("open")
+  id                 String         @id @default(cuid())
+  siteId             String
+  site               StoreSite      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  visitorKey         String
+  visitor            VisitorProfile @relation(fields: [siteId, visitorKey], references: [siteId, visitorKey], onDelete: Cascade)
+  customerId         String?
+  itemsJson          String
+  cartValueMinor     Int            @default(0)
+  itemCount          Int            @default(0)
+  status             String         @default("open")
   /// cart | checkout — son bilinen adım
-  stage            String    @default("cart")
-  guestEmail       String?
-  guestPhone       String?
-  notes            String?
-  lastActivityAt   DateTime  @default(now())
-  remindedAt       DateTime?
+  stage              String         @default("cart")
+  guestEmail         String?
+  guestPhone         String?
+  notes              String?
+  lastActivityAt     DateTime       @default(now())
+  remindedAt         DateTime?
   whatsappRemindedAt DateTime?
-  convertedOrderId String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  convertedOrderId   String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
 
   @@index([siteId, status, lastActivityAt])
   @@index([siteId, visitorKey, status])
@@ -296,9 +305,13 @@ model AssistantKnowledgeEntry {
   id           String    @id @default(cuid())
   siteId       String
   site         StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  /** * = tüm kanallar; whatsapp, trendyol, test, web */
+  /**
+   * * = tüm kanallar; whatsapp, trendyol, test, web
+   */
   channel      String    @default("*")
-  /** product, faq, manual, page, policy, custom */
+  /**
+   * product, faq, manual, page, policy, custom
+   */
   entryType    String
   title        String
   body         String
@@ -320,17 +333,17 @@ model AssistantKnowledgeEntry {
 
 /// Asistan konuşma oturumu (WhatsApp, pazaryeri, test)
 model AssistantConversation {
-  id             String    @id @default(cuid())
+  id             String             @id @default(cuid())
   siteId         String
-  site           StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  site           StoreSite          @relation(fields: [siteId], references: [id], onDelete: Cascade)
   channel        String
   externalUserId String
-  status         String    @default("bot")
+  status         String             @default("bot")
   customerId     String?
   metadataJson   String?
-  lastMessageAt  DateTime  @default(now())
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  lastMessageAt  DateTime           @default(now())
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
   messages       AssistantMessage[]
 
   @@unique([siteId, channel, externalUserId])
@@ -401,9 +414,9 @@ model ShopPage {
 }
 
 model ShopStaffRole {
-  id              String   @id @default(cuid())
+  id              String                    @id @default(cuid())
   siteId          String
-  site            StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  site            StoreSite                 @relation(fields: [siteId], references: [id], onDelete: Cascade)
   slug            String
   label           String
   permissionsJson String
@@ -415,23 +428,23 @@ model ShopStaffRole {
 }
 
 model ShopStaffUser {
-  id              String   @id @default(cuid())
-  siteId          String
-  site            StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  username        String
-  passwordHash    String
-  displayName     String?
-  active          Boolean  @default(true)
-  roleAssignments ShopStaffRoleAssignment[]
-  createdFinanceInvoices FinanceInvoice[] @relation("FinanceInvoiceCreatedBy")
-  approvedFinanceInvoices FinanceInvoice[] @relation("FinanceInvoiceApprovedBy")
-  rejectedFinanceInvoices FinanceInvoice[] @relation("FinanceInvoiceRejectedBy")
-  firstApprovedFinanceInvoices FinanceInvoice[] @relation("FinanceInvoiceFirstApprovedBy")
-  secondApprovedFinanceInvoices FinanceInvoice[] @relation("FinanceInvoiceSecondApprovedBy")
-  financeInvoiceApprovalLogs FinanceInvoiceApprovalLog[]
-  createdFinanceInvoicePostJobs FinanceInvoicePostJob[] @relation("FinanceInvoicePostJobCreatedBy")
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                            String                      @id @default(cuid())
+  siteId                        String
+  site                          StoreSite                   @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  username                      String
+  passwordHash                  String
+  displayName                   String?
+  active                        Boolean                     @default(true)
+  roleAssignments               ShopStaffRoleAssignment[]
+  createdFinanceInvoices        FinanceInvoice[]            @relation("FinanceInvoiceCreatedBy")
+  approvedFinanceInvoices       FinanceInvoice[]            @relation("FinanceInvoiceApprovedBy")
+  rejectedFinanceInvoices       FinanceInvoice[]            @relation("FinanceInvoiceRejectedBy")
+  firstApprovedFinanceInvoices  FinanceInvoice[]            @relation("FinanceInvoiceFirstApprovedBy")
+  secondApprovedFinanceInvoices FinanceInvoice[]            @relation("FinanceInvoiceSecondApprovedBy")
+  financeInvoiceApprovalLogs    FinanceInvoiceApprovalLog[]
+  createdFinanceInvoicePostJobs FinanceInvoicePostJob[]     @relation("FinanceInvoicePostJobCreatedBy")
+  createdAt                     DateTime                    @default(now())
+  updatedAt                     DateTime                    @updatedAt
 
   @@unique([siteId, username])
   @@map("staff_user")
@@ -450,14 +463,14 @@ model ShopStaffRoleAssignment {
 }
 
 model StoreBrand {
-  id        String   @id @default(cuid())
-  siteId    String
-  site      StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  slug      String
-  name      String
-  logoUrl   String?
-  active    Boolean  @default(true)
-  products  StoreProduct[]
+  id       String         @id @default(cuid())
+  siteId   String
+  site     StoreSite      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  slug     String
+  name     String
+  logoUrl  String?
+  active   Boolean        @default(true)
+  products StoreProduct[]
 
   @@unique([siteId, slug])
   @@map("brand")
@@ -465,24 +478,24 @@ model StoreBrand {
 }
 
 model StoreCategory {
-  id          String   @id @default(cuid())
-  siteId      String
-  site        StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  parentId    String?
-  parent      StoreCategory? @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
-  children    StoreCategory[] @relation("CategoryTree")
-  slug        String
-  title       String
-  description String?
-  imageUrl    String?
-  seoTitle    String?
-  seoDescription String?
-  sortOrder   Int      @default(0)
-  active      Boolean  @default(true)
-  products    StoreProduct[]
-  productLinks StoreProductCategory[]
+  id                          String                       @id @default(cuid())
+  siteId                      String
+  site                        StoreSite                    @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  parentId                    String?
+  parent                      StoreCategory?               @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children                    StoreCategory[]              @relation("CategoryTree")
+  slug                        String
+  title                       String
+  description                 String?
+  imageUrl                    String?
+  seoTitle                    String?
+  seoDescription              String?
+  sortOrder                   Int                          @default(0)
+  active                      Boolean                      @default(true)
+  products                    StoreProduct[]
+  productLinks                StoreProductCategory[]
   marketplaceCategoryMappings MarketplaceCategoryMapping[]
-  marketplaceCommissionRules MarketplaceCommissionRule[]
+  marketplaceCommissionRules  MarketplaceCommissionRule[]
 
   @@unique([siteId, slug])
   @@map("category")
@@ -490,15 +503,15 @@ model StoreCategory {
 }
 
 model StoreCollection {
-  id          String   @id @default(cuid())
+  id          String         @id @default(cuid())
   siteId      String
-  site        StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  site        StoreSite      @relation(fields: [siteId], references: [id], onDelete: Cascade)
   slug        String
   title       String
   description String?
   imageUrl    String?
-  sortOrder   Int      @default(0)
-  published   Boolean  @default(true)
+  sortOrder   Int            @default(0)
+  published   Boolean        @default(true)
   products    StoreProduct[]
 
   @@unique([siteId, slug])
@@ -507,73 +520,95 @@ model StoreCollection {
 }
 
 model StoreProduct {
-  id               String   @id @default(cuid())
-  siteId           String
-  site             StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  collectionId     String?
-  collection       StoreCollection? @relation(fields: [collectionId], references: [id], onDelete: SetNull)
-  categoryId       String?
-  category         StoreCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  brandId          String?
-  brand            StoreBrand? @relation(fields: [brandId], references: [id], onDelete: SetNull)
-  slug             String
-  title            String
-  description      String?
-  descriptionHtml  String?
-  keyFeaturesHtml  String?
-  howToUseHtml     String?
-  /** Sepete ekle altı ikon şeridi JSON: [{ label, iconUrl }] */
-  highlightsJson   String?
-  /** Sayfa altı EXPLORE kartları JSON; null = mağaza varsayılanı */
-  exploreLooksJson String?
-  sku              String?
-  barcode          String?
-  priceMinor       Int
-  compareAtMinor   Int?
-  /** Toplu fiyat geri alma — ilk kural/uygulama anındaki satış fiyatı */
-  basePriceMinor   Int?
-  costMinor        Int?
-  /** Toptan / B2B satış fiyatı (kuruş, KDV dahil) */
-  wholesalePriceMinor Int?
-  /** JSON: { "trendyol": 94900, "hepsiburada": 92900 } — kuruş, boşsa web fiyatı */
-  marketplacePricesJson String?
-  /** JSON: { "trendyol": 15, "hepsiburada": 10 } — web fiyatı üzerinden % fark */
+  id                           String                      @id @default(cuid())
+  siteId                       String
+  site                         StoreSite                   @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  collectionId                 String?
+  collection                   StoreCollection?            @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+  categoryId                   String?
+  category                     StoreCategory?              @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  brandId                      String?
+  brand                        StoreBrand?                 @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  slug                         String
+  title                        String
+  description                  String?
+  descriptionHtml              String?
+  keyFeaturesHtml              String?
+  howToUseHtml                 String?
+  /**
+   * Sepete ekle altı ikon şeridi JSON: [{ label, iconUrl }]
+   */
+  highlightsJson               String?
+  /**
+   * Sayfa altı EXPLORE kartları JSON; null = mağaza varsayılanı
+   */
+  exploreLooksJson             String?
+  sku                          String?
+  barcode                      String?
+  priceMinor                   Int
+  compareAtMinor               Int?
+  /**
+   * Toplu fiyat geri alma — ilk kural/uygulama anındaki satış fiyatı
+   */
+  basePriceMinor               Int?
+  costMinor                    Int?
+  /**
+   * Toptan / B2B satış fiyatı (kuruş, KDV dahil)
+   */
+  wholesalePriceMinor          Int?
+  /**
+   * JSON: { "trendyol": 94900, "hepsiburada": 92900 } — kuruş, boşsa web fiyatı
+   */
+  marketplacePricesJson        String?
+  /**
+   * JSON: { "trendyol": 15, "hepsiburada": 10 } — web fiyatı üzerinden % fark
+   */
   marketplaceMarkupPercentJson String?
-  /** JSON: { "trendyol": [{ attributeId, attributeValueId?, customValue? }] } — ürüne özel pazaryeri özellikleri */
-  marketplaceAttributesJson String?
-  /** KDV oranı (%) — satış fiyatı KDV dahil kabul edilir */
-  vatRate          Int      @default(20)
-  imageUrl         String?
-  stockQty         Int      @default(0)
-  lowStockThreshold Int     @default(5)
-  weightGrams      Int?
-  /** Paketteki ürün adedi — ör. 5'li paket için 5 */
-  pieceCount       Int?
-  desi             Float?
-  seoTitle         String?
-  seoDescription   String?
-  badgesJson         String?
-  /** Örn. Hacim — varyant satırlarında 30ml, 50ml */
-  variantOptionName  String?
-  /** standard | bundle — paket satışı için bundle */
-  kind               String   @default("standard")
-  published          Boolean  @default(true)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-  images             StoreProductImage[]
-  variants           StoreProductVariant[]
-  categoryLinks      StoreProductCategory[]
-  orderLines         StoreOrderLine[]
-  favorites          CustomerFavorite[]
-  priceChangeItems   StorePriceChangeItem[]
-  marketplaceListings MarketplaceProductListing[]
-  bundleComponents   StoreBundleComponent[] @relation("BundleItems")
-  bundleMemberships  StoreBundleComponent[] @relation("BundleComponentOf")
-  socialContentDrafts SocialContentDraft[]
-  reviews            StoreProductReview[]
-  stockItems         StockItem[]
-  productRecipes     ProductRecipe[] @relation("RecipeOutputProduct")
-  packagingRuns      PackagingRun[] @relation("PackagingOutputProduct")
+  /**
+   * JSON: { "trendyol": [{ attributeId, attributeValueId?, customValue? }] } — ürüne özel pazaryeri özellikleri
+   */
+  marketplaceAttributesJson    String?
+  /**
+   * KDV oranı (%) — satış fiyatı KDV dahil kabul edilir
+   */
+  vatRate                      Int                         @default(20)
+  imageUrl                     String?
+  stockQty                     Int                         @default(0)
+  lowStockThreshold            Int                         @default(5)
+  weightGrams                  Int?
+  /**
+   * Paketteki ürün adedi — ör. 5'li paket için 5
+   */
+  pieceCount                   Int?
+  desi                         Float?
+  seoTitle                     String?
+  seoDescription               String?
+  badgesJson                   String?
+  /**
+   * Örn. Hacim — varyant satırlarında 30ml, 50ml
+   */
+  variantOptionName            String?
+  /**
+   * standard | bundle — paket satışı için bundle
+   */
+  kind                         String                      @default("standard")
+  published                    Boolean                     @default(true)
+  createdAt                    DateTime                    @default(now())
+  updatedAt                    DateTime                    @updatedAt
+  images                       StoreProductImage[]
+  variants                     StoreProductVariant[]
+  categoryLinks                StoreProductCategory[]
+  orderLines                   StoreOrderLine[]
+  favorites                    CustomerFavorite[]
+  priceChangeItems             StorePriceChangeItem[]
+  marketplaceListings          MarketplaceProductListing[]
+  bundleComponents             StoreBundleComponent[]      @relation("BundleItems")
+  bundleMemberships            StoreBundleComponent[]      @relation("BundleComponentOf")
+  socialContentDrafts          SocialContentDraft[]
+  reviews                      StoreProductReview[]
+  stockItems                   StockItem[]
+  productRecipes               ProductRecipe[]             @relation("RecipeOutputProduct")
+  packagingRuns                PackagingRun[]              @relation("PackagingOutputProduct")
 
   @@unique([siteId, slug])
   @@index([siteId, sku])
@@ -583,25 +618,33 @@ model StoreProduct {
 
 /// Ürün yorumları — müşteri gönderir, admin onaylar/düzenler/manuel ekler
 model StoreProductReview {
-  id                 String   @id @default(cuid())
+  id                 String       @id @default(cuid())
   siteId             String
   productId          String
   product            StoreProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
   authorName         String
   authorEmail        String?
-  /** 1–5 yıldız */
+  /**
+   * 1–5 yıldız
+   */
   rating             Int
   title              String?
   body               String
-  /** pending | approved | rejected */
-  status             String   @default("pending")
-  /** customer | admin */
-  source             String   @default("customer")
-  isVerifiedPurchase Boolean  @default(false)
-  /** Spam kontrolü için hash'lenmiş IP */
+  /**
+   * pending | approved | rejected
+   */
+  status             String       @default("pending")
+  /**
+   * customer | admin
+   */
+  source             String       @default("customer")
+  isVerifiedPurchase Boolean      @default(false)
+  /**
+   * Spam kontrolü için hash'lenmiş IP
+   */
   ipHash             String?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
   approvedAt         DateTime?
 
   @@index([siteId, status, createdAt])
@@ -613,7 +656,7 @@ model StoreProductReview {
 model StoreProductCategory {
   productId  String
   categoryId String
-  sortOrder  Int      @default(0)
+  sortOrder  Int           @default(0)
   product    StoreProduct  @relation(fields: [productId], references: [id], onDelete: Cascade)
   category   StoreCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
@@ -624,19 +667,19 @@ model StoreProductCategory {
 }
 
 model StoreProductVariant {
-  id             String   @id @default(cuid())
-  productId      String
-  product        StoreProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
-  label          String
-  sku            String?
-  priceMinor     Int
-  compareAtMinor Int?
-  basePriceMinor Int?
-  stockQty       Int      @default(0)
-  sortOrder      Int      @default(0)
-  isDefault      Boolean  @default(false)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id               String                 @id @default(cuid())
+  productId        String
+  product          StoreProduct           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  label            String
+  sku              String?
+  priceMinor       Int
+  compareAtMinor   Int?
+  basePriceMinor   Int?
+  stockQty         Int                    @default(0)
+  sortOrder        Int                    @default(0)
+  isDefault        Boolean                @default(false)
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
   priceChangeItems StorePriceChangeItem[]
   bundleComponents StoreBundleComponent[]
   stockItems       StockItem[]
@@ -648,17 +691,17 @@ model StoreProductVariant {
 
 /// Paket içeriği — her satır bir bileşen ürün + adet
 model StoreBundleComponent {
-  id                 String   @id @default(cuid())
+  id                 String               @id @default(cuid())
   bundleProductId    String
-  bundleProduct      StoreProduct @relation("BundleItems", fields: [bundleProductId], references: [id], onDelete: Cascade)
+  bundleProduct      StoreProduct         @relation("BundleItems", fields: [bundleProductId], references: [id], onDelete: Cascade)
   componentProductId String
-  componentProduct   StoreProduct @relation("BundleComponentOf", fields: [componentProductId], references: [id], onDelete: Restrict)
+  componentProduct   StoreProduct         @relation("BundleComponentOf", fields: [componentProductId], references: [id], onDelete: Restrict)
   componentVariantId String?
   componentVariant   StoreProductVariant? @relation(fields: [componentVariantId], references: [id], onDelete: SetNull)
   qtyPerBundle       Int
-  sortOrder          Int      @default(0)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  sortOrder          Int                  @default(0)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
 
   @@index([bundleProductId, sortOrder])
   @@index([componentProductId])
@@ -668,18 +711,18 @@ model StoreBundleComponent {
 
 /// Toplu fiyat güncelleme — geri alma için batch kaydı
 model StorePriceChangeBatch {
-  id                 String   @id @default(cuid())
-  siteId             String
-  site               StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  staffUserId        String?
-  label              String?
-  filterJson         String
-  adjustmentJson     String
-  productCount       Int      @default(0)
-  lineCount          Int      @default(0)
-  revertedAt         DateTime?
-  createdAt          DateTime @default(now())
-  items              StorePriceChangeItem[]
+  id             String                 @id @default(cuid())
+  siteId         String
+  site           StoreSite              @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  staffUserId    String?
+  label          String?
+  filterJson     String
+  adjustmentJson String
+  productCount   Int                    @default(0)
+  lineCount      Int                    @default(0)
+  revertedAt     DateTime?
+  createdAt      DateTime               @default(now())
+  items          StorePriceChangeItem[]
 
   @@index([siteId, createdAt])
   @@map("price_change_batch")
@@ -687,19 +730,19 @@ model StorePriceChangeBatch {
 }
 
 model StorePriceChangeItem {
-  id                 String   @id @default(cuid())
-  batchId            String
-  batch              StorePriceChangeBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
-  productId          String
-  product            StoreProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
-  variantId          String?
-  variant            StoreProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
-  oldPriceMinor      Int
-  newPriceMinor      Int
-  oldCompareAtMinor  Int?
-  newCompareAtMinor  Int?
-  skipped            Boolean  @default(false)
-  skipReason         String?
+  id                String                @id @default(cuid())
+  batchId           String
+  batch             StorePriceChangeBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  productId         String
+  product           StoreProduct          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variantId         String?
+  variant           StoreProductVariant?  @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  oldPriceMinor     Int
+  newPriceMinor     Int
+  oldCompareAtMinor Int?
+  newCompareAtMinor Int?
+  skipped           Boolean               @default(false)
+  skipReason        String?
 
   @@index([batchId])
   @@index([productId])
@@ -708,15 +751,17 @@ model StorePriceChangeItem {
 }
 
 model StoreProductImage {
-  id        String   @id @default(cuid())
+  id        String       @id @default(cuid())
   productId String
   product   StoreProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
   url       String
-  /** image | video */
-  mediaType String   @default("image")
+  /**
+   * image | video
+   */
+  mediaType String       @default("image")
   alt       String?
-  sortOrder Int      @default(0)
-  createdAt DateTime @default(now())
+  sortOrder Int          @default(0)
+  createdAt DateTime     @default(now())
 
   @@index([productId, sortOrder])
   @@map("product_image")
@@ -724,16 +769,18 @@ model StoreProductImage {
 }
 
 model StoreMedia {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   siteId    String
   site      StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
   filename  String
   url       String
   mimeType  String?
   sizeBytes Int?
-  /** Vercel gibi salt-okunur diskte dosya içeriği ( /api/media/[id] ile sunulur ) */
+  /**
+   * Vercel gibi salt-okunur diskte dosya içeriği ( /api/media/[id] ile sunulur )
+   */
   data      Bytes?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   @@index([siteId, createdAt])
   @@map("media")
@@ -742,21 +789,21 @@ model StoreMedia {
 
 /// Kargo firması + API / sözleşme bilgileri (admin panelden girilir)
 model ShippingCarrier {
-  id                  String   @id @default(cuid())
-  siteId              String
-  site                StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  code                String
-  name                String
-  active              Boolean  @default(true)
-  trackingUrlTemplate String?
+  id                   String         @id @default(cuid())
+  siteId               String
+  site                 StoreSite      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  code                 String
+  name                 String
+  active               Boolean        @default(true)
+  trackingUrlTemplate  String?
   customerServicePhone String?
-  notes               String?
-  configJson          String?
-  sortOrder           Int      @default(0)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  rates               ShippingRate[]
-  orders              StoreOrder[]
+  notes                String?
+  configJson           String?
+  sortOrder            Int            @default(0)
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  rates                ShippingRate[]
+  orders               StoreOrder[]
 
   @@unique([siteId, code])
   @@map("shipping_carrier")
@@ -764,7 +811,7 @@ model ShippingCarrier {
 }
 
 model ShippingRate {
-  id            String   @id @default(cuid())
+  id            String          @id @default(cuid())
   carrierId     String
   carrier       ShippingCarrier @relation(fields: [carrierId], references: [id], onDelete: Cascade)
   name          String
@@ -773,8 +820,8 @@ model ShippingRate {
   minDesi       Float?
   maxDesi       Float?
   regionsJson   String?
-  active        Boolean  @default(true)
-  sortOrder     Int      @default(0)
+  active        Boolean         @default(true)
+  sortOrder     Int             @default(0)
 
   @@index([carrierId])
   @@map("shipping_rate")
@@ -783,17 +830,17 @@ model ShippingRate {
 
 /// Trendyol, Hepsiburada, n11, Amazon TR vb.
 model MarketplaceIntegration {
-  id          String   @id @default(cuid())
-  siteId      String
-  site        StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  platform    String
-  label       String
-  active      Boolean  @default(false)
-  configJson  String?
-  lastSyncAt  DateTime?
-  lastError   String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String    @id @default(cuid())
+  siteId     String
+  site       StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  platform   String
+  label      String
+  active     Boolean   @default(false)
+  configJson String?
+  lastSyncAt DateTime?
+  lastError  String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   @@unique([siteId, platform])
   @@map("marketplace_integration")
@@ -802,34 +849,44 @@ model MarketplaceIntegration {
 
 /// Kupon, sepet indirimi, ücretsiz kargo kampanyası
 model StoreCampaign {
-  id            String    @id @default(cuid())
-  siteId        String
-  site          StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  name          String
-  code          String?
-  type          String    @default("percent_off")
-  percentOff    Int?
+  id             String    @id @default(cuid())
+  siteId         String
+  site           StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  name           String
+  code           String?
+  type           String    @default("percent_off")
+  percentOff     Int?
   amountOffMinor Int?
-  /** buy_x_pay_y: kaç adet al (örn. 3) */
-  buyQuantity   Int?
-  /** buy_x_pay_y: kaç adet öde (örn. 2) */
-  payQuantity   Int?
-  /** JSON: { categoryIds?, collectionIds?, productIds?, brandIds? } */
-  scopeJson     String?
-  /** Kodsuz otomatik uygulama */
-  autoApply     Boolean   @default(false)
-  /** Yalnızca müşterinin ilk siparişinde (iptal hariç) */
-  firstOrderOnly Boolean  @default(false)
-  minCartMinor  Int?
-  freeShipping  Boolean   @default(false)
-  maxUses       Int?
-  usedCount     Int       @default(0)
-  active        Boolean   @default(true)
-  startsAt      DateTime?
-  endsAt        DateTime?
-  description   String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  /**
+   * buy_x_pay_y: kaç adet al (örn. 3)
+   */
+  buyQuantity    Int?
+  /**
+   * buy_x_pay_y: kaç adet öde (örn. 2)
+   */
+  payQuantity    Int?
+  /**
+   * JSON: { categoryIds?, collectionIds?, productIds?, brandIds? }
+   */
+  scopeJson      String?
+  /**
+   * Kodsuz otomatik uygulama
+   */
+  autoApply      Boolean   @default(false)
+  /**
+   * Yalnızca müşterinin ilk siparişinde (iptal hariç)
+   */
+  firstOrderOnly Boolean   @default(false)
+  minCartMinor   Int?
+  freeShipping   Boolean   @default(false)
+  maxUses        Int?
+  usedCount      Int       @default(0)
+  active         Boolean   @default(true)
+  startsAt       DateTime?
+  endsAt         DateTime?
+  description    String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   @@unique([siteId, code])
   @@index([siteId, active])
@@ -838,27 +895,37 @@ model StoreCampaign {
 }
 
 model CustomerGroup {
-  id              String   @id @default(cuid())
-  siteId          String
-  site            StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  name            String
-  slug            String
-  discountPercent Int      @default(0)
-  /** B2B / bayi grubu sipariş no öneki — boşsa mağaza varsayılanı */
-  orderNumberPrefix String?
-  /** B2B bayi/toptan grubu — onaylı üyelere özel fiyat ve açık hesap */
-  isB2b             Boolean  @default(false)
-  /** Bu gruptaki onaylı üyeler açık hesap (vadeli) kullanabilir */
-  openAccountEnabled Boolean @default(false)
-  /** Varsayılan vade günü (fatura / açık hesap) */
-  defaultPaymentTermDays Int?
-  /** Varsayılan cari risk limiti (kuruş) */
+  id                      String          @id @default(cuid())
+  siteId                  String
+  site                    StoreSite       @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  name                    String
+  slug                    String
+  discountPercent         Int             @default(0)
+  /**
+   * B2B / bayi grubu sipariş no öneki — boşsa mağaza varsayılanı
+   */
+  orderNumberPrefix       String?
+  /**
+   * B2B bayi/toptan grubu — onaylı üyelere özel fiyat ve açık hesap
+   */
+  isB2b                   Boolean         @default(false)
+  /**
+   * Bu gruptaki onaylı üyeler açık hesap (vadeli) kullanabilir
+   */
+  openAccountEnabled      Boolean         @default(false)
+  /**
+   * Varsayılan vade günü (fatura / açık hesap)
+   */
+  defaultPaymentTermDays  Int?
+  /**
+   * Varsayılan cari risk limiti (kuruş)
+   */
   defaultCreditLimitMinor Int?
-  active          Boolean  @default(true)
-  description     String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  members         StoreCustomer[]
+  active                  Boolean         @default(true)
+  description             String?
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
+  members                 StoreCustomer[]
 
   @@unique([siteId, slug])
   @@index([siteId, active])
@@ -867,38 +934,42 @@ model CustomerGroup {
 }
 
 model StoreCustomer {
-  id              String   @id @default(cuid())
-  siteId          String
-  site            StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  email           String?
-  phone           String?
-  firstName       String?
-  lastName        String?
-  passwordHash    String?
-  googleSub       String?
-  appleSub        String?
-  notes           String?
-  /** Son kullanılan TCKN/VKN (fatura) */
-  taxId           String?
-  taxOffice       String?
-  /** B2B başvuru: pending | approved | rejected — null = perakende */
-  b2bStatus       String?
-  companyName     String?
-  b2bAppliedAt    DateTime?
-  b2bApprovedAt   DateTime?
+  id                       String                @id @default(cuid())
+  siteId                   String
+  site                     StoreSite             @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  email                    String?
+  phone                    String?
+  firstName                String?
+  lastName                 String?
+  passwordHash             String?
+  googleSub                String?
+  appleSub                 String?
+  notes                    String?
+  /**
+   * Son kullanılan TCKN/VKN (fatura)
+   */
+  taxId                    String?
+  taxOffice                String?
+  /**
+   * B2B başvuru: pending | approved | rejected — null = perakende
+   */
+  b2bStatus                String?
+  companyName              String?
+  b2bAppliedAt             DateTime?
+  b2bApprovedAt            DateTime?
   b2bApprovedByStaffUserId String?
-  b2bApplicationNote String?
-  customerGroupId String?
-  customerGroup   CustomerGroup? @relation(fields: [customerGroupId], references: [id], onDelete: SetNull)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  orders          StoreOrder[]
-  addresses       CustomerAddress[]
-  favorites       CustomerFavorite[]
-  passwordResetTokens PasswordResetToken[]
-  financeInvoices   FinanceInvoice[]
-  financeCounterparties FinanceCounterparty[]
-  visitorProfiles VisitorProfile[]
+  b2bApplicationNote       String?
+  customerGroupId          String?
+  customerGroup            CustomerGroup?        @relation(fields: [customerGroupId], references: [id], onDelete: SetNull)
+  createdAt                DateTime              @default(now())
+  updatedAt                DateTime              @updatedAt
+  orders                   StoreOrder[]
+  addresses                CustomerAddress[]
+  favorites                CustomerFavorite[]
+  passwordResetTokens      PasswordResetToken[]
+  financeInvoices          FinanceInvoice[]
+  financeCounterparties    FinanceCounterparty[]
+  visitorProfiles          VisitorProfile[]
 
   @@unique([siteId, email])
   @@unique([siteId, googleSub])
@@ -910,12 +981,12 @@ model StoreCustomer {
 }
 
 model CustomerFavorite {
-  id         String   @id @default(cuid())
+  id         String        @id @default(cuid())
   customerId String
   customer   StoreCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   productId  String
-  product    StoreProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
-  createdAt  DateTime @default(now())
+  product    StoreProduct  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt  DateTime      @default(now())
 
   @@unique([customerId, productId])
   @@index([customerId])
@@ -924,15 +995,15 @@ model CustomerFavorite {
 }
 
 model PasswordResetToken {
-  id         String   @id @default(cuid())
+  id         String        @id @default(cuid())
   siteId     String
-  site       StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  site       StoreSite     @relation(fields: [siteId], references: [id], onDelete: Cascade)
   customerId String
   customer   StoreCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   tokenHash  String
   expiresAt  DateTime
   usedAt     DateTime?
-  createdAt  DateTime @default(now())
+  createdAt  DateTime      @default(now())
 
   @@index([siteId, tokenHash])
   @@index([customerId, createdAt])
@@ -941,7 +1012,7 @@ model PasswordResetToken {
 }
 
 model CustomerAddress {
-  id         String   @id @default(cuid())
+  id         String        @id @default(cuid())
   customerId String
   customer   StoreCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   label      String?
@@ -952,9 +1023,9 @@ model CustomerAddress {
   district   String
   line1      String
   postalCode String?
-  isDefault  Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  isDefault  Boolean       @default(false)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
 
   @@index([customerId])
   @@map("customer_address")
@@ -962,7 +1033,7 @@ model CustomerAddress {
 }
 
 model MarketplaceSyncLog {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   siteId     String
   site       StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
   platform   String
@@ -970,7 +1041,7 @@ model MarketplaceSyncLog {
   status     String
   message    String?
   itemsCount Int?
-  createdAt  DateTime @default(now())
+  createdAt  DateTime  @default(now())
 
   @@index([siteId, platform, createdAt])
   @@map("marketplace_sync_log")
@@ -979,16 +1050,16 @@ model MarketplaceSyncLog {
 
 /// Yerel kategori ↔ pazaryeri kategori/marka eşlemesi
 model MarketplaceCategoryMapping {
-  id                 String   @id @default(cuid())
+  id                 String         @id @default(cuid())
   siteId             String
-  site               StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  site               StoreSite      @relation(fields: [siteId], references: [id], onDelete: Cascade)
   platform           String
   categoryId         String?
   category           StoreCategory? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   platformCategoryId String
   platformBrandId    String?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
 
   @@unique([siteId, platform, categoryId])
   @@index([siteId, platform])
@@ -1001,13 +1072,17 @@ model MarketplaceCategoryAttribute {
   id                 String   @id @default(cuid())
   siteId             String
   platform           String
-  /** Yerel kategori (null = varsayılan/tüm ürünler) */
+  /**
+   * Yerel kategori (null = varsayılan/tüm ürünler)
+   */
   categoryId         String?
   attributeId        Int
   attributeName      String
   attributeValueId   Int?
   attributeValueName String?
-  /** allowCustom özelliklerde serbest metin değeri */
+  /**
+   * allowCustom özelliklerde serbest metin değeri
+   */
   customValue        String?
   required           Boolean  @default(false)
   createdAt          DateTime @default(now())
@@ -1021,24 +1096,32 @@ model MarketplaceCategoryAttribute {
 
 /// Pazaryeri komisyon / kargo kesinti kuralları (platform × yerel kategori)
 model MarketplaceCommissionRule {
-  id                String   @id @default(cuid())
-  siteId            String
-  site              StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  platform          String
-  categoryId        String?
-  category          StoreCategory? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  /** Komisyon oranı (%) — brüt satış üzerinden */
-  commissionPercent Float
-  /** Ek komisyon / hizmet bedeli (%) — brüt satış üzerinden, ana komisyona ek */
-  extraCommissionPercent Float @default(0)
-  /** marketplace_cargo | seller_cargo | none */
-  shippingModel     String   @default("marketplace_cargo")
-  /** Tahmini kargo kesintisi (kuruş) — marketplace_cargo için */
-  shippingFeeMinor  Int      @default(0)
-  notes             String?
-  sortOrder         Int      @default(0)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                     String         @id @default(cuid())
+  siteId                 String
+  site                   StoreSite      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  platform               String
+  categoryId             String?
+  category               StoreCategory? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  /**
+   * Komisyon oranı (%) — brüt satış üzerinden
+   */
+  commissionPercent      Float
+  /**
+   * Ek komisyon / hizmet bedeli (%) — brüt satış üzerinden, ana komisyona ek
+   */
+  extraCommissionPercent Float          @default(0)
+  /**
+   * marketplace_cargo | seller_cargo | none
+   */
+  shippingModel          String         @default("marketplace_cargo")
+  /**
+   * Tahmini kargo kesintisi (kuruş) — marketplace_cargo için
+   */
+  shippingFeeMinor       Int            @default(0)
+  notes                  String?
+  sortOrder              Int            @default(0)
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
 
   @@index([siteId, platform])
   @@map("marketplace_commission_rule")
@@ -1047,19 +1130,19 @@ model MarketplaceCommissionRule {
 
 /// Ürünün pazaryerindeki listeleme durumu
 model MarketplaceProductListing {
-  id            String   @id @default(cuid())
+  id            String       @id @default(cuid())
   siteId        String
-  site          StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  site          StoreSite    @relation(fields: [siteId], references: [id], onDelete: Cascade)
   productId     String
   product       StoreProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
   platform      String
   barcode       String?
-  listingStatus String   @default("pending")
+  listingStatus String       @default("pending")
   lastSyncAt    DateTime?
   lastError     String?
   metaJson      String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
   @@unique([siteId, platform, productId])
   @@index([siteId, platform, listingStatus])
@@ -1073,20 +1156,30 @@ model TrendyolQuestion {
   siteId         String
   site           StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
   platform       String    @default("trendyol")
-  /** Trendyol soru id'si */
+  /**
+   * Trendyol soru id'si
+   */
   questionId     String
   questionText   String
   customerName   String?
   productBarcode String?
   productName    String?
-  /** Eşleşen site ürünü (varsa) */
+  /**
+   * Eşleşen site ürünü (varsa)
+   */
   productId      String?
-  /** Trendyol tarafındaki durum: WAITING_FOR_ANSWER, ANSWERED, ... */
+  /**
+   * Trendyol tarafındaki durum: WAITING_FOR_ANSWER, ANSWERED, ...
+   */
   tyStatus       String    @default("WAITING_FOR_ANSWER")
-  /** Bizim işleme durumumuz: needs_review, sent, failed, skipped, answered_elsewhere */
+  /**
+   * Bizim işleme durumumuz: needs_review, sent, failed, skipped, answered_elsewhere
+   */
   answerStatus   String    @default("needs_review")
   answerText     String?
-  /** knowledge | ai | manual */
+  /**
+   * knowledge | ai | manual
+   */
   answerSource   String?
   answerLayer    String?
   confidence     Float?
@@ -1102,57 +1195,117 @@ model TrendyolQuestion {
   @@schema("shop")
 }
 
+/// Kanal bazlı performans analizi sonucu üretilen AI önerileri + onay kuyruğu
+model StorePerformanceInsight {
+  id                 String    @id @default(cuid())
+  siteId             String
+  site               StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  /**
+   * trendyol | amazon | instagram | general
+   */
+  channel            String
+  /**
+   * pricing | listing | stock | content | qna
+   */
+  category           String
+  /**
+   * low | medium | high
+   */
+  severity           String    @default("medium")
+  title              String
+  detail             String
+  /**
+   * none | instagram_post
+   */
+  actionType         String    @default("none")
+  payloadJson        String?
+  /**
+   * pending | approved | rejected | executed | failed
+   */
+  status             String    @default("pending")
+  sourceSnapshotJson String?
+  decidedAt          DateTime?
+  decidedBy          String?
+  executedAt         DateTime?
+  executionError     String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([siteId, status, createdAt])
+  @@index([siteId, channel])
+  @@map("store_performance_insight")
+  @@schema("shop")
+}
+
 model StoreOrder {
-  id              String   @id @default(cuid())
-  siteId          String
-  site            StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  orderNumber     String
-  status          String   @default("pending")
-  customerId      String?
-  customer        StoreCustomer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  carrierId       String?
-  carrier         ShippingCarrier? @relation(fields: [carrierId], references: [id], onDelete: SetNull)
-  customerEmail   String?
-  customerPhone   String?
-  customerName    String?
-  shippingAddressJson String?
-  billingAddressJson  String?
-  billingTaxId        String?
-  billingTaxOffice    String?
-  subtotalMinor   Int      @default(0)
-  shippingMinor   Int      @default(0)
-  discountMinor   Int      @default(0)
-  totalMinor      Int      @default(0)
-  paymentMethod   String?
-  paymentStatus   String   @default("unpaid")
-  trackingNumber  String?
-  marketplaceRef  String?
-  marketplacePlatform String?
-  /** JSON: shipmentPackageId, orderNumber, tyStatus, lines[{lineId,qty,barcode}] */
-  marketplaceMetaJson String?
-  /** JSON: Geliver shipmentId, labelURL, trackingUrl, statusCode, … */
-  shipmentMetaJson    String?
-  /** GİB e-Arşiv fatura no */
-  invoiceNumber   String?
-  /** GİB belge UUID (ETTN) */
-  invoiceUuid     String?
-  /** Herkese açık fatura görüntüleme URL'si (pazaryeri için) */
-  invoiceLink     String?
-  /** none | draft | signed | marketplace_sent */
-  invoiceStatus   String?
-  invoiceIssuedAt DateTime?
-  /** JSON: htmlStored, publicToken, gibDownloadUrl, recipientTaxId, errors */
-  invoiceMetaJson String?
-  /** JSON: brüt, komisyon, kargo, maliyet, tahmini net — sipariş anında dondurulur */
-  financeSnapshotJson String?
-  adminNotes      String?
-  /** Anonim ziyaretçi — sepet terki / dönüşüm eşlemesi */
-  visitorKey      String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  lines           StoreOrderLine[]
-  financeTransactions FinanceTransaction[]
-  financeInvoices FinanceInvoice[]
+  id                     String                  @id @default(cuid())
+  siteId                 String
+  site                   StoreSite               @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  orderNumber            String
+  status                 String                  @default("pending")
+  customerId             String?
+  customer               StoreCustomer?          @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  carrierId              String?
+  carrier                ShippingCarrier?        @relation(fields: [carrierId], references: [id], onDelete: SetNull)
+  customerEmail          String?
+  customerPhone          String?
+  customerName           String?
+  shippingAddressJson    String?
+  billingAddressJson     String?
+  billingTaxId           String?
+  billingTaxOffice       String?
+  subtotalMinor          Int                     @default(0)
+  shippingMinor          Int                     @default(0)
+  discountMinor          Int                     @default(0)
+  totalMinor             Int                     @default(0)
+  paymentMethod          String?
+  paymentStatus          String                  @default("unpaid")
+  trackingNumber         String?
+  marketplaceRef         String?
+  marketplacePlatform    String?
+  /**
+   * JSON: shipmentPackageId, orderNumber, tyStatus, lines[{lineId,qty,barcode}]
+   */
+  marketplaceMetaJson    String?
+  /**
+   * JSON: Geliver shipmentId, labelURL, trackingUrl, statusCode, …
+   */
+  shipmentMetaJson       String?
+  /**
+   * GİB e-Arşiv fatura no
+   */
+  invoiceNumber          String?
+  /**
+   * GİB belge UUID (ETTN)
+   */
+  invoiceUuid            String?
+  /**
+   * Herkese açık fatura görüntüleme URL'si (pazaryeri için)
+   */
+  invoiceLink            String?
+  /**
+   * none | draft | signed | marketplace_sent
+   */
+  invoiceStatus          String?
+  invoiceIssuedAt        DateTime?
+  /**
+   * JSON: htmlStored, publicToken, gibDownloadUrl, recipientTaxId, errors
+   */
+  invoiceMetaJson        String?
+  /**
+   * JSON: brüt, komisyon, kargo, maliyet, tahmini net — sipariş anında dondurulur
+   */
+  financeSnapshotJson    String?
+  adminNotes             String?
+  /**
+   * Anonim ziyaretçi — sepet terki / dönüşüm eşlemesi
+   */
+  visitorKey             String?
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  lines                  StoreOrderLine[]
+  financeTransactions    FinanceTransaction[]
+  financeInvoices        FinanceInvoice[]
   streetFoodContribution StreetFoodContribution?
 
   @@unique([siteId, orderNumber])
@@ -1162,7 +1315,7 @@ model StoreOrder {
 }
 
 model StoreCardPaymentIntent {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   siteId      String
   site        StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
   reference   String
@@ -1172,7 +1325,7 @@ model StoreCardPaymentIntent {
   visitorKey  String?
   iyzicoToken String?
   expiresAt   DateTime
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
 
   @@unique([siteId, reference])
   @@index([siteId, expiresAt])
@@ -1181,27 +1334,37 @@ model StoreCardPaymentIntent {
 }
 
 model StoreOrderLine {
-  id          String   @id @default(cuid())
-  orderId     String
-  order       StoreOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  productId     String?
-  product       StoreProduct? @relation(fields: [productId], references: [id], onDelete: SetNull)
-  variantId     String?
-  variantLabel  String?
-  title         String
-  sku           String?
-  qty           Int
-  unitMinor     Int
-  lineMinor     Int
-  /** Kampanya indirimi (satır payı) */
-  discountMinor Int      @default(0)
-  /** Sipariş anındaki KDV % — null ise fatura kesiminde mağaza varsayılanı */
-  vatRate       Int?
-  /** standard | bundle */
-  lineKind      String   @default("standard")
-  /** Paket satırında bundle ürün id (productId ile aynı) */
-  bundleProductId String?
-  /** Sipariş anı bileşen özeti JSON */
+  id                     String        @id @default(cuid())
+  orderId                String
+  order                  StoreOrder    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId              String?
+  product                StoreProduct? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  variantId              String?
+  variantLabel           String?
+  title                  String
+  sku                    String?
+  qty                    Int
+  unitMinor              Int
+  lineMinor              Int
+  /**
+   * Kampanya indirimi (satır payı)
+   */
+  discountMinor          Int           @default(0)
+  /**
+   * Sipariş anındaki KDV % — null ise fatura kesiminde mağaza varsayılanı
+   */
+  vatRate                Int?
+  /**
+   * standard | bundle
+   */
+  lineKind               String        @default("standard")
+  /**
+   * Paket satırında bundle ürün id (productId ile aynı)
+   */
+  bundleProductId        String?
+  /**
+   * Sipariş anı bileşen özeti JSON
+   */
   componentsSnapshotJson String?
 
   @@index([orderId])
@@ -1210,16 +1373,18 @@ model StoreOrderLine {
 }
 
 model FinanceCategory {
-  id           String   @id @default(cuid())
-  siteId       String
-  site         StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  name         String
-  /** income | expense */
-  kind         String
-  sortOrder    Int      @default(0)
-  active       Boolean  @default(true)
-  transactions FinanceTransaction[]
-  invoices     FinanceInvoice[]
+  id               String                   @id @default(cuid())
+  siteId           String
+  site             StoreSite                @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  name             String
+  /**
+   * income | expense
+   */
+  kind             String
+  sortOrder        Int                      @default(0)
+  active           Boolean                  @default(true)
+  transactions     FinanceTransaction[]
+  invoices         FinanceInvoice[]
   postingTemplates FinancePostingTemplate[]
 
   @@unique([siteId, kind, name])
@@ -1228,16 +1393,18 @@ model FinanceCategory {
 }
 
 model FinanceAccount {
-  id           String   @id @default(cuid())
-  siteId       String
-  site         StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  name         String
-  /** cash | bank | credit_card | marketplace_receivable */
-  kind         String
-  platform     String?
-  active       Boolean  @default(true)
-  transactions FinanceTransaction[]
-  invoices     FinanceInvoice[]
+  id               String                   @id @default(cuid())
+  siteId           String
+  site             StoreSite                @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  name             String
+  /**
+   * cash | bank | credit_card | marketplace_receivable
+   */
+  kind             String
+  platform         String?
+  active           Boolean                  @default(true)
+  transactions     FinanceTransaction[]
+  invoices         FinanceInvoice[]
   postingTemplates FinancePostingTemplate[]
 
   @@unique([siteId, name])
@@ -1246,39 +1413,45 @@ model FinanceAccount {
 }
 
 model FinanceTransaction {
-  id                   String   @id @default(cuid())
-  siteId                 String
-  site                   StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  txDate                 DateTime
-  /** sale_income | other_income | expense | payment_in | payment_out | marketplace_deduction | marketplace_payout */
-  kind                   String
-  amountMinor            Int
-  categoryId             String?
-  category               FinanceCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  accountId              String?
-  account                FinanceAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
-  orderId                String?
-  order                  StoreOrder? @relation(fields: [orderId], references: [id], onDelete: SetNull)
-  financeInvoiceId       String?
-  financeInvoice         FinanceInvoice? @relation(fields: [financeInvoiceId], references: [id], onDelete: SetNull)
-  description            String
-  /** issued | received */
-  invoiceDirection       String?
-  invoiceNumber          String?
-  counterpartyName       String?
-  counterpartyTaxId      String?
-  vatMinor               Int      @default(0)
-  marketplacePlatform    String?
-  marketplaceRef         String?
-  linkedTxId             String?
-  linkedTx               FinanceTransaction?  @relation("FinanceTxLink", fields: [linkedTxId], references: [id], onDelete: SetNull)
-  childLinks             FinanceTransaction[] @relation("FinanceTxLink")
-  /** none | open | matched | unmatched | reviewed */
-  reconciliationStatus   String   @default("none")
-  fileUrl                String?
-  notes                  String?
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
+  id                   String               @id @default(cuid())
+  siteId               String
+  site                 StoreSite            @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  txDate               DateTime
+  /**
+   * sale_income | other_income | expense | payment_in | payment_out | marketplace_deduction | marketplace_payout
+   */
+  kind                 String
+  amountMinor          Int
+  categoryId           String?
+  category             FinanceCategory?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  accountId            String?
+  account              FinanceAccount?      @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  orderId              String?
+  order                StoreOrder?          @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  financeInvoiceId     String?
+  financeInvoice       FinanceInvoice?      @relation(fields: [financeInvoiceId], references: [id], onDelete: SetNull)
+  description          String
+  /**
+   * issued | received
+   */
+  invoiceDirection     String?
+  invoiceNumber        String?
+  counterpartyName     String?
+  counterpartyTaxId    String?
+  vatMinor             Int                  @default(0)
+  marketplacePlatform  String?
+  marketplaceRef       String?
+  linkedTxId           String?
+  linkedTx             FinanceTransaction?  @relation("FinanceTxLink", fields: [linkedTxId], references: [id], onDelete: SetNull)
+  childLinks           FinanceTransaction[] @relation("FinanceTxLink")
+  /**
+   * none | open | matched | unmatched | reviewed
+   */
+  reconciliationStatus String               @default("none")
+  fileUrl              String?
+  notes                String?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
 
   @@index([siteId, txDate])
   @@index([siteId, kind])
@@ -1291,120 +1464,134 @@ model FinanceTransaction {
 }
 
 model FinanceCounterparty {
-  id            String   @id @default(cuid())
-  siteId        String
-  site          StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  type          String
-  customerId    String?
-  customer      StoreCustomer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  title         String
-  email         String?
-  phone         String?
-  taxId         String?
-  taxOffice     String?
-  addressLine   String?
-  city          String?
-  district      String?
-  notes         String?
-  /** Vade günü (net 30 vb.) */
-  paymentTermDays Int?
-  /** Cari risk limiti (kuruş) — açık alacak üst sınırı */
-  creditLimitMinor Int?
-  /** Açık hesap (vadeli) siparişe izin */
-  openAccountEnabled Boolean @default(false)
-  /** open_account | bank_transfer | mixed */
+  id                     String           @id @default(cuid())
+  siteId                 String
+  site                   StoreSite        @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  type                   String
+  customerId             String?
+  customer               StoreCustomer?   @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  title                  String
+  email                  String?
+  phone                  String?
+  taxId                  String?
+  taxOffice              String?
+  addressLine            String?
+  city                   String?
+  district               String?
+  notes                  String?
+  /**
+   * Vade günü (net 30 vb.)
+   */
+  paymentTermDays        Int?
+  /**
+   * Cari risk limiti (kuruş) — açık alacak üst sınırı
+   */
+  creditLimitMinor       Int?
+  /**
+   * Açık hesap (vadeli) siparişe izin
+   */
+  openAccountEnabled     Boolean          @default(false)
+  /**
+   * open_account | bank_transfer | mixed
+   */
   preferredPaymentMethod String?
-  /** Risk kilidi — sipariş engellenir */
-  creditHold    Boolean  @default(false)
-  /** Etiketler: B2B,Bayi (virgülle) */
-  tags          String?
-  active        Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  invoices      FinanceInvoice[]
+  /**
+   * Risk kilidi — sipariş engellenir
+   */
+  creditHold             Boolean          @default(false)
+  /**
+   * Etiketler: B2B,Bayi (virgülle)
+   */
+  tags                   String?
+  active                 Boolean          @default(true)
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+  invoices               FinanceInvoice[]
 
+  @@unique([siteId, taxId])
   @@index([siteId, type, title])
   @@index([siteId, customerId])
-  @@unique([siteId, taxId])
   @@map("finance_counterparty")
   @@schema("shop")
 }
 
 model FinanceInvoice {
-  id                    String   @id @default(cuid())
-  siteId                String
-  site                  StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  source                String
-  direction             String
-  status                String   @default("draft")
-  issueDate             DateTime
-  dueDate               DateTime?
-  counterpartyType      String
-  customerId            String?
-  customer              StoreCustomer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  counterpartyId        String?
-  counterparty          FinanceCounterparty? @relation(fields: [counterpartyId], references: [id], onDelete: SetNull)
-  /** Açık hesap siparişinden otomatik oluşturulan fatura */
-  orderId               String?
-  order                 StoreOrder? @relation(fields: [orderId], references: [id], onDelete: SetNull)
-  title                 String?
-  description           String?
-  currency              String   @default("TRY")
-  linesJson             String
-  subtotalMinor         Int      @default(0)
-  vatMinor              Int      @default(0)
-  totalMinor            Int      @default(0)
-  gibExternalId         String?
-  gibInvoiceNumber      String?
-  gibUuid               String?
-  gibPayloadJson        String?
-  categoryId            String?
-  category              FinanceCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  accountId             String?
-  account               FinanceAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
-  postedTransactionId   String?
-  firstApprovedByStaffUserId String?
-  firstApprovedByStaffUser   ShopStaffUser? @relation("FinanceInvoiceFirstApprovedBy", fields: [firstApprovedByStaffUserId], references: [id], onDelete: SetNull)
-  firstApprovedAt            DateTime?
+  id                          String                      @id @default(cuid())
+  siteId                      String
+  site                        StoreSite                   @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  source                      String
+  direction                   String
+  status                      String                      @default("draft")
+  issueDate                   DateTime
+  dueDate                     DateTime?
+  counterpartyType            String
+  customerId                  String?
+  customer                    StoreCustomer?              @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  counterpartyId              String?
+  counterparty                FinanceCounterparty?        @relation(fields: [counterpartyId], references: [id], onDelete: SetNull)
+  /**
+   * Açık hesap siparişinden otomatik oluşturulan fatura
+   */
+  orderId                     String?
+  order                       StoreOrder?                 @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  title                       String?
+  description                 String?
+  currency                    String                      @default("TRY")
+  linesJson                   String
+  subtotalMinor               Int                         @default(0)
+  vatMinor                    Int                         @default(0)
+  totalMinor                  Int                         @default(0)
+  gibExternalId               String?
+  gibInvoiceNumber            String?
+  gibUuid                     String?
+  gibPayloadJson              String?
+  categoryId                  String?
+  category                    FinanceCategory?            @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  accountId                   String?
+  account                     FinanceAccount?             @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  postedTransactionId         String?
+  firstApprovedByStaffUserId  String?
+  firstApprovedByStaffUser    ShopStaffUser?              @relation("FinanceInvoiceFirstApprovedBy", fields: [firstApprovedByStaffUserId], references: [id], onDelete: SetNull)
+  firstApprovedAt             DateTime?
   secondApprovedByStaffUserId String?
-  secondApprovedByStaffUser   ShopStaffUser? @relation("FinanceInvoiceSecondApprovedBy", fields: [secondApprovedByStaffUserId], references: [id], onDelete: SetNull)
+  secondApprovedByStaffUser   ShopStaffUser?              @relation("FinanceInvoiceSecondApprovedBy", fields: [secondApprovedByStaffUserId], references: [id], onDelete: SetNull)
   secondApprovedAt            DateTime?
-  approvedByStaffUserId String?
-  approvedByStaffUser   ShopStaffUser? @relation("FinanceInvoiceApprovedBy", fields: [approvedByStaffUserId], references: [id], onDelete: SetNull)
-  approvedAt            DateTime?
-  rejectedByStaffUserId String?
-  rejectedByStaffUser   ShopStaffUser? @relation("FinanceInvoiceRejectedBy", fields: [rejectedByStaffUserId], references: [id], onDelete: SetNull)
-  rejectedAt            DateTime?
-  rejectionReason       String?
-  createdByStaffUserId  String?
-  createdByStaffUser    ShopStaffUser? @relation("FinanceInvoiceCreatedBy", fields: [createdByStaffUserId], references: [id], onDelete: SetNull)
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-  approvalLogs          FinanceInvoiceApprovalLog[]
-  linkedTransactions    FinanceTransaction[]
-  postJobs              FinanceInvoicePostJob[]
-  stockPostedAt         DateTime?
+  approvedByStaffUserId       String?
+  approvedByStaffUser         ShopStaffUser?              @relation("FinanceInvoiceApprovedBy", fields: [approvedByStaffUserId], references: [id], onDelete: SetNull)
+  approvedAt                  DateTime?
+  rejectedByStaffUserId       String?
+  rejectedByStaffUser         ShopStaffUser?              @relation("FinanceInvoiceRejectedBy", fields: [rejectedByStaffUserId], references: [id], onDelete: SetNull)
+  rejectedAt                  DateTime?
+  rejectionReason             String?
+  createdByStaffUserId        String?
+  createdByStaffUser          ShopStaffUser?              @relation("FinanceInvoiceCreatedBy", fields: [createdByStaffUserId], references: [id], onDelete: SetNull)
+  createdAt                   DateTime                    @default(now())
+  updatedAt                   DateTime                    @updatedAt
+  approvalLogs                FinanceInvoiceApprovalLog[]
+  linkedTransactions          FinanceTransaction[]
+  postJobs                    FinanceInvoicePostJob[]
+  stockPostedAt               DateTime?
 
+  @@unique([siteId, orderId])
   @@index([siteId, status, issueDate])
   @@index([siteId, source, direction])
   @@index([siteId, customerId])
   @@index([siteId, counterpartyId])
-  @@unique([siteId, orderId])
   @@map("finance_invoice")
   @@schema("shop")
 }
 
 model FinanceInvoiceApprovalLog {
-  id          String   @id @default(cuid())
+  id          String         @id @default(cuid())
   siteId      String
-  site        StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  site        StoreSite      @relation(fields: [siteId], references: [id], onDelete: Cascade)
   invoiceId   String
   invoice     FinanceInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   action      String
   actorUserId String?
   actorUser   ShopStaffUser? @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
   note        String?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime       @default(now())
 
   @@index([siteId, invoiceId, createdAt])
   @@map("finance_invoice_approval_log")
@@ -1412,21 +1599,21 @@ model FinanceInvoiceApprovalLog {
 }
 
 model FinancePostingTemplate {
-  id             String   @id @default(cuid())
-  siteId         String
-  site           StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  name           String
-  direction      String?
-  source         String?
-  keyword        String
-  categoryId     String
-  category       FinanceCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  accountId      String
-  account        FinanceAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  priority       Int      @default(100)
-  active         Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id         String          @id @default(cuid())
+  siteId     String
+  site       StoreSite       @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  name       String
+  direction  String?
+  source     String?
+  keyword    String
+  categoryId String
+  category   FinanceCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  accountId  String
+  account    FinanceAccount  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  priority   Int             @default(100)
+  active     Boolean         @default(true)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
 
   @@index([siteId, active, priority])
   @@map("finance_posting_template")
@@ -1434,22 +1621,22 @@ model FinancePostingTemplate {
 }
 
 model FinanceInvoicePostJob {
-  id              String   @id @default(cuid())
+  id              String         @id @default(cuid())
   siteId          String
-  site            StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  site            StoreSite      @relation(fields: [siteId], references: [id], onDelete: Cascade)
   invoiceId       String
   invoice         FinanceInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  status          String   @default("queued")
-  attempts        Int      @default(0)
-  maxAttempts     Int      @default(5)
-  nextRetryAt     DateTime @default(now())
+  status          String         @default("queued")
+  attempts        Int            @default(0)
+  maxAttempts     Int            @default(5)
+  nextRetryAt     DateTime       @default(now())
   lastError       String?
   lockedAt        DateTime?
   completedAt     DateTime?
   createdByUserId String?
   createdByUser   ShopStaffUser? @relation("FinanceInvoicePostJobCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 
   @@index([siteId, status, nextRetryAt])
   @@index([siteId, invoiceId])
@@ -1477,35 +1664,51 @@ model FinanceInvoiceLineTemplate {
 }
 
 model TaxObligation {
-  id              String   @id @default(cuid())
-  siteId          String
-  site            StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  year            Int
-  /** kdv | muhtasar | gecici | yillik_gelir */
-  type            String
-  /** Tekil dönem anahtarı — idempotent üretim için: ör. kdv-2026-01 */
-  periodKey       String
-  periodLabel     String
-  periodStart     DateTime
-  periodEnd       DateTime
-  dueDate         DateTime
-  /** bekliyor | beyan_edildi | odendi */
-  status          String   @default("bekliyor")
-  /** Matrah (kuruş) — gelir/geçici vergi için */
-  baseMinor       Int      @default(0)
-  /** Hesaplanan vergi (kuruş) */
-  taxMinor        Int      @default(0)
-  /** Damga vergisi (kuruş) */
-  stampDutyMinor  Int      @default(0)
-  /** Ödenen toplam (kuruş) */
-  paidMinor       Int      @default(0)
-  /** Hesaplama girdileri anlık görüntüsü (JSON) */
-  calcJson        String?
-  notes           String?
-  declaredAt      DateTime?
-  paidAt          DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             String    @id @default(cuid())
+  siteId         String
+  site           StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  year           Int
+  /**
+   * kdv | muhtasar | gecici | yillik_gelir
+   */
+  type           String
+  /**
+   * Tekil dönem anahtarı — idempotent üretim için: ör. kdv-2026-01
+   */
+  periodKey      String
+  periodLabel    String
+  periodStart    DateTime
+  periodEnd      DateTime
+  dueDate        DateTime
+  /**
+   * bekliyor | beyan_edildi | odendi
+   */
+  status         String    @default("bekliyor")
+  /**
+   * Matrah (kuruş) — gelir/geçici vergi için
+   */
+  baseMinor      Int       @default(0)
+  /**
+   * Hesaplanan vergi (kuruş)
+   */
+  taxMinor       Int       @default(0)
+  /**
+   * Damga vergisi (kuruş)
+   */
+  stampDutyMinor Int       @default(0)
+  /**
+   * Ödenen toplam (kuruş)
+   */
+  paidMinor      Int       @default(0)
+  /**
+   * Hesaplama girdileri anlık görüntüsü (JSON)
+   */
+  calcJson       String?
+  notes          String?
+  declaredAt     DateTime?
+  paidAt         DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   @@unique([siteId, periodKey])
   @@index([siteId, year])
@@ -1515,19 +1718,21 @@ model TaxObligation {
 }
 
 model StreetFoodCampaign {
-  id             String   @id @default(cuid())
+  id             String                   @id @default(cuid())
   siteId         String
-  site           StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  site           StoreSite                @relation(fields: [siteId], references: [id], onDelete: Cascade)
   targetGrams    Int
-  collectedGrams Int      @default(0)
-  /** active | goal_reached | closed */
-  status         String   @default("active")
+  collectedGrams Int                      @default(0)
+  /**
+   * active | goal_reached | closed
+   */
+  status         String                   @default("active")
   sloganTr       String?
   sloganEn       String?
-  startedAt      DateTime @default(now())
+  startedAt      DateTime                 @default(now())
   completedAt    DateTime?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
   contributions  StreetFoodContribution[]
   donations      StreetFoodDonation[]
 
@@ -1537,18 +1742,20 @@ model StreetFoodCampaign {
 }
 
 model StreetFoodContribution {
-  id         String   @id @default(cuid())
+  id         String             @id @default(cuid())
   siteId     String
-  site       StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  site       StoreSite          @relation(fields: [siteId], references: [id], onDelete: Cascade)
   campaignId String
   campaign   StreetFoodCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  orderId    String?  @unique
-  order      StoreOrder? @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  /** order | manual */
-  source     String   @default("order")
+  orderId    String?            @unique
+  order      StoreOrder?        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  /**
+   * order | manual
+   */
+  source     String             @default("order")
   manualNote String?
   grams      Int
-  createdAt  DateTime @default(now())
+  createdAt  DateTime           @default(now())
 
   @@index([siteId, campaignId])
   @@index([campaignId, createdAt])
@@ -1557,9 +1764,9 @@ model StreetFoodContribution {
 }
 
 model StreetFoodDonation {
-  id             String   @id @default(cuid())
+  id             String             @id @default(cuid())
   siteId         String
-  site           StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  site           StoreSite          @relation(fields: [siteId], references: [id], onDelete: Cascade)
   campaignId     String
   campaign       StreetFoodCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   recipientName  String
@@ -1568,10 +1775,10 @@ model StreetFoodDonation {
   photoUrlsJson  String?
   videoUrl       String?
   donatedAt      DateTime
-  published      Boolean  @default(false)
+  published      Boolean            @default(false)
   publishedAt    DateTime?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
 
   @@index([siteId, published, donatedAt])
   @@index([campaignId])
@@ -1580,27 +1787,43 @@ model StreetFoodDonation {
 }
 
 model InvoiceEntry {
-  id              String   @id @default(cuid())
-  siteId          String
-  site            StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  /** outgoing = kesilen (satış) | incoming = gelen (alış/gider) */
-  direction       String
-  /** Fatura tarihi */
-  invoiceDate     DateTime
-  /** Fatura numarası (isteğe bağlı) */
-  invoiceNo       String?
-  /** Karşı taraf adı */
-  counterparty    String?
-  /** KDV hariç tutar (kuruş) */
-  netMinor        Int
-  /** KDV oranı: 1 | 10 | 20 */
-  kdvRate         Int
-  /** KDV tutarı (kuruş) = netMinor * kdvRate / 100 */
-  kdvMinor        Int
-  /** Açıklama */
-  description     String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id           String    @id @default(cuid())
+  siteId       String
+  site         StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  /**
+   * outgoing = kesilen (satış) | incoming = gelen (alış/gider)
+   */
+  direction    String
+  /**
+   * Fatura tarihi
+   */
+  invoiceDate  DateTime
+  /**
+   * Fatura numarası (isteğe bağlı)
+   */
+  invoiceNo    String?
+  /**
+   * Karşı taraf adı
+   */
+  counterparty String?
+  /**
+   * KDV hariç tutar (kuruş)
+   */
+  netMinor     Int
+  /**
+   * KDV oranı: 1 | 10 | 20
+   */
+  kdvRate      Int
+  /**
+   * KDV tutarı (kuruş) = netMinor * kdvRate / 100
+   */
+  kdvMinor     Int
+  /**
+   * Açıklama
+   */
+  description  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   @@index([siteId, invoiceDate])
   @@index([siteId, direction, invoiceDate])
@@ -1608,32 +1831,42 @@ model InvoiceEntry {
   @@schema("shop")
 }
 
-/** Stok kartı — hammadde (kg), ambalaj (adet), mamul (adet) */
+/**
+ * Stok kartı — hammadde (kg), ambalaj (adet), mamul (adet)
+ */
 model StockItem {
-  id                String   @id @default(cuid())
-  siteId            String
-  site              StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  name              String
-  sku               String?
-  /** Opsiyonel barkod (EAN/UPC veya dahili) */
-  barcode           String?
-  /** Kart görseli — mamul için ürün görselinden kopyalanır, değiştirilebilir */
-  imageUrl          String?
-  /** raw_material | packaging | finished */
-  kind              String   @default("finished")
-  /** kg | adet — bakiye: kg için gram, adet için parça */
-  unit              String   @default("adet")
-  balanceBase       Int      @default(0)
-  lowStockThreshold Int      @default(0)
-  productId         String?
-  product           StoreProduct? @relation(fields: [productId], references: [id], onDelete: SetNull)
-  variantId         String?
-  variant           StoreProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
-  active            Boolean  @default(true)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  movements         StockMovement[]
-  recipeLines       ProductRecipeLine[]
+  id                  String                           @id @default(cuid())
+  siteId              String
+  site                StoreSite                        @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  name                String
+  sku                 String?
+  /**
+   * Opsiyonel barkod (EAN/UPC veya dahili)
+   */
+  barcode             String?
+  /**
+   * Kart görseli — mamul için ürün görselinden kopyalanır, değiştirilebilir
+   */
+  imageUrl            String?
+  /**
+   * raw_material | packaging | finished
+   */
+  kind                String                           @default("finished")
+  /**
+   * kg | adet — bakiye: kg için gram, adet için parça
+   */
+  unit                String                           @default("adet")
+  balanceBase         Int                              @default(0)
+  lowStockThreshold   Int                              @default(0)
+  productId           String?
+  product             StoreProduct?                    @relation(fields: [productId], references: [id], onDelete: SetNull)
+  variantId           String?
+  variant             StoreProductVariant?             @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  active              Boolean                          @default(true)
+  createdAt           DateTime                         @default(now())
+  updatedAt           DateTime                         @updatedAt
+  movements           StockMovement[]
+  recipeLines         ProductRecipeLine[]
   invoiceLineMappings FinanceInvoiceLineStockMapping[]
 
   @@index([siteId, kind, active])
@@ -1643,25 +1876,31 @@ model StockItem {
   @@schema("shop")
 }
 
-/** Stok hareket defteri */
+/**
+ * Stok hareket defteri
+ */
 model StockMovement {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   siteId       String
   site         StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
   stockItemId  String
   stockItem    StockItem @relation(fields: [stockItemId], references: [id], onDelete: Cascade)
-  /** purchase | sale | production_in | production_out | adjustment | return */
+  /**
+   * purchase | sale | production_in | production_out | adjustment | return
+   */
   type         String
-  /** Pozitif giriş, negatif çıkış (gram veya adet) */
+  /**
+   * Pozitif giriş, negatif çıkış (gram veya adet)
+   */
   qtyBase      Int
   balanceAfter Int
   refType      String
   refId        String
-  lineKey      String   @default("")
+  lineKey      String    @default("")
   occurredAt   DateTime
   note         String?
   staffUserId  String?
-  createdAt    DateTime @default(now())
+  createdAt    DateTime  @default(now())
 
   @@unique([siteId, refType, refId, lineKey, stockItemId])
   @@index([siteId, occurredAt])
@@ -1670,36 +1909,42 @@ model StockMovement {
   @@schema("shop")
 }
 
-/** Fatura satırı → stok kartı eşlemesi (GİB / tekrarlayan kalemler) */
+/**
+ * Fatura satırı → stok kartı eşlemesi (GİB / tekrarlayan kalemler)
+ */
 model FinanceInvoiceLineStockMapping {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   siteId          String
   site            StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
   descriptionNorm String
   stockItemId     String
   stockItem       StockItem @relation(fields: [stockItemId], references: [id], onDelete: Cascade)
-  /** Fatura birimi: kg | adet | gram */
-  invoiceUnit     String   @default("adet")
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  /**
+   * Fatura birimi: kg | adet | gram
+   */
+  invoiceUnit     String    @default("adet")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   @@unique([siteId, descriptionNorm])
   @@map("finance_invoice_line_stock_mapping")
   @@schema("shop")
 }
 
-/** Paketleme reçetesi — mamul çıkışı + hammadde/ambalaj girdileri */
+/**
+ * Paketleme reçetesi — mamul çıkışı + hammadde/ambalaj girdileri
+ */
 model ProductRecipe {
-  id              String   @id @default(cuid())
+  id              String              @id @default(cuid())
   siteId          String
-  site            StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  site            StoreSite           @relation(fields: [siteId], references: [id], onDelete: Cascade)
   name            String
   outputProductId String
-  outputProduct   StoreProduct @relation("RecipeOutputProduct", fields: [outputProductId], references: [id], onDelete: Cascade)
+  outputProduct   StoreProduct        @relation("RecipeOutputProduct", fields: [outputProductId], references: [id], onDelete: Cascade)
   outputVariantId String?
-  active          Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  active          Boolean             @default(true)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
   lines           ProductRecipeLine[]
   packagingRuns   PackagingRun[]
 
@@ -1709,35 +1954,39 @@ model ProductRecipe {
 }
 
 model ProductRecipeLine {
-  id               String   @id @default(cuid())
+  id               String        @id @default(cuid())
   recipeId         String
   recipe           ProductRecipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
   stockItemId      String
-  stockItem        StockItem @relation(fields: [stockItemId], references: [id], onDelete: Restrict)
-  /** 1 mamul birimi başına tüketim (gram veya adet) */
+  stockItem        StockItem     @relation(fields: [stockItemId], references: [id], onDelete: Restrict)
+  /**
+   * 1 mamul birimi başına tüketim (gram veya adet)
+   */
   qtyBasePerOutput Int
-  sortOrder        Int      @default(0)
+  sortOrder        Int           @default(0)
 
   @@index([recipeId, sortOrder])
   @@map("product_recipe_line")
   @@schema("shop")
 }
 
-/** Paketleme fişi — reçeteye göre stok dönüşümü */
+/**
+ * Paketleme fişi — reçeteye göre stok dönüşümü
+ */
 model PackagingRun {
-  id              String   @id @default(cuid())
+  id              String         @id @default(cuid())
   siteId          String
-  site            StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  site            StoreSite      @relation(fields: [siteId], references: [id], onDelete: Cascade)
   recipeId        String?
   recipe          ProductRecipe? @relation(fields: [recipeId], references: [id], onDelete: SetNull)
   outputProductId String
-  outputProduct   StoreProduct @relation("PackagingOutputProduct", fields: [outputProductId], references: [id], onDelete: Restrict)
+  outputProduct   StoreProduct   @relation("PackagingOutputProduct", fields: [outputProductId], references: [id], onDelete: Restrict)
   outputVariantId String?
   outputQty       Int
   occurredAt      DateTime
   note            String?
   staffUserId     String?
-  createdAt       DateTime @default(now())
+  createdAt       DateTime       @default(now())
 
   @@index([siteId, occurredAt])
   @@map("packaging_run")

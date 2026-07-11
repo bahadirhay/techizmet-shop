@@ -105,7 +105,7 @@ async function generateWithFalQueue(
   return null;
 }
 
-async function generateWithFal(
+export async function generateWithFal(
   prompt: string,
   apiKey: string,
   model: string,
