@@ -11,6 +11,12 @@ export type AmazonSkuProduct = {
   id: string;
 };
 
+const ASIN_RE = /^B0[A-Z0-9]{8}$/i;
+
+export function isAmazonAsin(value: string | null | undefined): boolean {
+  return Boolean(value?.trim() && ASIN_RE.test(value.trim()));
+}
+
 export function parseAmazonListingMeta(metaJson: string | null): { sku?: string; asin?: string } {
   if (!metaJson) return {};
   try {
@@ -64,6 +70,36 @@ export async function findAmazonSkuByAsin(
     const summaryAsin = String(summaries[0]?.asin ?? "").trim().toUpperCase();
     if (!summaryAsin || summaryAsin === normalized) return sku;
   }
+  return null;
+}
+
+export async function fetchAsinForAmazonSku(
+  creds: AmazonSpApiCredentials,
+  accessToken: string,
+  marketplaceId: string,
+  sku: string,
+): Promise<string | null> {
+  const qs = new URLSearchParams({ marketplaceIds: marketplaceId, includedData: "summaries" });
+  const res = await amazonSpApiRequest(
+    creds,
+    accessToken,
+    `/listings/2021-08-01/items/${encodeURIComponent(creds.sellerId)}/${encodeURIComponent(sku)}?${qs}`,
+  );
+  if (!res.ok) return null;
+  const json = res.json as { summaries?: Record<string, unknown>[] } | null;
+  const asin = String(json?.summaries?.[0]?.asin ?? "").trim();
+  return isAmazonAsin(asin) ? asin.toUpperCase() : null;
+}
+
+export function resolveKnownAmazonAsin(input: {
+  metaJson?: string | null;
+  listingBarcode?: string | null;
+  productBarcode?: string | null;
+}): string | null {
+  const meta = parseAmazonListingMeta(input.metaJson ?? null);
+  if (isAmazonAsin(meta.asin)) return meta.asin!.trim().toUpperCase();
+  if (isAmazonAsin(input.listingBarcode)) return input.listingBarcode!.trim().toUpperCase();
+  if (isAmazonAsin(input.productBarcode)) return input.productBarcode!.trim().toUpperCase();
   return null;
 }
 

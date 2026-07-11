@@ -41,6 +41,21 @@ export function buildAmazonGiftAttributes(
   };
 }
 
+/** Mevcut katalog ASIN'ine teklif ekler (Teklif yok durumu için). */
+export function buildAmazonOfferAttributesForAsin(
+  marketplaceId: string,
+  asin: string,
+  salePriceMinor: number,
+  listPriceMinor: number,
+  quantity: number,
+  config: Record<string, string> = {},
+): Record<string, unknown> {
+  return {
+    merchant_suggested_asin: [{ value: asin.trim().toUpperCase(), marketplace_id: marketplaceId }],
+    ...buildAmazonOfferAttributes(marketplaceId, salePriceMinor, listPriceMinor, quantity, config),
+  };
+}
+
 /** Teklif (fiyat/stok/hediye) attribute gövdesi — LISTING_OFFER_ONLY PUT için. */
 export function buildAmazonOfferAttributes(
   marketplaceId: string,
@@ -221,8 +236,25 @@ async function pushAmazonOfferPut(
   productType: string,
   item: AmazonInventoryItem,
   config: Record<string, string>,
+  asin?: string | null,
 ): Promise<{ ok: boolean; issueMsg?: string }> {
   const qs = new URLSearchParams({ marketplaceIds: marketplaceId, issueLocale: "tr_TR" });
+  const attributes = asin
+    ? buildAmazonOfferAttributesForAsin(
+        marketplaceId,
+        asin,
+        item.salePriceMinor,
+        item.listPriceMinor,
+        item.quantity,
+        config,
+      )
+    : buildAmazonOfferAttributes(
+        marketplaceId,
+        item.salePriceMinor,
+        item.listPriceMinor,
+        item.quantity,
+        config,
+      );
   const res = await amazonSpApiRequest(
     creds,
     accessToken,
@@ -232,13 +264,7 @@ async function pushAmazonOfferPut(
       body: {
         productType,
         requirements: "LISTING_OFFER_ONLY",
-        attributes: buildAmazonOfferAttributes(
-          marketplaceId,
-          item.salePriceMinor,
-          item.listPriceMinor,
-          item.quantity,
-          config,
-        ),
+        attributes,
       },
     },
   );
@@ -253,6 +279,29 @@ async function pushAmazonOfferPut(
   return { ok: false, issueMsg };
 }
 
+/** Katalog ASIN'ine fiyat/stok teklifi ekler — Seller Central «Teklif yok» için birincil yol. */
+export async function pushAmazonOfferForAsin(
+  creds: AmazonSpApiCredentials,
+  accessToken: string,
+  marketplaceId: string,
+  sku: string,
+  asin: string,
+  item: AmazonInventoryItem,
+  config: Record<string, string> = {},
+): Promise<{ ok: boolean; issueMsg?: string }> {
+  const productType = await resolveListingProductType(creds, accessToken, marketplaceId, sku, config);
+  return pushAmazonOfferPut(
+    creds,
+    accessToken,
+    marketplaceId,
+    sku,
+    productType ?? resolveFallbackProductType(config),
+    item,
+    config,
+    asin,
+  );
+}
+
 /**
  * Var olan Amazon listing'lerinde stok ve fiyatı günceller (Listings Items PATCH).
  * PATCH başarısız olursa LISTING_OFFER_ONLY PUT denenir (katalog eşleşmesi / teklif yok).
@@ -263,6 +312,7 @@ export async function syncAmazonPriceAndInventory(
   marketplaceId: string,
   items: AmazonInventoryItem[],
   config: Record<string, string> = {},
+  options?: { offerOnlyFirst?: boolean; asinBySku?: Map<string, string> },
 ): Promise<{ ok: boolean; sent: number; message: string; errors: string[]; successSkus: string[] }> {
   const valid = items.filter((i) => i.sku.trim());
   if (valid.length === 0) {
@@ -288,9 +338,47 @@ export async function syncAmazonPriceAndInventory(
       item.sku,
       config,
     );
+    const asin = options?.asinBySku?.get(item.sku);
+
+    if (options?.offerOnlyFirst && productType) {
+      const offerFirst = await pushAmazonOfferPut(
+        creds,
+        accessToken,
+        marketplaceId,
+        item.sku,
+        productType,
+        item,
+        config,
+        asin,
+      );
+      if (offerFirst.ok) {
+        sent++;
+        successSkus.push(item.sku);
+        continue;
+      }
+    }
+
     if (!productType) {
-      skipped++;
-      if (errors.length < 5) errors.push(`${item.sku}: Amazon'da listing bulunamadı (önce ürünü gönderin)`);
+      if (asin) {
+        const offerOnly = await pushAmazonOfferForAsin(
+          creds,
+          accessToken,
+          marketplaceId,
+          item.sku,
+          asin,
+          item,
+          config,
+        );
+        if (offerOnly.ok) {
+          sent++;
+          successSkus.push(item.sku);
+          continue;
+        }
+        if (errors.length < 5) errors.push(`${item.sku}: ${offerOnly.issueMsg ?? "Teklif gönderilemedi"}`);
+      } else {
+        skipped++;
+        if (errors.length < 5) errors.push(`${item.sku}: Amazon'da listing bulunamadı (önce ürünü gönderin)`);
+      }
       continue;
     }
 
@@ -359,10 +447,15 @@ export async function syncAmazonOffersWithRetry(
   marketplaceId: string,
   items: AmazonInventoryItem[],
   config: Record<string, string> = {},
-  options?: { rounds?: number; delayMs?: number },
+  options?: {
+    rounds?: number;
+    delayMs?: number;
+    offerOnlyFirst?: boolean;
+    asinBySku?: Map<string, string>;
+  },
 ): Promise<{ ok: boolean; sent: number; message: string; errors: string[] }> {
-  const rounds = options?.rounds ?? 3;
-  const delayMs = options?.delayMs ?? 6000;
+  const rounds = options?.rounds ?? 5;
+  const delayMs = options?.delayMs ?? 12000;
   const valid = items.filter((i) => i.sku.trim());
   const sentSkus = new Set<string>();
   const errors: string[] = [];
@@ -376,6 +469,7 @@ export async function syncAmazonOffersWithRetry(
       marketplaceId,
       pending,
       config,
+      { offerOnlyFirst: options?.offerOnlyFirst, asinBySku: options?.asinBySku },
     );
     for (const sku of result.successSkus) sentSkus.add(sku);
     pending = pending.filter((item) => !sentSkus.has(item.sku));

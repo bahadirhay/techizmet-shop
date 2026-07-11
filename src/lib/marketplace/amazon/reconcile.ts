@@ -216,7 +216,7 @@ export async function reconcileAmazonListings(
       })
     : [];
   const productById = new Map(productRows.map((p) => [p.id, p]));
-  const offerQueue: AmazonInventoryItem[] = [];
+  const offerQueue: (AmazonInventoryItem & { asin?: string })[] = [];
 
   let active = 0;
   let pending = 0;
@@ -255,6 +255,7 @@ export async function reconcileAmazonListings(
           quantity: product.stockQty,
           salePriceMinor: prices.salePriceMinor,
           listPriceMinor: prices.listPriceMinor,
+          asin: result.asin,
         });
       }
     }
@@ -262,12 +263,17 @@ export async function reconcileAmazonListings(
 
   let offersPushed = 0;
   if (offerQueue.length > 0) {
+    const asinBySku = new Map<string, string>();
+    for (const item of offerQueue) {
+      if (item.asin) asinBySku.set(item.sku, item.asin);
+    }
     const offerResult = await syncAmazonOffersWithRetry(
       creds,
       token.accessToken,
       marketplaceId,
       offerQueue,
       config,
+      { rounds: 6, delayMs: 12000, offerOnlyFirst: true, asinBySku },
     );
     offersPushed = offerResult.sent;
   }

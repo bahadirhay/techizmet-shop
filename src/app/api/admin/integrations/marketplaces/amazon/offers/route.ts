@@ -9,8 +9,8 @@ import {
 import { reconcileAmazonListings } from "@/lib/marketplace/amazon/reconcile";
 import { upsertProductMarketplaceListing } from "@/lib/marketplace/catalog-import";
 import { getIntegrationConfig } from "@/lib/marketplace/actions";
-import { syncAmazonOffersWithRetry } from "@/lib/marketplace/amazon/inventory";
-import { resolveAmazonSkuForSync } from "@/lib/marketplace/amazon/sku";
+import { syncAmazonOffersWithRetry, pushAmazonOfferForAsin } from "@/lib/marketplace/amazon/inventory";
+import { resolveAmazonSkuForSync, resolveKnownAmazonAsin } from "@/lib/marketplace/amazon/sku";
 import { toMarketplaceSyncPrices } from "@/lib/marketplace/product-prices";
 
 type Body = { productIds?: string[]; incompleteOnly?: boolean };
@@ -102,6 +102,7 @@ export async function POST(req: Request) {
     listPriceMinor: number;
     productId: string;
   }[] = [];
+  let directOffers = 0;
 
   for (const p of products) {
     const listing = listingByProduct.get(p.id);
@@ -114,38 +115,89 @@ export async function POST(req: Request) {
       p,
       listing?.barcode ?? null,
     );
-    items.push({
-      productId: p.id,
+    const asin = resolveKnownAmazonAsin({
+      metaJson: listing?.metaJson,
+      listingBarcode: listing?.barcode,
+      productBarcode: p.barcode,
+    });
+    const offerItem = {
       sku,
       quantity: p.stockQty,
       salePriceMinor: prices.salePriceMinor,
       listPriceMinor: prices.listPriceMinor,
-    });
+    };
+
+    if (asin) {
+      const direct = await pushAmazonOfferForAsin(
+        creds,
+        token.accessToken,
+        marketplaceId,
+        sku,
+        asin,
+        offerItem,
+        config,
+      );
+      if (direct.ok) {
+        directOffers++;
+        await upsertProductMarketplaceListing(auth.siteId, p.id, "amazon_tr", {
+          listingStatus: listing?.listingStatus ?? "pending",
+          metaPatch: { sku, asin },
+        });
+        continue;
+      }
+    }
+
+    items.push({ ...offerItem, productId: p.id });
   }
 
-  const offerResult = await syncAmazonOffersWithRetry(
-    creds,
-    token.accessToken,
-    marketplaceId,
-    items.map(({ productId: _pid, ...item }) => item),
-    config,
-  );
+  const asinBySku = new Map<string, string>();
+  for (const p of products) {
+    const listing = listingByProduct.get(p.id);
+    const asin = resolveKnownAmazonAsin({
+      metaJson: listing?.metaJson,
+      listingBarcode: listing?.barcode,
+      productBarcode: p.barcode,
+    });
+    if (!asin) continue;
+    const item = items.find((i) => i.productId === p.id);
+    if (item) asinBySku.set(item.sku, asin);
+  }
+
+  const offerResult =
+    items.length > 0
+      ? await syncAmazonOffersWithRetry(
+          creds,
+          token.accessToken,
+          marketplaceId,
+          items.map(({ productId: _pid, ...item }) => item),
+          config,
+          { rounds: 6, delayMs: 12000, offerOnlyFirst: true, asinBySku },
+        )
+      : { ok: directOffers > 0, sent: 0, message: "", errors: [] as string[] };
 
   for (const item of items) {
     const listing = listingByProduct.get(item.productId);
     if (!listing) continue;
+    const asin = resolveKnownAmazonAsin({
+      metaJson: listing.metaJson,
+      listingBarcode: listing.barcode,
+    });
     await upsertProductMarketplaceListing(auth.siteId, item.productId, "amazon_tr", {
       listingStatus: listing.listingStatus,
-      metaPatch: { sku: item.sku },
+      metaPatch: { sku: item.sku, ...(asin ? { asin } : {}) },
     });
   }
 
   await reconcileAmazonListings(auth.siteId, creds, config, { productIds, pushPendingOffers: false });
 
+  const totalSent = directOffers + offerResult.sent;
   const result = {
-    ok: offerResult.ok,
-    itemsCount: offerResult.sent,
-    message: offerResult.message,
+    ok: totalSent > 0,
+    itemsCount: totalSent,
+    message:
+      totalSent > 0
+        ? `${totalSent} ürün için teklif/stok gönderildi${offerResult.message ? ` · ${offerResult.message}` : ""}`
+        : offerResult.message || "Teklif gönderilemedi",
   };
 
   await prisma.marketplaceSyncLog.create({

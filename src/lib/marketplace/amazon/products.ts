@@ -8,14 +8,21 @@ import {
   AMAZON_TR_MARKETPLACE_ID,
 } from "@/lib/marketplace/amazon/client";
 import { toMarketplaceSyncPrices } from "@/lib/marketplace/product-prices";
-import { minorToAmazonPrice, buildAmazonGiftAttributes, syncAmazonOffersWithRetry } from "@/lib/marketplace/amazon/inventory";
-import { resolveAmazonListingSku } from "@/lib/marketplace/amazon/sku";
+import { minorToAmazonPrice, buildAmazonGiftAttributes, syncAmazonOffersWithRetry, pushAmazonOfferForAsin } from "@/lib/marketplace/amazon/inventory";
+import {
+  fetchAsinForAmazonSku,
+  findAmazonSkuByAsin,
+  resolveAmazonListingSku,
+  resolveAmazonSkuForSync,
+  resolveKnownAmazonAsin,
+} from "@/lib/marketplace/amazon/sku";
 import { buildPlatformListingTitle } from "@/lib/marketplace/title-rules";
 import { upsertProductMarketplaceListing } from "@/lib/marketplace/catalog-import";
 import { marketplaceCategoryMappingDb } from "@/lib/marketplace/prisma-marketplace";
 import { toAmazonListingImageUrls, resolveAmazonImageOrigin } from "@/lib/marketplace/amazon/image-url";
 import { htmlToPlainText } from "@/lib/product-content-format";
 import { formatAmazonListingError } from "@/lib/marketplace/amazon/errors";
+import { prisma } from "@/lib/prisma";
 
 const DEFAULT_MARKETPLACE_ID = AMAZON_TR_MARKETPLACE_ID;
 
@@ -135,9 +142,43 @@ type AmazonPushProduct = {
   images?: { url: string }[];
 };
 
-/** Amazon seller SKU: ürün SKU'su yoksa slug/barkoddan üretilir (stabil olmalı). */
-function resolveAmazonSku(product: AmazonPushProduct): string {
-  return resolveAmazonListingSku(null, product);
+type ExistingAmazonListing = {
+  metaJson: string | null;
+  barcode: string | null;
+  listingStatus: string;
+};
+
+async function resolvePushContext(
+  creds: NonNullable<ReturnType<typeof parseAmazonConfig>>,
+  accessToken: string,
+  marketplaceId: string,
+  product: AmazonPushProduct,
+  existing: ExistingAmazonListing | null,
+): Promise<{ sku: string; asin: string | null }> {
+  let asin = resolveKnownAmazonAsin({
+    metaJson: existing?.metaJson,
+    listingBarcode: existing?.barcode,
+    productBarcode: product.barcode,
+  });
+
+  let sku = await resolveAmazonSkuForSync(
+    creds,
+    accessToken,
+    marketplaceId,
+    existing?.metaJson ?? null,
+    product,
+    existing?.barcode ?? null,
+  );
+
+  if (!asin) {
+    asin = await fetchAsinForAmazonSku(creds, accessToken, marketplaceId, sku);
+  }
+  if (asin && sku) {
+    const byAsin = await findAmazonSkuByAsin(creds, accessToken, marketplaceId, asin);
+    if (byAsin) sku = byAsin;
+  }
+
+  return { sku, asin };
 }
 
 /** GTIN tipini uzunluktan çıkarır (13=EAN, 12=UPC, aksi halde GTIN). */
@@ -388,11 +429,94 @@ export async function syncProductsToAmazon(
   let rejected = 0;
   let offersPushed = 0;
   const errors: string[] = [];
-  const offerItems: { sku: string; quantity: number; salePriceMinor: number; listPriceMinor: number }[] =
-    [];
+  const offerItems: {
+    sku: string;
+    quantity: number;
+    salePriceMinor: number;
+    listPriceMinor: number;
+    asin?: string;
+  }[] = [];
+  const asinBySku = new Map<string, string>();
+
+  const existingByProduct = new Map<string, ExistingAmazonListing>();
+  if (siteId) {
+    const rows = await prisma.marketplaceProductListing.findMany({
+      where: {
+        siteId,
+        platform: "amazon_tr",
+        productId: { in: publishable.map((p) => p.id) },
+      },
+      select: { productId: true, metaJson: true, barcode: true, listingStatus: true },
+    });
+    for (const row of rows) {
+      existingByProduct.set(row.productId, {
+        metaJson: row.metaJson,
+        barcode: row.barcode,
+        listingStatus: row.listingStatus,
+      });
+    }
+  }
 
   for (const product of publishable) {
-    const sku = resolveAmazonSku(product);
+    const existing = existingByProduct.get(product.id) ?? null;
+    const { sku, asin } = await resolvePushContext(
+      creds,
+      token.accessToken,
+      marketplaceId,
+      product,
+      existing,
+    );
+    const prices = toMarketplaceSyncPrices(product, "amazon_tr");
+    const offerItem = {
+      sku,
+      quantity: product.stockQty,
+      salePriceMinor: prices.salePriceMinor,
+      listPriceMinor: prices.listPriceMinor,
+      asin: asin ?? undefined,
+    };
+
+    // ASIN biliniyorsa tam LISTING yerine teklif gönder — «Teklif yok» önlenir.
+    if (asin) {
+      const offerResult = await pushAmazonOfferForAsin(
+        creds,
+        token.accessToken,
+        marketplaceId,
+        sku,
+        asin,
+        offerItem,
+        config,
+      );
+      if (offerResult.ok) {
+        accepted++;
+        offersPushed++;
+        asinBySku.set(sku, asin);
+        if (siteId) {
+          await upsertProductMarketplaceListing(siteId, product.id, "amazon_tr", {
+            barcode: asin,
+            listingStatus: "pending",
+            lastError: null,
+            metaPatch: { sku, asin, productType: resolveAmazonDefaultProductType(config) },
+            contentSyncedAt: product.updatedAt,
+          });
+        }
+      } else {
+        rejected++;
+        const reason = offerResult.issueMsg ?? "Teklif gönderilemedi";
+        if (errors.length < 8) errors.push(`${product.title.slice(0, 40)} (${sku}): ${reason}`);
+        offerItems.push(offerItem);
+        asinBySku.set(sku, asin);
+        if (siteId) {
+          await upsertProductMarketplaceListing(siteId, product.id, "amazon_tr", {
+            barcode: asin,
+            listingStatus: "rejected",
+            lastError: reason,
+            metaPatch: { sku, asin },
+          });
+        }
+      }
+      continue;
+    }
+
     const productType = siteId
       ? await resolveAmazonProductType(siteId, product.categoryId, config)
       : resolveAmazonDefaultProductType(config);
@@ -413,7 +537,12 @@ export async function syncProductsToAmazon(
     );
 
     const json = res.json as
-      | { status?: string; submissionId?: string; issues?: { message?: string; severity?: string }[] }
+      | {
+          status?: string;
+          submissionId?: string;
+          summaries?: { asin?: string }[];
+          issues?: { message?: string; severity?: string }[];
+        }
       | null;
     const status = json?.status ?? "";
     const issueMsg =
@@ -424,21 +553,38 @@ export async function syncProductsToAmazon(
         .map((m) => formatAmazonListingError(String(m)))
         .join("; ") || "";
 
+    const responseAsin = String(json?.summaries?.[0]?.asin ?? "").trim().toUpperCase() || null;
+
     if (res.ok && (status === "ACCEPTED" || status === "VALID")) {
       accepted++;
-      const prices = toMarketplaceSyncPrices(product, "amazon_tr");
-      offerItems.push({
-        sku,
+      let finalSku = sku;
+      let finalAsin = responseAsin;
+      if (finalAsin) {
+        const byAsin = await findAmazonSkuByAsin(creds, token.accessToken, marketplaceId, finalAsin);
+        if (byAsin) finalSku = byAsin;
+      } else {
+        finalAsin = await fetchAsinForAmazonSku(creds, token.accessToken, marketplaceId, finalSku);
+      }
+      const queued = {
+        sku: finalSku,
         quantity: product.stockQty,
         salePriceMinor: prices.salePriceMinor,
         listPriceMinor: prices.listPriceMinor,
-      });
+        asin: finalAsin ?? undefined,
+      };
+      offerItems.push(queued);
+      if (finalAsin) asinBySku.set(finalSku, finalAsin);
       if (siteId) {
         await upsertProductMarketplaceListing(siteId, product.id, "amazon_tr", {
-          barcode: product.barcode?.trim() ?? null,
+          barcode: finalAsin ?? product.barcode?.trim() ?? null,
           listingStatus: "pending",
           lastError: null,
-          metaPatch: { sku, submissionId: json?.submissionId, productType },
+          metaPatch: {
+            sku: finalSku,
+            submissionId: json?.submissionId,
+            productType,
+            ...(finalAsin ? { asin: finalAsin } : {}),
+          },
           contentSyncedAt: product.updatedAt,
         });
       }
@@ -458,14 +604,27 @@ export async function syncProductsToAmazon(
   }
 
   if (offerItems.length > 0) {
+    for (const item of offerItems) {
+      if (item.asin) {
+        const refreshed = await findAmazonSkuByAsin(
+          creds,
+          token.accessToken,
+          marketplaceId,
+          item.asin,
+        );
+        if (refreshed) item.sku = refreshed;
+        asinBySku.set(item.sku, item.asin);
+      }
+    }
     const offerResult = await syncAmazonOffersWithRetry(
       creds,
       token.accessToken,
       marketplaceId,
       offerItems,
       config,
+      { rounds: 6, delayMs: 12000, offerOnlyFirst: true, asinBySku },
     );
-    offersPushed = offerResult.sent;
+    offersPushed += offerResult.sent;
     if (offerResult.errors.length) {
       for (const e of offerResult.errors.slice(0, 4)) {
         if (errors.length < 8) errors.push(e);
