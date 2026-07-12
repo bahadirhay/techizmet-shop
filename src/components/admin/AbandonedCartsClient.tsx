@@ -21,6 +21,7 @@ type AbandonedRow = {
   cartValueMinor: number;
   itemCount: number;
   lastActivityAt: string;
+  reminderStage: number;
   remindedAt: string | null;
   whatsappRemindedAt: string | null;
   notes: string | null;
@@ -241,6 +242,13 @@ export function AbandonedCartsClient() {
                       <span className="text-zinc-500"> · {row.itemCount} adet</span>
                     </td>
                     <td className="p-3 text-xs text-zinc-600">
+                      {row.reminderStage > 0 ? (
+                        <div className="mb-1">
+                          <span className="rounded-full bg-blue-100 px-2 py-0.5 text-blue-900">
+                            Otomatik {row.reminderStage}/3
+                          </span>
+                        </div>
+                      ) : null}
                       {row.remindedAt ? (
                         <div>E-posta: {new Date(row.remindedAt).toLocaleDateString("tr-TR")}</div>
                       ) : null}

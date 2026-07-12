@@ -1,0 +1,26 @@
+name: Cart abandonment reminder cron
+
+on:
+  schedule:
+    - cron: "0 */2 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  # TODO: techizmet-shop.com prod domaini dogrulanip CRON_SECRET_TECHIZMET secret'i
+  # eklenince bu job'i geri ekle:
+  #
+  # techizmet-shop:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Trigger techizmet-shop reminder
+  #       run: >
+  #         curl -fsS -H "Authorization: Bearer ${{ secrets.CRON_SECRET_TECHIZMET }}"
+  #         "https://<gercek-domain>/api/cron/cart-abandonment/remind"
+
+  anatolianpaw:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger anatolianpaw.com reminder
+        run: >
+          curl -fsS -H "Authorization: Bearer ${{ secrets.CRON_SECRET_ANATOLIANPAW }}"
+          "https://www.anatolianpaw.com/api/cron/cart-abandonment/remind"

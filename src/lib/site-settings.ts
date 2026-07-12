@@ -151,6 +151,15 @@ export type SiteSettings = {
   };
   /** Bildirim kanalları — site başına (DB settingsJson); .env yalnızca API anahtarı */
   notifications?: StoreNotificationSettings;
+  marketing?: {
+    /** Terk edilmiş sepet için 3 aşamalı otomatik e-posta dizisi */
+    abandonedCart?: {
+      /** Varsayılan kapalı — admin açana kadar hiçbir otomatik e-posta gönderilmez */
+      enabled?: boolean;
+      /** 2. ve 3. aşama hatırlatma e-postasında önerilecek StoreCampaign.code */
+      discountCode?: string;
+    };
+  };
   /** Ön muhasebe — kâr tahmini ve sipariş ekonomisi */
   finance?: {
     /** Tahmini PayTR / kart komisyonu (%) */

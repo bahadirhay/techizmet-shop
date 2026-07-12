@@ -89,6 +89,7 @@ export async function GET(req: Request) {
       cartValueMinor: a.cartValueMinor,
       itemCount: a.itemCount,
       lastActivityAt: a.lastActivityAt.toISOString(),
+      reminderStage: a.reminderStage,
       remindedAt: a.remindedAt?.toISOString() ?? null,
       whatsappRemindedAt: a.whatsappRemindedAt?.toISOString() ?? null,
       notes: a.notes,

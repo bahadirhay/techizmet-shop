@@ -45,6 +45,7 @@ model StoreSite {
   visitorProfiles                 VisitorProfile[]
   storeEvents                     StoreEvent[]
   cartAbandonments                CartAbandonment[]
+  emailSuppressions                EmailSuppression[]
   whatsappLeads                   WhatsAppLead[]
   whatsappBotNodes                WhatsAppBotNode[]
   assistantKnowledgeEntries       AssistantKnowledgeEntry[]
@@ -250,6 +251,8 @@ model CartAbandonment {
   notes              String?
   lastActivityAt     DateTime       @default(now())
   remindedAt         DateTime?
+  /// 0 = hiç gönderilmedi, 1/2/3 = kaçıncı otomatik hatırlatma gönderildi (3 = dizi tamamlandı)
+  reminderStage      Int            @default(0)
   whatsappRemindedAt DateTime?
   convertedOrderId   String?
   createdAt          DateTime       @default(now())
@@ -258,6 +261,20 @@ model CartAbandonment {
   @@index([siteId, status, lastActivityAt])
   @@index([siteId, visitorKey, status])
   @@map("cart_abandonment")
+  @@schema("shop")
+}
+
+/// Otomatik pazarlama e-postalarından (örn. terk sepet dizisi) çıkanların listesi
+model EmailSuppression {
+  id        String    @id @default(cuid())
+  siteId    String
+  site      StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  email     String
+  reason    String    @default("unsubscribe")
+  createdAt DateTime  @default(now())
+
+  @@unique([siteId, email])
+  @@map("email_suppression")
   @@schema("shop")
 }
 
