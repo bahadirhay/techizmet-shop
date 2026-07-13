@@ -172,7 +172,7 @@ async function callClaude(prompt: string, apiKey: string, model: string): Promis
   return data.content?.find((c) => c.type === "text")?.text?.trim() ?? null;
 }
 
-function templatePack(ctx: SocialProductContext, siteName: string, productUrl: string): SocialContentPack {
+export function templatePack(ctx: SocialProductContext, siteName: string, productUrl: string): SocialContentPack {
   const price = ctx.priceLabel;
   const baseTags = ["evcilhayvan", "petshop", "anatolianpaw", ctx.slug.replace(/-/g, "")].filter(Boolean);
   const cta = `🔗 ${productUrl}`;
