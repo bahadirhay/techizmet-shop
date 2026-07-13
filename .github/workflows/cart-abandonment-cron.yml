@@ -6,21 +6,35 @@ on:
   workflow_dispatch: {}
 
 jobs:
-  # TODO: techizmet-shop.com prod domaini dogrulanip CRON_SECRET_TECHIZMET secret'i
-  # eklenince bu job'i geri ekle:
-  #
-  # techizmet-shop:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Trigger techizmet-shop reminder
-  #       run: >
-  #         curl -fsS -H "Authorization: Bearer ${{ secrets.CRON_SECRET_TECHIZMET }}"
-  #         "https://<gercek-domain>/api/cron/cart-abandonment/remind"
+  # CRON_SECRET_ANATOLIANPAW GitHub secret'i, Vercel Production CRON_SECRET ile ayni olmali.
+  # Vercel: Project -> Settings -> Environment Variables -> CRON_SECRET
+  # GitHub: Repo -> Settings -> Secrets -> CRON_SECRET_ANATOLIANPAW
 
   anatolianpaw:
     runs-on: ubuntu-latest
     steps:
+      - name: Preflight — secret tanimli mi?
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET_ANATOLIANPAW }}
+        run: |
+          if [ -z "${CRON_SECRET}" ]; then
+            echo "::error::CRON_SECRET_ANATOLIANPAW GitHub secret'i tanimli degil."
+            echo "Vercel CRON_SECRET ile ayni degeri GitHub repo secrets'a ekleyin."
+            exit 1
+          fi
+
       - name: Trigger anatolianpaw.com reminder
-        run: >
-          curl -fsS -H "Authorization: Bearer ${{ secrets.CRON_SECRET_ANATOLIANPAW }}"
-          "https://www.anatolianpaw.com/api/cron/cart-abandonment/remind"
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET_ANATOLIANPAW }}
+        run: |
+          set -euo pipefail
+          URL="https://www.anatolianpaw.com/api/cron/cart-abandonment/remind"
+          HTTP_CODE=$(curl -sS -o /tmp/cron-body.txt -w "%{http_code}" \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "$URL")
+          echo "HTTP ${HTTP_CODE}"
+          cat /tmp/cron-body.txt
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "::error::Cron cagrisi basarisiz (HTTP ${HTTP_CODE}). Vercel CRON_SECRET ile GitHub secret eslesmiyor olabilir."
+            exit 22
+          fi
