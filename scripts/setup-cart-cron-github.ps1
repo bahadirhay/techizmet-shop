@@ -1,7 +1,5 @@
-# Terk sepet cron — GitHub secret senkronu
+# Terk sepet cron - GitHub secret senkronu
 # Kullanim: .\scripts\setup-cart-cron-github.ps1
-#
-# Ilk calistirmada tarayicida GitHub girisi istenir (gh auth login).
 
 $ErrorActionPreference = "Stop"
 $Root = Split-Path $PSScriptRoot -Parent
@@ -11,10 +9,9 @@ $gh = Join-Path $PSScriptRoot "gh.ps1"
 if (-not (Test-Path $gh)) { throw "scripts/gh.ps1 bulunamadi" }
 
 Write-Host ""
-Write-Host "=== Cart abandonment cron — GitHub secret kurulumu ===" -ForegroundColor Cyan
+Write-Host "=== Cart abandonment cron - GitHub secret kurulumu ===" -ForegroundColor Cyan
 Write-Host ""
 
-# 1) GitHub girisi
 $loggedIn = $false
 try {
   & $gh auth status 2>$null | Out-Null
@@ -37,16 +34,14 @@ if (-not $loggedIn) {
 Write-Host ""
 Write-Host "GitHub girisi OK." -ForegroundColor Green
 
-# 2) Secret senkronu
 & (Join-Path $PSScriptRoot "sync-github-cron-secret.ps1")
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-# 3) Opsiyonel: workflow test
 Write-Host ""
-$run = Read-Host "Cron workflow'u simdi test etmek ister misiniz? (E/h)"
+$run = Read-Host "Cron workflow simdi test edilsin mi? (E/h)"
 if ($run -eq "" -or $run -eq "E" -or $run -eq "e") {
   & $gh workflow run "Cart abandonment reminder cron" --repo bahadirhay/techizmet-shop
-  Write-Host "Workflow tetiklendi. GitHub Actions'tan sonucu kontrol edin:"
+  Write-Host "Workflow tetiklendi. Sonuc:"
   Write-Host "  https://github.com/bahadirhay/techizmet-shop/actions" -ForegroundColor Cyan
 }
 
