@@ -9,6 +9,27 @@ import { platformLabel } from "@/lib/admin/social-content/types";
 
 type ProductRow = { id: string; title: string; slug: string };
 
+type PerformanceSummary = {
+  hints: {
+    available: boolean;
+    topHooks: string[];
+    strongAngles: string[];
+    preferredMoods: string[];
+    avgReach: number | null;
+    sampleSize: number;
+    insightNote: string;
+  };
+  topPosts: Array<{
+    draftId: string;
+    productTitle: string;
+    reach: number | null;
+    likes: number | null;
+    saved: number | null;
+    score: number;
+    publishedAt: string | null;
+  }>;
+};
+
 export function SocialContentStudioClient({
   products,
   initialDrafts,
@@ -24,6 +45,8 @@ export function SocialContentStudioClient({
   const [focusProductId, setFocusProductId] = useState(preselectedProductId ?? "");
   const [bulkBusy, setBulkBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [performance, setPerformance] = useState<PerformanceSummary | null>(null);
+  const [perfLoading, setPerfLoading] = useState(true);
 
   const filtered = products.filter((p) => {
     const q = filter.trim().toLowerCase();
@@ -50,6 +73,21 @@ export function SocialContentStudioClient({
     if (preselectedProductId) setFocusProductId(preselectedProductId);
   }, [preselectedProductId]);
 
+  const loadPerformance = useCallback(async () => {
+    setPerfLoading(true);
+    try {
+      const res = await fetch("/api/admin/social-content/performance");
+      const j = (await res.json()) as PerformanceSummary;
+      setPerformance(j);
+    } finally {
+      setPerfLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadPerformance();
+  }, [loadPerformance]);
+
   async function bulkGenerate() {
     const ids = [...selected];
     if (!ids.length) {
@@ -69,7 +107,7 @@ export function SocialContentStudioClient({
         setMsg(j.error ?? "Toplu üretim başarısız");
         return;
       }
-      setMsg(`${j.created ?? 0} ürün için içerik üretildi${j.failed ? `, ${j.failed} hata` : ""}`);
+      setMsg(`${j.created ?? 0} ürün için görsel + metin üretildi${j.failed ? `, ${j.failed} hata` : ""}`);
       setSelected(new Set());
       await refreshDrafts();
     } finally {
@@ -82,9 +120,69 @@ export function SocialContentStudioClient({
   return (
     <div className="space-y-6">
       <section className="admin-card admin-card-pad">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div>
+            <h2 className="font-semibold">Öğrenme döngüsü (Instagram)</h2>
+            <p className="mt-1 text-sm text-zinc-500">
+              Yayınlanan gönderilerin erişim ve kaydetme metrikleri sonraki AI brif ve metinlerine
+              yansır. Marka katmanı ayarları:{" "}
+              <Link href="/admin/integrations/social" className="underline">
+                Sosyal yayın API
+              </Link>
+            </p>
+          </div>
+          <button type="button" className={btnSecondary} onClick={() => void loadPerformance()}>
+            Yenile
+          </button>
+        </div>
+        {perfLoading ? (
+          <p className="mt-3 text-sm text-zinc-500">Metrikler yükleniyor…</p>
+        ) : performance ? (
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <div className="rounded-lg border bg-zinc-50/80 p-3 text-sm">
+              <p className="font-medium text-zinc-800">Brif ipuçları</p>
+              <p className="mt-1 text-xs text-zinc-600">{performance.hints.insightNote}</p>
+              {performance.hints.topHooks.length ? (
+                <ul className="mt-2 list-disc pl-4 text-xs text-zinc-700">
+                  {performance.hints.topHooks.map((h) => (
+                    <li key={h}>{h}</li>
+                  ))}
+                </ul>
+              ) : null}
+              {performance.hints.avgReach ? (
+                <p className="mt-2 text-xs text-zinc-600">
+                  Ort. erişim: {performance.hints.avgReach.toLocaleString("tr-TR")} · örnek:{" "}
+                  {performance.hints.sampleSize}
+                </p>
+              ) : null}
+            </div>
+            <div className="rounded-lg border bg-zinc-50/80 p-3 text-sm">
+              <p className="font-medium text-zinc-800">En iyi gönderiler</p>
+              {performance.topPosts.length === 0 ? (
+                <p className="mt-1 text-xs text-zinc-500">Henüz ölçülen yayın yok</p>
+              ) : (
+                <ul className="mt-2 space-y-2 text-xs">
+                  {performance.topPosts.map((p) => (
+                    <li key={p.draftId} className="flex justify-between gap-2 border-b border-zinc-200 pb-1">
+                      <span className="truncate">{p.productTitle}</span>
+                      <span className="shrink-0 text-zinc-500">
+                        {p.reach != null ? `${p.reach} erişim` : "—"}
+                        {p.saved != null ? ` · ${p.saved} kayıt` : ""}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        ) : null}
+      </section>
+
+      <section className="admin-card admin-card-pad">
         <h2 className="font-semibold">Toplu üretim</h2>
         <p className="mt-1 text-sm text-zinc-500">
-          Ürünleri seçin; her biri için Instagram, TikTok, YouTube ve LinkedIn taslakları oluşturulur.
+          Ürünleri seçin; her biri için AI brif (geçmiş performansa göre), markalı görseller (1:1 +
+          9:16) ve 4 platform metni üretilir. Toplu üretim görsel başına ~30–60 sn sürebilir.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <input

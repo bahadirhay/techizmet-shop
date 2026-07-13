@@ -34,6 +34,9 @@ function DraftCard({
   const [hashtags, setHashtags] = useState(draft.hashtags.join(", "));
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [regeneratingImage, setRegeneratingImage] = useState(false);
+  const [imageMsg, setImageMsg] = useState<string | null>(null);
+  const [mediaPreview, setMediaPreview] = useState(draft.mediaUrls[0] ?? "");
   const [copyMsg, setCopyMsg] = useState<string | null>(null);
   const [publishMsg, setPublishMsg] = useState<string | null>(null);
   const [scheduleAt, setScheduleAt] = useState(
@@ -49,6 +52,7 @@ function DraftCard({
     setCta(draft.cta ?? "");
     setHashtags(draft.hashtags.join(", "));
     setScheduleAt(draft.scheduledAt ? draft.scheduledAt.slice(0, 16) : "");
+    setMediaPreview(draft.mediaUrls[0] ?? "");
   }, [draft]);
 
   async function save() {
@@ -89,9 +93,11 @@ function DraftCard({
       error?: string;
       manualOnly?: boolean;
       publishedUrl?: string;
+      facebookUrl?: string;
     };
     if (j.ok && j.publishedUrl) {
-      setPublishMsg(`Yayınlandı: ${j.publishedUrl}`);
+      const fbNote = j.facebookUrl ? ` · Facebook: ${j.facebookUrl}` : "";
+      setPublishMsg(`Yayınlandı: ${j.publishedUrl}${fbNote}`);
       onSaved({ ...draft, status: "published", publishedUrl: j.publishedUrl, publishError: null });
     } else if (j.manualOnly) {
       setPublishMsg(j.error ?? "Manuel yükleme gerekir");
@@ -129,6 +135,32 @@ function DraftCard({
     }
   }
 
+  async function regenerateImage() {
+    setRegeneratingImage(true);
+    setImageMsg(null);
+    try {
+      const res = await fetch(`/api/admin/social-content/${draft.id}/regenerate-image`, {
+        method: "POST",
+      });
+      const j = (await res.json()) as {
+        draft?: SocialContentDraftDTO;
+        error?: string;
+        message?: string;
+      };
+      if (!res.ok || !j.draft) {
+        setImageMsg(j.error ?? "Görsel üretilemedi");
+        return;
+      }
+      setMediaPreview(j.draft.mediaUrls[0] ?? "");
+      setImageMsg(j.message ?? "Yeni görsel üretildi");
+      onSaved(j.draft);
+    } catch {
+      setImageMsg("Bağlantı hatası");
+    } finally {
+      setRegeneratingImage(false);
+    }
+  }
+
   const statusLabel: Record<string, string> = {
     draft: "Taslak",
     approved: "Onaylı",
@@ -157,7 +189,7 @@ function DraftCard({
     }
   }
 
-  const preview = draft.mediaUrls[0];
+  const preview = mediaPreview;
 
   return (
     <article className={`rounded-xl border p-4 ${PLATFORM_STYLES[draft.platform]}`}>
@@ -175,6 +207,13 @@ function DraftCard({
           {draft.aiProvider ? (
             <p className="text-xs text-zinc-500">Kaynak: {draft.aiProvider}</p>
           ) : null}
+          {draft.mediaSource === "ai_branded" ? (
+            <p className="text-xs font-medium text-amber-800">AI görsel + marka katmanı</p>
+          ) : draft.mediaSource === "ai_generated" ? (
+            <p className="text-xs font-medium text-violet-700">AI görsel</p>
+          ) : draft.mediaSource === "product_photo" ? (
+            <p className="text-xs text-zinc-500">Ürün fotoğrafı</p>
+          ) : null}
           {draft.publishError ? (
             <p className="text-xs text-red-600">{draft.publishError}</p>
           ) : null}
@@ -190,6 +229,16 @@ function DraftCard({
           ) : null}
         </div>
         <div className="flex flex-wrap gap-2">
+          {draft.platform !== "youtube" ? (
+            <button
+              type="button"
+              className={btnSecondary}
+              disabled={regeneratingImage}
+              onClick={() => void regenerateImage()}
+            >
+              {regeneratingImage ? "Görsel üretiliyor…" : "Görseli yeniden üret"}
+            </button>
+          ) : null}
           <button type="button" className={btnSecondary} onClick={() => void copyAll()}>
             Metni kopyala
           </button>
@@ -210,6 +259,11 @@ function DraftCard({
       </div>
 
       {copyMsg ? <p className="mt-2 text-xs text-emerald-700">{copyMsg}</p> : null}
+      {imageMsg ? (
+        <p className={`mt-2 text-xs ${imageMsg.includes("üretilemedi") || imageMsg.includes("hatası") ? "text-amber-700" : "text-emerald-700"}`}>
+          {imageMsg}
+        </p>
+      ) : null}
       {publishMsg ? (
         <p className={`mt-2 text-xs ${publishMsg.includes("başarısız") || publishMsg.includes("gerekir") ? "text-amber-700" : "text-emerald-700"}`}>
           {publishMsg}
@@ -272,6 +326,15 @@ function DraftCard({
                   onChange={(e) => setScript(e.target.value)}
                 />
               </AdminField>
+              {script ? (
+                <div className="rounded-lg border border-dashed border-violet-200 bg-violet-50/50 p-3 text-xs text-violet-950">
+                  <p className="font-semibold">Shorts storyboard</p>
+                  <p className="mt-1">
+                    Dikey görseli ve konuşma metnini kullanarak Shorts videosu kaydedin; YouTube otomatik
+                    video yüklemesi desteklenmiyor.
+                  </p>
+                </div>
+              ) : null}
             </>
           ) : draft.platform === "linkedin" ? (
             <AdminField label="Gönderi metni">
@@ -303,6 +366,15 @@ function DraftCard({
                     onChange={(e) => setScript(e.target.value)}
                   />
                 </AdminField>
+              ) : null}
+              {draft.platform === "tiktok" && script ? (
+                <div className="rounded-lg border border-dashed border-violet-200 bg-violet-50/50 p-3 text-xs text-violet-950">
+                  <p className="font-semibold">Video storyboard</p>
+                  <p className="mt-1">
+                    Dikey görseli (9:16) arka plan olarak kullanın; yukarıdaki konuşma metnini okuyarak
+                    kısa video kaydedin veya TikTok foto modunda yayınlayın.
+                  </p>
+                </div>
               ) : null}
             </>
           )}
@@ -394,7 +466,8 @@ export function ProductSocialContentPanel({
         <div>
           <h2 className="font-semibold">Sosyal medya içerikleri</h2>
         <p className="mt-1 text-sm text-zinc-500">
-          {productTitle} — Instagram, TikTok, YouTube Shorts ve LinkedIn taslakları. API ayarları:{" "}
+          {productTitle} — AI görsel + marka katmanı + platform metinleri. Görsel için fal.ai veya OpenAI anahtarı: SEO AI ayarları.
+          API:{" "}
           <Link href="/admin/integrations/social" className="underline">
             Sosyal yayın API
           </Link>
@@ -407,7 +480,7 @@ export function ProductSocialContentPanel({
             </Link>
           ) : null}
           <button type="button" className={btnPrimary} disabled={generating} onClick={() => void generate()}>
-            {generating ? "Üretiliyor…" : byPlatform.length ? "Yeniden üret" : "4 platform için üret"}
+            {generating ? "Üretiliyor…" : byPlatform.length ? "Yeniden üret (görsel + metin)" : "Tam paket oluştur"}
           </button>
         </div>
       </div>
@@ -419,8 +492,8 @@ export function ProductSocialContentPanel({
         <p className="mt-4 text-sm text-zinc-500">Yükleniyor…</p>
       ) : byPlatform.length === 0 ? (
         <p className="mt-4 text-sm text-zinc-500">
-          Henüz taslak yok. &quot;4 platform için üret&quot; ile AI veya şablon metin oluşturun; ardından
-          kopyalayıp ilgili uygulamada paylaşın.
+          Henüz taslak yok. &quot;Tam paket oluştur&quot; ile AI brif (performans ipuçlarıyla), markalı
+          görseller (1:1 + 9:16) ve metinler üretilir.
         </p>
       ) : (
         <div className="mt-4 space-y-4">

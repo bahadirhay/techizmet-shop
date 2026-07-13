@@ -6,15 +6,16 @@ import {
   type SocialPlatform,
 } from "@/lib/admin/social-content/types";
 import { buildPublishText, buildPublishTitle } from "@/lib/social-publish/build-caption";
-import { publishToInstagram } from "@/lib/social-publish/meta";
+import { publishToFacebookPage, publishToInstagram } from "@/lib/social-publish/meta";
 import { publishToLinkedIn } from "@/lib/social-publish/linkedin";
-import { platformPublishReady, resolveSocialPublishConfig } from "@/lib/social-publish/settings";
+import { platformPublishReady, resolveSocialPublishConfig, resolveSocialStudioSettings } from "@/lib/social-publish/settings";
 import { publishToTikTok } from "@/lib/social-publish/tiktok";
 import type { PublishResult } from "@/lib/social-publish/types";
 import { publishToYouTube } from "@/lib/social-publish/youtube";
 import { toAbsoluteMediaUrl } from "@/lib/seo/site-url";
 import { getSiteSettings } from "@/lib/site-settings";
 import { prisma } from "@/lib/prisma";
+import { syncDraftInstagramPerformance } from "@/lib/admin/social-content/social-performance";
 
 const PLATFORM_CONFIG_KEY: Record<SocialPlatform, "meta" | "tiktok" | "youtube" | "linkedin"> = {
   instagram: "meta",
@@ -81,6 +82,7 @@ export type PublishSocialDraftResult = {
   draftId: string;
   platform: SocialPlatform;
   publishedUrl?: string;
+  facebookUrl?: string;
   error?: string;
   manualOnly?: boolean;
 };
@@ -100,6 +102,7 @@ export async function publishSocialContentDraft(
   const platform = row.platform as SocialPlatform;
   const settings = await getSiteSettings(siteId);
   const config = resolveSocialPublishConfig(settings);
+  const studio = resolveSocialStudioSettings(settings);
   const configKey = PLATFORM_CONFIG_KEY[platform];
 
   if (!platformPublishReady(configKey, config)) {
@@ -124,6 +127,19 @@ export async function publishSocialContentDraft(
   };
 
   const result = await publishDraftToPlatform(platform, config, draft);
+
+  let facebookUrl: string | undefined;
+  if (result.ok && platform === "instagram" && studio.crossPostFacebook && config.meta.pageId) {
+    const imageUrl = draft.mediaUrls.map((u) => toAbsoluteMediaUrl(u)).find(Boolean);
+    if (imageUrl) {
+      const fb = await publishToFacebookPage({
+        config: config.meta,
+        imageUrl,
+        message: buildPublishText(draft, "instagram"),
+      });
+      if (fb.ok) facebookUrl = fb.publishedUrl;
+    }
+  }
 
   if (result.manualOnly) {
     await prisma.socialContentDraft.update({
@@ -161,11 +177,16 @@ export async function publishSocialContentDraft(
     },
   });
 
+  if (platform === "instagram" && result.externalId) {
+    void syncDraftInstagramPerformance(siteId, draftId).catch(() => undefined);
+  }
+
   return {
     ok: true,
     draftId,
     platform,
     publishedUrl: result.publishedUrl,
+    facebookUrl,
   };
 }
 

@@ -305,7 +305,19 @@ export type SiteSettings = {
   socialPublish?: StoreSocialPublishSettings;
 };
 
+export type StoreSocialStudioSettings = {
+  /** AI görsel üzerine logo, fiyat ve başlık katmanı */
+  brandOverlay?: boolean;
+  /** Alt şerit vurgu rengi (hex) */
+  accentColor?: string;
+  /** hero = tam marka şeridi, minimal = ince şerit */
+  overlayTemplate?: "hero" | "minimal";
+  /** Instagram yayınından sonra Facebook sayfasına da paylaş */
+  crossPostFacebook?: boolean;
+};
+
 export type StoreSocialPublishSettings = {
+  studio?: StoreSocialStudioSettings;
   meta?: {
     enabled?: boolean;
     /** Uzun ömürlü sayfa erişim jetonu */

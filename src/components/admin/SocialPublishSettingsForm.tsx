@@ -117,6 +117,71 @@ export function SocialPublishSettingsForm({
       </div>
 
       <section className="admin-card admin-card-pad space-y-4">
+        <h2 className="font-semibold">Stüdyo — marka & öğrenme</h2>
+        <p className="text-sm text-zinc-600">
+          AI görsellerin üzerine logo, ürün adı ve fiyat eklenir. Yayınlanan Instagram gönderilerinin
+          metrikleri sonraki üretimlerde brif ve metinlere yansır.
+        </p>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={sp.studio?.brandOverlay !== false}
+            onChange={(e) =>
+              setSp((prev) => ({
+                ...prev,
+                studio: { ...(prev.studio ?? {}), brandOverlay: e.target.checked },
+              }))
+            }
+          />
+          Marka katmanı (logo + fiyat şeridi) açık
+        </label>
+        <AdminField label="Şerit şablonu">
+          <select
+            className={inputClass}
+            value={sp.studio?.overlayTemplate ?? "hero"}
+            onChange={(e) =>
+              setSp((prev) => ({
+                ...prev,
+                studio: {
+                  ...(prev.studio ?? {}),
+                  overlayTemplate: e.target.value === "minimal" ? "minimal" : "hero",
+                },
+              }))
+            }
+          >
+            <option value="hero">Hero — tam şerit + rozet</option>
+            <option value="minimal">Minimal — ince şerit</option>
+          </select>
+        </AdminField>
+        <AdminField label="Vurgu rengi (hex)">
+          <input
+            className={inputClass}
+            value={sp.studio?.accentColor ?? "#8B5E3C"}
+            onChange={(e) =>
+              setSp((prev) => ({
+                ...prev,
+                studio: { ...(prev.studio ?? {}), accentColor: e.target.value },
+              }))
+            }
+            placeholder="#8B5E3C"
+          />
+        </AdminField>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={sp.studio?.crossPostFacebook !== false}
+            onChange={(e) =>
+              setSp((prev) => ({
+                ...prev,
+                studio: { ...(prev.studio ?? {}), crossPostFacebook: e.target.checked },
+              }))
+            }
+          />
+          Instagram yayınından sonra Facebook sayfasına da paylaş
+        </label>
+      </section>
+
+      <section className="admin-card admin-card-pad space-y-4">
         <h2 className="font-semibold">Meta — Instagram</h2>
         <label className="flex items-center gap-2 text-sm">
           <input

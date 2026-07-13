@@ -4,6 +4,7 @@ import type { ResolvedSeoAiConfig } from "@/lib/admin/product-seo/ai-settings";
 import { providerOrder, seoAiAvailable } from "@/lib/admin/product-seo/ai-settings";
 import type { SocialContentPack, SocialPlatform } from "@/lib/admin/social-content/types";
 import { SOCIAL_PLATFORMS } from "@/lib/admin/social-content/types";
+import type { SocialCreativeBrief } from "@/lib/admin/social-content/creative-brief";
 import type { SocialProductContext } from "@/lib/admin/social-content/product-context";
 
 function parseJsonObject(text: string): Record<string, unknown> | null {
@@ -64,9 +65,25 @@ function parseSocialPackJson(text: string): SocialContentPack | null {
   return hasContent ? pack : null;
 }
 
-function buildPrompt(ctx: SocialProductContext, siteName: string, productUrl: string): string {
-  return `Sen bir e-ticaret sosyal medya içerik uzmanısın. Pet shop markası "${siteName}" için ürün tanıtım metinleri yaz.
+function buildPrompt(
+  ctx: SocialProductContext,
+  siteName: string,
+  productUrl: string,
+  brief?: SocialCreativeBrief,
+): string {
+  const briefBlock = brief
+    ? `
+YARATICI BRİF:
+- Açı: ${brief.productAngle}
+- Hedef: ${brief.targetPet} sahipleri
+- Görsel sahne: ${brief.visualScene}
+- Ton: ${brief.mood}
+- Hook fikirleri: ${brief.hooks.join(" | ")}
+`
+    : "";
 
+  return `Sen bir e-ticaret sosyal medya içerik uzmanısın. Pet shop markası "${siteName}" için ürün tanıtım metinleri yaz.
+${briefBlock}
 ÜRÜN:
 - Ad: ${ctx.title}
 - Fiyat: ${ctx.priceLabel}${ctx.compareAtLabel ? ` (eski: ${ctx.compareAtLabel})` : ""}
@@ -193,9 +210,10 @@ export async function generateSocialContentPack(params: {
   siteName: string;
   productUrl: string;
   aiConfig: ResolvedSeoAiConfig;
+  brief?: SocialCreativeBrief;
 }): Promise<{ pack: SocialContentPack; aiProvider: string; message: string }> {
-  const { ctx, siteName, productUrl, aiConfig } = params;
-  const prompt = buildPrompt(ctx, siteName, productUrl);
+  const { ctx, siteName, productUrl, aiConfig, brief } = params;
+  const prompt = buildPrompt(ctx, siteName, productUrl, brief);
 
   if (aiConfig.enabled && seoAiAvailable(aiConfig).any) {
     for (const provider of providerOrder(aiConfig)) {

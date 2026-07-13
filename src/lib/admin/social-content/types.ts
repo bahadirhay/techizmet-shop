@@ -33,6 +33,8 @@ export type SocialContentDraftDTO = {
   cta: string | null;
   productUrl: string | null;
   mediaUrls: string[];
+  mediaSource: string | null;
+  imagePrompt: string | null;
   aiProvider: string | null;
   publishedUrl: string | null;
   publishedAt: string | null;

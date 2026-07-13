@@ -1,4 +1,4 @@
-import type { SiteSettings, StoreSocialPublishSettings } from "@/lib/site-settings";
+import type { SiteSettings, StoreSocialPublishSettings, StoreSocialStudioSettings } from "@/lib/site-settings";
 
 export type ResolvedSocialPublishConfig = {
   meta: {
@@ -85,5 +85,22 @@ export function socialPublishSecretsConfigured(sp: StoreSocialPublishSettings | 
     tiktokToken: Boolean(sp?.tiktok?.accessToken?.trim()),
     youtubeRefresh: Boolean(sp?.youtube?.refreshToken?.trim()),
     linkedinToken: Boolean(sp?.linkedin?.accessToken?.trim()),
+  };
+}
+
+export type ResolvedSocialStudioSettings = {
+  brandOverlay: boolean;
+  accentColor: string;
+  overlayTemplate: "hero" | "minimal";
+  crossPostFacebook: boolean;
+};
+
+export function resolveSocialStudioSettings(settings: SiteSettings): ResolvedSocialStudioSettings {
+  const studio: StoreSocialStudioSettings = settings.socialPublish?.studio ?? {};
+  return {
+    brandOverlay: studio.brandOverlay !== false,
+    accentColor: studio.accentColor?.trim() || "#8B5E3C",
+    overlayTemplate: studio.overlayTemplate === "minimal" ? "minimal" : "hero",
+    crossPostFacebook: studio.crossPostFacebook !== false,
   };
 }

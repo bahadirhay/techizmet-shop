@@ -127,12 +127,18 @@ model SocialContentDraft {
   cta           String?
   productUrl    String?
   mediaUrlsJson String?
+  creativeBriefJson String?
+  imagePrompt   String?
+  /** ai_generated | product_photo */
+  mediaSource   String?
   aiProvider    String?
   publishedUrl  String?
   /**
    * Platform tarafındaki gönderi/medya id'si (ör. Instagram media id) — insights sorguları için gerekli
    */
   externalId    String?
+  /** Instagram insights önbelleği (reach, likes, saved, score) */
+  performanceJson String?
   publishedAt   DateTime?
   publishError  String?
   scheduledAt   DateTime?

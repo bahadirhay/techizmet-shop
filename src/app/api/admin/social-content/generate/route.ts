@@ -7,6 +7,8 @@ import { requireStaffApi } from "@/lib/staff-auth";
 import { getDefaultSite } from "@/lib/site";
 import { getSiteSeo, getSiteSettings } from "@/lib/site-settings";
 
+export const maxDuration = 300;
+
 export async function POST(req: Request) {
   const auth = await requireStaffApi("store.products");
   if (auth instanceof NextResponse) return auth;
