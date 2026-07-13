@@ -6,12 +6,15 @@ $ErrorActionPreference = "Stop"
 $Root = Split-Path $PSScriptRoot -Parent
 Set-Location $Root
 
-$gh = "C:\Program Files\GitHub CLI\gh.exe"
-if (-not (Test-Path $gh)) {
-  $gh = (Get-Command gh -ErrorAction SilentlyContinue)?.Source
-}
-if (-not $gh) {
-  throw "GitHub CLI (gh) yok. winget install GitHub.cli"
+$ghWrapper = Join-Path $PSScriptRoot "gh.ps1"
+$ghExe = "C:\Program Files\GitHub CLI\gh.exe"
+if (Test-Path $ghWrapper) {
+  $gh = $ghWrapper
+} elseif (Test-Path $ghExe) {
+  $gh = $ghExe
+} else {
+  $cmd = Get-Command gh -ErrorAction SilentlyContinue
+  if ($cmd) { $gh = $cmd.Source } else { throw "GitHub CLI yok. winget install GitHub.cli" }
 }
 
 $envFile = if (Test-Path ".env.anatolianpaw") { ".env.anatolianpaw" } else { ".env" }
@@ -21,6 +24,15 @@ $line = Select-String -Path $envFile -Pattern '^CRON_SECRET="([^"]+)"' | Select-
 if (-not $line) { throw "CRON_SECRET $envFile icinde yok" }
 $secret = $line.Matches.Groups[1].Value
 
-& $gh auth status | Out-Null
+try {
+  & $gh auth status 2>$null | Out-Null
+  if ($LASTEXITCODE -ne 0) { throw "not logged in" }
+} catch {
+  Write-Host ""
+  Write-Host "GitHub'a giris yapilmamis. Once su komutu calistirin:" -ForegroundColor Yellow
+  Write-Host "  & `"$gh`" auth login" -ForegroundColor Cyan
+  Write-Host ""
+  exit 1
+}
 & $gh secret set CRON_SECRET_ANATOLIANPAW --repo bahadirhay/techizmet-shop --body $secret
 Write-Host "CRON_SECRET_ANATOLIANPAW GitHub'a yazildi (Vercel CRON_SECRET ile eslesmeli)."
