@@ -194,7 +194,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     items: [
       { href: "/admin/campaigns", label: "Kupon & Kampanyalar", perm: "store.campaigns" },
       { href: "/admin/campaigns/new", label: "Yeni Kampanya", perm: "store.campaigns" },
-      { href: "/admin/marketing/social", label: "Sosyal içerik stüdyosu", perm: "store.products" },
+      { href: "/admin/marketing/social", label: "Sosyal içerik stüdyosu", perm: "store.campaigns" },
       { href: "/admin/integrations/social", label: "Sosyal yayın API", perm: "store.integrations" },
       { href: "/admin/street-food-fund", label: "Sokak Dostları Mama Fonu", perm: null },
     ],
