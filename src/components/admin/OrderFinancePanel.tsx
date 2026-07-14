@@ -25,6 +25,19 @@ const RECON_LABELS: Record<string, string> = {
   reviewed: "İncelendi",
 };
 
+/** "200", "200,50", "1.250,00" gibi TL girişini kuruşa çevirir. Boş/geçersiz → null. */
+function tlToMinor(input: string): number | null {
+  let c = input.trim().replace(/\s/g, "");
+  if (!c) return null;
+  // Virgül varsa: nokta binlik, virgül ondalık. Yoksa nokta ondalık kabul edilir.
+  if (c.includes(",")) c = c.replace(/\./g, "").replace(",", ".");
+  c = c.replace(/[^0-9.]/g, "");
+  if (!c) return null;
+  const n = Number(c);
+  if (!Number.isFinite(n) || n < 0) return null;
+  return Math.round(n * 100);
+}
+
 export function OrderFinancePanel({
   orderId,
   orderNumber,
@@ -93,6 +106,57 @@ export function OrderFinancePanel({
           paymentFeeMinor -
           (snap.totalCostMinor ?? 0)
         : null;
+
+  const estimatedMarketplaceDeductionMinor = snap
+    ? snap.totalCommissionMinor + snap.shippingDeductionMinor
+    : 0;
+  const confirmedDeductionMinor = confirmedDeductions.reduce((s, d) => s + d.amountMinor, 0);
+  const effectiveMarketplaceDeductionMinor =
+    confirmedDeductionMinor > 0 ? confirmedDeductionMinor : estimatedMarketplaceDeductionMinor;
+  const productCostMinor = snap?.totalCostMinor ?? 0;
+
+  const actualNetMinor = snap
+    ? marketplacePlatform
+      ? snap.grossMinor - effectiveMarketplaceDeductionMinor - productCostMinor
+      : netFromSnap
+    : null;
+  const hasActualInputs = marketplacePlatform
+    ? confirmedDeductionMinor > 0
+    : Boolean(snap?.shippingCostActual);
+
+  const defaultActualTry = marketplacePlatform
+    ? effectiveMarketplaceDeductionMinor > 0
+      ? String(effectiveMarketplaceDeductionMinor / 100)
+      : ""
+    : snap && (snap.shippingCostMinor ?? 0) > 0
+      ? String((snap.shippingCostMinor ?? 0) / 100)
+      : "";
+
+  const [actualInput, setActualInput] = useState(defaultActualTry);
+  const [savingActual, setSavingActual] = useState(false);
+  const [actualMsg, setActualMsg] = useState<string | null>(null);
+
+  async function saveActuals() {
+    const minor = tlToMinor(actualInput);
+    setSavingActual(true);
+    setActualMsg(null);
+    const payload = marketplacePlatform
+      ? { marketplaceDeductionMinor: minor }
+      : { shippingCostMinor: minor };
+    const res = await fetch(`/api/admin/orders/${orderId}/finance-actuals`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    setSavingActual(false);
+    if (res.ok) {
+      setActualMsg(minor == null ? "Temizlendi — tahmini değere dönüldü" : "Kaydedildi — net kâr güncellendi");
+      router.refresh();
+    } else {
+      const j = (await res.json().catch(() => ({}))) as { error?: string };
+      setActualMsg(j.error ?? "Kaydedilemedi");
+    }
+  }
 
   return (
     <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
@@ -258,6 +322,64 @@ export function OrderFinancePanel({
           ) : null}
         </div>
       ) : null}
+
+      <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50/70 p-3 text-sm">
+        <p className="font-medium text-emerald-950">Gerçek değerler · net kâr</p>
+        <p className="mt-1 text-xs text-emerald-900">
+          {marketplacePlatform
+            ? "Pazaryeri kesinti/komisyon faturasındaki gerçek toplam tutarı girin (komisyon + kargo). Net kâr bu tutarla hesaplanır."
+            : "Bu sipariş için gerçekte ödediğiniz kargo bedelini girin. Net kâr bu tutarla hesaplanır."}
+        </p>
+        <div className="mt-2 flex flex-wrap items-end gap-2">
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-emerald-900">
+              {marketplacePlatform ? "Gerçek pazaryeri kesintisi (₺)" : "Gerçek kargo bedeli (₺)"}
+            </span>
+            <input
+              type="text"
+              inputMode="decimal"
+              value={actualInput}
+              onChange={(e) => setActualInput(e.target.value)}
+              placeholder={marketplacePlatform ? "örn. 45,80" : "örn. 200"}
+              className="w-40 rounded border border-emerald-300 bg-white px-2 py-1 text-sm"
+            />
+          </label>
+          <button
+            type="button"
+            className={btnPrimary}
+            disabled={savingActual}
+            onClick={() => void saveActuals()}
+          >
+            {savingActual ? "Kaydediliyor…" : "Kaydet"}
+          </button>
+          {hasActualInputs ? (
+            <span className="rounded bg-emerald-100 px-2 py-1 text-xs text-emerald-900">
+              Gerçek değer girildi
+            </span>
+          ) : (
+            <span className="rounded bg-amber-100 px-2 py-1 text-xs text-amber-900">
+              Şu an tahmini değer kullanılıyor
+            </span>
+          )}
+        </div>
+        {snap && actualNetMinor != null ? (
+          <div className="mt-3 flex items-center justify-between rounded-lg border border-emerald-200 bg-white px-3 py-2">
+            <span className="font-medium text-emerald-950">
+              {hasActualInputs ? "Net kâr / zarar (gerçek)" : "Net kâr / zarar (tahmini)"}
+            </span>
+            {productCostMinor > 0 ? (
+              <span
+                className={`text-base font-semibold ${actualNetMinor >= 0 ? "text-emerald-700" : "text-red-600"}`}
+              >
+                {formatTry(actualNetMinor)}
+              </span>
+            ) : (
+              <span className="text-xs text-amber-800">Ürün maliyeti girilmedi — net kâr eksik</span>
+            )}
+          </div>
+        ) : null}
+        {actualMsg ? <p className="mt-2 text-xs text-emerald-900">{actualMsg}</p> : null}
+      </div>
 
       {!income ? (
         <div className="mt-3">

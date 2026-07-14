@@ -1319,6 +1319,10 @@ model StoreOrder {
    * JSON: brüt, komisyon, kargo, maliyet, tahmini net — sipariş anında dondurulur
    */
   financeSnapshotJson    String?
+  /**
+   * JSON: elle girilen gerçek değerler — web gerçek kargo bedeli, pazaryeri gerçek kesinti (net kâr için)
+   */
+  financeActualsJson     String?
   adminNotes             String?
   /**
    * Anonim ziyaretçi — sepet terki / dönüşüm eşlemesi

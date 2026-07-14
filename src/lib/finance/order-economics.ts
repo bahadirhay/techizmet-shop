@@ -47,6 +47,8 @@ export type OrderFinanceSnapshot = {
   shippingDeductionMinor: number;
   /** Web: sizin ödediğiniz giden kargo maliyeti (müşteri ücretsiz kargo alsın bile) */
   shippingCostMinor: number;
+  /** Web kargo maliyeti elle girilen gerçek değer mi (true) yoksa ayar varsayılanı mı (false) */
+  shippingCostActual?: boolean;
   /** Sipariş başı paketleme / malzeme gideri */
   packagingCostMinor: number;
   shippingModel: ShippingModelId;
@@ -68,6 +70,27 @@ export function parseOrderFinanceSnapshot(raw: string | null | undefined): Order
   }
 }
 
+/** Elle girilen gerçek değerler — snapshot yeniden hesaplansa bile korunur. */
+export type OrderFinanceActuals = {
+  /** Web siparişinde gerçekten ödediğiniz kargo bedeli (kuruş) */
+  shippingCostMinor?: number;
+  /** Pazaryeri siparişinde gerçek toplam kesinti — komisyon + kargo (kuruş) */
+  marketplaceDeductionMinor?: number;
+  updatedAt?: string;
+};
+
+export function parseOrderFinanceActuals(
+  raw: string | null | undefined,
+): OrderFinanceActuals | null {
+  if (!raw?.trim()) return null;
+  try {
+    const v = JSON.parse(raw) as OrderFinanceActuals;
+    return v && typeof v === "object" ? v : null;
+  } catch {
+    return null;
+  }
+}
+
 type OrderInput = {
   id: string;
   siteId: string;
@@ -78,6 +101,7 @@ type OrderInput = {
   shippingMinor: number;
   discountMinor: number;
   totalMinor: number;
+  financeActualsJson?: string | null;
   lines: {
     productId: string | null;
     title: string;
@@ -187,13 +211,20 @@ export async function buildOrderFinanceSnapshot(order: OrderInput): Promise<Orde
     grossMinor,
   );
 
+  const actuals = parseOrderFinanceActuals(order.financeActualsJson);
   let shippingCostMinor = 0;
+  let shippingCostActual = false;
   let packagingCostMinor = 0;
   if (!isMarketplace) {
     const { getSiteSettings } = await import("@/lib/site-settings");
     const settings = await getSiteSettings(order.siteId);
-    shippingCostMinor = resolveWebShippingCostMinor(settings);
     packagingCostMinor = resolvePackagingCostMinor(settings);
+    if (typeof actuals?.shippingCostMinor === "number" && actuals.shippingCostMinor >= 0) {
+      shippingCostMinor = actuals.shippingCostMinor;
+      shippingCostActual = true;
+    } else {
+      shippingCostMinor = resolveWebShippingCostMinor(settings);
+    }
   }
 
   const deductions =
@@ -215,6 +246,7 @@ export async function buildOrderFinanceSnapshot(order: OrderInput): Promise<Orde
     totalCommissionMinor,
     shippingDeductionMinor,
     shippingCostMinor,
+    shippingCostActual,
     packagingCostMinor,
     shippingModel,
     totalCostMinor: totalCostMinor > 0 ? totalCostMinor : null,
@@ -243,6 +275,7 @@ export async function applyOrderFinanceSnapshot(siteId: string, orderId: string)
     shippingMinor: order.shippingMinor,
     discountMinor: order.discountMinor,
     totalMinor: order.totalMinor,
+    financeActualsJson: order.financeActualsJson,
     lines: order.lines.map((l) => ({
       productId: l.productId,
       title: l.title,
@@ -286,16 +319,16 @@ async function ensureEstimatedMarketplaceDeductions(
     where: { siteId, kind: "expense", name: "Pazaryeri komisyon / indirim faturası" },
   });
 
-  const existingEstimated = await prisma.financeTransaction.findMany({
+  // Onaylı (gerçek) kesinti girildiyse ya da tahmin zaten varsa yeniden üretme.
+  const existingDeductions = await prisma.financeTransaction.count({
     where: {
       siteId,
       orderId,
       kind: "marketplace_deduction",
-      reconciliationStatus: "estimated",
     },
   });
 
-  if (existingEstimated.length > 0) return;
+  if (existingDeductions > 0) return;
 
   const toCreate: { amountMinor: number; description: string }[] = [];
 
