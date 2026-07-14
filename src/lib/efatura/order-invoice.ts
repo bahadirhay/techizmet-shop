@@ -55,6 +55,25 @@ function extractDocumentNumber(found: Record<string, unknown> | undefined): stri
   return undefined;
 }
 
+const GIB_CALL_TIMEOUT_MS = 30_000;
+
+/**
+ * GİB çağrısını zaman aşımına karşı korur. GİB yanıt vermezse istek sonsuza
+ * kadar asılı kalmasın diye belirli süre sonra hata fırlatır (düzgün mesaj döner,
+ * boş gövdeli 500 / takılı ekran oluşmaz).
+ */
+function withGibTimeout<T>(p: Promise<T>, label: string, ms = GIB_CALL_TIMEOUT_MS): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<never>((_, reject) =>
+      setTimeout(
+        () => reject(new Error(`${label}: GİB ${Math.round(ms / 1000)} sn içinde yanıt vermedi (zaman aşımı). Lütfen tekrar deneyin.`)),
+        ms,
+      ),
+    ),
+  ]);
+}
+
 export async function issueOrderInvoice(
   siteId: string,
   orderId: string,
@@ -99,10 +118,11 @@ export async function issueOrderInvoice(
     getDownloadURL: (t: string, uuid: string, opts: { signed: boolean }) => string;
   };
 
-  // Cached session — 90 dakika boyunca token yeniden kullanılır
-  let session = await getGibSession(siteId, config);
-  let client = session.client as unknown as FaturaClient;
-  let token = session.token;
+  // Cached session — 90 dakika boyunca token yeniden kullanılır.
+  // Oturum edinimi de try içinde: login takılır/hata verirse boş 500 yerine düzgün mesaj döner.
+  let session!: Awaited<ReturnType<typeof getGibSession>>;
+  let client!: FaturaClient;
+  let token!: string;
 
   async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
     try {
@@ -117,16 +137,28 @@ export async function issueOrderInvoice(
   }
 
   try {
-    const draft = await withRetry(() => client.createDraftInvoice(token, invoiceDetails));
-    const found = await withRetry(() => client.findInvoice(token, draft));
+    session = await withGibTimeout(getGibSession(siteId, config), "GİB oturumu açılamadı");
+    client = session.client as unknown as FaturaClient;
+    token = session.token;
+
+    const draft = await withRetry(() =>
+      withGibTimeout(client.createDraftInvoice(token, invoiceDetails), "Taslak fatura oluşturma"),
+    );
+    const found = await withRetry(() =>
+      withGibTimeout(client.findInvoice(token, draft), "Fatura sorgulama"),
+    );
     let signed = false;
     let invoiceNumber = extractDocumentNumber(found);
 
     if (sign && found) {
       try {
-        await withRetry(() => client.signDraftInvoice(token, found));
+        await withRetry(() =>
+          withGibTimeout(client.signDraftInvoice(token, found), "Fatura imzalama"),
+        );
         signed = true;
-        const afterSign = await withRetry(() => client.findInvoice(token, draft));
+        const afterSign = await withRetry(() =>
+          withGibTimeout(client.findInvoice(token, draft), "Fatura sorgulama"),
+        );
         invoiceNumber = extractDocumentNumber(afterSign) ?? invoiceNumber;
       } catch (signErr) {
         const msg = signErr instanceof Error ? signErr.message : String(signErr);

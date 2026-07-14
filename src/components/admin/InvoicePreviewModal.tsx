@@ -44,14 +44,19 @@ export function InvoicePreviewModal({
     setLoading(true);
     setError(null);
     const q = recipientTaxId.trim() ? `?recipientTaxId=${encodeURIComponent(recipientTaxId.trim())}` : "";
-    const res = await fetch(`/api/admin/orders/${orderId}/invoice/preview${q}`);
-    const json = (await res.json()) as { error?: string; preview?: PreviewPayload };
-    setLoading(false);
-    if (!res.ok || !json.preview?.html) {
-      setError(json.error ?? "Ön izleme yüklenemedi");
-      return;
+    try {
+      const res = await fetch(`/api/admin/orders/${orderId}/invoice/preview${q}`);
+      const json = (await res.json().catch(() => ({}))) as { error?: string; preview?: PreviewPayload };
+      if (!res.ok || !json.preview?.html) {
+        setError(json.error ?? `Ön izleme yüklenemedi (sunucu ${res.status}).`);
+        return;
+      }
+      setPreview(json.preview);
+    } catch {
+      setError("Ön izleme yüklenemedi — bağlantı hatası. Lütfen tekrar deneyin.");
+    } finally {
+      setLoading(false);
     }
-    setPreview(json.preview);
   }, [orderId, recipientTaxId]);
 
   useEffect(() => {
@@ -75,23 +80,34 @@ export function InvoicePreviewModal({
   async function confirmAndIssue() {
     setIssuing(true);
     setMsg(null);
-    const res = await fetch(`/api/admin/orders/${orderId}/invoice`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        recipientTaxId: recipientTaxId.trim() || undefined,
-        sendToMarketplace,
-      }),
-    });
-    const json = (await res.json()) as { error?: string; result?: { message: string } };
-    setIssuing(false);
-    if (!res.ok) {
-      setMsg(json.error ?? "Fatura kesilemedi");
-      return;
+    try {
+      const res = await fetch(`/api/admin/orders/${orderId}/invoice`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipientTaxId: recipientTaxId.trim() || undefined,
+          sendToMarketplace,
+        }),
+      });
+      const json = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        result?: { message: string };
+      };
+      if (!res.ok) {
+        setMsg(
+          json.error ??
+            `Fatura kesilemedi (sunucu ${res.status}). GİB yanıt vermemiş olabilir; birkaç dakika sonra tekrar deneyin.`,
+        );
+        return;
+      }
+      setMsg(json.result?.message ?? "Fatura kesildi");
+      onIssued?.();
+      void loadPreview();
+    } catch {
+      setMsg("Bağlantı hatası — fatura kesilemedi. Lütfen tekrar deneyin.");
+    } finally {
+      setIssuing(false);
     }
-    setMsg(json.result?.message ?? "Fatura kesildi");
-    onIssued?.();
-    void loadPreview();
   }
 
   const isLocalDraft = preview?.source === "local" && !preview?.issued;
