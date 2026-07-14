@@ -15,6 +15,7 @@ const STATUS_LABELS: Record<string, string> = {
 export function OrderInvoicePanel({
   orderId,
   orderNumber,
+  orderStatus,
   marketplacePlatform,
   invoiceStatus,
   invoiceNumber,
@@ -27,6 +28,8 @@ export function OrderInvoicePanel({
 }: {
   orderId: string;
   orderNumber: string;
+  /** Sipariş durumu — iptal/iade siparişlerde fatura kesimi gösterilmez */
+  orderStatus: string;
   marketplacePlatform: string | null;
   invoiceStatus: string | null;
   invoiceNumber: string | null;
@@ -66,11 +69,12 @@ export function OrderInvoicePanel({
   }
 
   const hasInvoice = Boolean(invoiceStatus && invoiceStatus !== "none");
-  const canIssueNew = efaturaReady && (!hasInvoice || invoiceStatus === "draft");
+  const orderCancelled = ["cancelled", "refunded", "refund_requested"].includes(orderStatus);
+  const canIssueNew = efaturaReady && !orderCancelled && (!hasInvoice || invoiceStatus === "draft");
   const invoiceComplete = isOrderInvoiceComplete(invoiceStatus);
 
   useEffect(() => {
-    if (!focusInvoice) return;
+    if (!focusInvoice || orderCancelled) return;
     const el = panelRef.current;
     if (!el) return;
     el.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -80,7 +84,19 @@ export function OrderInvoicePanel({
       setPreviewOpen(true);
     }
     return () => window.clearTimeout(t);
-  }, [focusInvoice, invoiceComplete, canIssueNew]);
+  }, [focusInvoice, invoiceComplete, canIssueNew, orderCancelled]);
+
+  // İptal / iade edilmiş ve faturası olmayan siparişte fatura kesimi gösterme.
+  if (orderCancelled && !hasInvoice) {
+    return (
+      <div className="mt-6 rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+        <h2 className="font-semibold text-zinc-700">e-Arşiv fatura</h2>
+        <p className="mt-1 text-sm text-zinc-600">
+          Bu sipariş iptal/iade edildiği için fatura kesilmesi gerekmez.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div

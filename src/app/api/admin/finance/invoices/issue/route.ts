@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireStaffApi } from "@/lib/staff-auth";
 import { issueManualInvoice, type ManualInvoiceLine } from "@/lib/efatura/manual-invoice";
+import { closeGibSessionForSite } from "@/lib/efatura/gib-session";
 
 type Body = {
   recipientName: string;
@@ -28,26 +29,30 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "En az bir fatura satırı gerekli" }, { status: 400 });
   }
 
-  const result = await issueManualInvoice(
-    auth.siteId,
-    {
-      recipientName: body.recipientName.trim(),
-      recipientTaxId: body.recipientTaxId?.trim() || undefined,
-      recipientTaxOffice: body.recipientTaxOffice?.trim() || undefined,
-      recipientAddress: body.recipientAddress?.trim() || undefined,
-      recipientCity: body.recipientCity?.trim() || undefined,
-      recipientEmail: body.recipientEmail?.trim() || undefined,
-      recipientPhone: body.recipientPhone?.trim() || undefined,
-      lines: body.lines,
-      invoiceDate: body.invoiceDate ? new Date(body.invoiceDate) : undefined,
-      description: body.description?.trim() || undefined,
-    },
-    auth.staffUserId,
-  );
+  try {
+    const result = await issueManualInvoice(
+      auth.siteId,
+      {
+        recipientName: body.recipientName.trim(),
+        recipientTaxId: body.recipientTaxId?.trim() || undefined,
+        recipientTaxOffice: body.recipientTaxOffice?.trim() || undefined,
+        recipientAddress: body.recipientAddress?.trim() || undefined,
+        recipientCity: body.recipientCity?.trim() || undefined,
+        recipientEmail: body.recipientEmail?.trim() || undefined,
+        recipientPhone: body.recipientPhone?.trim() || undefined,
+        lines: body.lines,
+        invoiceDate: body.invoiceDate ? new Date(body.invoiceDate) : undefined,
+        description: body.description?.trim() || undefined,
+      },
+      auth.staffUserId,
+    );
 
-  if (!result.ok) {
-    return NextResponse.json({ error: result.message }, { status: 400 });
+    if (!result.ok) {
+      return NextResponse.json({ error: result.message }, { status: 400 });
+    }
+
+    return NextResponse.json(result);
+  } finally {
+    await closeGibSessionForSite(auth.siteId);
   }
-
-  return NextResponse.json(result);
 }

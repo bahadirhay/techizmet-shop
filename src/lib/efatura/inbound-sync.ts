@@ -1,7 +1,7 @@
 import "server-only";
 
 import { getEfaturaConfig } from "@/lib/efatura/settings";
-import { getGibSession, refreshGibSession } from "@/lib/efatura/gib-session";
+import { getGibSession, refreshGibSession, closeGibSession } from "@/lib/efatura/gib-session";
 import { normalizeInvoiceLines, invoiceLinesToJson, type DraftInvoiceLineInput } from "@/lib/finance/invoices";
 import { prisma } from "@/lib/prisma";
 
@@ -138,9 +138,14 @@ export async function syncInboundGibInvoices(siteId: string, actorUserId?: strin
       );
     }
   } catch (e) {
+    await closeGibSession(siteId, cfg);
+    const detail = e instanceof Error ? e.message : "bilinmeyen hata";
+    const sessionIssue = /oturum geçersiz|clientip|birden fazla giriş|birden fazla giris|güvenli çıkış|guvenli cikis|kimlik doğrulanamadı|kimlik dogrulanamadi/i.test(detail);
     return {
       ok: false as const,
-      message: `GİB gelen fatura sorgusu başarısız: ${e instanceof Error ? e.message : "bilinmeyen hata"}`,
+      message: sessionIssue
+        ? `GİB oturumu geçersiz oldu (${detail}). Sunucu IP'si her istekte değiştiği için açık oturum kalmış olabilir. Çözüm: earsivportal.efatura.gov.tr adresine girip "Güvenli Çıkış" yapın, 1-2 dakika bekleyin ve tekrar deneyin.`
+        : `GİB gelen fatura sorgusu başarısız: ${detail}`,
       imported: 0,
       kdvEntriesCreated: 0,
     };
@@ -270,6 +275,9 @@ export async function syncInboundGibInvoices(siteId: string, actorUserId?: strin
       kdvEntriesCreated++;
     }
   }
+
+  // Oturumu kapat — sonraki isteğin (farklı IP) temiz giriş yapabilmesi için.
+  await closeGibSession(siteId, cfg);
 
   return {
     ok: true as const,

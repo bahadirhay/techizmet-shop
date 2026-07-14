@@ -72,9 +72,13 @@ export function FinanceInvoicesManager({
   }
 
   async function reloadList() {
-    const res = await fetch("/api/admin/finance/invoices");
-    const j = (await res.json()) as { invoices: InvoiceRow[] };
-    if (res.ok) setInvoices(j.invoices);
+    try {
+      const res = await fetch("/api/admin/finance/invoices/list");
+      const j = (await res.json().catch(() => ({}))) as { invoices?: InvoiceRow[] };
+      if (res.ok && Array.isArray(j.invoices)) setInvoices(j.invoices);
+    } catch {
+      // Liste yenilenemezse mevcut tablo korunur — sayfa çökmesin
+    }
   }
 
   async function createInvoice(e: React.FormEvent) {

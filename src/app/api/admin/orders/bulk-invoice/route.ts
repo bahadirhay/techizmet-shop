@@ -6,6 +6,7 @@
 import { NextResponse } from "next/server";
 import { requireStaffApi } from "@/lib/staff-auth";
 import { issueOrderInvoice } from "@/lib/efatura/order-invoice";
+import { closeGibSessionForSite } from "@/lib/efatura/gib-session";
 import { efaturaReady, getEfaturaConfig } from "@/lib/efatura/settings";
 import { orderInvoicePendingWhere } from "@/lib/admin/order-invoice-workflow";
 import { prisma } from "@/lib/prisma";
@@ -48,14 +49,19 @@ export async function POST(req: Request) {
   let succeeded = 0;
   let failed = 0;
 
-  for (const o of orders) {
-    const result = await issueOrderInvoice(auth.siteId, o.id, {
-      sign: body.sign,
-      sendToMarketplace: body.sendToMarketplace,
-    });
-    results.push({ orderId: o.id, orderNumber: o.orderNumber, ok: result.ok, message: result.message });
-    if (result.ok) succeeded++;
-    else failed++;
+  try {
+    for (const o of orders) {
+      const result = await issueOrderInvoice(auth.siteId, o.id, {
+        sign: body.sign,
+        sendToMarketplace: body.sendToMarketplace,
+      });
+      results.push({ orderId: o.id, orderNumber: o.orderNumber, ok: result.ok, message: result.message });
+      if (result.ok) succeeded++;
+      else failed++;
+    }
+  } finally {
+    // Tüm siparişler tek oturumu paylaşır; döngü bitince oturumu bir kez kapat.
+    await closeGibSessionForSite(auth.siteId);
   }
 
   return NextResponse.json({

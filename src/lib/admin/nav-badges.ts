@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { orderInvoicePendingWhere } from "@/lib/admin/order-invoice-workflow";
+import { ordersAwaitingActionFilter } from "@/lib/orders/admin-order-visibility";
 import { prisma } from "@/lib/prisma";
 import { safeCount } from "@/lib/admin/safe-count";
 
@@ -14,7 +15,7 @@ export type NavBadges = {
 async function loadNavBadgesUncached(siteId: string): Promise<NavBadges> {
   const [ordersPending, ordersPreparing, ordersShipped, ordersRefund, ordersInvoicePending] =
     await Promise.all([
-      safeCount("storeOrder", { where: { siteId, status: "pending" } }),
+      safeCount("storeOrder", { where: { siteId, ...ordersAwaitingActionFilter } }),
       safeCount("storeOrder", { where: { siteId, status: "preparing" } }),
       safeCount("storeOrder", { where: { siteId, status: "shipped" } }),
       safeCount("storeOrder", {

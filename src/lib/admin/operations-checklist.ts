@@ -2,6 +2,7 @@ import "server-only";
 
 import { efaturaReady, getEfaturaConfig } from "@/lib/efatura/settings";
 import { getSiteSettings } from "@/lib/site-settings";
+import { ordersAwaitingActionFilter } from "@/lib/orders/admin-order-visibility";
 import { prisma } from "@/lib/prisma";
 
 export type OperationsChecklistItem = {
@@ -38,11 +39,7 @@ export async function loadOperationsChecklist(siteId: string): Promise<Operation
       getSiteSettings(siteId),
       getEfaturaConfig(siteId),
       prisma.storeOrder.count({
-        where: {
-          siteId,
-          status: { in: ["pending", "confirmed"] },
-          NOT: { paymentMethod: "card", paymentStatus: { in: ["unpaid", "failed"] } },
-        },
+        where: { siteId, ...ordersAwaitingActionFilter },
       }),
       prisma.storeOrder.count({
         where: {

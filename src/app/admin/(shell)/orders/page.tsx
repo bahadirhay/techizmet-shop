@@ -9,7 +9,10 @@ import {
 } from "@/lib/marketplace/order-source";
 import { formatTry } from "@/lib/admin/money";
 import { ORDER_STATUSES } from "@/lib/admin/marketplace-platforms";
-import { excludeUnpaidCardOrdersFilter } from "@/lib/orders/admin-order-visibility";
+import {
+  excludeUnpaidCardOrdersFilter,
+  ordersAwaitingActionFilter,
+} from "@/lib/orders/admin-order-visibility";
 import { isCardOrderAwaitingPayment } from "@/lib/orders/card-payment-rules";
 import { paymentStatusAdminLabel } from "@/lib/orders/public-order";
 import {
@@ -45,10 +48,7 @@ export default async function OrdersPage({
         : status === "refund_requested"
           ? { status: { in: ["refund_requested", "cancelled"] } }
           : status === "pending"
-            ? {
-                status: "pending",
-                NOT: { paymentMethod: "card", paymentStatus: { in: ["unpaid", "failed"] } },
-              }
+            ? ordersAwaitingActionFilter
             : status
               ? { status }
               : { ...excludeUnpaidCardOrdersFilter }),

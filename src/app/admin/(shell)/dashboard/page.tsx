@@ -5,6 +5,7 @@ import { OperationsChecklist } from "@/components/admin/OperationsChecklist";
 import { loadOperationsChecklist } from "@/lib/admin/operations-checklist";
 import { safeCount } from "@/lib/admin/safe-count";
 import { loadDashboardCharts } from "@/lib/admin/nav-badges";
+import { ordersAwaitingActionFilter } from "@/lib/orders/admin-order-visibility";
 import { formatTry } from "@/lib/admin/money";
 import { requireStaffPage } from "@/lib/staff-auth";
 import { prisma } from "@/lib/prisma";
@@ -35,11 +36,7 @@ export default async function DashboardPage() {
     safeCount("storeBrand", { where: { siteId: auth.siteId } }),
     safeCount("storeOrder", { where: { siteId: auth.siteId } }),
     safeCount("storeOrder", {
-      where: {
-        siteId: auth.siteId,
-        status: { in: ["pending", "confirmed", "preparing"] },
-        NOT: { paymentMethod: "card", paymentStatus: { in: ["unpaid", "failed"] } },
-      },
+      where: { siteId: auth.siteId, ...ordersAwaitingActionFilter },
     }),
     safeCount("storeCampaign", { where: { siteId: auth.siteId, active: true } }),
     safeCount("storeProduct", {

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireStaffApi } from "@/lib/staff-auth";
 import { parseEfaturaSettings } from "@/lib/efatura/settings";
 import { mergeEfaturaTestConfig, testGibConnection } from "@/lib/efatura/gib-test-connection";
+import { closeGibSession } from "@/lib/efatura/gib-session";
 import { parseSiteSettings } from "@/lib/site-settings";
 import { prisma } from "@/lib/prisma";
 
@@ -42,6 +43,12 @@ export async function POST(req: Request) {
     );
   }
 
-  const result = await testGibConnection(effectiveConfig, settings, auth.siteId);
-  return NextResponse.json(result, { status: result.ok ? 200 : 400 });
+  try {
+    const result = await testGibConnection(effectiveConfig, settings, auth.siteId);
+    return NextResponse.json(result, { status: result.ok ? 200 : 400 });
+  } finally {
+    // Test sonrası oturumu kapat — açık kalırsa fatura çekme/kesme "aynı anda
+    // birden fazla giriş" hatası verir (sunucu IP'si her istekte değişir).
+    await closeGibSession(auth.siteId, effectiveConfig);
+  }
 }

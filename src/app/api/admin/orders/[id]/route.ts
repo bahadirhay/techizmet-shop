@@ -89,9 +89,12 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       const cfg = await getEfaturaConfig(auth.siteId).catch(() => null);
       if (cfg?.autoInvoiceOnShip && cfg.enabled) {
         const { issueOrderInvoice } = await import("@/lib/efatura/order-invoice");
-        issueOrderInvoice(auth.siteId, order.id).catch((e) =>
-          console.error("[auto-invoice]", e),
-        );
+        const { closeGibSessionForSite } = await import("@/lib/efatura/gib-session");
+        issueOrderInvoice(auth.siteId, order.id)
+          .catch((e) => console.error("[auto-invoice]", e))
+          // Fire-and-forget de olsa GİB oturumunu kapat — açık kalırsa sonraki
+          // GİB işlemi "aynı anda birden fazla giriş" hatası verir.
+          .finally(() => closeGibSessionForSite(auth.siteId).catch(() => null));
       }
     }
   }

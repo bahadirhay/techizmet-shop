@@ -154,6 +154,7 @@ export default async function OrderDetailPage({
       <OrderInvoicePanel
         orderId={order.id}
         orderNumber={order.orderNumber}
+        orderStatus={order.status}
         marketplacePlatform={order.marketplacePlatform}
         invoiceStatus={order.invoiceStatus}
         invoiceNumber={order.invoiceNumber}

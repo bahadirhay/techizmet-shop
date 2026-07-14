@@ -10,7 +10,7 @@ import { gibLogin } from "@/lib/efatura/gib-login";
 import { prisma } from "@/lib/prisma";
 import { parseSiteSettings, type SiteSettings } from "@/lib/site-settings";
 import { mergeSiteSettings } from "@/lib/merge-site-settings";
-import type { ResolvedEfaturaConfig } from "@/lib/efatura/settings";
+import { getEfaturaConfig, type ResolvedEfaturaConfig } from "@/lib/efatura/settings";
 
 const TOKEN_TTL_MS = 90 * 60 * 1000; // 90 dakika (GİB ~2 saat, güvenli marj)
 
@@ -141,4 +141,45 @@ export async function refreshGibSession(
 ): Promise<GibSession> {
   await clearCachedToken(siteId).catch(() => null);
   return getGibSession(siteId, config);
+}
+
+/**
+ * Açık GİB oturumunu kapatır ve önbelleği temizler (best-effort, asla hata fırlatmaz).
+ *
+ * Sunucusuz ortamda (Vercel) her istek farklı IP'den çıkabilir ve GİB token'ı
+ * giriş yapılan IP'ye kilitlidir. Oturum kapatılmazsa GİB tarafında açık kalır
+ * ve sonraki istekteki taze giriş "Sisteme aynı anda birden fazla giriş
+ * yapamazsınız" hatası verir. Bu yüzden her GİB işleminin SONUNDA (aynı
+ * istek/IP'den, token hâlâ geçerliyken) bu fonksiyon çağrılmalıdır.
+ */
+export async function closeGibSession(
+  siteId: string,
+  config: ResolvedEfaturaConfig,
+): Promise<void> {
+  try {
+    const token = await readCachedToken(siteId);
+    if (token) {
+      const client = createFaturaClient(config.testMode ? "TEST" : "PROD");
+      await (client as unknown as { logout: (t: string) => Promise<void> })
+        .logout(token)
+        .catch(() => null);
+    }
+  } catch {
+    // Oturum kapatma başarısız olsa bile önbelleği temizleriz.
+  } finally {
+    await clearCachedToken(siteId).catch(() => null);
+  }
+}
+
+/**
+ * closeGibSession'ın config'i kendisi çeken kısa yolu — API rotalarında
+ * finally bloğunda tek satırda temizlik için. Asla hata fırlatmaz.
+ */
+export async function closeGibSessionForSite(siteId: string): Promise<void> {
+  try {
+    const config = await getEfaturaConfig(siteId);
+    if (config.enabled) await closeGibSession(siteId, config);
+  } catch {
+    // best-effort
+  }
 }

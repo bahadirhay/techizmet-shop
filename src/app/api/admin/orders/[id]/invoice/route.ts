@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { issueOrderInvoice } from "@/lib/efatura/order-invoice";
+import { closeGibSessionForSite } from "@/lib/efatura/gib-session";
 import { requireStaffApi } from "@/lib/staff-auth";
 
 export async function POST(
@@ -17,9 +18,15 @@ export async function POST(
     force?: boolean;
   };
 
-  const result = await issueOrderInvoice(auth.siteId, id, body);
-  if (!result.ok) {
-    return NextResponse.json({ error: result.message, result }, { status: 400 });
+  try {
+    const result = await issueOrderInvoice(auth.siteId, id, body);
+    if (!result.ok) {
+      return NextResponse.json({ error: result.message, result }, { status: 400 });
+    }
+    return NextResponse.json({ result });
+  } finally {
+    // GİB oturumunu kapat — sonraki isteğin (farklı sunucu IP'si) temiz giriş
+    // yapabilmesi ve "aynı anda birden fazla giriş" hatasının önlenmesi için.
+    await closeGibSessionForSite(auth.siteId);
   }
-  return NextResponse.json({ result });
 }
