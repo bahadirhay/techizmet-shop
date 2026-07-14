@@ -141,11 +141,18 @@ export async function syncInboundGibInvoices(siteId: string, actorUserId?: strin
     await closeGibSession(siteId, cfg);
     const detail = e instanceof Error ? e.message : "bilinmeyen hata";
     const sessionIssue = /oturum geçersiz|clientip|birden fazla giriş|birden fazla giris|güvenli çıkış|guvenli cikis|kimlik doğrulanamadı|kimlik dogrulanamadi/i.test(detail);
+    // GİB e-Arşiv portalı "adına düzenlenen e-Arşiv faturaları" listesini bu
+    // ücretsiz uç noktadan vermiyor; sorgu "Genel Sistem Hatası / NullPointer"
+    // ile döner. Bu, hesabın hatası değil — GİB'in kısıtı. Kullanıcıyı manuel
+    // girişe yönlendir (Trendyol/DSM GRUP komisyon faturaları vb.).
+    const notSupported = /genel sistem hatası|genel sistem hatasi|nullpointer|null pointer/i.test(detail);
     return {
       ok: false as const,
       message: sessionIssue
         ? `GİB oturumu geçersiz oldu (${detail}). Sunucu IP'si her istekte değiştiği için açık oturum kalmış olabilir. Çözüm: earsivportal.efatura.gov.tr adresine girip "Güvenli Çıkış" yapın, 1-2 dakika bekleyin ve tekrar deneyin.`
-        : `GİB gelen fatura sorgusu başarısız: ${detail}`,
+        : notSupported
+          ? `Adınıza düzenlenen e-Arşiv faturaları GİB'in ücretsiz portal servisinden otomatik çekilemiyor (GİB "${detail}" döndürdü). Bu faturaları yukarıdaki "Yeni fatura → Yön: Gelen" formundan manuel ekleyin. (Sadece listelemek için: earsivportal.efatura.gov.tr → e-Arşiv Faturalarım.)`
+          : `GİB gelen fatura sorgusu başarısız: ${detail}`,
       imported: 0,
       kdvEntriesCreated: 0,
     };

@@ -84,7 +84,7 @@ export function FinanceInvoicesManager({
   async function createInvoice(e: React.FormEvent) {
     e.preventDefault();
     setMsg(null);
-    const res = await fetch("/api/admin/finance/invoices", {
+    const res = await fetch("/api/admin/finance/invoices/create", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
@@ -96,12 +96,16 @@ export function FinanceInvoicesManager({
         lines,
       }),
     });
-    const j = (await res.json()) as { error?: string };
+    const j = (await res.json().catch(() => ({}))) as { error?: string };
     if (!res.ok) {
       setMsg(j.error ?? "Fatura kaydedilemedi.");
       return;
     }
-    setMsg("Fatura kaydedildi.");
+    setMsg(
+      form.sendToApproval
+        ? "Fatura kaydedildi ve onay kuyruğuna eklendi."
+        : "Fatura taslak olarak kaydedildi.",
+    );
     setLines([{ description: "", qty: 1, unitPrice: 0, vatRate: 20 }]);
     await reloadList();
   }
