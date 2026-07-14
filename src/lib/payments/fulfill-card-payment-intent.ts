@@ -15,7 +15,9 @@ export async function fulfillCardPaymentIntent(
   siteId: string,
   reference: string,
 ): Promise<{ orderId: string; orderNumber: string } | null> {
-  const loaded = await loadCardCheckoutIntent(siteId, reference);
+  // Süresi dolmuş intent'ler de fulfill edilmeli — iyzico callback gecikince
+  // allowExpired yoksa sipariş oluşmuyor, ücret tahsil edilmiş kalıyordu.
+  const loaded = await loadCardCheckoutIntent(siteId, reference, { allowExpired: true });
   if (!loaded) return null;
 
   const { intent, payload } = loaded;
@@ -33,7 +35,11 @@ export async function fulfillCardPaymentIntent(
     cardPaymentConfirmed: true,
   });
 
-  await clearCartSession();
+  try {
+    await clearCartSession();
+  } catch (e) {
+    console.error("[fulfill] clearCartSession", e);
+  }
 
   let customerId = result.customerId;
   if (payload.createAccount && payload.accountPassword && payload.accountPassword.length >= 6) {
@@ -104,7 +110,7 @@ export async function fulfillCardPaymentIntent(
 }
 
 export async function abandonCardPaymentIntent(siteId: string, reference: string) {
-  const loaded = await loadCardCheckoutIntent(siteId, reference);
+  const loaded = await loadCardCheckoutIntent(siteId, reference, { allowExpired: true });
   if (!loaded) return;
   await deleteCardCheckoutIntent(loaded.intent.id);
 }

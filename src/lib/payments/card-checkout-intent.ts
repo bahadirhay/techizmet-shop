@@ -67,13 +67,19 @@ export async function createCardCheckoutIntent(params: {
   });
 }
 
-export async function loadCardCheckoutIntent(siteId: string, reference: string) {
+export async function loadCardCheckoutIntent(
+  siteId: string,
+  reference: string,
+  opts?: { allowExpired?: boolean },
+) {
   const intent = await prisma.storeCardPaymentIntent.findFirst({
     where: { siteId, reference },
   });
   if (!intent) return null;
-  if (intent.expiresAt.getTime() < Date.now()) {
-    await prisma.storeCardPaymentIntent.delete({ where: { id: intent.id } }).catch(() => {});
+  const expired = intent.expiresAt.getTime() < Date.now();
+  if (expired && !opts?.allowExpired) {
+    // Callback / fulfill için allowExpired kullanın — erken silme ücreti tahsil
+    // edilmiş siparişi kaybettiriyordu.
     return null;
   }
   let payload: CardCheckoutIntentPayload;

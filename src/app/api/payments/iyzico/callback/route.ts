@@ -44,7 +44,7 @@ export async function POST(req: Request) {
   }
 
   const reference = result.conversationId;
-  const intentLoaded = await loadCardCheckoutIntent(site.id, reference);
+  const intentLoaded = await loadCardCheckoutIntent(site.id, reference, { allowExpired: true });
 
   if (intentLoaded) {
     if (result.paymentStatus === "SUCCESS") {
