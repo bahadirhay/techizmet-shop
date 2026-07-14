@@ -63,6 +63,21 @@ function parsePackage(raw: Record<string, unknown>): TrendyolShipmentPackage | n
   };
 }
 
+/** Trendyol sevkiyat paketi durumları (tüm sipariş çekiminde gezilecek). */
+export const TRENDYOL_ALL_STATUSES = [
+  "Created",
+  "Picking",
+  "Invoiced",
+  "Shipped",
+  "AtCollectionPoint",
+  "Delivered",
+  "UnPacked",
+  "UnSupplied",
+  "Cancelled",
+  "UnDelivered",
+  "Returned",
+] as const;
+
 export async function fetchTrendyolOrders(
   creds: TrendyolCredentials,
   params: {
@@ -72,7 +87,7 @@ export async function fetchTrendyolOrders(
     startDate?: number;
     endDate?: number;
   } = {},
-): Promise<{ ok: boolean; packages: TrendyolShipmentPackage[]; message: string }> {
+): Promise<{ ok: boolean; packages: TrendyolShipmentPackage[]; totalPages: number; message: string }> {
   const q = new URLSearchParams();
   if (params.status) q.set("status", params.status);
   if (params.page != null) q.set("page", String(params.page));
@@ -89,15 +104,72 @@ export async function fetchTrendyolOrders(
     return {
       ok: false,
       packages: [],
+      totalPages: 0,
       message: `Trendyol sipariş HTTP ${res.status}: ${res.text.slice(0, 300)}`,
     };
   }
 
-  const body = res.json as { content?: unknown[] } | unknown[] | null;
+  const body = res.json as { content?: unknown[]; totalPages?: number } | unknown[] | null;
   const list = Array.isArray(body) ? body : Array.isArray(body?.content) ? body.content : [];
+  const totalPages =
+    !Array.isArray(body) && typeof body?.totalPages === "number" && body.totalPages > 0
+      ? body.totalPages
+      : 1;
   const packages = list
     .map((item) => parsePackage(item as Record<string, unknown>))
     .filter((p): p is TrendyolShipmentPackage => p != null);
 
-  return { ok: true, packages, message: `${packages.length} paket alındı` };
+  return { ok: true, packages, totalPages, message: `${packages.length} paket alındı` };
+}
+
+/**
+ * Tüm Trendyol siparişlerini çeker: her statüyü ayrı ayrı ve tüm sayfaları
+ * gezerek. Aynı paket birden fazla statüde görünürse tekilleştirilir.
+ */
+export async function fetchAllTrendyolOrders(
+  creds: TrendyolCredentials,
+  params: {
+    statuses?: readonly string[];
+    startDate?: number;
+    endDate?: number;
+    size?: number;
+    maxPagesPerStatus?: number;
+  } = {},
+): Promise<{ ok: boolean; packages: TrendyolShipmentPackage[]; message: string }> {
+  const statuses = params.statuses ?? TRENDYOL_ALL_STATUSES;
+  const size = params.size ?? 200;
+  const maxPages = params.maxPagesPerStatus ?? 50;
+  const byId = new Map<number, TrendyolShipmentPackage>();
+  const errors: string[] = [];
+  let anyOk = false;
+
+  for (const status of statuses) {
+    let page = 0;
+    while (page < maxPages) {
+      const r = await fetchTrendyolOrders(creds, {
+        status,
+        page,
+        size,
+        startDate: params.startDate,
+        endDate: params.endDate,
+      });
+      if (!r.ok) {
+        errors.push(`${status}: ${r.message}`);
+        break;
+      }
+      anyOk = true;
+      for (const p of r.packages) byId.set(p.shipmentPackageId, p);
+      if (r.packages.length === 0 || page + 1 >= r.totalPages) break;
+      page++;
+    }
+  }
+
+  const packages = [...byId.values()];
+  return {
+    ok: anyOk,
+    packages,
+    message:
+      `${packages.length} paket alındı (${statuses.length} statü tarandı)` +
+      (errors.length ? ` · uyarı: ${errors.slice(0, 3).join("; ")}` : ""),
+  };
 }

@@ -14,6 +14,35 @@ function tryMinorFromTry(amount: number | undefined, fallback = 0): number {
   return Math.round(amount * 100);
 }
 
+/** Trendyol sevkiyat paketi durumu → yerel sipariş durumu. */
+function trendyolStatusToLocal(tyStatus: string | undefined): string {
+  switch (tyStatus) {
+    case "Created":
+    case "UnPacked":
+      return "pending";
+    case "Picking":
+    case "Invoiced":
+      return "confirmed";
+    case "Shipped":
+    case "AtCollectionPoint":
+      return "shipped";
+    case "Delivered":
+      return "delivered";
+    case "Cancelled":
+    case "UnSupplied":
+      return "cancelled";
+    case "Returned":
+    case "UnDelivered":
+    case "UnDeliveredAndReturned":
+      return "refunded";
+    default:
+      return "pending";
+  }
+}
+
+/** Yalnızca sevkiyat öncesi durumlarda iç stok düşülür (geçmiş siparişlerde çift düşümü önler). */
+const PRE_SHIPMENT_STATUSES = new Set(["pending", "confirmed"]);
+
 export async function importTrendyolPackages(
   siteId: string,
   packages: TrendyolShipmentPackage[],
@@ -85,12 +114,15 @@ export async function importTrendyolPackages(
       orderLines.map((l) => marketplaceOrderLineExtras(prisma, l.productId, l.qty)),
     );
 
+    const localStatus = trendyolStatusToLocal(pkg.status);
+    const deductStock = PRE_SHIPMENT_STATUSES.has(localStatus);
+
     const createdOrder = await prisma.$transaction(async (tx) => {
       const created = await tx.storeOrder.create({
         data: {
           siteId,
           orderNumber: `TY-${pkg.orderNumber}-${pkg.shipmentPackageId}`,
-          status: "pending",
+          status: localStatus,
           customerName: customerName || "Trendyol Müşteri",
           customerEmail: pkg.customerEmail ?? null,
           customerPhone: pkg.customerPhone ?? null,
@@ -128,13 +160,15 @@ export async function importTrendyolPackages(
         },
       });
 
-      for (const line of orderLines) {
-        if (!line.productId) continue;
-        touchedProductIds.add(line.productId);
-        const result = await deductMarketplaceLineStock(tx, line.productId, line.qty, line.title);
-        for (const pid of result.componentProductIds) touchedProductIds.add(pid);
-        if (!result.ok) {
-          notes.push(`${line.title}: stok yetersiz, sipariş yine de alındı`);
+      if (deductStock) {
+        for (const line of orderLines) {
+          if (!line.productId) continue;
+          touchedProductIds.add(line.productId);
+          const result = await deductMarketplaceLineStock(tx, line.productId, line.qty, line.title);
+          for (const pid of result.componentProductIds) touchedProductIds.add(pid);
+          if (!result.ok) {
+            notes.push(`${line.title}: stok yetersiz, sipariş yine de alındı`);
+          }
         }
       }
 

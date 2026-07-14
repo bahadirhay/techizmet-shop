@@ -7,6 +7,8 @@ import {
 import { requireStaffApi } from "@/lib/staff-auth";
 import { prisma } from "@/lib/prisma";
 
+export const maxDuration = 120;
+
 export async function POST(req: Request) {
   const auth = await requireStaffApi("store.integrations");
   if (auth instanceof NextResponse) return auth;

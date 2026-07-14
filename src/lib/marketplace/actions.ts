@@ -3,7 +3,7 @@ import type { MarketplaceActionResult } from "@/lib/marketplace/types";
 import { parseTrendyolConfig } from "@/lib/marketplace/trendyol/client";
 import { importTrendyolPackages } from "@/lib/marketplace/trendyol/import-orders";
 import { syncTrendyolPriceAndInventory } from "@/lib/marketplace/trendyol/inventory";
-import { fetchTrendyolOrders } from "@/lib/marketplace/trendyol/orders";
+import { fetchTrendyolOrders, fetchAllTrendyolOrders } from "@/lib/marketplace/trendyol/orders";
 import {
   approveTrendyolPackage,
   invoiceTrendyolPackage,
@@ -54,7 +54,11 @@ export async function pullMarketplaceOrders(
     if (!creds) {
       return { ok: false, itemsCount: 0, message: "Trendyol API bilgileri eksik" };
     }
-    const fetched = await fetchTrendyolOrders(creds, { status, size: 50, startDate });
+    // status === "all" → tüm statüler + tüm sayfalar (geçmiş dahil tam çekim)
+    const fetched =
+      status === "all"
+        ? await fetchAllTrendyolOrders(creds, { startDate })
+        : await fetchTrendyolOrders(creds, { status, size: 50, startDate });
     if (!fetched.ok) return { ok: false, itemsCount: 0, message: fetched.message };
     const imported = await importTrendyolPackages(siteId, fetched.packages);
     if (imported.productIds.length) {

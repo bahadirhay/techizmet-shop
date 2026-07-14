@@ -224,13 +224,13 @@ export function MarketplaceIntegrationsClient({
     }
   }
 
-  async function runAction(path: string, label: string) {
+  async function runAction(path: string, label: string, extraBody?: Record<string, unknown>) {
     setSyncBusy(true);
     setMsg(null);
     const res = await fetch(path, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ platform: selected }),
+      body: JSON.stringify({ platform: selected, ...extraBody }),
     });
     const json = (await res.json()) as { result?: { message: string; ok: boolean }; error?: string };
     setSyncBusy(false);
@@ -868,7 +868,22 @@ export function MarketplaceIntegrationsClient({
             disabled={syncBusy}
             onClick={() => void runAction("/api/admin/integrations/marketplaces/orders/pull", "Sipariş çek")}
           >
-            Siparişleri çek
+            Yeni siparişleri çek
+          </button>
+          <button
+            type="button"
+            className={btnSecondary}
+            disabled={syncBusy}
+            title="Tüm statüler (onaylanan, kargolanan, teslim, iptal…) ve geçmiş dahil"
+            onClick={() =>
+              void runAction(
+                "/api/admin/integrations/marketplaces/orders/pull",
+                "Tüm siparişleri çek",
+                { status: "all" },
+              )
+            }
+          >
+            Tüm siparişleri çek
           </button>
           <a
             href={`/api/admin/integrations/marketplaces/export?platform=${selected}`}
