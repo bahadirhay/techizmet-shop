@@ -43,7 +43,11 @@ type GibSellerProfile = {
   district?: string;
   city?: string;
   zipCode?: string;
+  email?: string;
+  phoneNumber?: string;
 };
+
+type SellerProfile = { address: string; email: string; phone: string };
 
 /** GİB mükellef profilini açık adres satırına çevirir. */
 function formatSellerAddress(u: GibSellerProfile): string {
@@ -66,43 +70,54 @@ function formatSellerAddress(u: GibSellerProfile): string {
 }
 
 /**
- * Ön izlemede gösterilecek satıcı adresini çözer: önce ayar önbelleği, yoksa
- * GİB mükellef profilinden (getUserData) bir kez çekip ayarlara önbellekler.
- * GİB'e erişilemezse boş döner (ön izleme adressiz de çalışır).
+ * Ön izlemede gösterilecek satıcı bilgilerini (adres + e-posta + telefon) çözer:
+ * önce ayar önbelleği, yoksa GİB mükellef profilinden (getUserData) bir kez çekip
+ * ayarlara önbellekler. GİB'e erişilemezse eldeki önbellekle döner.
  */
-async function resolveSellerAddress(
+async function resolveSellerProfile(
   siteId: string,
   config: ResolvedEfaturaConfig,
-): Promise<string> {
-  if (config.sellerAddress) return config.sellerAddress;
-  if (!efaturaReady(config)) return "";
+): Promise<SellerProfile> {
+  const cached: SellerProfile = {
+    address: config.sellerAddress,
+    email: config.sellerEmail,
+    phone: config.sellerPhone,
+  };
+  if (config.sellerProfileCached) return cached;
+  if (!efaturaReady(config)) return cached;
   try {
     const client = createFaturaClient(config.testMode ? "TEST" : "PROD");
     const token = await client.getToken(config.username, config.password);
-    let address = "";
+    const resolved: SellerProfile = { address: "", email: "", phone: "" };
     try {
       const profile = (await client.getUserData(token)) as GibSellerProfile;
-      address = formatSellerAddress(profile);
+      resolved.address = formatSellerAddress(profile);
+      resolved.email = profile.email?.trim() ?? "";
+      resolved.phone = profile.phoneNumber?.trim() ?? "";
     } finally {
       await client.logout(token);
     }
-    if (address) {
-      const site = await prisma.storeSite.findUnique({
-        where: { id: siteId },
-        select: { settingsJson: true },
-      });
-      const current = parseSiteSettings(site?.settingsJson ?? null);
-      const next = mergeSiteSettings(current, {
-        efatura: { ...current.efatura, sellerAddress: address },
-      });
-      await prisma.storeSite.update({
-        where: { id: siteId },
-        data: { settingsJson: JSON.stringify(next) },
-      });
-    }
-    return address;
+    const site = await prisma.storeSite.findUnique({
+      where: { id: siteId },
+      select: { settingsJson: true },
+    });
+    const current = parseSiteSettings(site?.settingsJson ?? null);
+    const next = mergeSiteSettings(current, {
+      efatura: {
+        ...current.efatura,
+        sellerAddress: resolved.address,
+        sellerEmail: resolved.email,
+        sellerPhone: resolved.phone,
+        sellerProfileCached: true,
+      },
+    });
+    await prisma.storeSite.update({
+      where: { id: siteId },
+      data: { settingsJson: JSON.stringify(next) },
+    });
+    return resolved;
   } catch {
-    return "";
+    return cached;
   }
 }
 
@@ -156,13 +171,15 @@ export async function buildOrderInvoicePreview(
   }
 
   const details = buildInvoiceDetailsFromOrder(order, config, options.recipientTaxId);
-  const sellerAddress = await resolveSellerAddress(siteId, config);
+  const sellerProfile = await resolveSellerProfile(siteId, config);
   const html = renderInvoicePreviewHtml(details, {
     storeName,
     sellerTitle: config.sellerTitle || storeName,
     sellerTaxId: config.sellerTaxId,
     sellerTaxOffice: config.sellerTaxOffice,
-    sellerAddress,
+    sellerAddress: sellerProfile.address,
+    sellerEmail: sellerProfile.email,
+    sellerPhone: sellerProfile.phone,
     testMode: config.testMode,
   });
 

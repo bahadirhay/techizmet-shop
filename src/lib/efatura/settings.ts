@@ -11,6 +11,9 @@ export type ResolvedEfaturaConfig = {
   sellerTaxId: string;
   sellerTaxOffice: string;
   sellerAddress: string;
+  sellerEmail: string;
+  sellerPhone: string;
+  sellerProfileCached: boolean;
   username: string;
   password: string;
   defaultConsumerTaxId: string;
@@ -29,6 +32,9 @@ export function parseEfaturaSettings(raw: StoreEfaturaSettings | undefined): Res
     sellerTaxId: e.sellerTaxId?.trim() ?? "",
     sellerTaxOffice: e.sellerTaxOffice?.trim() ?? "",
     sellerAddress: e.sellerAddress?.trim() ?? "",
+    sellerEmail: e.sellerEmail?.trim() ?? "",
+    sellerPhone: e.sellerPhone?.trim() ?? "",
+    sellerProfileCached: e.sellerProfileCached === true,
     username: (e.username?.trim() || process.env.GIB_USERNAME?.trim() || ""),
     password: (process.env.GIB_PASSWORD?.trim() || e.password?.trim() || ""),
     defaultConsumerTaxId: normalizeConsumerTaxId(e.defaultConsumerTaxId?.trim() || "11111111111"),

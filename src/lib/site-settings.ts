@@ -389,6 +389,12 @@ export type StoreEfaturaSettings = {
    * önbelleğe alınır; ön izlemede gösterilir. Resmi faturada GİB otomatik ekler.
    */
   sellerAddress?: string;
+  /** Satıcı e-postası — GİB mükellef profilinden çekilip önbelleğe alınır (ön izleme) */
+  sellerEmail?: string;
+  /** Satıcı telefonu — GİB mükellef profilinden çekilip önbelleğe alınır (ön izleme) */
+  sellerPhone?: string;
+  /** GİB mükellef profili (adres+iletişim) bir kez çekildi mi — tekrar çekmemek için */
+  sellerProfileCached?: boolean;
   /** İVD kullanıcı kodu — parola için GIB_PASSWORD env tercih edilir */
   username?: string;
   password?: string;
