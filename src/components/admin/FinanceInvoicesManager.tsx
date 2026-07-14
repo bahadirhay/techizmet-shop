@@ -1,9 +1,23 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { formatTry } from "@/lib/admin/money";
 import { sanitizePublicHtml } from "@/lib/html-sanitize";
-import { inputClass, btnPrimary, AdminField } from "@/components/admin/AdminForm";
+import { inputClass, btnPrimary, btnSecondary, AdminField } from "@/components/admin/AdminForm";
+
+type ExtractedInvoiceLine = { description: string; qty: number; unitPrice: number; vatRate: number };
+type ExtractedInvoice = {
+  counterpartyTitle: string | null;
+  taxId: string | null;
+  invoiceNo: string | null;
+  ettn: string | null;
+  issueDate: string | null;
+  currency: string;
+  lines: ExtractedInvoiceLine[];
+  subtotal: number | null;
+  vatTotal: number | null;
+  grandTotal: number | null;
+};
 
 type Option = { id: string; name: string; kind?: string };
 type CustomerLite = { id: string; firstName: string | null; lastName: string | null; email: string | null };
@@ -61,6 +75,73 @@ export function FinanceInvoicesManager({
   ]);
   const [msg, setMsg] = useState<string | null>(null);
   const [gibBusy, setGibBusy] = useState(false);
+  const [ocrBusy, setOcrBusy] = useState(false);
+  const ocrInputRef = useRef<HTMLInputElement>(null);
+
+  async function onInvoiceDocument(file: File | null) {
+    if (!file || ocrBusy) return;
+    setOcrBusy(true);
+    setMsg("Fatura yapay zeka ile okunuyor… (birkaç saniye sürebilir)");
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/admin/finance/invoices/parse-document", {
+        method: "POST",
+        body: fd,
+      });
+      const j = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        provider?: string;
+        extracted?: ExtractedInvoice;
+      };
+      if (!res.ok || !j.extracted) {
+        setMsg(j.error ?? "Fatura okunamadı.");
+        return;
+      }
+      const ex = j.extracted;
+      setForm((f) => ({
+        ...f,
+        direction: "incoming",
+        issueDate:
+          ex.issueDate && /^\d{4}-\d{2}-\d{2}$/.test(ex.issueDate) ? ex.issueDate : f.issueDate,
+        title: [ex.counterpartyTitle, ex.invoiceNo].filter(Boolean).join(" · ") || f.title,
+        description:
+          [
+            ex.taxId ? `VKN: ${ex.taxId}` : null,
+            ex.invoiceNo ? `Fatura No: ${ex.invoiceNo}` : null,
+            ex.ettn ? `ETTN: ${ex.ettn}` : null,
+          ]
+            .filter(Boolean)
+            .join(" | ") || f.description,
+      }));
+      const mapped: InvoiceLine[] = ex.lines.length
+        ? ex.lines.map((l) => ({
+            description: l.description,
+            qty: l.qty,
+            unitPrice: l.unitPrice,
+            vatRate: l.vatRate,
+          }))
+        : [
+            {
+              description: ex.counterpartyTitle ?? "Gelen fatura",
+              qty: 1,
+              unitPrice: ex.subtotal ?? (ex.grandTotal ? Math.round((ex.grandTotal / 1.2) * 100) / 100 : 0),
+              vatRate: 20,
+            },
+          ];
+      setLines(mapped);
+      const totalHint =
+        ex.grandTotal != null ? ` Beklenen genel toplam: ${formatTry(Math.round(ex.grandTotal * 100))}.` : "";
+      setMsg(
+        `Fatura okundu (${j.provider}). Alanları ve satırları kontrol edip Kaydet'e basın.${totalHint}`,
+      );
+    } catch (e) {
+      setMsg(`Okuma hatası: ${e instanceof Error ? e.message : "bağlantı sorunu"}`);
+    } finally {
+      setOcrBusy(false);
+      if (ocrInputRef.current) ocrInputRef.current.value = "";
+    }
+  }
 
   const categoryOptions = useMemo(
     () => categories.filter((c) => c.kind === (form.direction === "incoming" ? "expense" : "income")),
@@ -140,6 +221,32 @@ export function FinanceInvoicesManager({
     <div className="space-y-6">
       <section className="admin-card admin-card-pad">
         <h2 className="text-base font-semibold">Yeni fatura (taslak / onay)</h2>
+
+        <div className="mt-3 rounded-lg border border-dashed border-zinc-300 bg-zinc-50/80 p-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              className={btnSecondary}
+              disabled={ocrBusy}
+              onClick={() => ocrInputRef.current?.click()}
+            >
+              {ocrBusy ? "Okunuyor…" : "Fatura PDF/foto yükle (AI oku)"}
+            </button>
+            <input
+              ref={ocrInputRef}
+              type="file"
+              accept="application/pdf,image/*"
+              className="hidden"
+              onChange={(e) => void onInvoiceDocument(e.target.files?.[0] ?? null)}
+            />
+          </div>
+          <p className="mt-2 text-xs text-zinc-500">
+            Tedarikçi faturasının PDF veya fotoğrafını yükleyin; yapay zeka satıcı, VKN, tarih,
+            satır kalemleri ve tutarları okuyup aşağıdaki formu <strong>Gelen</strong> fatura olarak
+            doldurur. Kaydetmeden önce alanları kontrol edin.
+          </p>
+        </div>
+
         <form onSubmit={(e) => void createInvoice(e)} className="mt-4 grid gap-4 md:grid-cols-2">
           <AdminField label="Yön">
             <select className={inputClass} value={form.direction} onChange={(e) => setForm((f) => ({ ...f, direction: e.target.value }))}>
