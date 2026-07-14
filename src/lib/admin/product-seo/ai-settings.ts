@@ -17,6 +17,18 @@ export type ResolvedSeoAiConfig = {
   imageProvider: ImageAiProvider;
 };
 
+/**
+ * Eski nesil (Claude 3.x) model adları Anthropic API'de artık 404 döndürüyor.
+ * Kayıtlı ayarda böyle bir değer varsa yok sayıp güncel varsayılana düşeriz —
+ * DB'ye dokunmadan kendi kendini onarır.
+ */
+function validClaudeModel(m: string | undefined): string | undefined {
+  const v = m?.trim();
+  if (!v) return undefined;
+  if (/claude-3(?:[.-]|$)/i.test(v)) return undefined;
+  return v;
+}
+
 export function parseSeoAiSettings(raw: StoreSeoAiSettings | undefined): ResolvedSeoAiConfig {
   const s = raw ?? {};
   return {
@@ -27,7 +39,7 @@ export function parseSeoAiSettings(raw: StoreSeoAiSettings | undefined): Resolve
     claudeApiKey: (s.claudeApiKey?.trim() || process.env.ANTHROPIC_API_KEY?.trim() || ""),
     geminiModel: s.geminiModel?.trim() || process.env.GEMINI_MODEL?.trim() || "gemini-2.0-flash",
     openaiModel: s.openaiModel?.trim() || process.env.OPENAI_MODEL?.trim() || "gpt-4o-mini",
-    claudeModel: s.claudeModel?.trim() || process.env.CLAUDE_MODEL?.trim() || "claude-sonnet-4-6",
+    claudeModel: validClaudeModel(s.claudeModel) || process.env.CLAUDE_MODEL?.trim() || "claude-sonnet-4-6",
     falApiKey: (s.falApiKey?.trim() || process.env.FAL_KEY?.trim() || ""),
     falImageModel: s.falImageModel?.trim() || process.env.FAL_IMAGE_MODEL?.trim() || "fal-ai/flux/schnell",
     imageProvider: s.imageProvider ?? "auto",

@@ -1,6 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { resolveMarketplaceSalePriceMinor } from "@/lib/marketplace/product-prices";
-import { applyOrderFinanceSnapshot } from "@/lib/finance/order-economics";
+import {
+  applyOrderFinanceSnapshot,
+  parseOrderFinanceSnapshot,
+} from "@/lib/finance/order-economics";
 import {
   deductMarketplaceLineStock,
   findProductByBarcodeOrSku,
@@ -12,6 +15,31 @@ import type { TrendyolShipmentPackage } from "@/lib/marketplace/trendyol/orders"
 function tryMinorFromTry(amount: number | undefined, fallback = 0): number {
   if (amount == null || !Number.isFinite(amount)) return fallback;
   return Math.round(amount * 100);
+}
+
+/**
+ * Trendyol satırının faturalanacak net tutarı (KDV dâhil, kuruş).
+ * Trendyol `price` = indirim uygulanmış birim fiyat; bu, panelde görünen
+ * "Faturalanacak Tutar" ile birebir eşleşir. `price` yoksa liste fiyatından
+ * (amount) satıcı + Trendyol indirimlerini düşerek hesaplarız.
+ */
+function trendyolLineNetMinor(line: {
+  quantity: number;
+  price?: number;
+  amount?: number;
+  discount?: number;
+  tyDiscount?: number;
+}): number {
+  const qty = line.quantity > 0 ? line.quantity : 1;
+  if (line.price != null && Number.isFinite(line.price) && line.price > 0) {
+    return Math.round(line.price * qty * 100);
+  }
+  if (line.amount != null && Number.isFinite(line.amount)) {
+    const gross = line.amount * qty;
+    const disc = (line.discount ?? 0) + (line.tyDiscount ?? 0);
+    return Math.round(Math.max(0, gross - disc) * 100);
+  }
+  return 0;
 }
 
 /** Trendyol sevkiyat paketi durumu → yerel sipariş durumu. */
@@ -43,12 +71,82 @@ function trendyolStatusToLocal(tyStatus: string | undefined): string {
 /** Yalnızca sevkiyat öncesi durumlarda iç stok düşülür (geçmiş siparişlerde çift düşümü önler). */
 const PRE_SHIPMENT_STATUSES = new Set(["pending", "confirmed"]);
 
+/**
+ * Zaten içe aktarılmış (faturası kesilmemiş) bir Trendyol siparişinin satır
+ * tutarlarını Trendyol'un güncel net fiyatlarına göre onarır. Böylece eski,
+ * yanlış (katalog fiyatı) tutarlarla çekilmiş siparişler yeniden çekince
+ * "Faturalanacak Tutar" ile hizalanır. Stok/durum değiştirmez.
+ */
+async function repairExistingTrendyolOrder(
+  siteId: string,
+  orderId: string,
+  pkg: TrendyolShipmentPackage,
+): Promise<boolean> {
+  const order = await prisma.storeOrder.findFirst({
+    where: { id: orderId, siteId },
+    include: { lines: { orderBy: { id: "asc" } } },
+  });
+  if (!order) return false;
+  // Fatura kesilmişse tutarlara dokunma.
+  if (order.invoiceStatus && ["signed", "marketplace_sent"].includes(order.invoiceStatus)) {
+    return false;
+  }
+  // Satır sayıları eşleşmiyorsa güvenli tarafta kal (eşleştirme belirsiz).
+  if (order.lines.length !== pkg.lines.length) return false;
+
+  let changed = false;
+  let subtotalMinor = 0;
+  for (let i = 0; i < pkg.lines.length; i++) {
+    const tl = pkg.lines[i]!;
+    const item = order.lines[i]!;
+    const qty = tl.quantity > 0 ? tl.quantity : item.qty || 1;
+    let lineMinor = trendyolLineNetMinor(tl);
+    if (lineMinor <= 0) {
+      subtotalMinor += item.lineMinor;
+      continue;
+    }
+    const unitMinor = Math.round(lineMinor / qty);
+    const vatRate = tl.vatRate != null ? Math.round(tl.vatRate) : item.vatRate ?? null;
+    subtotalMinor += lineMinor;
+    if (item.lineMinor !== lineMinor || item.unitMinor !== unitMinor || item.vatRate !== vatRate) {
+      await prisma.storeOrderLine.update({
+        where: { id: item.id },
+        data: { unitMinor, lineMinor, vatRate },
+      });
+      changed = true;
+    }
+  }
+
+  const newTotal = subtotalMinor + (order.shippingMinor ?? 0) - (order.discountMinor ?? 0);
+  if (order.subtotalMinor !== subtotalMinor || order.totalMinor !== newTotal) {
+    await prisma.storeOrder.update({
+      where: { id: order.id },
+      data: { subtotalMinor, totalMinor: newTotal },
+    });
+    changed = true;
+  }
+
+  // Kâr/komisyon raporu satır tutarlarından türeyen anlık görüntüye dayanır.
+  // Tutar değiştiyse veya kayıtlı snapshot güncel toplamla uyuşmuyorsa yenile.
+  const snap = parseOrderFinanceSnapshot(order.financeSnapshotJson);
+  const snapStale = !snap || snap.grossMinor !== newTotal;
+  if (changed || snapStale) {
+    try {
+      await applyOrderFinanceSnapshot(siteId, order.id);
+    } catch {
+      /* snapshot hatası onarımı durdurmaz */
+    }
+  }
+  return changed;
+}
+
 export async function importTrendyolPackages(
   siteId: string,
   packages: TrendyolShipmentPackage[],
-): Promise<{ imported: number; skipped: number; productIds: string[]; message: string }> {
+): Promise<{ imported: number; skipped: number; repaired: number; productIds: string[]; message: string }> {
   let imported = 0;
   let skipped = 0;
+  let repaired = 0;
   const notes: string[] = [];
   const touchedProductIds = new Set<string>();
 
@@ -58,7 +156,9 @@ export async function importTrendyolPackages(
       where: { siteId, marketplaceRef: ref },
     });
     if (existing) {
-      skipped++;
+      const didRepair = await repairExistingTrendyolOrder(siteId, existing.id, pkg);
+      if (didRepair) repaired++;
+      else skipped++;
       continue;
     }
 
@@ -94,17 +194,25 @@ export async function importTrendyolPackages(
 
     for (const line of pkg.lines) {
       const product = await findProductByBarcodeOrSku(siteId, line.barcode, line.merchantSku);
-      const unitMinor = product
-        ? resolveMarketplaceSalePriceMinor(product, "trendyol")
-        : tryMinorFromTry(line.price);
+      // Fatura tutarı Trendyol'un müşteriden tahsil ettiği net tutarla eşleşmeli.
+      // Bu yüzden katalog fiyatımızı değil, Trendyol'un indirimli `price` değerini
+      // esas alırız. (Katalog fiyatı yalnızca Trendyol tutarı yoksa yedek olur.)
+      const qty = line.quantity > 0 ? line.quantity : 1;
+      let lineMinor = trendyolLineNetMinor(line);
+      if (lineMinor <= 0) {
+        lineMinor = product
+          ? resolveMarketplaceSalePriceMinor(product, "trendyol") * qty
+          : tryMinorFromTry(line.price) * qty;
+      }
+      const unitMinor = Math.round(lineMinor / qty);
       orderLines.push({
         productId: product?.id ?? null,
         title: line.productName ?? product?.title ?? `Trendyol #${line.lineId}`,
         sku: line.merchantSku ?? line.barcode ?? product?.sku ?? null,
         qty: line.quantity,
         unitMinor,
-        lineMinor: unitMinor * line.quantity,
-        vatRate: product?.vatRate ?? null,
+        lineMinor,
+        vatRate: line.vatRate != null ? Math.round(line.vatRate) : product?.vatRate ?? null,
       });
     }
 
@@ -190,10 +298,11 @@ export async function importTrendyolPackages(
   return {
     imported,
     skipped,
+    repaired,
     productIds: [...touchedProductIds],
     message:
-      imported || skipped
-        ? `${imported} yeni sipariş, ${skipped} atlandı (zaten var)${notes.length ? ` · ${notes.slice(0, 3).join("; ")}` : ""}`
+      imported || skipped || repaired
+        ? `${imported} yeni sipariş, ${repaired} tutar güncellendi, ${skipped} atlandı (değişmedi)${notes.length ? ` · ${notes.slice(0, 3).join("; ")}` : ""}`
         : "Yeni sipariş yok",
   };
 }

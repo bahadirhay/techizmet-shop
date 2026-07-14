@@ -7,7 +7,16 @@ export type TrendyolOrderLine = {
   barcode?: string;
   merchantSku?: string;
   productName?: string;
+  /** İndirimli net birim fiyat (KDV dâhil) — Trendyol'un faturalanacak tutarı. */
   price?: number;
+  /** İndirimsiz (liste) birim fiyat (KDV dâhil). */
+  amount?: number;
+  /** Satır toplam satıcı indirimi. */
+  discount?: number;
+  /** Satır toplam Trendyol indirimi. */
+  tyDiscount?: number;
+  /** KDV oranı (%). */
+  vatRate?: number;
 };
 
 export type TrendyolShipmentPackage = {
@@ -30,6 +39,10 @@ export type TrendyolShipmentPackage = {
   };
 };
 
+function num(v: unknown): number | undefined {
+  return typeof v === "number" && Number.isFinite(v) ? v : undefined;
+}
+
 function parseLine(raw: Record<string, unknown>): TrendyolOrderLine {
   return {
     lineId: Number(raw.lineId ?? raw.id ?? 0),
@@ -37,7 +50,12 @@ function parseLine(raw: Record<string, unknown>): TrendyolOrderLine {
     barcode: typeof raw.barcode === "string" ? raw.barcode : undefined,
     merchantSku: typeof raw.merchantSku === "string" ? raw.merchantSku : typeof raw.stockCode === "string" ? raw.stockCode : undefined,
     productName: typeof raw.productName === "string" ? raw.productName : undefined,
-    price: typeof raw.price === "number" ? raw.price : undefined,
+    // Trendyol `price` = indirim uygulanmış net birim fiyat = faturalanacak tutar.
+    price: num(raw.price),
+    amount: num(raw.amount),
+    discount: num(raw.discount),
+    tyDiscount: num(raw.tyDiscount),
+    vatRate: num(raw.vatRate) ?? num(raw.vatBaseAmount),
   };
 }
 
