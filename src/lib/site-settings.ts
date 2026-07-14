@@ -384,6 +384,11 @@ export type StoreEfaturaSettings = {
   sellerTaxId?: string;
   /** Satıcı vergi dairesi */
   sellerTaxOffice?: string;
+  /**
+   * Satıcı açık adresi — GİB mükellef profilinden (getUserData) bir kez çekilip
+   * önbelleğe alınır; ön izlemede gösterilir. Resmi faturada GİB otomatik ekler.
+   */
+  sellerAddress?: string;
   /** İVD kullanıcı kodu — parola için GIB_PASSWORD env tercih edilir */
   username?: string;
   password?: string;

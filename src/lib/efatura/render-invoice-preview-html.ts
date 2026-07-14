@@ -5,6 +5,7 @@ export type InvoicePreviewSeller = {
   sellerTitle?: string;
   sellerTaxId?: string;
   sellerTaxOffice?: string;
+  sellerAddress?: string;
   testMode?: boolean;
 };
 
@@ -110,9 +111,14 @@ export function renderInvoicePreviewHtml(
       <div class="box">
         <h2>Satıcı</h2>
         <p><strong>${escapeHtml(sellerDisplayName(seller))}</strong></p>
-        ${seller.sellerTaxId ? `<p>VKN: ${escapeHtml(seller.sellerTaxId)}</p>` : ""}
+        ${seller.sellerTaxId ? `<p>VKN/TCKN: ${escapeHtml(seller.sellerTaxId)}</p>` : ""}
         ${seller.sellerTaxOffice ? `<p>Vergi dairesi: ${escapeHtml(seller.sellerTaxOffice)}</p>` : ""}
-        <p class="footer" style="margin:8px 0 0;border:0;padding:0">GİB e-Arşiv portalı üzerinden kesilecektir.</p>
+        ${seller.sellerAddress ? `<p>${escapeHtml(seller.sellerAddress)}</p>` : ""}
+        <p class="footer" style="margin:8px 0 0;border:0;padding:0">${
+          seller.sellerAddress
+            ? "Satıcı adresi GİB mükellef kaydınızdan alınmıştır."
+            : "Satıcı adresi resmi faturaya GİB mükellef kaydınızdan otomatik eklenir."
+        }</p>
       </div>
       <div class="box">
         <h2>Alıcı</h2>

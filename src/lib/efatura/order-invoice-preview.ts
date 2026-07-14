@@ -3,7 +3,13 @@ import "server-only";
 import { createFaturaClient } from "fatura";
 import { buildInvoiceDetailsFromOrder } from "@/lib/efatura/build-invoice";
 import { renderInvoicePreviewHtml } from "@/lib/efatura/render-invoice-preview-html";
-import { efaturaReady, getEfaturaConfig } from "@/lib/efatura/settings";
+import {
+  efaturaReady,
+  getEfaturaConfig,
+  type ResolvedEfaturaConfig,
+} from "@/lib/efatura/settings";
+import { mergeSiteSettings } from "@/lib/merge-site-settings";
+import { parseSiteSettings } from "@/lib/site-settings";
 import { prisma } from "@/lib/prisma";
 
 export type OrderInvoicePreviewResult = {
@@ -25,6 +31,78 @@ function parseInvoiceMeta(raw: string | null | undefined): { signed?: boolean } 
     return JSON.parse(raw) as { signed?: boolean };
   } catch {
     return {};
+  }
+}
+
+type GibSellerProfile = {
+  fullAddress?: string;
+  buildingName?: string;
+  buildingNumber?: string;
+  doorNumber?: string;
+  town?: string;
+  district?: string;
+  city?: string;
+  zipCode?: string;
+};
+
+/** GİB mükellef profilini açık adres satırına çevirir. */
+function formatSellerAddress(u: GibSellerProfile): string {
+  const streetLine = [u.fullAddress, u.buildingName].map((s) => s?.trim()).filter(Boolean).join(" ");
+  const noLine = [
+    u.buildingNumber?.trim() ? `No:${u.buildingNumber.trim()}` : "",
+    u.doorNumber?.trim() ? `D:${u.doorNumber.trim()}` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  return [
+    [streetLine, noLine].filter(Boolean).join(" "),
+    u.town?.trim(),
+    u.district?.trim(),
+    u.city?.trim(),
+    u.zipCode?.trim(),
+  ]
+    .filter(Boolean)
+    .join(", ");
+}
+
+/**
+ * Ön izlemede gösterilecek satıcı adresini çözer: önce ayar önbelleği, yoksa
+ * GİB mükellef profilinden (getUserData) bir kez çekip ayarlara önbellekler.
+ * GİB'e erişilemezse boş döner (ön izleme adressiz de çalışır).
+ */
+async function resolveSellerAddress(
+  siteId: string,
+  config: ResolvedEfaturaConfig,
+): Promise<string> {
+  if (config.sellerAddress) return config.sellerAddress;
+  if (!efaturaReady(config)) return "";
+  try {
+    const client = createFaturaClient(config.testMode ? "TEST" : "PROD");
+    const token = await client.getToken(config.username, config.password);
+    let address = "";
+    try {
+      const profile = (await client.getUserData(token)) as GibSellerProfile;
+      address = formatSellerAddress(profile);
+    } finally {
+      await client.logout(token);
+    }
+    if (address) {
+      const site = await prisma.storeSite.findUnique({
+        where: { id: siteId },
+        select: { settingsJson: true },
+      });
+      const current = parseSiteSettings(site?.settingsJson ?? null);
+      const next = mergeSiteSettings(current, {
+        efatura: { ...current.efatura, sellerAddress: address },
+      });
+      await prisma.storeSite.update({
+        where: { id: siteId },
+        data: { settingsJson: JSON.stringify(next) },
+      });
+    }
+    return address;
+  } catch {
+    return "";
   }
 }
 
@@ -78,11 +156,13 @@ export async function buildOrderInvoicePreview(
   }
 
   const details = buildInvoiceDetailsFromOrder(order, config, options.recipientTaxId);
+  const sellerAddress = await resolveSellerAddress(siteId, config);
   const html = renderInvoicePreviewHtml(details, {
     storeName,
     sellerTitle: config.sellerTitle || storeName,
     sellerTaxId: config.sellerTaxId,
     sellerTaxOffice: config.sellerTaxOffice,
+    sellerAddress,
     testMode: config.testMode,
   });
 
