@@ -55,6 +55,17 @@ function extractDocumentNumber(found: Record<string, unknown> | undefined): stri
   return undefined;
 }
 
+/**
+ * GİB, error:"0" (başarılı) dönse bile createDraftInvoice yanıtının `data` alanında
+ * red mesajı gönderebilir (ör. "Bu mükellef ... e-Arşiv Portal Fatura'nın ekranından
+ * fatura kesemez."). Kütüphane bunu yakalamaz; biz yakalayıp gerçek hatayı gösteririz.
+ */
+function extractGibRejection(draft: { data?: unknown } | undefined): string | undefined {
+  const d = draft?.data;
+  if (typeof d === "string" && d.trim().length > 3) return d.trim();
+  return undefined;
+}
+
 /** GİB tarih formatı (gg/aa/yyyy) — sorgu aralığı için. Vercel UTC ile üretildiği için UTC kullanır. */
 function gibDateStr(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -130,7 +141,7 @@ export async function issueOrderInvoice(
   const sign = options.sign ?? config.autoSign;
 
   type FaturaClient = {
-    createDraftInvoice: (t: string, d: unknown) => Promise<{ uuid: string; date: string }>;
+    createDraftInvoice: (t: string, d: unknown) => Promise<{ uuid: string; date: string; data?: unknown }>;
     findInvoice: (t: string, d: { uuid: string; date?: string }) => Promise<Record<string, unknown> | undefined>;
     signDraftInvoice: (t: string, f: unknown) => Promise<void>;
     getDownloadURL: (t: string, uuid: string, opts: { signed: boolean }) => string;
@@ -220,9 +231,21 @@ export async function issueOrderInvoice(
         withGibTimeout(client.createDraftInvoice(token, invoiceDetails), "Taslak fatura oluşturma"),
       );
       draftRef = draft;
+      // GİB error:"0" dönse bile data alanında red mesajı olabilir.
+      const rejection = extractGibRejection(draft);
       found = await withRetry(() =>
         withGibTimeout(client.findInvoice(token, draft), "Fatura sorgulama"),
       );
+      // Fatura GİB'de oluşmadıysa (bulunamıyor) ve bir red mesajı varsa gerçek hatayı döndür;
+      // sahte "taslak" kaydı oluşturma.
+      if (!found) {
+        return {
+          ok: false,
+          message: rejection
+            ? `GİB faturayı oluşturmadı: ${rejection}`
+            : "GİB faturayı oluşturmadı (taslak GİB'de bulunamadı). e-Arşiv Portal yetkiniz ya da mükellef tipiniz uygun olmayabilir; entegratörünüzden fatura kesmeniz gerekebilir.",
+        };
+      }
     }
 
     // Portalda zaten onaylanmış olabilir.
