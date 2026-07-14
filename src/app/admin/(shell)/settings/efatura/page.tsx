@@ -10,6 +10,7 @@ export default async function EfaturaSettingsPage() {
   const site = await prisma.storeSite.findUnique({ where: { id: auth.siteId } });
   const settings = parseSiteSettings(site?.settingsJson ?? null);
   const config = parseEfaturaSettings(settings.efatura);
+  const legal = settings.store?.legal ?? {};
 
   return (
     <div>
@@ -25,10 +26,10 @@ export default async function EfaturaSettingsPage() {
         initial={{
           enabled: config.enabled,
           testMode: config.testMode,
-          sellerTitle: config.sellerTitle,
-          sellerTaxId: config.sellerTaxId,
-          sellerTaxOffice: config.sellerTaxOffice,
-          username: settings.efatura?.username ?? "",
+          sellerTitle: config.sellerTitle || legal.tradeName || "",
+          sellerTaxId: config.sellerTaxId || legal.taxNo || "",
+          sellerTaxOffice: config.sellerTaxOffice || legal.taxOffice || "",
+          username: settings.efatura?.username || legal.taxNo || "",
           password: "",
           defaultConsumerTaxId: config.defaultConsumerTaxId,
           defaultVatRate: config.defaultVatRate,

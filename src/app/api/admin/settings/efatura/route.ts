@@ -49,8 +49,10 @@ export async function PATCH(req: Request) {
     ...current.efatura,
     ...patch,
   };
-  if (patch.password === "") {
-    delete nextEfatura?.password;
+  // Form boş parola gönderince kayıtlı şifreyi silme (SMTP ile aynı mantık)
+  if (!patch.password?.trim()) {
+    if (current.efatura?.password) nextEfatura.password = current.efatura.password;
+    else delete nextEfatura.password;
   }
 
   const next = mergeSiteSettings(current, { efatura: nextEfatura });

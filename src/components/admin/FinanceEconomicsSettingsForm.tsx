@@ -89,14 +89,14 @@ export function FinanceEconomicsSettingsForm({ initial }: { initial: SiteSetting
             onChange={(e) => setPackagingTry(e.target.value)}
           />
         </AdminField>
-        <AdminField label="Kart komisyonu (%)" hint="PayTR tahmini — varsayılan %2,4">
+        <AdminField label="Kart komisyonu (%)" hint="iyzico gerçek kesinti (ör. 796→761,60 ≈ %4,32) — varsayılan %4,32">
           <input
             className={inputClass}
             type="number"
             min={0}
             max={15}
-            step={0.1}
-            placeholder="2.4"
+            step={0.01}
+            placeholder="4.32"
             value={cardFeePercent}
             onChange={(e) => setCardFeePercent(e.target.value)}
           />

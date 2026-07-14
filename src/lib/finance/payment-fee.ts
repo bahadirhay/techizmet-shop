@@ -5,7 +5,7 @@ import type { SiteSettings } from "@/lib/site-settings";
 
 export { cardFeeMinorFromGross };
 
-const DEFAULT_CARD_FEE_PERCENT = 2.4;
+const DEFAULT_CARD_FEE_PERCENT = 4.32;
 
 /** Tahmini PayTR / kart komisyon oranı (%) — site ayarı yoksa varsayılan */
 export function resolveCardFeePercent(settings: SiteSettings): number {
