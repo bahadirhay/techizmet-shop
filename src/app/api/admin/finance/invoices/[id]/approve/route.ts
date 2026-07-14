@@ -44,7 +44,15 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   }
 
   if (invoice.firstApprovedByStaffUserId === auth.staffUserId) {
-    return NextResponse.json({ error: "İkinci onay farklı kullanıcıdan olmalı." }, { status: 400 });
+    // 4-göz kuralı ekipler içindir. Sitede tek aktif personel varsa (tek operatörlü
+    // işletme) ayrı bir onaylayan bulunamaz; bu durumda aynı kişinin 2. onayı verip
+    // post etmesine izin verilir. Ekipte (2+ aktif personel) kural korunur.
+    const activeStaffCount = await prisma.shopStaffUser.count({
+      where: { siteId: auth.siteId, active: true },
+    });
+    if (activeStaffCount > 1) {
+      return NextResponse.json({ error: "İkinci onay farklı kullanıcıdan olmalı." }, { status: 400 });
+    }
   }
   const queued = await prisma.$transaction(async (trx) => {
     const updated = await trx.financeInvoice.update({
