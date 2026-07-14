@@ -41,6 +41,20 @@ export default async function OrderDetailPage({
   });
   if (!order) notFound();
 
+  // Pazaryeri (Trendyol vb.) kargo bilgisi: firma adı + doğrudan takip linki.
+  const shipmentMeta = (() => {
+    try {
+      return order.shipmentMetaJson
+        ? (JSON.parse(order.shipmentMetaJson) as {
+            carrier?: string | null;
+            trackingUrl?: string | null;
+          })
+        : null;
+    } catch {
+      return null;
+    }
+  })();
+
   const carriers = await prisma.shippingCarrier.findMany({
     where: { siteId: auth.siteId, active: true },
     orderBy: { name: "asc" },
@@ -127,9 +141,10 @@ export default async function OrderDetailPage({
             billingAddressJson={order.billingAddressJson}
             billingTaxId={order.billingTaxId}
             billingTaxOffice={order.billingTaxOffice}
-            carrierName={order.carrier?.name ?? null}
+            carrierName={order.carrier?.name ?? shipmentMeta?.carrier ?? null}
             trackingUrlTemplate={order.carrier?.trackingUrlTemplate ?? null}
             trackingNumber={order.trackingNumber}
+            directTrackingUrl={shipmentMeta?.trackingUrl ?? null}
           />
           <h2 className="mt-6 font-semibold">Ürünler</h2>
           <OrderLinesPanel lines={order.lines} />

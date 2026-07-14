@@ -72,6 +72,23 @@ function trendyolStatusToLocal(tyStatus: string | undefined): string {
 const PRE_SHIPMENT_STATUSES = new Set(["pending", "confirmed"]);
 
 /**
+ * Trendyol kargo bilgisini shipmentMetaJson için hazırlar (kargo firması,
+ * takip no, doğrudan takip linki, gönderi no). Hiç kargo bilgisi yoksa null.
+ */
+function buildTrendyolShipmentMeta(pkg: TrendyolShipmentPackage): string | null {
+  if (!pkg.cargoTrackingNumber && !pkg.cargoTrackingLink && !pkg.cargoProviderName) {
+    return null;
+  }
+  return JSON.stringify({
+    source: "trendyol",
+    carrier: pkg.cargoProviderName ?? null,
+    trackingNumber: pkg.cargoTrackingNumber ?? null,
+    trackingUrl: pkg.cargoTrackingLink ?? null,
+    senderNumber: pkg.cargoSenderNumber ?? null,
+  });
+}
+
+/**
  * Zaten içe aktarılmış (faturası kesilmemiş) bir Trendyol siparişinin satır
  * tutarlarını Trendyol'un güncel net fiyatlarına göre onarır. Böylece eski,
  * yanlış (katalog fiyatı) tutarlarla çekilmiş siparişler yeniden çekince
@@ -87,14 +104,28 @@ async function repairExistingTrendyolOrder(
     include: { lines: { orderBy: { id: "asc" } } },
   });
   if (!order) return false;
-  // Fatura kesilmişse tutarlara dokunma.
-  if (order.invoiceStatus && ["signed", "marketplace_sent"].includes(order.invoiceStatus)) {
-    return false;
-  }
-  // Satır sayıları eşleşmiyorsa güvenli tarafta kal (eşleştirme belirsiz).
-  if (order.lines.length !== pkg.lines.length) return false;
 
   let changed = false;
+
+  // Kargo takip bilgisi — fatura durumundan bağımsız, her zaman güvenli güncelle.
+  // Trendyol henüz kargo bilgisi vermediyse mevcut değeri koru (null'la ezme).
+  const trackingNumber = pkg.cargoTrackingNumber ?? order.trackingNumber ?? null;
+  const shipmentMetaJson = buildTrendyolShipmentMeta(pkg) ?? order.shipmentMetaJson ?? null;
+  if (order.trackingNumber !== trackingNumber || order.shipmentMetaJson !== shipmentMetaJson) {
+    await prisma.storeOrder.update({
+      where: { id: order.id },
+      data: { trackingNumber, shipmentMetaJson },
+    });
+    changed = true;
+  }
+
+  // Fatura kesilmişse tutarlara dokunma (kargo bilgisi yukarıda güncellendi).
+  if (order.invoiceStatus && ["signed", "marketplace_sent"].includes(order.invoiceStatus)) {
+    return changed;
+  }
+  // Satır sayıları eşleşmiyorsa güvenli tarafta kal (eşleştirme belirsiz).
+  if (order.lines.length !== pkg.lines.length) return changed;
+
   let subtotalMinor = 0;
   for (let i = 0; i < pkg.lines.length; i++) {
     const tl = pkg.lines[i]!;
@@ -247,6 +278,7 @@ export async function importTrendyolPackages(
           paymentMethod: "marketplace",
           paymentStatus: "paid",
           trackingNumber: pkg.cargoTrackingNumber ?? null,
+          shipmentMetaJson: buildTrendyolShipmentMeta(pkg),
           marketplaceRef: ref,
           marketplacePlatform: "trendyol",
           marketplaceMetaJson: JSON.stringify(meta),

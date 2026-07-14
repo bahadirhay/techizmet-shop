@@ -27,7 +27,14 @@ export type TrendyolShipmentPackage = {
   customerLastName?: string;
   customerEmail?: string;
   customerPhone?: string;
+  /** Kargo takip numarası (Trendyol sayı döndürür → string'e çevrilir). */
   cargoTrackingNumber?: string;
+  /** Kargo firması adı — ör. "Aras Kargo Marketplace". */
+  cargoProviderName?: string;
+  /** Trendyol takip linki (doğrudan sorgulanabilir). */
+  cargoTrackingLink?: string;
+  /** Kargo gönderi (sender) numarası. */
+  cargoSenderNumber?: string;
   lines: TrendyolOrderLine[];
   shipmentAddress?: {
     firstName?: string;
@@ -41,6 +48,13 @@ export type TrendyolShipmentPackage = {
 
 function num(v: unknown): number | undefined {
   return typeof v === "number" && Number.isFinite(v) ? v : undefined;
+}
+
+/** Trendyol bazı alanları (takip no gibi) sayı olarak döndürür; string'e çevirir. */
+function str(v: unknown): string | undefined {
+  if (typeof v === "string") return v.trim() || undefined;
+  if (typeof v === "number" && Number.isFinite(v)) return String(v);
+  return undefined;
 }
 
 function parseLine(raw: Record<string, unknown>): TrendyolOrderLine {
@@ -72,7 +86,11 @@ function parsePackage(raw: Record<string, unknown>): TrendyolShipmentPackage | n
     customerLastName: typeof raw.customerLastName === "string" ? raw.customerLastName : undefined,
     customerEmail: typeof raw.customerEmail === "string" ? raw.customerEmail : undefined,
     customerPhone: typeof raw.customerPhone === "string" ? raw.customerPhone : undefined,
-    cargoTrackingNumber: typeof raw.cargoTrackingNumber === "string" ? raw.cargoTrackingNumber : undefined,
+    // Trendyol takip no'yu sayı olarak döndürür — str() ile string'e çeviririz.
+    cargoTrackingNumber: str(raw.cargoTrackingNumber),
+    cargoProviderName: str(raw.cargoProviderName),
+    cargoTrackingLink: str(raw.cargoTrackingLink),
+    cargoSenderNumber: str(raw.cargoSenderNumber),
     lines: linesRaw.map((l) => parseLine(l as Record<string, unknown>)).filter((l) => l.lineId > 0),
     shipmentAddress:
       raw.shipmentAddress && typeof raw.shipmentAddress === "object"

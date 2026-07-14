@@ -29,6 +29,7 @@ export function OrderDeliveryBlock({
   carrierName,
   trackingUrlTemplate,
   trackingNumber,
+  directTrackingUrl,
 }: {
   shippingAddressJson: string | null;
   billingAddressJson?: string | null;
@@ -37,6 +38,8 @@ export function OrderDeliveryBlock({
   carrierName: string | null;
   trackingUrlTemplate: string | null;
   trackingNumber: string | null;
+  /** Pazaryeri doğrudan takip linki (ör. Trendyol) — şablon yoksa kullanılır. */
+  directTrackingUrl?: string | null;
 }) {
   const address = parseShippingAddress(shippingAddressJson);
   const addressLines = formatShippingAddressLines(address);
@@ -44,7 +47,8 @@ export function OrderDeliveryBlock({
   const billingLines = formatShippingAddressLines(billingAddress);
   const showBillingAddress =
     billingAddressJson && addressesDiffer(shippingAddressJson, billingAddressJson);
-  const trackingUrl = buildCarrierTrackingUrl(trackingUrlTemplate, trackingNumber);
+  const trackingUrl =
+    buildCarrierTrackingUrl(trackingUrlTemplate, trackingNumber) || directTrackingUrl || null;
 
   return (
     <div className="mt-6 border-t border-zinc-100 pt-6">
