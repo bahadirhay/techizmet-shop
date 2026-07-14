@@ -23,6 +23,10 @@ export type OrderInvoicePreviewResult = {
   grandTotalInclVAT?: number;
   recipientTaxId?: string;
   itemCount?: number;
+  /** Sipariş fatura durumu: none/draft/signed/marketplace_sent */
+  invoiceStatus?: string | null;
+  /** GİB'de imzalı/onaylı mı */
+  signed?: boolean;
 };
 
 function parseInvoiceMeta(raw: string | null | undefined): { signed?: boolean } {
@@ -155,9 +159,16 @@ export async function buildOrderInvoicePreview(
   if (!order) return { ok: false, message: "Sipariş bulunamadı" };
 
   const storeName = order.site?.name?.trim() || "Mağaza";
+  const meta = parseInvoiceMeta(order.invoiceMetaJson);
   const issued = Boolean(order.invoiceUuid && order.invoiceStatus && order.invoiceStatus !== "none");
+  const isFinalized =
+    order.invoiceStatus === "signed" ||
+    order.invoiceStatus === "marketplace_sent" ||
+    meta.signed === true;
 
-  if (order.invoiceUuid) {
+  // Yalnızca imzalanmış (kesilmiş) faturada GİB'den resmi HTML çek. Taslakta yerel ön izleme
+  // gösterilir; böylece gereksiz GİB girişi olmaz ve "onayı kontrol et" butonu görünür kalır.
+  if (order.invoiceUuid && isFinalized) {
     const gibHtml = await fetchGibInvoiceHtml(siteId, order.invoiceUuid, order.invoiceMetaJson);
     if (gibHtml) {
       return {
@@ -166,6 +177,8 @@ export async function buildOrderInvoicePreview(
         source: "gib",
         issued: true,
         orderNumber: order.orderNumber,
+        invoiceStatus: order.invoiceStatus,
+        signed: true,
       };
     }
   }
@@ -192,5 +205,7 @@ export async function buildOrderInvoicePreview(
     grandTotalInclVAT: details.grandTotalInclVAT,
     recipientTaxId: options.recipientTaxId?.trim() || config.defaultConsumerTaxId,
     itemCount: details.items.length,
+    invoiceStatus: order.invoiceStatus,
+    signed: meta.signed === true,
   };
 }

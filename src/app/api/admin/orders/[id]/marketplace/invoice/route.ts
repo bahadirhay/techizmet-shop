@@ -16,6 +16,19 @@ export async function POST(
     return NextResponse.json({ error: "Fatura linki (PDF URL) gerekli" }, { status: 400 });
   }
 
+  // İmzasız/taslak fatura numarası gönderilirse pazaryeri "Fatura numarası hatalıdır" der.
+  // Önce imzalı gerçek numara olduğundan emin ol.
+  const num = body.invoiceNumber?.trim();
+  if (!num || num.toUpperCase().startsWith("DRAFT")) {
+    return NextResponse.json(
+      {
+        error:
+          "Fatura henüz imzalanmadı (geçerli fatura numarası yok). Önce GİB e-Arşiv portalından taslağı SMS ile onaylayın, ardından fatura ekranından \"GİB'den onayı kontrol et ve gönder\" deyin.",
+      },
+      { status: 400 },
+    );
+  }
+
   const result = await sendMarketplaceInvoice(auth.siteId, id, {
     invoiceLink: body.invoiceLink,
     invoiceNumber: body.invoiceNumber,

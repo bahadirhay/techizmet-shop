@@ -191,7 +191,9 @@ export function OrderInvoicePanel({
         </a>
       </div>
 
-      {hasInvoice && marketplacePlatform ? (
+      {hasInvoice &&
+      marketplacePlatform &&
+      (invoiceStatus === "signed" || invoiceStatus === "marketplace_sent") ? (
         <div className="mt-3">
           <button
             type="button"

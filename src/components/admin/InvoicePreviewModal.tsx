@@ -9,7 +9,11 @@ type PreviewPayload = {
   issued?: boolean;
   orderNumber?: string;
   grandTotalInclVAT?: number;
+  invoiceStatus?: string | null;
+  signed?: boolean;
 };
+
+const GIB_PORTAL_URL = "https://earsivportal.efatura.gov.tr/intragiris.html";
 
 export function InvoicePreviewModal({
   orderId,
@@ -111,6 +115,13 @@ export function InvoicePreviewModal({
   }
 
   const isLocalDraft = preview?.source === "local" && !preview?.issued;
+  // GİB'de taslak var ama henüz imzalanmadı → portalda SMS onayı bekliyor.
+  const isUnsignedDraft = preview?.invoiceStatus === "draft" && preview?.signed !== true;
+  const isFinalized =
+    preview?.invoiceStatus === "signed" || preview?.invoiceStatus === "marketplace_sent";
+  // Kesim/gönderim butonu: fatura kesilmemiş (taslak/none) olduğu sürece görünür.
+  const showIssueButton = canIssue && !isFinalized && !loading && !error;
+  const issueLabel = isUnsignedDraft ? "GİB'den onayı kontrol et ve gönder" : "Onayla ve GİB'e gönder";
 
   return (
     <div
@@ -156,7 +167,32 @@ export function InvoicePreviewModal({
         </div>
 
         <div className="border-t border-zinc-200 px-5 py-4">
-          {isLocalDraft && canIssue ? (
+          {isUnsignedDraft ? (
+            <div className="mb-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+              <p className="font-medium">Taslak GİB'de oluştu ama imzalanmadı.</p>
+              <p className="mt-1">
+                Sunucuda e-imza cihazı olmadığından fatura otomatik imzalanamaz. Faturayı kesmek için:
+              </p>
+              <ol className="mt-1 list-decimal space-y-0.5 pl-5">
+                <li>
+                  <a
+                    href={GIB_PORTAL_URL}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-medium underline"
+                  >
+                    GİB e-Arşiv portalına
+                  </a>{" "}
+                  girin (giriş yaptıysanız bu ekranı kapatmaya gerek yok).
+                </li>
+                <li>Oluşturulan Belgeler → taslağı seçin → <b>SMS ile onayla</b> ile imzalayın.</li>
+                <li>
+                  Buraya dönüp <b>“{issueLabel}”</b> deyin — sistem imzalı fatura numarasını çekip
+                  {marketplaceLabel && sendToMarketplace ? ` ${marketplaceLabel} pazaryerine gönderir.` : " kaydeder."}
+                </li>
+              </ol>
+            </div>
+          ) : isLocalDraft && canIssue ? (
             <p className="mb-3 text-sm text-zinc-600">
               Bilgileri kontrol edin. Onayladığınızda fatura GİB e-Arşiv portalına gönderilir
               {marketplaceLabel && sendToMarketplace ? ` ve ${marketplaceLabel} pazaryerine iletilir` : ""}.
@@ -176,14 +212,14 @@ export function InvoicePreviewModal({
             >
               Yazdır
             </button>
-            {isLocalDraft && canIssue ? (
+            {showIssueButton ? (
               <button
                 type="button"
                 className={btnPrimary}
-                disabled={loading || Boolean(error) || issuing}
+                disabled={issuing}
                 onClick={() => void confirmAndIssue()}
               >
-                {issuing ? "Gönderiliyor…" : "Onayla ve GİB'e gönder"}
+                {issuing ? "Gönderiliyor…" : issueLabel}
               </button>
             ) : null}
             <button type="button" className={btnSecondary} onClick={onClose}>

@@ -55,6 +55,24 @@ function extractDocumentNumber(found: Record<string, unknown> | undefined): stri
   return undefined;
 }
 
+/** GİB tarih formatı (gg/aa/yyyy) — sorgu aralığı için. Vercel UTC ile üretildiği için UTC kullanır. */
+function gibDateStr(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(d.getUTCDate())}/${pad(d.getUTCMonth() + 1)}/${d.getUTCFullYear()}`;
+}
+
+/**
+ * Fatura GİB'de onaylanmış (imzalı) mı? Portalda SMS ile onaylandıysa onayDurumu
+ * "Onaylandı" olur ve gerçek belge numarası atanır.
+ */
+function isSignedInvoice(found: Record<string, unknown> | undefined): boolean {
+  if (!found) return false;
+  const onay = typeof found.onayDurumu === "string" ? found.onayDurumu.trim() : "";
+  if (onay === "Onaylandı" || onay === "Onaylandi") return true;
+  const no = extractDocumentNumber(found);
+  return Boolean(no && !no.toUpperCase().startsWith("DRAFT"));
+}
+
 const GIB_CALL_TIMEOUT_MS = 30_000;
 
 /**
@@ -112,11 +130,31 @@ export async function issueOrderInvoice(
   const sign = options.sign ?? config.autoSign;
 
   type FaturaClient = {
-    createDraftInvoice: (t: string, d: unknown) => Promise<{ uuid: string }>;
-    findInvoice: (t: string, d: { uuid: string }) => Promise<Record<string, unknown> | undefined>;
+    createDraftInvoice: (t: string, d: unknown) => Promise<{ uuid: string; date: string }>;
+    findInvoice: (t: string, d: { uuid: string; date?: string }) => Promise<Record<string, unknown> | undefined>;
     signDraftInvoice: (t: string, f: unknown) => Promise<void>;
     getDownloadURL: (t: string, uuid: string, opts: { signed: boolean }) => string;
+    getAllInvoicesByDateRange: (
+      t: string,
+      r: { startDate: string; endDate: string },
+    ) => Promise<Array<Record<string, unknown> & { ettn?: string }>>;
   };
+
+  /** Var olan taslağı ETTN ile GİB'de bulur (yeniden oluşturmadan güncel durumu okur). */
+  async function findInvoiceByEttn(
+    c: FaturaClient,
+    t: string,
+    uuid: string,
+    around: Date,
+  ): Promise<Record<string, unknown> | undefined> {
+    const start = new Date(around.getTime() - 2 * 86_400_000);
+    const end = new Date(around.getTime() + 2 * 86_400_000);
+    const list = await c.getAllInvoicesByDateRange(t, {
+      startDate: gibDateStr(start),
+      endDate: gibDateStr(end),
+    });
+    return list.find((i) => i.ettn === uuid);
+  }
 
   // Cached session — 90 dakika boyunca token yeniden kullanılır.
   // Oturum edinimi de try içinde: login takılır/hata verirse boş 500 yerine düzgün mesaj döner.
@@ -136,43 +174,87 @@ export async function issueOrderInvoice(
     }
   }
 
+  const isMarketplaceOrder = Boolean(order.marketplacePlatform && order.marketplaceMetaJson);
+
   try {
     session = await withGibTimeout(getGibSession(siteId, config), "GİB oturumu açılamadı");
     client = session.client as unknown as FaturaClient;
     token = session.token;
 
-    const draft = await withRetry(() =>
-      withGibTimeout(client.createDraftInvoice(token, invoiceDetails), "Taslak fatura oluşturma"),
-    );
-    const found = await withRetry(() =>
-      withGibTimeout(client.findInvoice(token, draft), "Fatura sorgulama"),
-    );
-    let signed = false;
+    // Var olan taslak yeniden oluşturulmasın (mükerrer taslak olmasın). Bunun yerine
+    // GİB'deki güncel durumu sorgula: kullanıcı portaldan SMS ile onayladıysa artık imzalıdır.
+    const existingUuid = order.invoiceUuid?.trim();
+    const canReconcile =
+      Boolean(existingUuid) &&
+      order.invoiceStatus !== "signed" &&
+      order.invoiceStatus !== "marketplace_sent" &&
+      !options.force;
+
+    let draftRef!: { uuid: string; date?: string };
+    let found: Record<string, unknown> | undefined;
+    const aroundDate = order.invoiceIssuedAt ?? order.createdAt;
+
+    if (canReconcile) {
+      found = await withRetry(() =>
+        withGibTimeout(
+          findInvoiceByEttn(client, token, existingUuid!, aroundDate),
+          "Fatura sorgulama",
+        ),
+      );
+      draftRef = { uuid: existingUuid!, date: gibDateStr(aroundDate) };
+      // Taslak GİB'de yoksa yanlışlıkla mükerrer taslak oluşturma — kullanıcıyı bilgilendir.
+      if (!found) {
+        return {
+          ok: false,
+          message:
+            "GİB'de bu fatura taslağı bulunamadı. Portalda yeni onayladıysanız 1-2 dakika bekleyip tekrar deneyin. " +
+            "Taslak portaldan silindiyse 'Yeniden oluştur' ile yeni taslak kesin.",
+          invoiceUuid: existingUuid,
+        };
+      }
+    }
+
+    // İlk kesim (canReconcile false) → yeni taslak oluştur.
+    if (!found) {
+      const draft = await withRetry(() =>
+        withGibTimeout(client.createDraftInvoice(token, invoiceDetails), "Taslak fatura oluşturma"),
+      );
+      draftRef = draft;
+      found = await withRetry(() =>
+        withGibTimeout(client.findInvoice(token, draft), "Fatura sorgulama"),
+      );
+    }
+
+    // Portalda zaten onaylanmış olabilir.
+    let signed = isSignedInvoice(found);
     let invoiceNumber = extractDocumentNumber(found);
 
-    if (sign && found) {
+    // Henüz imzasızsa e-imza (HSM) cihazıyla imzalamayı dene. Cihaz yoksa bu adım hata
+    // verir; taslak korunur ve kullanıcı GİB portalından SMS ile onaylar.
+    if (sign && !signed && found) {
       try {
         await withRetry(() =>
           withGibTimeout(client.signDraftInvoice(token, found), "Fatura imzalama"),
         );
-        signed = true;
         const afterSign = await withRetry(() =>
-          withGibTimeout(client.findInvoice(token, draft), "Fatura sorgulama"),
+          withGibTimeout(client.findInvoice(token, draftRef), "Fatura sorgulama"),
         );
+        found = afterSign ?? found;
+        signed = true;
         invoiceNumber = extractDocumentNumber(afterSign) ?? invoiceNumber;
       } catch (signErr) {
         const msg = signErr instanceof Error ? signErr.message : String(signErr);
-        // İmzalanamadı ama taslak oluşturuldu — KV takibine ve DB'ye yaz, devam et
-        console.warn("[invoice] imzalama başarısız, taslak kaydedildi:", msg);
+        // İmzalanamadı ama taslak oluşturuldu — e-imza cihazı yoksa beklenen durum.
+        console.warn("[invoice] HSM imzalama başarısız (e-imza cihazı yoksa normaldir), taslak kaydedildi:", msg);
       }
     }
 
+    const hasRealInvoiceNo = Boolean(invoiceNumber && !invoiceNumber.toUpperCase().startsWith("DRAFT"));
+    const invoiceUuid = draftRef.uuid;
     const publicToken = parseInvoiceMeta(order.invoiceMetaJson).publicToken ?? nanoid(24);
-    const gibDownloadUrl = (session.client as unknown as { getDownloadURL: (t: string, uuid: string, opts: { signed: boolean }) => string })
-      .getDownloadURL(token, draft.uuid, { signed });
+    const gibDownloadUrl = client.getDownloadURL(token, invoiceUuid, { signed });
 
     const invoiceLink = `${siteBaseUrl()}/api/public/invoice/${publicToken}`;
-    const invoiceUuid = draft.uuid;
     const status = signed ? "signed" : "draft";
 
     const meta: OrderInvoiceMeta = {
@@ -189,19 +271,26 @@ export async function issueOrderInvoice(
         invoiceUuid,
         invoiceLink,
         invoiceStatus: status,
-        invoiceIssuedAt: new Date(),
+        // Reconcile'da orijinal kesim tarihini koru (GİB sorgusu bu tarihe dayanır).
+        invoiceIssuedAt: canReconcile ? aroundDate : new Date(),
         invoiceMetaJson: JSON.stringify(meta),
         adminNotes: [order.adminNotes, `e-Arşiv: ${invoiceNumber ?? invoiceUuid}`].filter(Boolean).join(" · "),
       },
     });
 
     let message = signed
-      ? `e-Arşiv faturası kesildi ve imzalandı (${invoiceNumber ?? invoiceUuid})`
-      : `e-Arşiv taslak faturası oluşturuldu (${invoiceUuid}). GİB portalından imzalayın.`;
+      ? `e-Arşiv faturası imzalandı (${invoiceNumber ?? invoiceUuid})`
+      : `e-Arşiv taslağı GİB'de hazır. Sunucuda e-imza cihazı olmadığından otomatik imzalanamadı. ` +
+        `GİB e-Arşiv portalına girip taslağı SMS ile onaylayın, ardından bu ekrandan tekrar "Onayla ve GİB'e gönder" deyin — ` +
+        `sistem imzalı fatura numarasını çekip ${isMarketplaceOrder ? "pazaryerine gönderir" : "kaydeder"}.`;
 
+    // Pazaryerine SADECE imzalı ve gerçek numaralı fatura gönderilir; aksi halde
+    // "Fatura numarası hatalıdır" hatası alınır.
     const shouldSendMarketplace =
       (options.sendToMarketplace ?? config.autoSendMarketplace) &&
-      Boolean(order.marketplacePlatform && order.marketplaceMetaJson);
+      isMarketplaceOrder &&
+      signed &&
+      hasRealInvoiceNo;
 
     if (shouldSendMarketplace) {
       const mp = await sendMarketplaceInvoice(siteId, orderId, {
@@ -221,6 +310,8 @@ export async function issueOrderInvoice(
       } else {
         message += ` · Pazaryeri: ${mp.message}`;
       }
+    } else if (isMarketplaceOrder && !signed) {
+      message += " · Pazaryerine gönderim, fatura imzalandıktan sonra yapılacak.";
     }
 
     // InvoiceEntry bridge — sipariş faturasını KDV takibine ekle
