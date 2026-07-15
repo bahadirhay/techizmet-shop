@@ -1,4 +1,5 @@
 import type { InvoiceDetails, InvoiceItem } from "fatura";
+import { dedupeAddressSegments } from "@/lib/tr-address/format";
 
 export type InvoicePreviewSeller = {
   storeName: string;
@@ -85,9 +86,11 @@ export function renderInvoicePreviewHtml(
     : `<div class="banner banner-draft">ÖN İZLEME — GİB'e gönderilmeden önce kontrol edin.</div>`;
 
   const customer = customerDisplay(details);
-  const customerAddress = [details.fullAddress, details.district, details.city, details.zipCode]
-    .filter(Boolean)
-    .join(", ");
+  const customerAddress = dedupeAddressSegments(
+    [details.fullAddress, details.district, details.city, details.zipCode]
+      .filter(Boolean)
+      .join(", "),
+  );
 
   const sellerAddressLines = [
     seller.sellerAddress || "",

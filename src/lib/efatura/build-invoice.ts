@@ -1,6 +1,7 @@
 import type { InvoiceDetails, InvoiceItem } from "fatura";
 import { normalizeConsumerTaxId } from "@/lib/efatura/consumer-tax-id";
 import type { ResolvedEfaturaConfig } from "@/lib/efatura/settings";
+import { dedupeAddressSegments } from "@/lib/tr-address/format";
 
 type OrderLine = {
   title: string;
@@ -94,9 +95,9 @@ export function buildInvoiceDetailsFromOrder(
     }
   }
 
-  const fullAddress = [address.line1, address.district, address.city, address.postalCode]
-    .filter(Boolean)
-    .join(", ");
+  // Yalnızca sokak/cadde satırı. İlçe, şehir ve posta kodu GİB'de (ve ön izlemede)
+  // ayrı alanlara yazıldığı için burada tekrar EKLENMEZ — aksi halde adres çift çıkar.
+  const fullAddress = dedupeAddressSegments(address.line1);
 
   const items: InvoiceItem[] = order.lines.map((l) => {
     const rate = l.vatRate ?? defaultVatRate;

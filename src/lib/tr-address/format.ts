@@ -9,6 +9,24 @@ export function formatCheckoutLine1(neighborhood: string, streetLine: string): s
   return hood || line;
 }
 
+/**
+ * Virgülle ayrılmış adreste art arda tekrarlanan aynı segmentleri temizler.
+ * Örn. "Tunahan Mah, Tunahan Mah, ... , Ankara, Ankara" → tekrarlar kaldırılır.
+ */
+export function dedupeAddressSegments(value: string | null | undefined): string {
+  const segments = (value ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const out: string[] = [];
+  for (const seg of segments) {
+    const prev = out[out.length - 1];
+    if (prev && prev.toLocaleLowerCase("tr") === seg.toLocaleLowerCase("tr")) continue;
+    out.push(seg);
+  }
+  return out.join(", ");
+}
+
 /** Kayıtlı adres satırından mahalle önekini ayır (mümkünse) */
 export function splitSavedLine1(line1: string): { neighborhood: string; streetLine: string } {
   const raw = line1.trim();
