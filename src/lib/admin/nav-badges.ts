@@ -1,4 +1,5 @@
 import { unstable_cache } from "next/cache";
+import { REVENUE_EXCLUDED_STATUSES } from "@/lib/admin/marketplace-platforms";
 import { orderInvoicePendingWhere } from "@/lib/admin/order-invoice-workflow";
 import { ordersAwaitingActionFilter } from "@/lib/orders/admin-order-visibility";
 import { prisma } from "@/lib/prisma";
@@ -53,7 +54,7 @@ export async function loadDashboardCharts(siteId: string): Promise<{
       where: {
         siteId,
         createdAt: { gte: d, lte: end },
-        status: { notIn: ["cancelled"] },
+        status: { notIn: [...REVENUE_EXCLUDED_STATUSES] },
       },
       _sum: { totalMinor: true },
       _count: true,

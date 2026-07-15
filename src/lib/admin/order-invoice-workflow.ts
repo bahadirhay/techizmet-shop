@@ -1,7 +1,7 @@
 import type { Prisma } from "@prisma/client";
 
-/** Kesilmiş sayılan fatura durumları */
-export const ORDER_INVOICE_COMPLETE_STATUSES = ["signed", "marketplace_sent"] as const;
+/** Kesilmiş sayılan fatura durumları — "manual" = GİB portalından elle kesilip müşteriye gönderildi */
+export const ORDER_INVOICE_COMPLETE_STATUSES = ["signed", "marketplace_sent", "manual"] as const;
 
 export function isOrderInvoiceComplete(invoiceStatus: string | null | undefined): boolean {
   if (!invoiceStatus || invoiceStatus === "none") return false;

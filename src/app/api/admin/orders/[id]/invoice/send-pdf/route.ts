@@ -19,7 +19,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   const { id } = await ctx.params;
   const order = await prisma.storeOrder.findFirst({
     where: { id, siteId: auth.siteId },
-    select: { id: true },
+    select: { id: true, invoiceStatus: true, invoiceIssuedAt: true },
   });
   if (!order) {
     return NextResponse.json({ error: "Sipariş bulunamadı." }, { status: 404 });
@@ -54,6 +54,20 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       result.detail ||
       "Fatura e-postası gönderilemedi.";
     return NextResponse.json({ error: message }, { status: 400 });
+  }
+
+  // Elle (GİB portalından) kesilen fatura müşteriye gönderildi → siparişi
+  // "fatura kesildi" (manual) say. İmzalı/pazaryeri durumunu geri alma.
+  const alreadyIssued =
+    order.invoiceStatus === "signed" || order.invoiceStatus === "marketplace_sent";
+  if (!alreadyIssued) {
+    await prisma.storeOrder.update({
+      where: { id: order.id },
+      data: {
+        invoiceStatus: "manual",
+        invoiceIssuedAt: order.invoiceIssuedAt ?? new Date(),
+      },
+    });
   }
 
   return NextResponse.json({ ok: true, message: "Fatura PDF müşteriye e-posta ile gönderildi." });

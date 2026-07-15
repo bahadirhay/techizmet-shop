@@ -29,3 +29,13 @@ export const ORDER_STATUSES = [
   { id: "refund_requested", label: "İade Talebi" },
   { id: "refunded", label: "İade Edildi" },
 ] as const;
+
+/**
+ * Ciro / kâr-zarar hesaplarında sayılmayan sipariş durumları.
+ * İptal ve iade (talep + edilen) edilen siparişler satış geliri değildir.
+ */
+export const REVENUE_EXCLUDED_STATUSES = [
+  "cancelled",
+  "refunded",
+  "refund_requested",
+] as const;

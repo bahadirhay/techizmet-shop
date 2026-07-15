@@ -10,6 +10,7 @@ const STATUS_LABELS: Record<string, string> = {
   draft: "Taslak",
   signed: "İmzalandı",
   marketplace_sent: "Pazaryerine iletildi",
+  manual: "Elle kesildi (GİB portalı)",
 };
 
 export function OrderInvoicePanel({

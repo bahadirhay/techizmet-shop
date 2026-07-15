@@ -7,7 +7,7 @@ import {
   marketplaceDeductionsFromSnapshot,
   orderTotalCostMinor,
 } from "@/lib/finance/economics-math";
-import { MARKETPLACE_PLATFORMS } from "@/lib/admin/marketplace-platforms";
+import { MARKETPLACE_PLATFORMS, REVENUE_EXCLUDED_STATUSES } from "@/lib/admin/marketplace-platforms";
 import { prisma } from "@/lib/prisma";
 
 export type ChannelProfitRow = {
@@ -112,7 +112,7 @@ export async function loadProfitabilityReport(
   const orders = await prisma.storeOrder.findMany({
     where: {
       siteId,
-      status: { notIn: ["cancelled"] },
+      status: { notIn: [...REVENUE_EXCLUDED_STATUSES] },
       createdAt: { gte: from },
     },
     select: {

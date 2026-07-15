@@ -1,5 +1,6 @@
 import "server-only";
 
+import { REVENUE_EXCLUDED_STATUSES } from "@/lib/admin/marketplace-platforms";
 import { orderSourceId, orderSourceLabelById } from "@/lib/marketplace/order-source";
 import { prisma } from "@/lib/prisma";
 import type { DashboardChartPoint } from "@/lib/admin/nav-badges";
@@ -67,7 +68,7 @@ export async function loadSalesReport(
       where: {
         siteId,
         createdAt: { gte: d, lte: end },
-        status: { notIn: ["cancelled"] },
+        status: { notIn: [...REVENUE_EXCLUDED_STATUSES] },
       },
       _sum: { totalMinor: true },
       _count: true,
@@ -86,7 +87,7 @@ export async function loadSalesReport(
     where: {
       siteId,
       createdAt: { gte: from },
-      status: { notIn: ["cancelled"] },
+      status: { notIn: [...REVENUE_EXCLUDED_STATUSES] },
     },
     _sum: { totalMinor: true },
     _count: true,
@@ -104,7 +105,7 @@ export async function loadSalesReport(
       order: {
         siteId,
         createdAt: { gte: from },
-        status: { notIn: ["cancelled"] },
+        status: { notIn: [...REVENUE_EXCLUDED_STATUSES] },
       },
     },
     select: { title: true, qty: true, lineMinor: true },
@@ -126,7 +127,7 @@ export async function loadSalesReport(
     where: {
       siteId,
       createdAt: { gte: from },
-      status: { notIn: ["cancelled"] },
+      status: { notIn: [...REVENUE_EXCLUDED_STATUSES] },
     },
     select: { paymentMethod: true, totalMinor: true, marketplacePlatform: true },
   });
