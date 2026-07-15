@@ -16,6 +16,7 @@ import { prisma } from "@/lib/prisma";
 export type TrendyolFinanceImportResult = {
   payouts: { created: number; skipped: number };
   deductions: { created: number; skipped: number; linked: number };
+  commissionsPosted: number;
   ordersTagged: number;
   errors: string[];
   message: string;
@@ -27,6 +28,57 @@ type PaymentOrderMeta = {
   orderIds: string[];
   orderNumbers: string[];
 };
+
+type OrderCommissionSummary = {
+  orderNumber: string;
+  shipmentPackageId: number | null;
+  /** Split model — CommissionNegative satırlarından */
+  commissionMinor: number;
+  /** Sale model — Sale satırlarındaki commissionAmount alanından */
+  saleCommissionMinor: number;
+};
+
+/** Settlement satırlarından sipariş bazında GERÇEK komisyonu toplar. */
+function buildOrderCommissionSummary(
+  settlements: TrendyolFinancialRow[],
+): Map<string, OrderCommissionSummary> {
+  const map = new Map<string, OrderCommissionSummary>();
+
+  for (const row of settlements) {
+    const orderNumber = row.orderNumber?.trim();
+    if (!orderNumber) continue;
+
+    const entry = map.get(orderNumber) ?? {
+      orderNumber,
+      shipmentPackageId: row.shipmentPackageId ?? null,
+      commissionMinor: 0,
+      saleCommissionMinor: 0,
+    };
+    if (entry.shipmentPackageId == null && row.shipmentPackageId != null) {
+      entry.shipmentPackageId = row.shipmentPackageId;
+    }
+
+    const type = row.transactionType;
+    const isCancel = type.includes("Cancel");
+    if (type.includes("Commission")) {
+      const amt = tryAmountToMinor(row.debt) || tryAmountToMinor(row.commissionAmount ?? 0);
+      entry.commissionMinor += isCancel ? -amt : amt;
+    } else if (type === "Sale" || type.includes("SellerRevenue")) {
+      const amt = tryAmountToMinor(row.commissionAmount ?? 0);
+      entry.saleCommissionMinor += isCancel ? -amt : amt;
+    }
+
+    map.set(orderNumber, entry);
+  }
+
+  return map;
+}
+
+/** Split modelde CommissionNegative, aksi halde Sale satırındaki commissionAmount. */
+function resolveRealCommissionMinor(summary: OrderCommissionSummary): number {
+  const value = summary.commissionMinor > 0 ? summary.commissionMinor : summary.saleCommissionMinor;
+  return value > 0 ? value : 0;
+}
 
 function payoutRef(paymentOrderId: number | string): string {
   return `paymentOrder:${paymentOrderId}`;
@@ -139,6 +191,7 @@ export async function importTrendyolFinance(
     return {
       payouts: { created: 0, skipped: 0 },
       deductions: { created: 0, skipped: 0, linked: 0 },
+      commissionsPosted: 0,
       ordersTagged: 0,
       errors: ["Trendyol API bilgileri eksik (Pazaryeri ayarları)"],
       message: "Trendyol API yapılandırılmamış",
@@ -164,6 +217,7 @@ export async function importTrendyolFinance(
   );
 
   const paymentOrderSummary = buildPaymentOrderSummary(settlementResult.rows);
+  const orderCommissionSummary = buildOrderCommissionSummary(settlementResult.rows);
   let ordersTagged = 0;
 
   for (const row of settlementResult.rows) {
@@ -217,6 +271,63 @@ export async function importTrendyolFinance(
   const bankAccount = await prisma.financeAccount.findFirst({
     where: { siteId, kind: "bank" },
   });
+
+  // Settlement'tan gelen GERÇEK komisyonu sipariş bazında onaylı kesinti olarak yaz;
+  // aynı siparişin otomatik tahminlerini sil ki raporlar tahmin yerine gerçeği kullansın.
+  const SETTLEMENT_COMMISSION_NOTE = "trendyol-settlement-commission";
+  let commissionsPosted = 0;
+
+  for (const summary of orderCommissionSummary.values()) {
+    const realCommissionMinor = resolveRealCommissionMinor(summary);
+    if (realCommissionMinor <= 0) continue;
+
+    const order = await findTrendyolOrder(siteId, {
+      orderNumber: summary.orderNumber,
+      shipmentPackageId: summary.shipmentPackageId,
+    });
+    if (!order) continue;
+
+    const income = await prisma.financeTransaction.findFirst({
+      where: { siteId, orderId: order.id, kind: "sale_income" },
+      select: { id: true },
+    });
+
+    await prisma.financeTransaction.deleteMany({
+      where: {
+        siteId,
+        orderId: order.id,
+        kind: "marketplace_deduction",
+        OR: [{ reconciliationStatus: "estimated" }, { notes: SETTLEMENT_COMMISSION_NOTE }],
+      },
+    });
+
+    await prisma.financeTransaction.create({
+      data: {
+        siteId,
+        txDate: new Date(),
+        kind: "marketplace_deduction",
+        amountMinor: realCommissionMinor,
+        categoryId: deductionCategory?.id,
+        accountId: trendyolAccount?.id,
+        orderId: order.id,
+        linkedTxId: income?.id ?? null,
+        description: `Trendyol gerçek komisyon — ${order.orderNumber}`,
+        marketplacePlatform: "trendyol",
+        marketplaceRef: `settlementCommission:${order.id}`,
+        reconciliationStatus: "matched",
+        notes: SETTLEMENT_COMMISSION_NOTE,
+      },
+    });
+
+    if (income) {
+      await prisma.financeTransaction.update({
+        where: { id: income.id },
+        data: { reconciliationStatus: "matched" },
+      });
+    }
+
+    commissionsPosted += 1;
+  }
 
   let payoutsCreated = 0;
   let payoutsSkipped = 0;
@@ -342,6 +453,7 @@ export async function importTrendyolFinance(
   }
 
   const message = [
+    commissionsPosted ? `${commissionsPosted} sipariş gerçek komisyonu` : null,
     payoutsCreated ? `${payoutsCreated} hakediş` : null,
     payoutsSkipped ? `${payoutsSkipped} hakediş atlandı` : null,
     deductionsCreated ? `${deductionsCreated} kesinti faturası` : null,
@@ -358,6 +470,7 @@ export async function importTrendyolFinance(
       skipped: deductionsSkipped,
       linked: deductionsLinked,
     },
+    commissionsPosted,
     ordersTagged,
     errors,
     message: message || "Yeni kayıt yok (dönem zaten içe aktarılmış olabilir)",

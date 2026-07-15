@@ -345,7 +345,7 @@ export function FinanceProfitabilityView({ report }: { report: ProfitabilityRepo
               <tr className="border-b text-left text-xs text-zinc-500">
                 <th className="pb-2">Platform</th>
                 <th className="pb-2 text-right">Brüt satış</th>
-                <th className="pb-2 text-right">Onaylı kesinti</th>
+                <th className="pb-2 text-right">Kesinti (gerçek/tahmini)</th>
                 <th className="pb-2 text-right">Hakediş ödemesi</th>
                 <th className="pb-2 text-right">Bekleyen</th>
               </tr>
