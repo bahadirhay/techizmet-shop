@@ -353,7 +353,19 @@ export function NotificationSettingsForm({ initial }: { initial: SiteSettings })
               placeholder="admin@anatolianpaw.com, depo@..."
             />
           </AdminField>
+          <AdminField label="Fatura gizli kopya — BCC (virgülle)">
+            <input
+              className={inputClass}
+              value={email.invoiceBcc ?? ""}
+              onChange={(e) => patchEmail({ invoiceBcc: e.target.value })}
+              placeholder="anatolianpaw@gmail.com"
+            />
+          </AdminField>
         </div>
+        <p className="mt-2 text-xs text-zinc-500">
+          Fatura e-postalarının (link + PDF) gizli kopyası bu adrese de gönderilir. Müşteri bu adresi
+          göremez — her kesilen faturanın size ulaştığını buradan teyit edebilirsiniz.
+        </p>
 
         <div className="mt-4 space-y-2 text-sm">
           <label className="flex items-center gap-2">

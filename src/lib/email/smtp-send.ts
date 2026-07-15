@@ -62,6 +62,11 @@ export async function verifySmtpConnection(
   }
 }
 
+export function parseRecipients(raw: string | undefined | null): string[] {
+  if (!raw?.trim()) return [];
+  return [...new Set(raw.split(/[,;]/).map((x) => x.trim()).filter((x) => x.includes("@")))];
+}
+
 export async function sendSmtpMail(params: {
   config: SmtpConnectionConfig;
   from: string;
@@ -69,6 +74,8 @@ export async function sendSmtpMail(params: {
   subject: string;
   html: string;
   replyTo?: string;
+  /** Gizli kopya — başlıklarda görünmez, yalnızca zarf üzerinden teslim edilir */
+  bcc?: string;
   attachments?: EmailAttachment[];
 }): Promise<{ sent: boolean; reason?: string; detail?: string; hint?: string }> {
   const config = params.config;
@@ -80,6 +87,7 @@ export async function sendSmtpMail(params: {
   const fromHeader = params.from.trim();
   const fromEmail = extractEmailAddress(fromHeader) || authEmail;
   const to = params.to.trim();
+  const bccList = parseRecipients(params.bcc).filter((addr) => addr.toLowerCase() !== to.toLowerCase());
 
   try {
     const transport = createSmtpTransport(config);
@@ -100,7 +108,7 @@ export async function sendSmtpMail(params: {
         : {}),
       envelope: {
         from: authEmail,
-        to,
+        to: [to, ...bccList],
       },
     });
     return { sent: true };

@@ -129,6 +129,7 @@ export async function sendInvoiceEmailForOrder(
     html,
     from: resolveMailFrom(settings, storeName),
     replyTo: emailNotifications(settings).replyTo,
+    bcc: emailNotifications(settings).invoiceBcc,
     settings,
   });
 
@@ -216,6 +217,7 @@ export async function sendInvoicePdfToCustomer(
     html,
     from: resolveMailFrom(settings, storeName),
     replyTo: emailNotifications(settings).replyTo,
+    bcc: emailNotifications(settings).invoiceBcc,
     settings,
     attachments: [{ filename: safeName, content: input.pdf, contentType: "application/pdf" }],
   });

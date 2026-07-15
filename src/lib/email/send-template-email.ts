@@ -24,6 +24,8 @@ export async function sendTemplateEmail(params: {
   smtpOnly?: boolean;
   /** E-posta ekleri (PDF fatura vb.) */
   attachments?: EmailAttachment[];
+  /** Gizli kopya (BCC) — virgülle ayrılabilir; başlıklarda görünmez */
+  bcc?: string;
 }): Promise<{ sent: boolean; reason?: string; detail?: string; hint?: string }> {
   if (!params.to?.trim()) return { sent: false, reason: "no_email" };
 
@@ -56,6 +58,7 @@ export async function sendTemplateEmail(params: {
       subject: params.subject,
       html: params.html,
       replyTo: params.replyTo,
+      bcc: params.bcc,
       attachments: params.attachments,
     });
   }
@@ -75,6 +78,9 @@ export async function sendTemplateEmail(params: {
         subject: params.subject,
         html: params.html,
         ...(params.replyTo?.trim() ? { reply_to: params.replyTo.trim() } : {}),
+        ...(params.bcc?.trim()
+          ? { bcc: params.bcc.split(/[,;]/).map((x) => x.trim()).filter((x) => x.includes("@")) }
+          : {}),
         ...(params.attachments?.length
           ? {
               attachments: params.attachments.map((a) => ({

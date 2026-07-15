@@ -44,6 +44,8 @@ export type StoreEmailNotificationSettings = {
   replyTo?: string;
   /** Virgülle ayrılmış yönetici adresleri */
   adminRecipients?: string;
+  /** Fatura e-postalarının gizli kopyası (BCC) — kesilen her fatura buraya da gider */
+  invoiceBcc?: string;
   orderConfirmation?: boolean;
   orderShipped?: boolean;
   orderCancelled?: boolean;
