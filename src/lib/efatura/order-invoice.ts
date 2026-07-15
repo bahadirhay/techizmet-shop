@@ -17,6 +17,8 @@ export type OrderInvoiceMeta = {
   recipientTaxId?: string;
   signed?: boolean;
   marketplaceSent?: boolean;
+  /** Fatura linki müşteriye e-posta ile gönderildiği an (ISO) — mükerrer otomatik gönderimi önler */
+  customerEmailSentAt?: string;
   error?: string;
 };
 
@@ -285,6 +287,8 @@ export async function issueOrderInvoice(
       gibDownloadUrl,
       recipientTaxId: options.recipientTaxId ?? config.defaultConsumerTaxId,
       signed,
+      // Reconcile'da önceki e-posta gönderim zamanını koru (mükerrer gönderimi önler).
+      customerEmailSentAt: parseInvoiceMeta(order.invoiceMetaJson).customerEmailSentAt,
     };
 
     await prisma.storeOrder.update({
@@ -384,6 +388,18 @@ export async function issueOrderInvoice(
       }
     } catch (kdvErr) {
       console.error("[invoice-entry-bridge]", kdvErr);
+    }
+
+    // Web siparişinde imzalı fatura kesilince, fatura linkini müşteriye e-posta ile
+    // otomatik gönder (bir kez). Pazaryeri siparişlerinde fatura pazaryerine gider.
+    if (!isMarketplaceOrder && signed && hasRealInvoiceNo && order.customerEmail?.trim()) {
+      try {
+        const { sendInvoiceEmailForOrder } = await import("@/lib/email/send-invoice-email");
+        const emailRes = await sendInvoiceEmailForOrder(orderId);
+        if (emailRes.sent) message += " · Fatura müşteriye e-posta ile gönderildi.";
+      } catch (mailErr) {
+        console.error("[invoice-email] otomatik gönderim başarısız:", mailErr);
+      }
     }
 
     return {

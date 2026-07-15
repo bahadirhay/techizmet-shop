@@ -175,6 +175,7 @@ export default async function OrderDetailPage({
         invoiceNumber={order.invoiceNumber}
         invoiceLink={order.invoiceLink}
         invoiceIssuedAt={order.invoiceIssuedAt}
+        customerEmail={order.customerEmail}
         efaturaEnabled={efaturaConfig.enabled}
         efaturaReady={efaturaReady(efaturaConfig)}
         focusInvoice={focusInvoice}

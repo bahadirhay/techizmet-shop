@@ -21,6 +21,7 @@ export function OrderInvoicePanel({
   invoiceNumber,
   invoiceLink,
   invoiceIssuedAt,
+  customerEmail,
   efaturaEnabled,
   efaturaReady,
   focusInvoice = false,
@@ -35,6 +36,8 @@ export function OrderInvoicePanel({
   invoiceNumber: string | null;
   invoiceLink: string | null;
   invoiceIssuedAt: Date | null;
+  /** Müşteri e-posta adresi — fatura linkini gönderebilmek için */
+  customerEmail: string | null;
   /** Ayarlarda entegrasyon açık mı */
   efaturaEnabled: boolean;
   /** GİB kullanıcı + parola tamam mı (kesim için) */
@@ -66,6 +69,17 @@ export function OrderInvoicePanel({
     setBusy(false);
     setMsg(res.ok ? (json.result?.message ?? "Pazaryerine gönderildi") : (json.error ?? "Hata"));
     if (res.ok) router.refresh();
+  }
+
+  async function sendInvoiceEmail() {
+    setBusy(true);
+    setMsg(null);
+    const res = await fetch(`/api/admin/orders/${orderId}/invoice/send-email`, {
+      method: "POST",
+    });
+    const json = (await res.json()) as { error?: string; message?: string };
+    setBusy(false);
+    setMsg(res.ok ? (json.message ?? "Fatura müşteriye gönderildi") : (json.error ?? "Gönderilemedi"));
   }
 
   const hasInvoice = Boolean(invoiceStatus && invoiceStatus !== "none");
@@ -203,6 +217,24 @@ export function OrderInvoicePanel({
           >
             Pazaryerine tekrar gönder
           </button>
+        </div>
+      ) : null}
+
+      {hasInvoice &&
+      (invoiceStatus === "signed" || invoiceStatus === "marketplace_sent") &&
+      customerEmail?.trim() ? (
+        <div className="mt-3">
+          <button
+            type="button"
+            className={btnSecondary}
+            disabled={busy}
+            onClick={() => void sendInvoiceEmail()}
+          >
+            Faturayı müşteriye e-posta gönder
+          </button>
+          <p className="mt-1 text-xs text-emerald-800">
+            Fatura linki {customerEmail.trim()} adresine gönderilir (dosya eklenmez, link her zaman GİB'den canlı açılır).
+          </p>
         </div>
       ) : null}
 
