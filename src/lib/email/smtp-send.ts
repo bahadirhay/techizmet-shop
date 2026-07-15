@@ -3,6 +3,12 @@ import "server-only";
 import type { SmtpConnectionConfig } from "@/lib/email/smtp-config";
 import { createSmtpTransport } from "@/lib/email/smtp-transport";
 
+export type EmailAttachment = {
+  filename: string;
+  content: Buffer;
+  contentType?: string;
+};
+
 export function extractEmailAddress(from: string): string {
   const trimmed = from.trim();
   const angle = trimmed.match(/<([^>]+)>/);
@@ -63,6 +69,7 @@ export async function sendSmtpMail(params: {
   subject: string;
   html: string;
   replyTo?: string;
+  attachments?: EmailAttachment[];
 }): Promise<{ sent: boolean; reason?: string; detail?: string; hint?: string }> {
   const config = params.config;
   if (!config.user || !config.password) {
@@ -82,6 +89,15 @@ export async function sendSmtpMail(params: {
       subject: params.subject,
       html: params.html,
       ...(params.replyTo?.trim() ? { replyTo: params.replyTo.trim() } : {}),
+      ...(params.attachments?.length
+        ? {
+            attachments: params.attachments.map((a) => ({
+              filename: a.filename,
+              content: a.content,
+              contentType: a.contentType,
+            })),
+          }
+        : {}),
       envelope: {
         from: authEmail,
         to,

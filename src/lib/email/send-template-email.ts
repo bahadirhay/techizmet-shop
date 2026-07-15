@@ -6,7 +6,7 @@ import {
   resolveResendApiKey,
   resolveSmtpConfig,
 } from "@/lib/email/smtp-config";
-import { sendSmtpMail } from "@/lib/email/smtp-send";
+import { sendSmtpMail, type EmailAttachment } from "@/lib/email/smtp-send";
 import { resolveMailFrom } from "@/lib/notification-settings";
 import type { SiteSettings } from "@/lib/site-settings";
 
@@ -22,6 +22,8 @@ export async function sendTemplateEmail(params: {
   siteName?: string;
   /** Test SMTP — Resend yedeklemesini atla */
   smtpOnly?: boolean;
+  /** E-posta ekleri (PDF fatura vb.) */
+  attachments?: EmailAttachment[];
 }): Promise<{ sent: boolean; reason?: string; detail?: string; hint?: string }> {
   if (!params.to?.trim()) return { sent: false, reason: "no_email" };
 
@@ -54,6 +56,7 @@ export async function sendTemplateEmail(params: {
       subject: params.subject,
       html: params.html,
       replyTo: params.replyTo,
+      attachments: params.attachments,
     });
   }
 
@@ -72,6 +75,15 @@ export async function sendTemplateEmail(params: {
         subject: params.subject,
         html: params.html,
         ...(params.replyTo?.trim() ? { reply_to: params.replyTo.trim() } : {}),
+        ...(params.attachments?.length
+          ? {
+              attachments: params.attachments.map((a) => ({
+                filename: a.filename,
+                content: a.content.toString("base64"),
+                ...(a.contentType ? { content_type: a.contentType } : {}),
+              })),
+            }
+          : {}),
       }),
     });
     if (!res.ok) {

@@ -142,3 +142,94 @@ export async function sendInvoiceEmailForOrder(
 
   return result;
 }
+
+function buildInvoicePdfEmailHtml(params: {
+  storeName: string;
+  customerName: string;
+  orderNumber: string;
+}): string {
+  const { storeName, customerName, orderNumber } = params;
+  const greetingName = customerName.trim() ? escapeHtml(customerName.trim()) : "Değerli müşterimiz";
+  return `<!DOCTYPE html>
+<html lang="tr">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /></head>
+<body style="margin:0;padding:24px;background:#f4f4f5;font-family:'Segoe UI',system-ui,sans-serif;color:#3f5164;">
+  <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;padding:28px 26px;box-shadow:0 2px 12px rgba(0,0,0,.06);">
+    <h1 style="margin:0 0 16px;font-size:18px;color:#1f2a37;">${escapeHtml(storeName)} — Faturanız</h1>
+    <p style="margin:0 0 14px;line-height:1.6;">Merhaba ${greetingName},</p>
+    <p style="margin:0 0 14px;line-height:1.6;">
+      <strong>${escapeHtml(orderNumber)}</strong> numaralı siparişinize ait faturanız bu e-postanın
+      ekinde <strong>PDF</strong> olarak yer almaktadır.
+    </p>
+    <p style="margin:0 0 14px;line-height:1.6;">İyi günler dileriz.</p>
+    <hr style="border:none;border-top:1px solid #e4e4e7;margin:22px 0;" />
+    <p style="margin:0;font-size:12px;color:#9ca3af;">
+      Bu e-posta ${escapeHtml(storeName)} tarafından siparişiniz için gönderilmiştir.
+    </p>
+  </div>
+</body>
+</html>`;
+}
+
+/**
+ * Elle (GİB portalından) kesilmiş PDF faturayı müşterinin kayıtlı e-postasına EK olarak gönderir.
+ * PDF sunucuda SAKLANMAZ; yalnızca gönderilir. Gönderim zamanı + dosya adı meta'ya not düşülür.
+ */
+export async function sendInvoicePdfToCustomer(
+  orderId: string,
+  input: { pdf: Buffer; filename: string; toEmail?: string },
+): Promise<SendInvoiceEmailResult> {
+  const order = await prisma.storeOrder.findUnique({
+    where: { id: orderId },
+    select: {
+      id: true,
+      siteId: true,
+      orderNumber: true,
+      customerName: true,
+      customerEmail: true,
+      invoiceMetaJson: true,
+      site: { select: { name: true } },
+    },
+  });
+  if (!order) return { sent: false, reason: "order_not_found" };
+
+  const to = (input.toEmail?.trim() || order.customerEmail?.trim() || "").trim();
+  if (!to) return { sent: false, reason: "no_email" };
+  if (!input.pdf?.length) return { sent: false, reason: "no_file" };
+
+  const settings = await getSiteSettings(order.siteId);
+  const storeName = order.site?.name?.trim() || "Mağaza";
+  const subject = `${storeName} — Faturanız (Sipariş ${order.orderNumber})`;
+  const html = buildInvoicePdfEmailHtml({
+    storeName,
+    customerName: order.customerName ?? "",
+    orderNumber: order.orderNumber,
+  });
+
+  const safeName = input.filename.trim().toLowerCase().endsWith(".pdf")
+    ? input.filename.trim()
+    : `${input.filename.trim() || `fatura-${order.orderNumber}`}.pdf`;
+
+  const result = await sendTemplateEmail({
+    to,
+    subject,
+    html,
+    from: resolveMailFrom(settings, storeName),
+    replyTo: emailNotifications(settings).replyTo,
+    settings,
+    attachments: [{ filename: safeName, content: input.pdf, contentType: "application/pdf" }],
+  });
+
+  if (result.sent) {
+    const meta = parseMeta(order.invoiceMetaJson);
+    meta.customerPdfSentAt = new Date().toISOString();
+    meta.customerPdfFileName = safeName;
+    meta.customerPdfSentTo = to;
+    await prisma.storeOrder.update({
+      where: { id: order.id },
+      data: { invoiceMetaJson: JSON.stringify(meta) },
+    });
+  }
+
+  return result;
+}

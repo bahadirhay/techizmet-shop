@@ -8,6 +8,7 @@ import { GeliverOrderPanel } from "@/components/admin/GeliverOrderPanel";
 import { HepsijetOrderPanel } from "@/components/admin/HepsijetOrderPanel";
 import { MarketplaceOrderPanel } from "@/components/admin/MarketplaceOrderPanel";
 import { OrderInvoicePanel } from "@/components/admin/OrderInvoicePanel";
+import { OrderInvoicePdfPanel } from "@/components/admin/OrderInvoicePdfPanel";
 import { isOrderInvoiceComplete } from "@/lib/admin/order-invoice-workflow";
 import { efaturaReady, getEfaturaConfig } from "@/lib/efatura/settings";
 import { isCardOrderAwaitingPayment } from "@/lib/orders/card-payment-rules";
@@ -77,6 +78,25 @@ export default async function OrderDetailPage({
   });
 
   const financeSnapshot = parseOrderFinanceSnapshot(order.financeSnapshotJson);
+
+  const invoicePdfSent = (() => {
+    try {
+      const meta = order.invoiceMetaJson
+        ? (JSON.parse(order.invoiceMetaJson) as {
+            customerPdfSentAt?: string;
+            customerPdfSentTo?: string;
+            customerPdfFileName?: string;
+          })
+        : null;
+      return {
+        at: meta?.customerPdfSentAt ?? null,
+        to: meta?.customerPdfSentTo ?? null,
+        fileName: meta?.customerPdfFileName ?? null,
+      };
+    } catch {
+      return { at: null, to: null, fileName: null };
+    }
+  })();
 
   const openAccountInvoice = await prisma.financeInvoice.findFirst({
     where: { siteId: auth.siteId, orderId: order.id },
@@ -180,6 +200,14 @@ export default async function OrderDetailPage({
         efaturaReady={efaturaReady(efaturaConfig)}
         focusInvoice={focusInvoice}
         defaultRecipientTaxId={order.billingTaxId}
+      />
+      <OrderInvoicePdfPanel
+        orderId={order.id}
+        orderNumber={order.orderNumber}
+        customerEmail={order.customerEmail}
+        lastSentAt={invoicePdfSent.at}
+        lastSentTo={invoicePdfSent.to}
+        lastSentFileName={invoicePdfSent.fileName}
       />
       <OrderFinancePanel
         orderId={order.id}
