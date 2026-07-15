@@ -121,6 +121,20 @@ function defaultOpenGroups(
   return open;
 }
 
+/** Grup içindeki benzersiz rozet anahtarlarının toplamı (kapalı grup başlığında gösterilir) */
+function groupBadgeTotal(group: AdminNavGroup, badges: NavBadges): number {
+  const keys = new Set<NavBadgeKey>();
+  for (const item of group.items) {
+    if (item.badgeKey) keys.add(item.badgeKey as NavBadgeKey);
+    for (const child of item.children ?? []) {
+      if (child.badgeKey) keys.add(child.badgeKey as NavBadgeKey);
+    }
+  }
+  let total = 0;
+  for (const k of keys) total += badges[k] ?? 0;
+  return total;
+}
+
 function NavLinkRow({
   item,
   pathname,
@@ -203,6 +217,7 @@ export function AdminNav({
         const canToggle = g.items.length > 1 || Boolean(g.collapsedByDefault);
         const expanded =
           open.has(g.id) || (g.items.length === 1 && !g.collapsedByDefault);
+        const groupTotal = groupBadgeTotal(g, badges);
         return (
           <div key={g.id} className="admin-nav-group">
             {canToggle ? (
@@ -214,7 +229,12 @@ export function AdminNav({
                 aria-expanded={expanded}
               >
                 <span>{g.label}</span>
-                <span aria-hidden>{expanded ? "▾" : "▸"}</span>
+                <span className="flex items-center gap-1.5">
+                  {!expanded && groupTotal > 0 ? (
+                    <span className="admin-badge">{groupTotal}</span>
+                  ) : null}
+                  <span aria-hidden>{expanded ? "▾" : "▸"}</span>
+                </span>
               </button>
             ) : (
               <div className="admin-nav-group-label" style={{ cursor: "default" }}>

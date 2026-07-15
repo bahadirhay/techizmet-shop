@@ -56,6 +56,7 @@ export function OrderInvoicePanel({
   const [msg, setMsg] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [highlight, setHighlight] = useState(false);
+  const [manualNumber, setManualNumber] = useState("");
 
   async function resendMarketplace() {
     if (!invoiceLink) return;
@@ -81,6 +82,20 @@ export function OrderInvoicePanel({
     const json = (await res.json()) as { error?: string; message?: string };
     setBusy(false);
     setMsg(res.ok ? (json.message ?? "Fatura müşteriye gönderildi") : (json.error ?? "Gönderilemedi"));
+  }
+
+  async function markManual(undo = false) {
+    setBusy(true);
+    setMsg(null);
+    const res = await fetch(`/api/admin/orders/${orderId}/invoice/mark-manual`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(undo ? { undo: true } : { invoiceNumber: manualNumber.trim() || undefined }),
+    });
+    const json = (await res.json().catch(() => ({}))) as { error?: string; message?: string };
+    setBusy(false);
+    setMsg(res.ok ? (json.message ?? "Güncellendi") : (json.error ?? "İşlem başarısız"));
+    if (res.ok) router.refresh();
   }
 
   const hasInvoice = Boolean(invoiceStatus && invoiceStatus !== "none");
@@ -205,6 +220,52 @@ export function OrderInvoicePanel({
           e-Fatura ayarları
         </a>
       </div>
+
+      {!invoiceComplete && !orderCancelled ? (
+        <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50/70 p-3">
+          <p className="text-sm font-medium text-amber-950">
+            Faturayı GİB portalında / pazaryeri panelinde kestiyseniz
+          </p>
+          <p className="mt-0.5 text-xs text-amber-900">
+            Sistem dışında kesilen faturayı burada işaretleyin; sipariş &quot;fatura bekliyor&quot;
+            listesinden düşer.
+          </p>
+          <div className="mt-2 flex flex-wrap items-end gap-2">
+            <div className="grow">
+              <span className="mb-1 block text-xs font-medium text-amber-950">
+                GİB Fatura no (isteğe bağlı)
+              </span>
+              <input
+                className={inputClass}
+                value={manualNumber}
+                onChange={(e) => setManualNumber(e.target.value)}
+                placeholder="Örn. GIB2026000000001"
+              />
+            </div>
+            <button
+              type="button"
+              className={btnSecondary}
+              disabled={busy}
+              onClick={() => void markManual(false)}
+            >
+              Elle kesildi olarak işaretle
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {invoiceStatus === "manual" ? (
+        <div className="mt-2">
+          <button
+            type="button"
+            className="text-xs text-zinc-500 underline hover:text-zinc-700"
+            disabled={busy}
+            onClick={() => void markManual(true)}
+          >
+            Elle kesildi işaretini kaldır
+          </button>
+        </div>
+      ) : null}
 
       {hasInvoice &&
       marketplacePlatform &&
