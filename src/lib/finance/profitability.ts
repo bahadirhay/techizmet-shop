@@ -220,7 +220,9 @@ export async function loadProfitabilityReport(
   for (const order of orders.filter((o) => o.marketplacePlatform)) {
     const snap = resolveOrderSnapshot(order);
     const estimatedMinor = snap
-      ? snap.totalCommissionMinor + snap.shippingDeductionMinor
+      ? snap.totalCommissionMinor +
+        snap.shippingDeductionMinor +
+        (snap.marketplaceFixedFeeMinor ?? 0)
       : 0;
     const orderDeductions = deductions.filter((d) => d.orderId === order.id);
     const confirmedMinor = orderDeductions

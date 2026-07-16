@@ -170,6 +170,8 @@ export type SiteSettings = {
     webShippingCostMinor?: number;
     /** Sipariş başı paketleme / malzeme gideri (kuruş) */
     packagingCostMinor?: number;
+    /** Trendyol sipariş başı sabit ek kesinti (platform hizmet bedeli vb., kuruş) */
+    trendyolFixedFeeMinor?: number;
     /** Vergi / beyanname yapılandırması (şahıs şirketi) */
     tax?: {
       /** Mükellefiyet başlangıç tarihi (YYYY-MM-DD) */

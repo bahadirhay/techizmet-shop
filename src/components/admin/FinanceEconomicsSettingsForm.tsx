@@ -26,6 +26,9 @@ export function FinanceEconomicsSettingsForm({ initial }: { initial: SiteSetting
   const [packagingTry, setPackagingTry] = useState(
     minorToTryInput(initial.finance?.packagingCostMinor),
   );
+  const [trendyolFixedFeeTry, setTrendyolFixedFeeTry] = useState(
+    minorToTryInput(initial.finance?.trendyolFixedFeeMinor),
+  );
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -41,6 +44,7 @@ export function FinanceEconomicsSettingsForm({ initial }: { initial: SiteSetting
           Number.isFinite(feeRaw) && feeRaw >= 0 && feeRaw <= 15 ? feeRaw : undefined,
         webShippingCostMinor: tryInputToMinor(webShippingTry),
         packagingCostMinor: tryInputToMinor(packagingTry),
+        trendyolFixedFeeMinor: tryInputToMinor(trendyolFixedFeeTry),
       },
     };
     const res = await fetch("/api/admin/integrations/settings", {
@@ -63,7 +67,7 @@ export function FinanceEconomicsSettingsForm({ initial }: { initial: SiteSetting
           Ürün formundaki tahmini net kâr ve sipariş ekonomisi bu değerleri kullanır.
         </p>
       </div>
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <AdminField
           label="Web kargo maliyeti (TL / sipariş)"
           hint="Kargo firmasına ödediğiniz ortalama tutar — ücretsiz kargo kampanyasında da geçerli"
@@ -101,6 +105,20 @@ export function FinanceEconomicsSettingsForm({ initial }: { initial: SiteSetting
             onChange={(e) => setCardFeePercent(e.target.value)}
           />
         </AdminField>
+        <AdminField
+          label="Trendyol sabit gider (TL / sipariş)"
+          hint="Platform hizmet bedeli vb. sipariş başı sabit kesinti; komisyon ve kargodan ayrı"
+        >
+          <input
+            className={inputClass}
+            type="number"
+            min={0}
+            step={0.01}
+            placeholder="Örn. 13.19"
+            value={trendyolFixedFeeTry}
+            onChange={(e) => setTrendyolFixedFeeTry(e.target.value)}
+          />
+        </AdminField>
       </div>
       {webShippingMinor <= 0 ? (
         <p className="text-sm text-amber-800">
@@ -117,6 +135,11 @@ export function FinanceEconomicsSettingsForm({ initial }: { initial: SiteSetting
           mağaza ayarları
         </Link>{" "}
         ekranındadır; kâr hesabındaki kargo maliyeti buradan ayrı yönetilir.
+      </p>
+      <p className="text-xs text-zinc-500">
+        Trendyol’da müşteriye ücretsiz kargo görünse bile sizden kesilen tutar{" "}
+        <strong>komisyon kurallarındaki kargo kesintisi</strong> alanına; sipariş başı sabit bedeller
+        ise bu ek alana girilmelidir.
       </p>
       {msg ? <p className="text-sm text-green-700">{msg}</p> : null}
       <button type="button" className={btnPrimary} disabled={busy} onClick={() => void save()}>

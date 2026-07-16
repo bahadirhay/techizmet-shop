@@ -45,6 +45,8 @@ export type OrderFinanceSnapshot = {
   lines: OrderFinanceLineSnapshot[];
   totalCommissionMinor: number;
   shippingDeductionMinor: number;
+  /** Trendyol vb. sipariş başı sabit ek kesinti (platform hizmet bedeli vb.) */
+  marketplaceFixedFeeMinor?: number;
   /** Web: sizin ödediğiniz giden kargo maliyeti (müşteri ücretsiz kargo alsın bile) */
   shippingCostMinor: number;
   /** Web kargo maliyeti elle girilen gerçek değer mi (true) yoksa ayar varsayılanı mı (false) */
@@ -99,12 +101,18 @@ export function alignSnapshotToOrder(
   const totalCommissionMinor = Math.round(snap.totalCommissionMinor * factor);
   const shippingDeductionMinor = Math.round(snap.shippingDeductionMinor * factor);
   const paymentFeeMinor = Math.round(snap.paymentFeeMinor * factor);
+  const marketplaceFixedFeeMinor = snap.marketplaceFixedFeeMinor ?? 0;
   const packagingCostMinor = Math.round((snap.packagingCostMinor ?? 0) * factor);
   const shippingCostMinor = Math.round((snap.shippingCostMinor ?? 0) * factor);
   const totalCostMinor =
     snap.totalCostMinor != null ? Math.round(snap.totalCostMinor) : null;
   const deductions =
-    totalCommissionMinor + shippingDeductionMinor + paymentFeeMinor + shippingCostMinor + packagingCostMinor;
+    totalCommissionMinor +
+    shippingDeductionMinor +
+    marketplaceFixedFeeMinor +
+    paymentFeeMinor +
+    shippingCostMinor +
+    packagingCostMinor;
 
   return {
     ...snap,
@@ -113,6 +121,7 @@ export function alignSnapshotToOrder(
     lines,
     totalCommissionMinor,
     shippingDeductionMinor,
+    marketplaceFixedFeeMinor,
     paymentFeeMinor,
     packagingCostMinor,
     shippingCostMinor,
@@ -267,9 +276,10 @@ export async function buildOrderFinanceSnapshot(order: OrderInput): Promise<Orde
   let shippingCostMinor = 0;
   let shippingCostActual = false;
   let packagingCostMinor = 0;
+  let marketplaceFixedFeeMinor = 0;
+  const { getSiteSettings } = await import("@/lib/site-settings");
+  const settings = await getSiteSettings(order.siteId);
   if (!isMarketplace) {
-    const { getSiteSettings } = await import("@/lib/site-settings");
-    const settings = await getSiteSettings(order.siteId);
     packagingCostMinor = resolvePackagingCostMinor(settings);
     if (typeof actuals?.shippingCostMinor === "number" && actuals.shippingCostMinor >= 0) {
       shippingCostMinor = actuals.shippingCostMinor;
@@ -277,11 +287,14 @@ export async function buildOrderFinanceSnapshot(order: OrderInput): Promise<Orde
     } else {
       shippingCostMinor = resolveWebShippingCostMinor(settings);
     }
+  } else if (platform === "trendyol") {
+    marketplaceFixedFeeMinor = Math.max(0, settings.finance?.trendyolFixedFeeMinor ?? 0);
   }
 
   const deductions =
     totalCommissionMinor +
     shippingDeductionMinor +
+    marketplaceFixedFeeMinor +
     paymentFeeMinor +
     shippingCostMinor +
     packagingCostMinor;
@@ -297,6 +310,7 @@ export async function buildOrderFinanceSnapshot(order: OrderInput): Promise<Orde
     lines,
     totalCommissionMinor,
     shippingDeductionMinor,
+    marketplaceFixedFeeMinor,
     shippingCostMinor,
     shippingCostActual,
     packagingCostMinor,
@@ -407,6 +421,12 @@ async function ensureEstimatedMarketplaceDeductions(
     toCreate.push({
       amountMinor: snapshot.shippingDeductionMinor,
       description: `Tahmini kargo kesintisi — ${orderNumber} (${platform})`,
+    });
+  }
+  if ((snapshot.marketplaceFixedFeeMinor ?? 0) > 0) {
+    toCreate.push({
+      amountMinor: snapshot.marketplaceFixedFeeMinor ?? 0,
+      description: `Tahmini sabit pazaryeri gideri — ${orderNumber} (${platform})`,
     });
   }
 

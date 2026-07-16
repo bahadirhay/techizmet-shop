@@ -87,7 +87,9 @@ export async function loadMarketplaceReconciliation(
     const snap = parseOrderFinanceSnapshot(o.financeSnapshotJson);
     const snapEstimated =
       snap && o.marketplacePlatform
-        ? snap.totalCommissionMinor + snap.shippingDeductionMinor
+        ? snap.totalCommissionMinor +
+          snap.shippingDeductionMinor +
+          (snap.marketplaceFixedFeeMinor ?? 0)
         : 0;
     const effectiveEstimated = estimatedMinor > 0 ? estimatedMinor : snapEstimated;
     const deductionsMinor = confirmedMinor > 0 ? confirmedMinor : effectiveEstimated;

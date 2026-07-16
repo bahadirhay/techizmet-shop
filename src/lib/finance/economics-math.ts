@@ -11,6 +11,7 @@ export function totalOperatingCostsFromSnapshot(snap: OrderFinanceSnapshot): num
   return (
     snap.totalCommissionMinor +
     snap.shippingDeductionMinor +
+    (snap.marketplaceFixedFeeMinor ?? 0) +
     (snap.shippingCostMinor ?? 0) +
     (snap.packagingCostMinor ?? 0) +
     snap.paymentFeeMinor
@@ -19,7 +20,7 @@ export function totalOperatingCostsFromSnapshot(snap: OrderFinanceSnapshot): num
 
 /** Pazaryeri komisyon + kargo kesintisi (ürün maliyeti hariç). */
 export function marketplaceDeductionsFromSnapshot(snap: OrderFinanceSnapshot): number {
-  return snap.totalCommissionMinor + snap.shippingDeductionMinor;
+  return snap.totalCommissionMinor + snap.shippingDeductionMinor + (snap.marketplaceFixedFeeMinor ?? 0);
 }
 
 /** Web siparişi: paketleme + kart komisyonu + satıcı kargo gideri. */

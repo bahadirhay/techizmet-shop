@@ -104,6 +104,14 @@ export function MarketplaceCommissionRulesPanel({
         Kategori bazlı komisyon, ek komisyon ve kargo kesintisi tanımlayın. Değişikliklerin ürün
         fiyat özetine yansıması için <strong>Kural kaydet</strong> düğmesine basın.
       </p>
+      {platform === "trendyol" ? (
+        <p className="mt-2 text-xs text-violet-900">
+          Not: Trendyol’da müşteriye <strong>ücretsiz kargo</strong> görünse bile satıcı hakedişinden
+          kargo kesilebilir. Bu tutarı burada <strong>Tahmini kargo kesintisi</strong> alanına girin.
+          Sipariş başı sabit platform/hizmet bedelini ise Ön Muhasebe ayarlarındaki{" "}
+          <strong>Trendyol sabit gider</strong> alanına girin.
+        </p>
+      ) : null}
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <AdminField label="Yerel kategori">
@@ -129,7 +137,7 @@ export function MarketplaceCommissionRulesPanel({
         </AdminField>
         <AdminField
           label="Ek komisyon (%)"
-          hint="Hizmet bedeli vb. — brüt satış üzerinden, ana komisyona eklenir"
+          hint="Yüzdesel ek kesintiler için; sipariş başı sabit bedelleri burada değil finans ayarında girin"
         >
           <input
             className={inputClass}
@@ -154,7 +162,10 @@ export function MarketplaceCommissionRulesPanel({
             ))}
           </select>
         </AdminField>
-        <AdminField label="Tahmini kargo kesintisi (TL)" hint="Pazaryeri kargo modelinde sipariş başına">
+        <AdminField
+          label="Tahmini kargo kesintisi (TL)"
+          hint="Pazaryeri kargo modelinde sipariş başına; Trendyol ücretsiz kargo kampanyalarında da sizden düşülen tutar"
+        >
           <input
             className={inputClass}
             type="number"

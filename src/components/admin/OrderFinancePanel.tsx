@@ -101,6 +101,7 @@ export function OrderFinancePanel({
         ? snap.grossMinor -
           snap.totalCommissionMinor -
           snap.shippingDeductionMinor -
+          (snap.marketplaceFixedFeeMinor ?? 0) -
           (snap.shippingCostMinor ?? 0) -
           (snap.packagingCostMinor ?? 0) -
           paymentFeeMinor -
@@ -108,7 +109,9 @@ export function OrderFinancePanel({
         : null;
 
   const estimatedMarketplaceDeductionMinor = snap
-    ? snap.totalCommissionMinor + snap.shippingDeductionMinor
+    ? snap.totalCommissionMinor +
+      snap.shippingDeductionMinor +
+      (snap.marketplaceFixedFeeMinor ?? 0)
     : 0;
   const confirmedDeductionMinor = confirmedDeductions.reduce((s, d) => s + d.amountMinor, 0);
   const effectiveMarketplaceDeductionMinor =
@@ -223,6 +226,12 @@ export function OrderFinancePanel({
               <div className="flex justify-between gap-4 text-amber-900">
                 <span>Tahmini kargo kesintisi</span>
                 <span>−{formatTry(snap.shippingDeductionMinor)}</span>
+              </div>
+            ) : null}
+            {marketplacePlatform && (snap.marketplaceFixedFeeMinor ?? 0) > 0 ? (
+              <div className="flex justify-between gap-4 text-amber-900">
+                <span>Tahmini sabit pazaryeri gideri</span>
+                <span>−{formatTry(snap.marketplaceFixedFeeMinor ?? 0)}</span>
               </div>
             ) : null}
             {!marketplacePlatform && (snap.shippingCostMinor ?? 0) > 0 ? (
