@@ -6,6 +6,7 @@ import type { CronHealthSnapshot, CronJobId, CronRunRecord } from "@/lib/cron-he
 const JOB_LABELS: Record<CronJobId, string> = {
   cartAbandonmentRemind: "Sepet terk hatırlatma",
   marketplaceOrders: "Pazar yeri sipariş çekme",
+  ordersAutoDeliver: "Kargoda kalan siparişleri teslim edildi yapma",
   blogAutomation: "Blog otomasyonu",
   gscSync: "GSC arama senkronu",
   seoDistribution: "SEO indeksleme (IndexNow + sitemap)",
@@ -46,6 +47,7 @@ export function CronHealthPanel() {
   const jobs: CronJobId[] = [
     "cartAbandonmentRemind",
     "marketplaceOrders",
+    "ordersAutoDeliver",
     "blogAutomation",
     "gscSync",
     "seoDistribution",

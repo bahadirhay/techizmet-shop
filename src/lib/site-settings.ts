@@ -209,6 +209,8 @@ export type SiteSettings = {
     autoGenerateBarcode?: boolean;
     /** EAN-13 ilk 3 hane — varsayılan 869 */
     barcodePrefix?: string;
+    /** Kargoda kalan siparişler kaç gün sonra otomatik "teslim edildi" sayılsın (0 = kapalı, varsayılan 7) */
+    autoDeliverDays?: number;
     texts?: StoreTextSettings;
     /** Kargo etiketi gönderici adresi */
     shipFrom?: {

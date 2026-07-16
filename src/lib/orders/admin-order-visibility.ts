@@ -1,5 +1,8 @@
 import { ORDER_INVOICE_COMPLETE_STATUSES } from "@/lib/admin/order-invoice-workflow";
 
+import type { Prisma } from "@prisma/client";
+import { REVENUE_EXCLUDED_STATUSES } from "@/lib/admin/marketplace-platforms";
+
 /** Ödenmemiş kart siparişleri admin listelerinde görünmez (eski akış kalıntıları) */
 export const excludeUnpaidCardOrdersFilter = {
   NOT: {
@@ -7,6 +10,23 @@ export const excludeUnpaidCardOrdersFilter = {
     paymentStatus: { in: ["unpaid", "failed"] },
   },
 };
+
+/**
+ * Ciro / kâr-zarar raporlarına dahil edilmeyen siparişler.
+ * İptal/iade + ödeme tamamlanmamış kart siparişleri + yarım kalan checkout.
+ */
+export const profitabilityOrdersBaseFilter = {
+  status: { notIn: [...REVENUE_EXCLUDED_STATUSES, "awaiting_payment"] as string[] },
+  ...excludeUnpaidCardOrdersFilter,
+};
+
+export function profitabilityOrdersWhere(siteId: string, from: Date): Prisma.StoreOrderWhereInput {
+  return {
+    siteId,
+    createdAt: { gte: from },
+    ...profitabilityOrdersBaseFilter,
+  };
+}
 
 /**
  * "Onay / işlem bekleyen" siparişler: yeni gelmiş (pending) veya ödemesi alınıp

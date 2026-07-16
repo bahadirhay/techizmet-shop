@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 export type CronJobId =
   | "cartAbandonmentRemind"
   | "marketplaceOrders"
+  | "ordersAutoDeliver"
   | "blogAutomation"
   | "gscSync"
   | "seoDistribution"
@@ -32,6 +33,8 @@ const SCHEDULES: Record<CronJobId, string> = {
   cartAbandonmentRemind:
     "Harici zamanlayıcı (Hobby: günde 1×) — GET /api/cron/cart-abandonment/remind?secret=CRON_SECRET",
   marketplaceOrders: "Harici zamanlayıcı / manuel — GET /api/cron/marketplace/orders?secret=CRON_SECRET",
+  ordersAutoDeliver:
+    "Vercel cron (günlük) veya GET /api/cron/orders/auto-deliver?secret=CRON_SECRET — kargoda 7+ gün kalan siparişleri teslim edildi yapar",
   blogAutomation:
     "Harici zamanlayıcı — GET /api/cron/blog-automation/run?secret=CRON_SECRET (öneri: Pazartesi/Perşembe 09:00)",
   gscSync:

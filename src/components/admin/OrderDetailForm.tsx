@@ -145,6 +145,13 @@ export function OrderDetailForm({
           Kaydettikten sonra <strong>e-Arşiv fatura</strong> paneline yönlendirilirsiniz (takip no dolu olmalı).
         </p>
       ) : null}
+      {status === "shipped" ? (
+        <p className="text-sm text-zinc-600">
+          Müşteri paketi teslim aldıysa durumu <strong>Teslim Edildi</strong> yapın — sipariş{" "}
+          <strong>Tamamlanan</strong> listesine geçer. Teslim bilgisi yoksa sistem{" "}
+          <strong>7 gün</strong> sonra otomatik tamamlar.
+        </p>
+      ) : null}
       {msg ? <p className="text-sm text-green-700">{msg}</p> : null}
       <button type="button" className={btnPrimary} onClick={() => void save()}>
         Kaydet

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { REVENUE_EXCLUDED_STATUSES } from "@/lib/admin/marketplace-platforms";
+import { profitabilityOrdersBaseFilter, profitabilityOrdersWhere } from "@/lib/orders/admin-order-visibility";
 import { orderSourceId, orderSourceLabelById } from "@/lib/marketplace/order-source";
 import { prisma } from "@/lib/prisma";
 import type { DashboardChartPoint } from "@/lib/admin/nav-badges";
@@ -68,7 +68,7 @@ export async function loadSalesReport(
       where: {
         siteId,
         createdAt: { gte: d, lte: end },
-        status: { notIn: [...REVENUE_EXCLUDED_STATUSES] },
+        ...profitabilityOrdersBaseFilter,
       },
       _sum: { totalMinor: true },
       _count: true,
@@ -84,11 +84,7 @@ export async function loadSalesReport(
   }
 
   const totalsAgg = await prisma.storeOrder.aggregate({
-    where: {
-      siteId,
-      createdAt: { gte: from },
-      status: { notIn: [...REVENUE_EXCLUDED_STATUSES] },
-    },
+    where: profitabilityOrdersWhere(siteId, from),
     _sum: { totalMinor: true },
     _count: true,
   });
@@ -105,7 +101,7 @@ export async function loadSalesReport(
       order: {
         siteId,
         createdAt: { gte: from },
-        status: { notIn: [...REVENUE_EXCLUDED_STATUSES] },
+        ...profitabilityOrdersBaseFilter,
       },
     },
     select: { title: true, qty: true, lineMinor: true },
@@ -124,11 +120,7 @@ export async function loadSalesReport(
     .slice(0, 10);
 
   const ordersInPeriod = await prisma.storeOrder.findMany({
-    where: {
-      siteId,
-      createdAt: { gte: from },
-      status: { notIn: [...REVENUE_EXCLUDED_STATUSES] },
-    },
+    where: profitabilityOrdersWhere(siteId, from),
     select: { paymentMethod: true, totalMinor: true, marketplacePlatform: true },
   });
 

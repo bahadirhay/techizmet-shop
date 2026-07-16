@@ -140,6 +140,11 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
         badgeKey: "ordersShipped",
       },
       {
+        href: "/admin/orders?status=delivered",
+        label: "Tamamlanan",
+        perm: "store.orders",
+      },
+      {
         href: "/admin/orders?invoice=pending",
         label: "Fatura Bekleyen",
         perm: "store.orders",

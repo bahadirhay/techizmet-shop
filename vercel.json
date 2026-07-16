@@ -18,6 +18,10 @@
     {
       "path": "/api/cron/marketplace/trendyol-qna",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/orders/auto-deliver",
+      "schedule": "0 5 * * *"
     }
   ],
   "build": {

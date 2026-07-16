@@ -1,13 +1,14 @@
 import "server-only";
 
-import { parseOrderFinanceSnapshot } from "@/lib/finance/order-economics";
+import { parseOrderFinanceSnapshot, alignSnapshotToOrder } from "@/lib/finance/order-economics";
 import {
   lineProductCostMinor,
   lineWebOperatingCostMinor,
   marketplaceDeductionsFromSnapshot,
   orderTotalCostMinor,
 } from "@/lib/finance/economics-math";
-import { MARKETPLACE_PLATFORMS, REVENUE_EXCLUDED_STATUSES } from "@/lib/admin/marketplace-platforms";
+import { MARKETPLACE_PLATFORMS } from "@/lib/admin/marketplace-platforms";
+import { profitabilityOrdersWhere } from "@/lib/orders/admin-order-visibility";
 import { prisma } from "@/lib/prisma";
 
 export type ChannelProfitRow = {
@@ -103,6 +104,19 @@ function channelLabel(channel: string): string {
   return mp?.label ?? channel;
 }
 
+function resolveOrderSnapshot(order: {
+  totalMinor: number;
+  subtotalMinor: number;
+  financeSnapshotJson: string | null;
+}): ReturnType<typeof parseOrderFinanceSnapshot> {
+  const raw = parseOrderFinanceSnapshot(order.financeSnapshotJson);
+  if (!raw) return null;
+  return alignSnapshotToOrder(
+    { totalMinor: order.totalMinor, subtotalMinor: order.subtotalMinor },
+    raw,
+  );
+}
+
 export async function loadProfitabilityReport(
   siteId: string,
   periodDays = 30,
@@ -110,16 +124,13 @@ export async function loadProfitabilityReport(
   const from = periodStart(periodDays);
 
   const orders = await prisma.storeOrder.findMany({
-    where: {
-      siteId,
-      status: { notIn: [...REVENUE_EXCLUDED_STATUSES] },
-      createdAt: { gte: from },
-    },
+    where: profitabilityOrdersWhere(siteId, from),
     select: {
       id: true,
       orderNumber: true,
       marketplacePlatform: true,
       totalMinor: true,
+      subtotalMinor: true,
       createdAt: true,
       financeSnapshotJson: true,
     },
@@ -154,7 +165,7 @@ export async function loadProfitabilityReport(
 
   for (const order of orders) {
     const channel = order.marketplacePlatform ?? "web";
-    const snap = parseOrderFinanceSnapshot(order.financeSnapshotJson);
+    const snap = resolveOrderSnapshot(order);
     const gross = snap?.grossMinor ?? order.totalMinor;
     const isMarketplace = Boolean(order.marketplacePlatform);
     const estDed = snap
@@ -207,7 +218,7 @@ export async function loadProfitabilityReport(
   const estimateVsActual: EstimateVsActualRow[] = [];
 
   for (const order of orders.filter((o) => o.marketplacePlatform)) {
-    const snap = parseOrderFinanceSnapshot(order.financeSnapshotJson);
+    const snap = resolveOrderSnapshot(order);
     const estimatedMinor = snap
       ? snap.totalCommissionMinor + snap.shippingDeductionMinor
       : 0;
@@ -244,7 +255,7 @@ export async function loadProfitabilityReport(
   const payoutRows: PlatformPayoutRow[] = platformIds.map((platform) => {
     const platformOrders = orders.filter((o) => o.marketplacePlatform === platform);
     const grossSalesMinor = platformOrders.reduce((s, o) => {
-      const snap = parseOrderFinanceSnapshot(o.financeSnapshotJson);
+      const snap = resolveOrderSnapshot(o);
       return s + (snap?.grossMinor ?? o.totalMinor);
     }, 0);
     const platformDeductions = deductions.filter((d) => {
@@ -283,7 +294,7 @@ export async function loadProfitabilityReport(
   let hasActualNet = false;
 
   for (const order of orders) {
-    const snap = parseOrderFinanceSnapshot(order.financeSnapshotJson);
+    const snap = resolveOrderSnapshot(order);
     if (!snap?.lines.length) continue;
 
     const isMarketplace = Boolean(order.marketplacePlatform);
@@ -360,7 +371,7 @@ export async function loadProfitabilityReport(
 
   const orderCategoryKeys = new Map<string, Set<string>>();
   for (const order of orders) {
-    const snap = parseOrderFinanceSnapshot(order.financeSnapshotJson);
+    const snap = resolveOrderSnapshot(order);
     if (!snap) continue;
     for (const line of snap.lines) {
       const catKey = line.categoryId ?? "__none__";

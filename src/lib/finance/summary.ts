@@ -1,6 +1,6 @@
 import "server-only";
 
-import { REVENUE_EXCLUDED_STATUSES } from "@/lib/admin/marketplace-platforms";
+import { profitabilityOrdersWhere } from "@/lib/orders/admin-order-visibility";
 import { signedAmountMinor } from "@/lib/finance/types";
 import { loadProfitabilityKpis, type ProfitabilityKpis } from "@/lib/finance/profitability";
 import { prisma } from "@/lib/prisma";
@@ -48,10 +48,8 @@ export async function loadFinanceSummary(siteId: string, periodDays = 30): Promi
 
   const marketplaceOrders = await prisma.storeOrder.findMany({
     where: {
-      siteId,
+      ...profitabilityOrdersWhere(siteId, from),
       marketplacePlatform: { not: null },
-      status: { notIn: [...REVENUE_EXCLUDED_STATUSES] },
-      createdAt: { gte: from },
     },
     select: { id: true, totalMinor: true },
   });

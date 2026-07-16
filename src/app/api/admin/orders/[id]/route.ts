@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { sendOrderStatusEmailIfNeeded } from "@/lib/email/send-order-email";
 import { canTransitionOrderStatus } from "@/lib/orders/card-payment-rules";
+import { withDeliveredAt, withShippedAt } from "@/lib/orders/shipment-meta";
 import { requireStaffApi } from "@/lib/staff-auth";
 import { prisma } from "@/lib/prisma";
 
@@ -53,10 +54,19 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     return NextResponse.json({ error: statusGuard.error }, { status: 400 });
   }
 
+  let shipmentMetaJson = existing.shipmentMetaJson;
+  if (newStatus === "shipped" && existing.status !== "shipped") {
+    shipmentMetaJson = withShippedAt(shipmentMetaJson);
+  } else if (newStatus === "delivered" && existing.status !== "delivered") {
+    shipmentMetaJson = withDeliveredAt(shipmentMetaJson);
+  }
+
   const order = await prisma.storeOrder.update({
     where: { id },
     data: {
       status: newStatus !== existing.status ? newStatus : undefined,
+      shipmentMetaJson:
+        shipmentMetaJson !== existing.shipmentMetaJson ? shipmentMetaJson : undefined,
       carrierId: body.carrierId !== undefined ? String(body.carrierId ?? "").trim() || null : undefined,
       trackingNumber:
         body.trackingNumber !== undefined ? String(body.trackingNumber).trim() || null : undefined,

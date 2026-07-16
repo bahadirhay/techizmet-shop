@@ -74,6 +74,8 @@ export default async function OrdersPage({
         ? "Hazırlanan Siparişler"
         : status === "shipped"
           ? "Kargodaki Siparişler"
+          : status === "delivered"
+            ? "Tamamlanan Siparişler"
           : status === "refund_requested"
             ? "İade Talepleri"
             : "Tüm Siparişler";
@@ -86,7 +88,9 @@ export default async function OrdersPage({
         description={
           invoicePending
             ? "Kargoya verilmiş veya teslim edilmiş; e-Arşiv faturası henüz kesilmemiş siparişler."
-            : "Durum, ödeme ve kargo takibi."
+            : status === "delivered"
+              ? "Teslim edilmiş siparişler — kargo süreci tamamlanmış."
+              : "Durum, ödeme ve kargo takibi."
         }
         actions={
           <Link
@@ -115,7 +119,7 @@ export default async function OrdersPage({
         >
           Fatura Bekleyen
         </Link>
-        {(["awaiting_payment", "pending", "preparing", "shipped", "refund_requested"] as const).map((s) => (
+        {(["awaiting_payment", "pending", "preparing", "shipped", "delivered", "refund_requested"] as const).map((s) => (
           <Link
             key={s}
             href={ordersListHref({

@@ -70,6 +70,58 @@ export function parseOrderFinanceSnapshot(raw: string | null | undefined): Order
   }
 }
 
+/**
+ * Snapshot eski katalog fiyatına kilitlenmişse (Trendyol indirimli fatura tutarı gibi)
+ * siparişin güncel totalMinor değerine göre brüt, satır ve komisyonları ölçekler.
+ */
+export function alignSnapshotToOrder(
+  order: { totalMinor: number; subtotalMinor?: number },
+  snap: OrderFinanceSnapshot,
+): OrderFinanceSnapshot {
+  const grossMinor = order.totalMinor;
+  const lineSum = snap.lines.reduce((s, l) => s + l.lineMinor, 0);
+  if (snap.grossMinor === grossMinor && lineSum === grossMinor) return snap;
+
+  const oldGross = snap.grossMinor > 0 ? snap.grossMinor : lineSum;
+  if (oldGross <= 0 || grossMinor <= 0) return { ...snap, grossMinor };
+
+  const factor = grossMinor / oldGross;
+  const lines = snap.lines.map((l) => ({
+    ...l,
+    lineMinor: Math.round(l.lineMinor * factor),
+    commissionMinor: Math.round(l.commissionMinor * factor),
+  }));
+  const alignedLineSum = lines.reduce((s, l) => s + l.lineMinor, 0);
+  if (alignedLineSum !== grossMinor && lines.length > 0) {
+    lines[lines.length - 1]!.lineMinor += grossMinor - alignedLineSum;
+  }
+
+  const totalCommissionMinor = Math.round(snap.totalCommissionMinor * factor);
+  const shippingDeductionMinor = Math.round(snap.shippingDeductionMinor * factor);
+  const paymentFeeMinor = Math.round(snap.paymentFeeMinor * factor);
+  const packagingCostMinor = Math.round((snap.packagingCostMinor ?? 0) * factor);
+  const shippingCostMinor = Math.round((snap.shippingCostMinor ?? 0) * factor);
+  const totalCostMinor =
+    snap.totalCostMinor != null ? Math.round(snap.totalCostMinor) : null;
+  const deductions =
+    totalCommissionMinor + shippingDeductionMinor + paymentFeeMinor + shippingCostMinor + packagingCostMinor;
+
+  return {
+    ...snap,
+    grossMinor,
+    subtotalMinor: order.subtotalMinor ?? Math.round(snap.subtotalMinor * factor),
+    lines,
+    totalCommissionMinor,
+    shippingDeductionMinor,
+    paymentFeeMinor,
+    packagingCostMinor,
+    shippingCostMinor,
+    totalCostMinor,
+    expectedNetProfitMinor:
+      totalCostMinor != null && totalCostMinor > 0 ? grossMinor - deductions - totalCostMinor : snap.expectedNetProfitMinor,
+  };
+}
+
 /** Elle girilen gerçek değerler — snapshot yeniden hesaplansa bile korunur. */
 export type OrderFinanceActuals = {
   /** Web siparişinde gerçekten ödediğiniz kargo bedeli (kuruş) */
@@ -319,16 +371,29 @@ async function ensureEstimatedMarketplaceDeductions(
     where: { siteId, kind: "expense", name: "Pazaryeri komisyon / indirim faturası" },
   });
 
-  // Onaylı (gerçek) kesinti girildiyse ya da tahmin zaten varsa yeniden üretme.
-  const existingDeductions = await prisma.financeTransaction.count({
+  // Onaylı (gerçek) kesinti girildiyse tahmini kayıtları güncelleme.
+  const existingDeductions = await prisma.financeTransaction.findMany({
     where: {
       siteId,
       orderId,
       kind: "marketplace_deduction",
     },
+    select: { id: true, reconciliationStatus: true },
   });
 
-  if (existingDeductions > 0) return;
+  const hasConfirmed = existingDeductions.some((d) => d.reconciliationStatus !== "estimated");
+  if (hasConfirmed) return;
+
+  if (existingDeductions.length > 0) {
+    await prisma.financeTransaction.deleteMany({
+      where: {
+        siteId,
+        orderId,
+        kind: "marketplace_deduction",
+        reconciliationStatus: "estimated",
+      },
+    });
+  }
 
   const toCreate: { amountMinor: number; description: string }[] = [];
 

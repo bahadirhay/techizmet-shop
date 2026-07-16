@@ -11,6 +11,7 @@ import {
 } from "@/lib/marketplace/import-helpers";
 import { marketplacePackageRef, type MarketplaceOrderMeta } from "@/lib/marketplace/types";
 import type { TrendyolShipmentPackage } from "@/lib/marketplace/trendyol/orders";
+import { withDeliveredAt, withShippedAt } from "@/lib/orders/shipment-meta";
 
 function tryMinorFromTry(amount: number | undefined, fallback = 0): number {
   if (amount == null || !Number.isFinite(amount)) return fallback;
@@ -107,19 +108,53 @@ async function repairExistingTrendyolOrder(
 
   let changed = false;
 
-  // Kargo takip bilgisi — fatura durumundan bağımsız, her zaman güvenli güncelle.
-  // Trendyol henüz kargo bilgisi vermediyse mevcut değeri koru (null'la ezme).
+  // Trendyol durum + kargo — fatura tutarından bağımsız, her yeniden çekmede güncelle.
+  const localStatus = trendyolStatusToLocal(pkg.status);
   const trackingNumber = pkg.cargoTrackingNumber ?? order.trackingNumber ?? null;
-  const shipmentMetaJson = buildTrendyolShipmentMeta(pkg) ?? order.shipmentMetaJson ?? null;
-  if (order.trackingNumber !== trackingNumber || order.shipmentMetaJson !== shipmentMetaJson) {
+  let shipmentMetaJson = buildTrendyolShipmentMeta(pkg) ?? order.shipmentMetaJson ?? null;
+  if (localStatus === "shipped" || localStatus === "delivered") {
+    shipmentMetaJson = withShippedAt(shipmentMetaJson);
+  }
+  if (localStatus === "delivered") {
+    shipmentMetaJson = withDeliveredAt(shipmentMetaJson);
+  }
+
+  let marketplaceMetaJson = order.marketplaceMetaJson;
+  try {
+    const meta = order.marketplaceMetaJson
+      ? (JSON.parse(order.marketplaceMetaJson) as MarketplaceOrderMeta)
+      : ({
+          shipmentPackageId: pkg.shipmentPackageId,
+          orderNumber: pkg.orderNumber,
+          tyStatus: pkg.status,
+          lines: [],
+        } satisfies MarketplaceOrderMeta);
+    meta.tyStatus = pkg.status;
+    const nextMetaJson = JSON.stringify(meta);
+    if (nextMetaJson !== order.marketplaceMetaJson) marketplaceMetaJson = nextMetaJson;
+  } catch {
+    /* meta bozuksa atla */
+  }
+
+  if (
+    order.status !== localStatus ||
+    order.trackingNumber !== trackingNumber ||
+    order.shipmentMetaJson !== shipmentMetaJson ||
+    marketplaceMetaJson !== order.marketplaceMetaJson
+  ) {
     await prisma.storeOrder.update({
       where: { id: order.id },
-      data: { trackingNumber, shipmentMetaJson },
+      data: {
+        status: localStatus,
+        trackingNumber,
+        shipmentMetaJson,
+        marketplaceMetaJson,
+      },
     });
     changed = true;
   }
 
-  // Fatura kesilmişse tutarlara dokunma (kargo bilgisi yukarıda güncellendi).
+  // Fatura kesilmişse tutarlara dokunma (durum/kargo yukarıda güncellendi).
   if (order.invoiceStatus && ["signed", "marketplace_sent"].includes(order.invoiceStatus)) {
     return changed;
   }
@@ -157,13 +192,16 @@ async function repairExistingTrendyolOrder(
     changed = true;
   }
 
-  // Kâr/komisyon raporu satır tutarlarından türeyen anlık görüntüye dayanır.
-  // Tutar değiştiyse veya kayıtlı snapshot güncel toplamla uyuşmuyorsa yenile.
-  const snap = parseOrderFinanceSnapshot(order.financeSnapshotJson);
-  const snapStale = !snap || snap.grossMinor !== newTotal;
-  if (changed || snapStale) {
+  // Snapshot her zaman güncel fatura tutarıyla uyumlu olsun (eski katalog fiyatı kalıntısı).
+  const fresh = await prisma.storeOrder.findFirst({
+    where: { id: orderId, siteId },
+    select: { totalMinor: true, financeSnapshotJson: true },
+  });
+  const snap = parseOrderFinanceSnapshot(fresh?.financeSnapshotJson);
+  if (fresh && (!snap || snap.grossMinor !== fresh.totalMinor)) {
     try {
-      await applyOrderFinanceSnapshot(siteId, order.id);
+      await applyOrderFinanceSnapshot(siteId, orderId);
+      changed = true;
     } catch {
       /* snapshot hatası onarımı durdurmaz */
     }
@@ -255,6 +293,13 @@ export async function importTrendyolPackages(
 
     const localStatus = trendyolStatusToLocal(pkg.status);
     const deductStock = PRE_SHIPMENT_STATUSES.has(localStatus);
+    let createShipmentMeta = buildTrendyolShipmentMeta(pkg);
+    if (localStatus === "shipped" || localStatus === "delivered") {
+      createShipmentMeta = withShippedAt(createShipmentMeta);
+    }
+    if (localStatus === "delivered") {
+      createShipmentMeta = withDeliveredAt(createShipmentMeta);
+    }
 
     const createdOrder = await prisma.$transaction(async (tx) => {
       const created = await tx.storeOrder.create({
@@ -278,7 +323,7 @@ export async function importTrendyolPackages(
           paymentMethod: "marketplace",
           paymentStatus: "paid",
           trackingNumber: pkg.cargoTrackingNumber ?? null,
-          shipmentMetaJson: buildTrendyolShipmentMeta(pkg),
+          shipmentMetaJson: createShipmentMeta,
           marketplaceRef: ref,
           marketplacePlatform: "trendyol",
           marketplaceMetaJson: JSON.stringify(meta),
