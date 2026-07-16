@@ -480,7 +480,15 @@ export function StockReportView({
                     {new Date(m.occurredAt).toLocaleString("tr-TR")}
                   </td>
                   <td className="px-3 py-2">{m.stockItemName}</td>
-                  <td className="px-3 py-2">{m.type}</td>
+                  <td className="px-3 py-2">
+                    {m.type === "return"
+                      ? "iade"
+                      : m.type === "sale"
+                        ? "satış"
+                        : m.type === "purchase"
+                          ? "alış"
+                          : m.type}
+                  </td>
                   <td className="px-3 py-2">{formatLedgerQty(m.qtyBase, m.unit)}</td>
                   <td className="px-3 py-2">{formatStockBalance(m.balanceAfter, m.unit)}</td>
                   <td className="px-3 py-2 text-xs text-zinc-500">

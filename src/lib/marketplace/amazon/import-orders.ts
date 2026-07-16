@@ -1,10 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { applyOrderFinanceSnapshot } from "@/lib/finance/order-economics";
 import {
-  deductMarketplaceLineStock,
   findProductByBarcodeOrSku,
   mapMarketplaceStatus,
   marketplaceOrderLineExtras,
+  recordMarketplaceOrderStock,
 } from "@/lib/marketplace/import-helpers";
 import { resolveMarketplaceSalePriceMinor } from "@/lib/marketplace/product-prices";
 import { amazonOrderRef, type AmazonOrder } from "@/lib/marketplace/amazon/orders";
@@ -121,15 +121,22 @@ export async function importAmazonOrders(
             })),
           },
         },
+        include: { lines: true },
       });
 
-      for (const line of orderLines) {
-        if (!line.productId) continue;
-        touchedProductIds.add(line.productId);
-        const result = await deductMarketplaceLineStock(tx, line.productId, line.qty, line.title);
-        for (const pid of result.componentProductIds) touchedProductIds.add(pid);
-        if (!result.ok) notes.push(`${line.title}: stok yetersiz`);
-      }
+      const stock = await recordMarketplaceOrderStock(tx, {
+        siteId,
+        orderId: created.id,
+        lines: created.lines.map((l) => ({
+          id: l.id,
+          productId: l.productId,
+          variantId: l.variantId,
+          qty: l.qty,
+          title: l.title,
+        })),
+      });
+      for (const pid of stock.productIds) touchedProductIds.add(pid);
+      for (const w of stock.warnings) notes.push(w);
 
       return created;
     });

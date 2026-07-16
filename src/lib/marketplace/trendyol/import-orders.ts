@@ -5,13 +5,14 @@ import {
   parseOrderFinanceSnapshot,
 } from "@/lib/finance/order-economics";
 import {
-  deductMarketplaceLineStock,
   findProductByBarcodeOrSku,
   marketplaceOrderLineExtras,
+  recordMarketplaceOrderStock,
 } from "@/lib/marketplace/import-helpers";
 import { marketplacePackageRef, type MarketplaceOrderMeta } from "@/lib/marketplace/types";
 import type { TrendyolShipmentPackage } from "@/lib/marketplace/trendyol/orders";
 import { withDeliveredAt, withShippedAt } from "@/lib/orders/shipment-meta";
+import { isOrderStockRestoreStatus, applyOrderStockRestoreOnStatusChange } from "@/lib/stock/order-stock";
 
 function tryMinorFromTry(amount: number | undefined, fallback = 0): number {
   if (amount == null || !Number.isFinite(amount)) return fallback;
@@ -152,6 +153,37 @@ async function repairExistingTrendyolOrder(
       },
     });
     changed = true;
+
+    // İptal / iade → stok iadesi (hareket defteri + ürün stoğu)
+    if (isOrderStockRestoreStatus(localStatus)) {
+      try {
+        const { restored } = await prisma.$transaction(async (tx) => {
+          return applyOrderStockRestoreOnStatusChange(tx, {
+            siteId,
+            orderId: order.id,
+            previousStatus: order.status,
+            nextStatus: localStatus,
+          });
+        });
+        if (restored > 0) changed = true;
+      } catch (e) {
+        console.error("[trendyol] stock restore", e);
+      }
+    }
+  } else if (isOrderStockRestoreStatus(localStatus)) {
+    // Durum zaten iptal/iade — eksik stok iadesini tamamla
+    try {
+      await prisma.$transaction(async (tx) => {
+        await applyOrderStockRestoreOnStatusChange(tx, {
+          siteId,
+          orderId: order.id,
+          previousStatus: order.status,
+          nextStatus: localStatus,
+        });
+      });
+    } catch {
+      /* idempotent */
+    }
   }
 
   // Fatura kesilmişse tutarlara dokunma (durum/kargo yukarıda güncellendi).
@@ -343,18 +375,23 @@ export async function importTrendyolPackages(
             })),
           },
         },
+        include: { lines: true },
       });
 
       if (deductStock) {
-        for (const line of orderLines) {
-          if (!line.productId) continue;
-          touchedProductIds.add(line.productId);
-          const result = await deductMarketplaceLineStock(tx, line.productId, line.qty, line.title);
-          for (const pid of result.componentProductIds) touchedProductIds.add(pid);
-          if (!result.ok) {
-            notes.push(`${line.title}: stok yetersiz, sipariş yine de alındı`);
-          }
-        }
+        const stock = await recordMarketplaceOrderStock(tx, {
+          siteId,
+          orderId: created.id,
+          lines: created.lines.map((l) => ({
+            id: l.id,
+            productId: l.productId,
+            variantId: l.variantId,
+            qty: l.qty,
+            title: l.title,
+          })),
+        });
+        for (const pid of stock.productIds) touchedProductIds.add(pid);
+        for (const w of stock.warnings) notes.push(w);
       }
 
       return created;

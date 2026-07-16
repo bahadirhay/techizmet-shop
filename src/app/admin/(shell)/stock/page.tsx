@@ -2,6 +2,7 @@ import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { StockReportView } from "@/components/admin/StockAdminViews";
 import { StockInvoiceMappingsManager } from "@/components/admin/StockPackagingManager";
 import { loadStockLedger, loadStockSummary } from "@/lib/stock/report";
+import { ensureStockRestoredForCancelledOrders } from "@/lib/stock/order-stock";
 import { requireStaffPage } from "@/lib/staff-auth";
 import { prisma } from "@/lib/prisma";
 
@@ -25,6 +26,9 @@ export default async function StockReportPage({
   const from = sp.from ?? defaults.from;
   const to = sp.to ?? defaults.to;
 
+  // İptal/iade edilmiş ama stok iadesi yazılmamış siparişleri bir kez tamamla
+  await ensureStockRestoredForCancelledOrders(auth.siteId).catch(() => undefined);
+
   const [summary, ledger, mappings, stockItems] = await Promise.all([
     loadStockSummary(auth.siteId, { from, to }),
     loadStockLedger(auth.siteId, { from, to }),
@@ -45,7 +49,7 @@ export default async function StockReportPage({
       <AdminPageHeader
         breadcrumb={[{ label: "Ön muhasebe", href: "/admin/finance" }, { label: "Stok raporu" }]}
         title="Stok hareketleri"
-        description="Tarih aralığına göre giriş, çıkış ve bakiye. Alış faturası onayı ve satış siparişleri otomatik işlenir."
+        description="Tarih aralığına göre giriş, çıkış ve bakiye. Alış faturası onayı ve satış siparişleri otomatik işlenir. İptal veya iade onayı (İade Edildi) stoğu giriş olarak geri yazar."
       />
       <StockReportView
         from={from}

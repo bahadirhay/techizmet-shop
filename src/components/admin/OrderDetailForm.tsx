@@ -94,6 +94,16 @@ export function OrderDetailForm({
             </option>
           ))}
         </select>
+        {status === "refunded" || status === "cancelled" ? (
+          <p className="mt-1 text-xs text-emerald-700">
+            Kaydettiğinizde ürünler stoğa otomatik geri yazılır (stok hareketlerinde giriş).
+          </p>
+        ) : status === "refund_requested" ? (
+          <p className="mt-1 text-xs text-amber-700">
+            İade talebi — stok henüz geri yazılmaz. Kabul edince durumu «İade Edildi» yapın; stok otomatik
+            eklenir.
+          </p>
+        ) : null}
       </AdminField>
       <AdminField label="Kargo firması">
         <select className={inputClass} value={carrierId} onChange={(e) => setCarrierId(e.target.value)}>

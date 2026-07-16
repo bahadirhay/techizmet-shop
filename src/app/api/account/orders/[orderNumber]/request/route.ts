@@ -16,6 +16,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ orderNumber: s
       orderNumber,
       customerId: auth.customer.id,
     },
+    include: { lines: { select: { productId: true } } },
   });
 
   if (!order) {
@@ -30,11 +31,37 @@ export async function POST(req: Request, ctx: { params: Promise<{ orderNumber: s
   const reason = String(body.reason ?? "").trim();
   const note = type === "cancel" ? "Müşteri iptal talebi" : "Müşteri iade talebi";
   const adminNotes = [order.adminNotes, reason ? `${note}: ${reason}` : note].filter(Boolean).join(" · ");
+  const previousStatus = order.status;
 
   const updated = await prisma.storeOrder.update({
     where: { id: order.id },
     data: { status: check.nextStatus, adminNotes },
   });
+
+  // İptal → stoğu geri yaz. İade talebi (refund_requested) stok düşürmez;
+  // admin "İade Edildi" yaptığında stok iade edilir.
+  if (type === "cancel") {
+    try {
+      const { applyOrderStockRestoreOnStatusChange } = await import("@/lib/stock/order-stock");
+      const { restored } = await prisma.$transaction(async (tx) => {
+        return applyOrderStockRestoreOnStatusChange(tx, {
+          siteId: auth.siteId,
+          orderId: order.id,
+          previousStatus,
+          nextStatus: check.nextStatus,
+        });
+      });
+      if (restored > 0) {
+        const productIds = [
+          ...new Set(order.lines.map((l) => l.productId).filter((id): id is string => Boolean(id))),
+        ];
+        const { syncStockToAllMarketplaces } = await import("@/lib/marketplace/stock-sync-all");
+        await syncStockToAllMarketplaces(auth.siteId, productIds).catch(() => undefined);
+      }
+    } catch (e) {
+      console.error("[stock] customer cancel restore", e);
+    }
+  }
 
   return NextResponse.json({
     ok: true,

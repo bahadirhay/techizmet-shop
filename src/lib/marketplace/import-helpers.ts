@@ -61,6 +61,61 @@ export async function deductMarketplaceLineStock(
   return deductProductStock(db, productId, qty, lineTitle);
 }
 
+/**
+ * Pazaryeri siparişi için stok hareketi yazar (satış çıkışı).
+ * İptal/iade onayında restoreOrderStockMovements ile geri alınır.
+ */
+export async function recordMarketplaceOrderStock(
+  db: Prisma.TransactionClient,
+  params: {
+    siteId: string;
+    orderId: string;
+    lines: {
+      id: string;
+      productId: string | null;
+      variantId?: string | null;
+      qty: number;
+      title: string;
+    }[];
+  },
+): Promise<{ ok: boolean; productIds: string[]; warnings: string[] }> {
+  const { recordOrderStockMovements } = await import("@/lib/stock/order-stock");
+  const productIds = [
+    ...new Set(params.lines.map((l) => l.productId).filter((id): id is string => Boolean(id))),
+  ];
+  if (!productIds.length) return { ok: true, productIds: [], warnings: [] };
+
+  const products = await db.storeProduct.findMany({
+    where: { id: { in: productIds }, siteId: params.siteId },
+    select: { id: true, kind: true },
+  });
+  const productKinds = new Map(products.map((p) => [p.id, p.kind ?? "standard"]));
+  const warnings: string[] = [];
+
+  try {
+    await recordOrderStockMovements(db, {
+      siteId: params.siteId,
+      orderId: params.orderId,
+      lines: params.lines
+        .filter((l): l is typeof l & { productId: string } => Boolean(l.productId))
+        .map((l) => ({
+          id: l.id,
+          productId: l.productId,
+          variantId: l.variantId ?? null,
+          qty: l.qty,
+          title: l.title,
+        })),
+      productKinds,
+      allowNegative: true,
+    });
+  } catch (e) {
+    warnings.push(e instanceof Error ? e.message : "Stok düşümü başarısız");
+    return { ok: false, productIds, warnings };
+  }
+
+  return { ok: true, productIds, warnings };
+}
+
 export function mapMarketplaceStatus(platform: string, raw?: string | null): string {
   const s = (raw ?? "").toLowerCase();
   if (platform === "amazon_tr") {

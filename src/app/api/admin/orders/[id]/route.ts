@@ -84,26 +84,30 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   }
 
   if (newStatus !== existing.status) {
-    const { isOrderStockRestoreStatus, restoreOrderStockMovements } = await import(
+    const { isOrderStockRestoreStatus, applyOrderStockRestoreOnStatusChange } = await import(
       "@/lib/stock/order-stock"
     );
-    if (isOrderStockRestoreStatus(newStatus) && !isOrderStockRestoreStatus(existing.status)) {
-        try {
-          await prisma.$transaction(async (tx) => {
-            await restoreOrderStockMovements(tx, {
-              siteId: auth.siteId,
-              orderId: order.id,
-              staffUserId: auth.staffUserId,
-            });
+    if (isOrderStockRestoreStatus(newStatus)) {
+      try {
+        const { restored } = await prisma.$transaction(async (tx) => {
+          return applyOrderStockRestoreOnStatusChange(tx, {
+            siteId: auth.siteId,
+            orderId: order.id,
+            previousStatus: existing.status,
+            nextStatus: newStatus,
+            staffUserId: auth.staffUserId,
           });
+        });
+        if (restored > 0) {
           const productIds = [
             ...new Set(order.lines.map((l) => l.productId).filter((id): id is string => Boolean(id))),
           ];
           const { syncStockToAllMarketplaces } = await import("@/lib/marketplace/stock-sync-all");
           await syncStockToAllMarketplaces(auth.siteId, productIds).catch(() => undefined);
-        } catch (e) {
-          console.error("[stock] order restore", e);
         }
+      } catch (e) {
+        console.error("[stock] order restore", e);
+      }
     }
 
     await sendOrderStatusEmailIfNeeded(order.id, existing.status, newStatus).catch((e) =>
