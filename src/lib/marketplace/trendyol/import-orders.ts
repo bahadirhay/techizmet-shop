@@ -70,9 +70,6 @@ function trendyolStatusToLocal(tyStatus: string | undefined): string {
   }
 }
 
-/** Yalnızca sevkiyat öncesi durumlarda iç stok düşülür (geçmiş siparişlerde çift düşümü önler). */
-const PRE_SHIPMENT_STATUSES = new Set(["pending", "confirmed"]);
-
 /**
  * Trendyol kargo bilgisini shipmentMetaJson için hazırlar (kargo firması,
  * takip no, doğrudan takip linki, gönderi no). Hiç kargo bilgisi yoksa null.
@@ -324,7 +321,9 @@ export async function importTrendyolPackages(
     );
 
     const localStatus = trendyolStatusToLocal(pkg.status);
-    const deductStock = PRE_SHIPMENT_STATUSES.has(localStatus);
+    // İptal/iade hariç tüm yeni siparişlerde stok düş (shipped/delivered dahil —
+    // geçmiş paketler PRE_SHIPMENT filtresi yüzünden hiç düşülmüyordu).
+    const deductStock = !isOrderStockRestoreStatus(localStatus);
     let createShipmentMeta = buildTrendyolShipmentMeta(pkg);
     if (localStatus === "shipped" || localStatus === "delivered") {
       createShipmentMeta = withShippedAt(createShipmentMeta);
