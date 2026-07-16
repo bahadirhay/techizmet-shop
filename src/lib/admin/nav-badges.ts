@@ -20,7 +20,8 @@ async function loadNavBadgesUncached(siteId: string): Promise<NavBadges> {
       safeCount("storeOrder", { where: { siteId, status: "preparing" } }),
       safeCount("storeOrder", { where: { siteId, status: "shipped" } }),
       safeCount("storeOrder", {
-        where: { siteId, status: { in: ["refund_requested", "cancelled"] } },
+        // İptaller asla sayılmaz — yalnızca işlem bekleyen iade talepleri.
+        where: { siteId, status: "refund_requested" },
       }),
       safeCount("storeOrder", { where: { siteId, ...orderInvoicePendingWhere() } }),
     ]);
