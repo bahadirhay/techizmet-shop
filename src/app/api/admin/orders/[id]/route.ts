@@ -24,9 +24,26 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   if (!existing) return NextResponse.json({ error: "Bulunamadı" }, { status: 404 });
 
   const body = (await req.json()) as Record<string, unknown>;
-  const newStatus = body.status != null ? String(body.status) : existing.status;
+  let newStatus = body.status != null ? String(body.status) : existing.status;
   const newPaymentStatus =
     body.paymentStatus != null ? String(body.paymentStatus) : existing.paymentStatus;
+
+  // Takip no İLK KEZ girildiğinde ve sipariş hâlâ kargo öncesi durumdaysa
+  // (yeni/onaylandı/hazırlanıyor) otomatik "kargoya verildi" say — kullanıcı ayrıca
+  // durum menüsünü değiştirmese bile sipariş Kargoda listesine geçsin.
+  const trackingInput =
+    body.trackingNumber !== undefined
+      ? String(body.trackingNumber).trim()
+      : (existing.trackingNumber ?? "").trim();
+  const trackingWasEmpty = !(existing.trackingNumber ?? "").trim();
+  const preShipStatuses = new Set(["pending", "confirmed", "preparing"]);
+  if (trackingInput && trackingWasEmpty && preShipStatuses.has(newStatus)) {
+    const shipGuard = canTransitionOrderStatus(
+      { paymentMethod: existing.paymentMethod, paymentStatus: newPaymentStatus },
+      "shipped",
+    );
+    if (shipGuard.ok) newStatus = "shipped";
+  }
 
   const statusGuard = canTransitionOrderStatus(
     { paymentMethod: existing.paymentMethod, paymentStatus: newPaymentStatus },
@@ -39,7 +56,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   const order = await prisma.storeOrder.update({
     where: { id },
     data: {
-      status: body.status != null ? newStatus : undefined,
+      status: newStatus !== existing.status ? newStatus : undefined,
       carrierId: body.carrierId !== undefined ? String(body.carrierId ?? "").trim() || null : undefined,
       trackingNumber:
         body.trackingNumber !== undefined ? String(body.trackingNumber).trim() || null : undefined,
@@ -56,7 +73,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     console.error("[street-food-fund]", e);
   }
 
-  if (body.status != null && newStatus !== existing.status) {
+  if (newStatus !== existing.status) {
     const { isOrderStockRestoreStatus, restoreOrderStockMovements } = await import(
       "@/lib/stock/order-stock"
     );
