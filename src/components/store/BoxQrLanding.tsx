@@ -198,7 +198,7 @@ export function BoxQrLanding({
             </button>
             <p className={styles.login}>
               Zaten üye misin?{" "}
-              <Link href="/account/login?next=%2Fbox">Giriş yap, ödülü al</Link>
+              <Link href="/account/login?next=%2Fbox&themeShell=1">Giriş yap, ödülü al</Link>
             </p>
           </form>
         )}

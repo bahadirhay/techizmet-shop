@@ -31,6 +31,7 @@ export type ThemeShellVitrinRoute = keyof typeof THEME_SHELL_VITRIN_ROUTES;
 
 /** Sepet, ödeme, hesap, arama — tema kabuğu (embed yalnızca ?embed=1 ile minimal) */
 export const THEME_SHELL_COMMERCE_PATHS = [
+  "/box",
   "/cart",
   "/checkout",
   "/checkout/pay",
