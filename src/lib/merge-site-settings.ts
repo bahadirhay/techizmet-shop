@@ -189,6 +189,9 @@ export function mergeSiteSettings(current: SiteSettings, patch: SiteSettings): S
     streetFoodFund: patch.streetFoodFund
       ? { ...current.streetFoodFund, ...patch.streetFoodFund }
       : current.streetFoodFund,
+    boxQrCampaign: patch.boxQrCampaign
+      ? { ...current.boxQrCampaign, ...patch.boxQrCampaign }
+      : current.boxQrCampaign,
     geliver: patch.geliver ? mergeGeliverSettings(current.geliver, patch.geliver) : current.geliver,
     socialPublish: patch.socialPublish
       ? mergeSocialPublishSettings(current.socialPublish, patch.socialPublish)

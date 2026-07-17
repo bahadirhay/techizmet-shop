@@ -307,6 +307,8 @@ export type SiteSettings = {
   geliver?: import("@/lib/shipping/geliver/types").GeliverSiteSettings;
   /** Sokak dostları mama fonu */
   streetFoodFund?: import("@/lib/street-food-fund/types").StreetFoodFundSettings;
+  /** Paket QR (/box) — kayıt ödülü kampanyası */
+  boxQrCampaign?: import("@/lib/box-qr/types").BoxQrCampaignSettings;
   /** Sosyal medya otomatik yayın — Meta, TikTok, YouTube, LinkedIn */
   socialPublish?: StoreSocialPublishSettings;
 };

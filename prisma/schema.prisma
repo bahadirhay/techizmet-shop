@@ -41,6 +41,7 @@ model StoreSite {
   customers                       StoreCustomer[]
   customerGroups                  CustomerGroup[]
   campaigns                       StoreCampaign[]
+  customerPromoGrants             CustomerPromoGrant[]
   cookieConsentLogs               CookieConsentLog[]
   visitorProfiles                 VisitorProfile[]
   storeEvents                     StoreEvent[]
@@ -993,6 +994,7 @@ model StoreCustomer {
   financeInvoices          FinanceInvoice[]
   financeCounterparties    FinanceCounterparty[]
   visitorProfiles          VisitorProfile[]
+  promoGrants              CustomerPromoGrant[]
 
   @@unique([siteId, email])
   @@unique([siteId, googleSub])
@@ -1000,6 +1002,28 @@ model StoreCustomer {
   @@index([siteId, email])
   @@index([customerGroupId])
   @@map("customer")
+  @@schema("shop")
+}
+
+/** Paket QR vb. kaynaklardan verilen kişisel, süreli indirim hakkı */
+model CustomerPromoGrant {
+  id         String        @id @default(cuid())
+  siteId     String
+  site       StoreSite     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  customerId String
+  customer   StoreCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  /** box_qr | … */
+  source     String
+  code       String
+  percentOff Int
+  expiresAt  DateTime
+  redeemedAt DateTime?
+  createdAt  DateTime      @default(now())
+
+  @@unique([siteId, customerId, source])
+  @@unique([siteId, code])
+  @@index([siteId, source])
+  @@map("customer_promo_grant")
   @@schema("shop")
 }
 

@@ -90,8 +90,34 @@ export async function POST(req: Request) {
       });
 
   await setCustomerSession(customer.id, email, site.id);
+
+  let boxGrant: {
+    code: string;
+    percentOff: number;
+    expiresAt: string;
+    alreadyHad: boolean;
+  } | null = null;
+  const source = String(body.source ?? "").trim();
+  if (source === "box_qr" && !existing) {
+    try {
+      const { grantBoxQrReward } = await import("@/lib/box-qr/grant");
+      const grant = await grantBoxQrReward(site.id, customer.id);
+      if (grant.ok) {
+        boxGrant = {
+          code: grant.code,
+          percentOff: grant.percentOff,
+          expiresAt: grant.expiresAt,
+          alreadyHad: grant.alreadyHad,
+        };
+      }
+    } catch (e) {
+      console.error("[box-qr] register grant", e);
+    }
+  }
+
   return NextResponse.json({
     ok: true,
     b2bPending: b2bApplication && customer.b2bStatus === "pending",
+    ...(boxGrant ? { boxGrant } : {}),
   });
 }
