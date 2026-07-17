@@ -2,6 +2,7 @@
   position: relative;
   min-height: 100vh;
   overflow: hidden;
+  border-radius: 0 0 20px 20px;
   background:
     radial-gradient(1200px 600px at 10% -10%, #3d5a40 0%, transparent 55%),
     radial-gradient(900px 500px at 100% 20%, #c45c26 0%, transparent 45%),
@@ -238,5 +239,11 @@
 @media (max-width: 480px) {
   .grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 768px) {
+  .boxQr {
+    border-radius: 0 0 50px 50px;
   }
 }
