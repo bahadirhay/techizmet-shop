@@ -91,15 +91,15 @@ export function StoreSeoSettingsForm({
           label="Site logosu (koyu arka plan)"
           value={branding.logoUrl}
           onChange={(url) => setBranding((b) => ({ ...b, logoUrl: url }))}
-          logoFit={{ maxWidth: 360, maxHeight: 96, trim: true }}
-          hint="PNG önerilir. Boş kenarlar otomatik kırpılır; oran bozulmaz. Açık zeminli koyu logo yükleyin."
+          logoFit={{ maxWidth: 1600, maxHeight: 400, trim: true }}
+          hint="PNG (şeffaf zemin) önerilir — en az ~800–1200 px genişlik. Boş kenarlar kırpılır; oran bozulmaz. Açık zeminli koyu logo."
         />
         <ImageUploadField
           label="Logo (açık / şeffaf header)"
           value={branding.logoUrlLight}
           onChange={(url) => setBranding((b) => ({ ...b, logoUrlLight: url }))}
-          logoFit={{ maxWidth: 360, maxHeight: 96, trim: true }}
-          hint="Koyu veya şeffaf header için beyaz/açık renkli logo."
+          logoFit={{ maxWidth: 1600, maxHeight: 400, trim: true }}
+          hint="Koyu/şeffaf header için beyaz logo — PNG, şeffaf zemin, aynı yüksek çözünürlük."
         />
         <ImageUploadField
           label="Favicon"

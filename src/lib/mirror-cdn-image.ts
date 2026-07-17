@@ -69,14 +69,21 @@ export function mirrorImageNeedsResize(img: Pick<HTMLImageElement, "src" | "getA
   return false;
 }
 
-export const STORE_LOGO_RESIZE_WIDTH = 180;
+/**
+ * Header logosu — retina için kaynak çözünürlüğün altına düşürme.
+ * Eski 180px değeri 180 CSS px / 2–3x DPR ekranlarda bulanık görünüyordu.
+ * Media API native üstüne büyütmez; width üst sınırı güvenli.
+ */
+export const STORE_LOGO_RESIZE_WIDTH = 640;
 
-/** Header logosu — PNG/JPG küçült, SVG olduğu gibi */
+/** Header logosu — PNG/JPG retina-güvenli boyut, SVG olduğu gibi */
 export function optimizeStoreLogoUrl(url: string | undefined | null): string | undefined {
   const trimmed = url?.trim();
   if (!trimmed) return undefined;
   const path = trimmed.split("?")[0] ?? trimmed;
   if (/\.svg$/i.test(path)) return trimmed;
+  // /api/media/:id — width parametresiz tam dosya (küçük native PNG'yi 180'e düşürme)
+  if (/^\/api\/media\/[^/]+$/i.test(path)) return path;
   if (!isResizableMirrorImageUrl(trimmed)) return trimmed;
   return mirrorCdnImageUrl(trimmed, STORE_LOGO_RESIZE_WIDTH);
 }

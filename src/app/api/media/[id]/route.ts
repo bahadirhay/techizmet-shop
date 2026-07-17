@@ -79,7 +79,12 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
       const resized = await resizeImageBuffer(body, width, mimeType);
       out = resized.body;
       mimeType = resized.mimeType;
-    } else if (acceptsWebp && !mimeType.includes("webp")) {
+    } else if (
+      acceptsWebp &&
+      !mimeType.includes("webp") &&
+      // PNG logo/favicon — lossy WebP ince çizgileri bozar; orijinal kalsın
+      !mimeType.includes("png")
+    ) {
       out = await sharp(body).rotate().webp({ quality: 82 }).toBuffer();
       mimeType = "image/webp";
     }

@@ -113,7 +113,8 @@ export function ImageUploadField({
               maxWidth: logoFit.maxWidth,
               maxHeight: logoFit.maxHeight,
               trim: logoFit.trim !== false,
-              mime: file.type === "image/jpeg" ? "image/jpeg" : "image/png",
+              // JPEG ince çizgileri bulanıklaştırır — logo her zaman PNG
+              mime: "image/png",
             })
           : await resizeImageToBlob(
               img,
@@ -181,7 +182,7 @@ export function ImageUploadField({
             <img
               src={value}
               alt=""
-              className={`max-h-40 object-contain object-left ${logoFit ? "max-w-[min(100%,360px)]" : "max-w-[min(100%,280px)]"}`}
+              className={`max-h-40 object-contain object-left ${logoFit ? "max-w-[min(100%,480px)]" : "max-w-[min(100%,280px)]"}`}
               onError={(e) => {
                 (e.target as HTMLImageElement).style.opacity = "0.35";
               }}

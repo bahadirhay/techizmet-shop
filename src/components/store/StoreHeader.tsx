@@ -32,7 +32,12 @@ export function StoreHeader({
             <Link className="header--logo" href="/" aria-label={siteName}>
               {logoSrc ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img className="header--logo-img" src={logoSrc} alt={siteName} width={90} height={43} />
+                <img
+                  className="header--logo-img"
+                  src={logoSrc}
+                  alt={siteName}
+                  decoding="async"
+                />
               ) : (
                 <span className="header--logo-text">{siteName}</span>
               )}
