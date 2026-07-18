@@ -13,7 +13,7 @@ import type { TrendyolCredentials } from "@/lib/marketplace/trendyol/client";
 import { syncTrendyolPriceAndInventory } from "@/lib/marketplace/trendyol/inventory";
 import { lookupTrendyolProductByBarcode } from "@/lib/marketplace/trendyol/products";
 import { toAbsoluteMediaUrl } from "@/lib/seo/site-url";
-import { htmlToPlainText } from "@/lib/html-plain-text";
+import { toTrendyolDescriptionHtml, sanitizeMarketplacePlainText } from "@/lib/html-plain-text";
 import { prisma } from "@/lib/prisma";
 
 type TrendyolProduct = {
@@ -287,7 +287,9 @@ function buildTrendyolItemBase(
 
   return {
     barcode: p.barcode!.trim(),
-    title: buildPlatformListingTitle("trendyol", p.title, p.brand?.name ?? undefined),
+    title: sanitizeMarketplacePlainText(
+      buildPlatformListingTitle("trendyol", p.title, p.brand?.name ?? undefined),
+    ),
     productMainId: p.sku?.trim() || p.slug,
     stockCode: p.sku?.trim() || p.slug,
     brandId: mapped.brandId,
@@ -296,11 +298,11 @@ function buildTrendyolItemBase(
     deliveryOption: deliveryDuration ? { deliveryDuration } : undefined,
     shipmentAddressId,
     returningAddressId,
-    description:
-      (
-        (p.description ?? "").trim() ||
-        htmlToPlainText(p.descriptionHtml ?? "").trim()
-      ).slice(0, 3000) || undefined,
+    description: toTrendyolDescriptionHtml({
+      description: p.description,
+      descriptionHtml: p.descriptionHtml,
+      imageUrl: imageUrls[0] ?? p.imageUrl,
+    }),
     images: imageUrls.length ? imageUrls.map((url) => ({ url })) : undefined,
     attributes: attributes.length ? attributes : undefined,
   };

@@ -1,3 +1,5 @@
+import { toAbsoluteMediaUrl } from "@/lib/seo/site-url";
+
 /** Admin metin kutuları — HTML yerine satır sonları */
 
 const ENTITY: Record<string, string> = {
@@ -10,13 +12,95 @@ const ENTITY: Record<string, string> = {
 };
 
 export function decodeHtmlEntities(s: string): string {
-  return s.replace(/&(#\d+|#x[\da-fA-F]+|\w+);/g, (_, ent: string) => {
-    if (ent[0] === "#") {
-      const code = ent[1] === "x" ? parseInt(ent.slice(2), 16) : parseInt(ent.slice(1), 10);
-      return Number.isFinite(code) ? String.fromCodePoint(code) : _;
+  let out = s;
+  for (let i = 0; i < 5; i++) {
+    const prev = out;
+    out = out.replace(/&(#\d+|#[xX][\da-fA-F]+|\w+);/g, (_, ent: string) => {
+      if (ent[0] === "#") {
+        const code = ent[1] === "x" || ent[1] === "X" ? parseInt(ent.slice(2), 16) : parseInt(ent.slice(1), 10);
+        return Number.isFinite(code) ? String.fromCodePoint(code) : _;
+      }
+      return ENTITY[ent.toLowerCase()] ?? _;
+    });
+    // Eksik noktalı virgüllü yaygın entity'ler: &amp &lt ...
+    // `;` hariç — aksi halde &amp;amp; → &amp; sonrası &amp eşleşip &; olur.
+    out = out.replace(/&(amp|lt|gt|quot|apos|nbsp)(?![a-zA-Z0-9;])/gi, (_, name: string) => {
+      return ENTITY[name.toLowerCase()] ?? `&${name}`;
+    });
+    if (out === prev) break;
+  }
+  return out;
+}
+
+/**
+ * Pazaryeri / düz metin: entity decode + etiket temizliği.
+ * Çift encode (&amp;amp;) ve noktalı virgülsüz &amp durumlarını düzeltir.
+ */
+export function sanitizeMarketplacePlainText(text: string): string {
+  if (!text?.trim()) return "";
+  let s = text.replace(/\r\n/g, "\n");
+  s = s.replace(/<br\s*\/?>/gi, "\n");
+  s = s.replace(/<\/p>\s*/gi, "\n\n");
+  s = s.replace(/<p[^>]*>/gi, "");
+  s = s.replace(/<[^>]+>/g, "");
+  s = decodeHtmlEntities(s);
+  return s.replace(/\u00a0/g, " ").replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+/** Trendyol description alanı HTML ister — çıplak & kesilir / &amp olarak görünür. */
+export function toTrendyolDescriptionHtml(input: {
+  description?: string | null;
+  descriptionHtml?: string | null;
+  imageUrl?: string | null;
+}): string {
+  const rawHtml = (input.descriptionHtml ?? "").trim();
+  const rawPlain = (input.description ?? "").trim();
+
+  let html: string;
+  if (rawHtml && /<[a-z][\s\S]*>/i.test(rawHtml)) {
+    html = sanitizeTrendyolHtmlFragment(rawHtml);
+  } else {
+    const plain = sanitizeMarketplacePlainText(rawPlain || rawHtml);
+    html = plainToSafeHtmlParagraphs(plain);
+  }
+
+  // Trendyol: 4k altı açıklamada en az bir img önerilir
+  if (html.length < 4000) {
+    const img = toAbsoluteHttpsImage(input.imageUrl);
+    if (img && !/<img\b/i.test(html)) {
+      html += `<img src="${escapeHtml(img)}" alt=""/>`;
     }
-    return ENTITY[ent] ?? _;
-  });
+  }
+
+  return html.slice(0, 30000) || "<p>-</p>";
+}
+
+function toAbsoluteHttpsImage(url: string | null | undefined): string | null {
+  const absolute = toAbsoluteMediaUrl((url ?? "").trim());
+  if (!absolute) return null;
+  if (/^https:\/\//i.test(absolute)) return absolute;
+  if (/^http:\/\//i.test(absolute)) return absolute.replace(/^http:\/\//i, "https://");
+  return null;
+}
+
+function plainToSafeHtmlParagraphs(plain: string): string {
+  if (!plain) return "<p>-</p>";
+  const escaped = escapeHtml(plain);
+  const paras = escaped.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
+  if (paras.length <= 1) {
+    return `<p>${escaped.replace(/\n/g, "<br/>")}</p>`;
+  }
+  return paras.map((p) => `<p>${p.replace(/\n/g, "<br/>")}</p>`).join("");
+}
+
+/** Mevcut HTML: script/style temizle, çıplak & → &amp; (çift encode etme). */
+export function sanitizeTrendyolHtmlFragment(html: string): string {
+  let h = html.replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<style[\s\S]*?<\/style>/gi, "");
+  // Önce bozuk entity'leri düzelt (amp;amp; / &amp )
+  h = decodeHtmlEntities(h);
+  // Sonra HTML için gerekli escape — sadece çıplak &
+  h = h.replace(/&(?!(#\d+|#[xX][\da-fA-F]+|\w+);)/g, "&amp;");
+  return h.trim();
 }
 
 /** Vitrindeki HTML → düzenleme kutusunda düz metin */
