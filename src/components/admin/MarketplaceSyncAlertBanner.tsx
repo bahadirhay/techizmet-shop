@@ -78,7 +78,7 @@ export function MarketplaceSyncAlertBanner() {
       <div className="mt-2 flex flex-wrap gap-2">
         {alert.stalePlatforms.includes("trendyol") || alert.notListedPlatforms.includes("trendyol") ? (
           <Link
-            href="/admin/integrations/marketplaces/trendyol"
+            href="/admin/integrations?platform=trendyol"
             className="rounded-lg border border-amber-300 bg-white px-2.5 py-1 text-xs font-medium hover:bg-amber-100"
           >
             Trendyol ({marketplacePlatformShort("trendyol")})
@@ -86,7 +86,7 @@ export function MarketplaceSyncAlertBanner() {
         ) : null}
         {alert.stalePlatforms.includes("amazon_tr") || alert.notListedPlatforms.includes("amazon_tr") ? (
           <Link
-            href="/admin/integrations/marketplaces/amazon"
+            href="/admin/integrations?platform=amazon_tr"
             className="rounded-lg border border-amber-300 bg-white px-2.5 py-1 text-xs font-medium hover:bg-amber-100"
           >
             Amazon ({marketplacePlatformShort("amazon_tr")})
@@ -95,7 +95,7 @@ export function MarketplaceSyncAlertBanner() {
         {alert.stalePlatforms.includes("hepsiburada") ||
         alert.notListedPlatforms.includes("hepsiburada") ? (
           <Link
-            href="/admin/integrations/marketplaces/hepsiburada"
+            href="/admin/integrations?platform=hepsiburada"
             className="rounded-lg border border-amber-300 bg-white px-2.5 py-1 text-xs font-medium hover:bg-amber-100"
           >
             Hepsiburada ({marketplacePlatformShort("hepsiburada")})
