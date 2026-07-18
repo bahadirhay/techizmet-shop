@@ -993,9 +993,9 @@ export function StoreSettingsForm({ initial }: { initial: SiteSettings }) {
           <p className="text-xs text-zinc-500">
             Manuel sıra için{" "}
             <Link href="/admin/products/home-order" className="text-[var(--kn-brand)] underline">
-              Ürünler → Ana sayfa sırası
+              Ürünler → Ürün sırası
             </Link>{" "}
-            sayfasından sürükleyip kaydedin.
+            sayfasından sürükleyip kaydedin (ana sayfa ve katalog ayrı).
           </p>
         </div>
       </section>

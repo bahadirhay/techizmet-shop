@@ -273,12 +273,14 @@ export function MirrorVitrinFrameClient({
     async function finishCatalogAndVisibility(doc: Document) {
       const catalogGen = liveCatalogGenRef.current;
       const catalogHydrated = mirrorCatalogAlreadyHydrated(doc, locale ?? "tr");
+      const hasFreshHomeProducts = Boolean(homeProductsFromAdmin?.length);
       try {
-        if (!visualEditMode && !isCartOrCheckoutShell && !catalogHydrated) {
+        // Prebuild HTML sırayı dondurmasın: taze admin ürün listesi veya henüz hydrate edilmemiş katalog
+        if (!visualEditMode && !isCartOrCheckoutShell && (!catalogHydrated || hasFreshHomeProducts)) {
           let payload: LiveStoreCatalogPayload | null = null;
-          if (homeProductsFromAdmin?.length && mirrorTexts) {
+          if (hasFreshHomeProducts && mirrorTexts) {
             // Sunucu tarafından gelen taze veri — ayrı network isteği gerekmez
-            payload = { products: homeProductsFromAdmin, texts: mirrorTexts };
+            payload = { products: homeProductsFromAdmin!, texts: mirrorTexts };
           } else {
             payload = await fetchLiveStoreCatalog();
           }

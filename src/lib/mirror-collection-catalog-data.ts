@@ -82,11 +82,16 @@ export async function loadCollectionCatalogCore(
     variants: { select: { label: true, stockQty: true } },
   } as const;
 
+  const listingOrderBy =
+    !categorySlug && slug === "all"
+      ? [{ catalogSortOrder: "asc" as const }, { title: "asc" as const }]
+      : [{ title: "asc" as const }];
+
   const [totalProductCount, products, facetProducts, reviewStats] = await Promise.all([
     db.storeProduct.count({ where: productWhere }),
     db.storeProduct.findMany({
       where: productWhere,
-      orderBy: { title: "asc" },
+      orderBy: listingOrderBy,
       skip: (safePage - 1) * MIRROR_COLLECTION_PAGE_SIZE,
       take: MIRROR_COLLECTION_PAGE_SIZE,
       select: {

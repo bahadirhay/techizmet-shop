@@ -50,9 +50,10 @@ export async function POST(req: Request) {
 
   const maxSort = await prisma.storeProduct.aggregate({
     where: { siteId: auth.siteId },
-    _max: { sortOrder: true },
+    _max: { sortOrder: true, catalogSortOrder: true },
   });
   const nextSortOrder = (maxSort._max.sortOrder ?? -1) + 1;
+  const nextCatalogSortOrder = (maxSort._max.catalogSortOrder ?? -1) + 1;
 
   const variants = parseVariantInputs(body.variants);
   const variantOptionName = String(body.variantOptionName ?? "").trim() || null;
@@ -128,6 +129,7 @@ export async function POST(req: Request) {
         ),
         published: body.published !== false,
         sortOrder: nextSortOrder,
+        catalogSortOrder: nextCatalogSortOrder,
         images: {
           create: mediaItems.map((m, i) => ({
             url: m.url,

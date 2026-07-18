@@ -17,6 +17,7 @@ export default async function HomeProductsOrderPage() {
       published: true,
       priceMinor: true,
       sortOrder: true,
+      catalogSortOrder: true,
       imageUrl: true,
     },
   });
@@ -26,10 +27,10 @@ export default async function HomeProductsOrderPage() {
       <AdminPageHeader
         breadcrumb={[
           { label: "Ürünler", href: "/admin/products" },
-          { label: "Ana sayfa sırası" },
+          { label: "Ürün sırası" },
         ]}
-        title="Ana sayfa ürün sırası"
-        description="Ana sayfadaki ürün kartlarının / swiper’ların sırasını sürükleyerek belirleyin."
+        title="Ürün sırası"
+        description="Ana sayfa ve /collections/all katalog sırasını ayrı ayrı sürükleyerek belirleyin."
         actions={
           <Link href="/admin/products" className={btnSecondary}>
             ← Ürün listesi

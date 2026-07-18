@@ -19,10 +19,12 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useClientMounted } from "@/hooks/use-client-mounted";
 import { btnPrimary, btnSecondary } from "@/components/admin/AdminForm";
 import { formatTry } from "@/lib/admin/money";
+
+export type ProductOrderScope = "home" | "collection-all";
 
 export type HomeOrderProduct = {
   id: string;
@@ -31,6 +33,7 @@ export type HomeOrderProduct = {
   published: boolean;
   priceMinor: number;
   sortOrder: number;
+  catalogSortOrder: number;
   imageUrl: string | null;
 };
 
@@ -78,12 +81,53 @@ function SortRow({ product }: { product: HomeOrderProduct }) {
   );
 }
 
-export function HomeProductsSortPanel({ products }: { products: HomeOrderProduct[] }) {
+const SCOPE_COPY: Record<
+  ProductOrderScope,
+  { title: string; help: string; saved: string }
+> = {
+  home: {
+    title: "Ana sayfa",
+    help: "Üstteki ürün ana sayfadaki ürün swiper / kartlarında önce görünür. Kaydetmek ana sayfa sıralamasını Manuel moda alır.",
+    saved: "Ana sayfa sırası kaydedildi.",
+  },
+  "collection-all": {
+    title: "Tüm ürünler (/collections/all)",
+    help: "Üstteki ürün katalog sayfasında önce görünür. Ana sayfa sırasından bağımsızdır.",
+    saved: "Katalog (/collections/all) sırası kaydedildi.",
+  },
+};
+
+export function HomeProductsSortPanel({
+  products,
+  initialScope = "home",
+}: {
+  products: HomeOrderProduct[];
+  initialScope?: ProductOrderScope;
+}) {
   const router = useRouter();
   const mounted = useClientMounted();
-  const [ids, setIds] = useState(() => products.map((p) => p.id));
+  const [scope, setScope] = useState<ProductOrderScope>(initialScope);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+
+  const orderedForScope = useMemo(() => {
+    const list = [...products];
+    if (scope === "collection-all") {
+      list.sort(
+        (a, b) => a.catalogSortOrder - b.catalogSortOrder || a.title.localeCompare(b.title, "tr"),
+      );
+    } else {
+      list.sort((a, b) => a.sortOrder - b.sortOrder || a.title.localeCompare(b.title, "tr"));
+    }
+    return list;
+  }, [products, scope]);
+
+  const [ids, setIds] = useState(() => orderedForScope.map((p) => p.id));
+
+  useEffect(() => {
+    setIds(orderedForScope.map((p) => p.id));
+    setMsg(null);
+  }, [orderedForScope]);
 
   const byId = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
   const ordered = ids.map((id) => byId.get(id)).filter((p): p is HomeOrderProduct => Boolean(p));
@@ -112,11 +156,11 @@ export function HomeProductsSortPanel({ products }: { products: HomeOrderProduct
       const res = await fetch("/api/admin/products/reorder", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productIds: ids }),
+        body: JSON.stringify({ productIds: ids, scope }),
       });
       const j = (await res.json()) as { ok?: boolean; error?: string };
       if (!res.ok) throw new Error(j.error ?? "Kayıt başarısız");
-      setMsg("Sıra kaydedildi — ana sayfa manuel sıralamaya alındı.");
+      setMsg(SCOPE_COPY[scope].saved);
       router.refresh();
     } catch (e) {
       setMsg(e instanceof Error ? e.message : "Kayıt hatası");
@@ -125,14 +169,30 @@ export function HomeProductsSortPanel({ products }: { products: HomeOrderProduct
     }
   }
 
+  const copy = SCOPE_COPY[scope];
+
   return (
     <div className="space-y-4">
+      <div className="flex flex-wrap gap-2">
+        {(Object.keys(SCOPE_COPY) as ProductOrderScope[]).map((key) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setScope(key)}
+            className={`rounded-lg border px-3 py-1.5 text-sm font-medium ${
+              scope === key
+                ? "border-violet-400 bg-violet-50 text-violet-950"
+                : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+            }`}
+          >
+            {SCOPE_COPY[key].title}
+          </button>
+        ))}
+      </div>
+
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-sm text-zinc-600">
-            Üstteki ürün ana sayfada önce görünür. Sürükleyip bırakın, sonra kaydedin. Kaydetmek ana sayfa
-            sıralamasını otomatik <strong>Manuel</strong> moda alır.
-          </p>
+          <p className="text-sm text-zinc-600">{copy.help}</p>
           <p className="mt-1 text-xs text-zinc-500">
             Yayınlanmamış ürünler de listede; sitede yalnızca yayındaki ürünler gösterilir.
           </p>
@@ -148,7 +208,11 @@ export function HomeProductsSortPanel({ products }: { products: HomeOrderProduct
       </div>
 
       {msg ? (
-        <p className={`text-sm ${msg.includes("Kaydedildi") || msg.includes("kaydedildi") ? "text-emerald-700" : "text-red-600"}`}>
+        <p
+          className={`text-sm ${
+            msg.includes("Kaydedildi") || msg.includes("kaydedildi") ? "text-emerald-700" : "text-red-600"
+          }`}
+        >
           {msg}
         </p>
       ) : null}

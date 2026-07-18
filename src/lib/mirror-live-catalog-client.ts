@@ -26,9 +26,9 @@ export type LiveStoreCatalogPayload = {
 
 /**
  * Canlı client fetch'in atlanıp atlanmayacağını belirler.
- * data-kn-home-products-injected (prebuild) burada KONTROL EDİLMEZ —
- * prebuild stale olabilir (silinmiş görseller, güncellenen fiyatlar).
- * Yalnızca aynı oturumda zaten canlı fetch yapıldıysa atlanır.
+ * data-kn-home-products-injected / #kn-catalog-prices (prebuild) burada KONTROL EDİLMEZ —
+ * prebuild stale olabilir (fiyat, görsel, ürün sırası).
+ * Yalnızca aynı oturumda zaten canlı katalog uygulandıysa atlanır.
  */
 export function mirrorCatalogAlreadyHydrated(doc: Document, locale?: ShopLocale): boolean {
   const root = doc.documentElement;
@@ -38,7 +38,7 @@ export function mirrorCatalogAlreadyHydrated(doc: Document, locale?: ShopLocale)
     return true;
   }
   if (live === "1") return !locale || locale === readShopLocaleFromDocument(doc);
-  return Boolean(doc.getElementById("kn-catalog-prices")?.textContent?.trim());
+  return false;
 }
 
 function catalogPriceMap(products: VitrinCollectionProductCard[]): CatalogPriceMap {

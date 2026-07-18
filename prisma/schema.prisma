@@ -613,6 +613,10 @@ model StoreProduct {
    */
   sortOrder                    Int                         @default(0)
   /**
+   * /collections/all (katalog) ürün sırası — ana sayfadan bağımsız (küçük = önce)
+   */
+  catalogSortOrder             Int                         @default(0)
+  /**
    * Örn. Hacim — varyant satırlarında 30ml, 50ml
    */
   variantOptionName            String?
@@ -641,6 +645,7 @@ model StoreProduct {
   @@unique([siteId, slug])
   @@index([siteId, sku])
   @@index([siteId, published, sortOrder])
+  @@index([siteId, published, catalogSortOrder])
   @@map("product")
   @@schema("shop")
 }
