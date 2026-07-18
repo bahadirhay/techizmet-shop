@@ -1,5 +1,8 @@
-import type { SiteSettings } from "@/lib/site-settings";
-
+/**
+ * Client-safe module: do NOT import from site-settings (even as type).
+ * Turbopack can follow type-only imports into prisma → tenant-context → node:async_hooks
+ * and break client bundles (BundleForm / ProductSeoHealthPanel).
+ */
 export type SearchIntentFaq = {
   question: string;
   answer: string;
@@ -564,12 +567,12 @@ function intentPriority(intent: SearchIntentTarget): number {
   return intent.priority ?? 100;
 }
 
-export function getSearchIntents(_settings?: SiteSettings): SearchIntentTarget[] {
+export function getSearchIntents(_settings?: unknown): SearchIntentTarget[] {
   return DEFAULT_SEARCH_INTENTS;
 }
 
 /** Google'da öncelikli 3 hedef (Köpek Ödül Maması, Ödül maması, Doğal Köpek Ödül Maması) */
-export function getPrimaryGoogleIntents(settings?: SiteSettings): SearchIntentTarget[] {
+export function getPrimaryGoogleIntents(settings?: unknown): SearchIntentTarget[] {
   const all = getSearchIntents(settings);
   const byId = new Map(all.map((i) => [i.id, i]));
   return PRIMARY_GOOGLE_KEYWORD_IDS.map((id) => byId.get(id)).filter(

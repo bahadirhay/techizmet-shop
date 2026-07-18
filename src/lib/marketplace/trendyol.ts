@@ -13,7 +13,8 @@ import type { TrendyolCredentials } from "@/lib/marketplace/trendyol/client";
 import { syncTrendyolPriceAndInventory } from "@/lib/marketplace/trendyol/inventory";
 import { lookupTrendyolProductByBarcode } from "@/lib/marketplace/trendyol/products";
 import { toAbsoluteMediaUrl } from "@/lib/seo/site-url";
-import { toTrendyolDescriptionHtml, sanitizeMarketplacePlainText } from "@/lib/html-plain-text";
+import { sanitizeMarketplacePlainText } from "@/lib/html-plain-text";
+import { toTrendyolDescriptionHtml } from "@/lib/marketplace/trendyol-description";
 import { prisma } from "@/lib/prisma";
 
 type TrendyolProduct = {
