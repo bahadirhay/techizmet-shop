@@ -106,6 +106,10 @@ export async function POST(req: Request) {
     });
 
     const created = await prisma.$transaction(async (tx) => {
+      const maxSort = await tx.storeProduct.aggregate({
+        where: { siteId: auth.siteId },
+        _max: { sortOrder: true },
+      });
       const product = await tx.storeProduct.create({
         data: {
           siteId: auth.siteId,
@@ -139,6 +143,7 @@ export async function POST(req: Request) {
           seoTitle: seoFields.seoTitle,
           seoDescription: seoFields.seoDescription,
           imageUrl: primaryImageUrl,
+          sortOrder: (maxSort._max.sortOrder ?? -1) + 1,
           badgesJson: serializeProductBadges(
             (() => {
               const ids = Array.isArray(body.badges)

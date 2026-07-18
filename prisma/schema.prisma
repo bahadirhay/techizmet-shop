@@ -609,6 +609,10 @@ model StoreProduct {
   seoDescription               String?
   badgesJson                   String?
   /**
+   * Ana sayfa / vitrin ürün sırası (küçük = önce)
+   */
+  sortOrder                    Int                         @default(0)
+  /**
    * Örn. Hacim — varyant satırlarında 30ml, 50ml
    */
   variantOptionName            String?
@@ -636,6 +640,7 @@ model StoreProduct {
 
   @@unique([siteId, slug])
   @@index([siteId, sku])
+  @@index([siteId, published, sortOrder])
   @@map("product")
   @@schema("shop")
 }

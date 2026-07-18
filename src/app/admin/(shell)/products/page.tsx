@@ -95,6 +95,12 @@ export default async function ProductsPage() {
               Markalar
             </Link>
             <Link
+              href="/admin/products/home-order"
+              className="rounded-lg border border-violet-300 bg-violet-50 px-3 py-2 text-sm font-medium text-violet-950 hover:bg-violet-100"
+            >
+              Ana sayfa sırası
+            </Link>
+            <Link
               href="/admin/products/pricing"
               className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm hover:bg-zinc-50"
             >

@@ -107,6 +107,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     perm: "store.products",
     items: [
       { href: "/admin/products", label: "Ürün Yönetimi", perm: "store.products" },
+      { href: "/admin/products/home-order", label: "Ana Sayfa Sırası", perm: "store.products" },
       { href: "/admin/products/pricing", label: "Toplu Fiyat", perm: "store.products" },
       { href: "/admin/products/new", label: "Yeni Ürün", perm: "store.products" },
       { href: "/admin/bundles/new", label: "Yeni Paket", perm: "store.products" },
@@ -363,6 +364,7 @@ export const ADMIN_PAGE_TITLES: Record<string, string> = {
   "/admin/settings/distribution": "İndeksleme & GEO",
   "/admin/settings/image-guide": "Görsel Boyutları",
   "/admin/products": "Ürün Yönetimi",
+  "/admin/products/home-order": "Ana Sayfa Sırası",
   "/admin/settings/product-explore": "Ürün Sayfası Altı",
   "/admin/products/pricing": "Toplu Fiyat",
   "/admin/products/new": "Yeni Ürün",

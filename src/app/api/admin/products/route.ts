@@ -48,6 +48,12 @@ export async function POST(req: Request) {
       ? mediaItems.find((m) => m.mediaType === "image")?.url ?? mediaItems[0]?.url
       : String(body.imageUrl ?? "").trim() || null;
 
+  const maxSort = await prisma.storeProduct.aggregate({
+    where: { siteId: auth.siteId },
+    _max: { sortOrder: true },
+  });
+  const nextSortOrder = (maxSort._max.sortOrder ?? -1) + 1;
+
   const variants = parseVariantInputs(body.variants);
   const variantOptionName = String(body.variantOptionName ?? "").trim() || null;
   const settings = await getSiteSettings(auth.siteId);
@@ -121,6 +127,7 @@ export async function POST(req: Request) {
             : [],
         ),
         published: body.published !== false,
+        sortOrder: nextSortOrder,
         images: {
           create: mediaItems.map((m, i) => ({
             url: m.url,

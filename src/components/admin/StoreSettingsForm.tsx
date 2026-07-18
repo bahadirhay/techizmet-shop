@@ -973,7 +973,7 @@ export function StoreSettingsForm({ initial }: { initial: SiteSettings }) {
           <AdminField label="Sıralama">
             <select
               className={inputClass}
-              value={storeTexts.homeListingSort ?? "title_asc"}
+              value={storeTexts.homeListingSort ?? "manual"}
               onChange={(e) =>
                 updateStoreText(
                   "homeListingSort",
@@ -981,6 +981,7 @@ export function StoreSettingsForm({ initial }: { initial: SiteSettings }) {
                 )
               }
             >
+              <option value="manual">Manuel (sürükle-bırak)</option>
               <option value="title_asc">Ada göre (A→Z)</option>
               <option value="title_desc">Ada göre (Z→A)</option>
               <option value="newest">En yeni</option>
@@ -989,6 +990,13 @@ export function StoreSettingsForm({ initial }: { initial: SiteSettings }) {
               <option value="price_desc">Fiyat (yüksek→düşük)</option>
             </select>
           </AdminField>
+          <p className="text-xs text-zinc-500">
+            Manuel sıra için{" "}
+            <Link href="/admin/products/home-order" className="text-[var(--kn-brand)] underline">
+              Ürünler → Ana sayfa sırası
+            </Link>{" "}
+            sayfasından sürükleyip kaydedin.
+          </p>
         </div>
       </section>
 

@@ -36,7 +36,14 @@ export type StoreTextSettings = {
   mirrorStockLabelTr?: string;
   mirrorStockLabelEn?: string;
   /** Ana sayfa ürün listesi sıralaması */
-  homeListingSort?: "title_asc" | "title_desc" | "newest" | "oldest" | "price_asc" | "price_desc";
+  homeListingSort?:
+    | "manual"
+    | "title_asc"
+    | "title_desc"
+    | "newest"
+    | "oldest"
+    | "price_asc"
+    | "price_desc";
   collectionFilters?: {
     price?: boolean;
     brand?: boolean;
