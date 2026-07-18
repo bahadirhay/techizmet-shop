@@ -1,10 +1,15 @@
 import {
   decodeHtmlEntities,
-  escapeHtml,
   sanitizeMarketplacePlainText,
 } from "@/lib/html-plain-text";
 
-/** Trendyol description alanı HTML ister — çıplak & kesilir / &amp olarak görünür. */
+/**
+ * Trendyol onaylı ürün açıklaması (HTML).
+ *
+ * QC (update-audits):
+ * - `&` REDUNDANT_CHARACTERS riski → metinde ` ve `
+ * - description img yalnızca cdn.dsmcdn.com / doğrudan görsel; /api/media reddedilir
+ */
 export function toTrendyolDescriptionHtml(input: {
   description?: string | null;
   descriptionHtml?: string | null;
@@ -17,44 +22,62 @@ export function toTrendyolDescriptionHtml(input: {
   if (rawHtml && /<[a-z][\s\S]*>/i.test(rawHtml)) {
     html = sanitizeTrendyolHtmlFragment(rawHtml);
   } else {
-    const plain = sanitizeMarketplacePlainText(rawPlain || rawHtml);
+    const plain = sanitizeForTrendyolPlain(rawPlain || rawHtml);
     html = plainToSafeHtmlParagraphs(plain);
   }
 
-  // Trendyol: 4k altı açıklamada en az bir img önerilir
   if (html.length < 4000) {
-    const img = toAbsoluteHttpsImage(input.imageUrl);
+    const img = toTrendyolEmbeddableImageUrl(input.imageUrl);
     if (img && !/<img\b/i.test(html)) {
-      html += `<img src="${escapeHtml(img)}" alt=""/>`;
+      html += `<br/><img src="${escapeAttr(img)}" alt=""/>`;
     }
   }
 
   return html.slice(0, 30000) || "<p>-</p>";
 }
 
-/** Relatif URL’ler atlanır — çağıran taraf absolute https vermeli. */
-function toAbsoluteHttpsImage(url: string | null | undefined): string | null {
+/** Trendyol QC: & → " ve " */
+export function sanitizeForTrendyolPlain(text: string): string {
+  let s = sanitizeMarketplacePlainText(text);
+  s = s.replace(/&amp;/gi, " ve ").replace(/&/g, " ve ");
+  return s.replace(/\s{2,}/g, " ").trim();
+}
+
+function escapeAttr(url: string): string {
+  return url.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+}
+
+/** Description içine gömülebilir mi? */
+export function toTrendyolEmbeddableImageUrl(url: string | null | undefined): string | null {
   const u = (url ?? "").trim();
-  if (!u) return null;
-  if (/^https:\/\//i.test(u)) return u;
-  if (/^http:\/\//i.test(u)) return u.replace(/^http:\/\//i, "https://");
+  if (!u || !/^https:\/\//i.test(u)) return null;
+  if (/\/api\/media\//i.test(u)) return null;
+  if (/cdn\.dsmcdn\.com/i.test(u)) return u;
+  if (/\.(jpe?g|png|webp|gif)(\?|$)/i.test(u)) return u;
   return null;
 }
 
 function plainToSafeHtmlParagraphs(plain: string): string {
   if (!plain) return "<p>-</p>";
-  const escaped = escapeHtml(plain);
-  const paras = escaped.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
+  const escaped = plain.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const paras = escaped
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean);
   if (paras.length <= 1) {
     return `<p>${escaped.replace(/\n/g, "<br/>")}</p>`;
   }
   return paras.map((p) => `<p>${p.replace(/\n/g, "<br/>")}</p>`).join("");
 }
 
-/** Mevcut HTML: script/style temizle, çıplak & → &amp; (çift encode etme). */
 export function sanitizeTrendyolHtmlFragment(html: string): string {
   let h = html.replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<style[\s\S]*?<\/style>/gi, "");
   h = decodeHtmlEntities(h);
-  h = h.replace(/&(?!(#\d+|#[xX][\da-fA-F]+|\w+);)/g, "&amp;");
+  h = h.replace(/<img\b[^>]*\/api\/media\/[^>]*>/gi, "");
+  // Etiket dışı metindeki &amp; / & → ve
+  h = h.replace(/(^|>)([^<]*)/g, (_m, open: string, text: string) => {
+    const fixed = text.replace(/&amp;/gi, " ve ").replace(/&/g, " ve ").replace(/\s{2,}/g, " ");
+    return `${open}${fixed}`;
+  });
   return h.trim();
 }

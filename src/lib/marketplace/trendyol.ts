@@ -11,7 +11,11 @@ import { trendyolAuthHeaders } from "@/lib/marketplace/trendyol/headers";
 import { checkTrendyolBatchRequest, fetchTrendyolAddresses } from "@/lib/marketplace/trendyol/categories";
 import type { TrendyolCredentials } from "@/lib/marketplace/trendyol/client";
 import { syncTrendyolPriceAndInventory } from "@/lib/marketplace/trendyol/inventory";
-import { lookupTrendyolProductByBarcode } from "@/lib/marketplace/trendyol/products";
+import { sendTrendyolContentBulkUpdate } from "@/lib/marketplace/trendyol/content-update";
+import {
+  lookupTrendyolContentIdByBarcode,
+  lookupTrendyolProductByBarcode,
+} from "@/lib/marketplace/trendyol/products";
 import { toAbsoluteMediaUrl } from "@/lib/seo/site-url";
 import { sanitizeMarketplacePlainText } from "@/lib/html-plain-text";
 import { toTrendyolDescriptionHtml } from "@/lib/marketplace/trendyol-description";
@@ -436,8 +440,16 @@ export async function syncProductsToTrendyol(
 
   const createItems: TrendyolProduct[] = [];
   const updateItems: TrendyolProductUpdate[] = [];
+  const contentUpdateItems: {
+    contentId: number;
+    title: string;
+    description: string;
+    images?: { url: string }[];
+    product: SyncProductInput;
+  }[] = [];
   const createProducts: SyncProductInput[] = [];
-  const updateProducts: SyncProductInput[] = [];
+  const putUpdateProducts: SyncProductInput[] = [];
+  const inventoryProducts: SyncProductInput[] = [];
   const skippedNoMapping: string[] = [];
 
   for (const p of eligible) {
@@ -460,26 +472,44 @@ export async function syncProductsToTrendyol(
     );
     const base = buildTrendyolItemBase(p, mapped, config, attributes, resolvedAddresses);
     const listingStatus = listingStatuses.get(p.id) ?? "none";
-    // Sadece Trendyol'da gerçekten var olan (yayında/pasif) ürünler PUT ile
-    // güncellenir. Yerel "rejected" bazen yanlış — barkod TY'de varken POST
-    // "aynı barkod" hatası verir. Bu yüzden belirsiz durumlarda TY'ye soruyoruz.
+    // Sadece Trendyol'da gerçekten var olan (yayında/pasif) ürünler güncellenir.
+    // Yerel "rejected" bazen yanlış — barkod TY'de varken POST "aynı barkod" hatası verir.
     let existsOnTrendyol = listingStatus === "active" || listingStatus === "inactive";
-    if (!existsOnTrendyol && p.barcode?.trim()) {
+    let approvedContentId: number | undefined;
+    if (p.barcode?.trim()) {
       try {
-        const onTy = await lookupTrendyolProductByBarcode(creds, p.barcode.trim());
-        if (onTy) {
+        const content = await lookupTrendyolContentIdByBarcode(creds, p.barcode.trim());
+        if (content) {
           existsOnTrendyol = true;
-          const status =
-            onTy.listingStatus === "active" || onTy.listingStatus === "inactive"
-              ? onTy.listingStatus
-              : "active";
+          if (content.approved && content.contentId > 0) {
+            approvedContentId = content.contentId;
+          }
+          const status = content.approved ? "active" : listingStatuses.get(p.id) ?? "pending";
           listingStatuses.set(p.id, status);
           if (siteId && marketplaceProductListingDb()) {
             await upsertProductMarketplaceListing(siteId, p.id, "trendyol", {
               barcode: p.barcode.trim(),
               listingStatus: status,
               lastError: null,
+              metaPatch: { contentId: content.contentId },
             });
+          }
+        } else if (!existsOnTrendyol) {
+          const onTy = await lookupTrendyolProductByBarcode(creds, p.barcode.trim());
+          if (onTy) {
+            existsOnTrendyol = true;
+            const status =
+              onTy.listingStatus === "active" || onTy.listingStatus === "inactive"
+                ? onTy.listingStatus
+                : "active";
+            listingStatuses.set(p.id, status);
+            if (siteId && marketplaceProductListingDb()) {
+              await upsertProductMarketplaceListing(siteId, p.id, "trendyol", {
+                barcode: p.barcode.trim(),
+                listingStatus: status,
+                lastError: null,
+              });
+            }
           }
         }
       } catch {
@@ -488,8 +518,20 @@ export async function syncProductsToTrendyol(
     }
 
     if (existsOnTrendyol) {
-      updateItems.push(base);
-      updateProducts.push(p);
+      // Onaylı ürün: vitrin açıklaması content-bulk-update ister (klasik PUT yetmez).
+      if (approvedContentId && base.description) {
+        contentUpdateItems.push({
+          contentId: approvedContentId,
+          title: base.title,
+          description: base.description,
+          images: base.images,
+          product: p,
+        });
+      } else {
+        updateItems.push(base);
+        putUpdateProducts.push(p);
+      }
+      inventoryProducts.push(p);
     } else {
       const prices = toMarketplaceSyncPrices(p, "trendyol");
       createItems.push({
@@ -505,7 +547,7 @@ export async function syncProductsToTrendyol(
     }
   }
 
-  if (createItems.length === 0 && updateItems.length === 0) {
+  if (createItems.length === 0 && updateItems.length === 0 && contentUpdateItems.length === 0) {
     const skippedNote = skippedNoMapping.length
       ? ` ${skippedNoMapping.length} ürünün kategorisi Trendyol'a eşlenmemiş (ör. "${skippedNoMapping[0]}"). Kategori eşlemesi tanımlayın veya varsayılan marka/kategori ID girin.`
       : " Varsayılan marka/kategori ID girin veya kategori eşlemesi tanımlayın.";
@@ -572,9 +614,9 @@ export async function syncProductsToTrendyol(
     }
     totalSent += createSent;
 
-    // Var olan ürünler — 100'lük gruplar halinde güncelle
+    // Var olan (henüz onaylanmamış) ürünler — klasik PUT
     const updateChunks = chunk(updateItems, CHUNK);
-    const updateProdChunks = chunk(updateProducts, CHUNK);
+    const updateProdChunks = chunk(putUpdateProducts, CHUNK);
     let updateSent = 0;
     for (let i = 0; i < updateChunks.length; i++) {
       let r = await sendTrendyolProductBatch(creds, "PUT", updateChunks[i], updateProdChunks[i], siteId);
@@ -598,13 +640,48 @@ export async function syncProductsToTrendyol(
       updateSent += r.sent;
       if (!r.ok) allOk = false;
     }
-    if (updateSent > 0) messages.push(`${updateSent} ürün güncellendi`);
+    if (updateSent > 0) messages.push(`${updateSent} ürün güncellendi (PUT)`);
     totalSent += updateSent;
+
+    // Onaylı ürünler — vitrin içerik güncellemesi (açıklama/başlık/görsel)
+    const storeFrontCode = (config.storeFrontCode ?? "TR").trim() || "TR";
+    const contentChunks = chunk(contentUpdateItems, CHUNK);
+    let contentSent = 0;
+    for (const part of contentChunks) {
+      const r = await sendTrendyolContentBulkUpdate(
+        creds,
+        part.map((c) => ({
+          contentId: c.contentId,
+          title: c.title,
+          description: c.description,
+          // images gönderme — content-update içinde zaten CDN filtreli; mevcut TY görsellerini koru
+        })),
+        { storeFrontCode },
+      );
+      contentSent += r.sent;
+      messages.push(r.message);
+      if (!r.ok) allOk = false;
+      if (siteId && r.ok) {
+        for (const c of part) {
+          await upsertProductMarketplaceListing(siteId, c.product.id, "trendyol", {
+            barcode: c.product.barcode?.trim() || null,
+            listingStatus: "active",
+            lastError: null,
+            metaPatch: {
+              contentId: c.contentId,
+              batchRequestId: r.batchRequestId,
+            },
+            contentSyncedAt: c.product.updatedAt,
+          });
+        }
+      }
+    }
+    if (contentSent > 0) totalSent += contentSent;
 
     // Trendyol PUT (ürün güncelleme) fiyat/stok kabul ETMEZ — bunlar ayrı
     // price-and-inventory endpoint'inden gider. Var olan ürünler güncellenirken
     // fiyat/stoğu da güncel tutmak için burada ayrıca gönderiyoruz.
-    const inventoryTargets = [...updateProducts, ...createPutRetried];
+    const inventoryTargets = [...inventoryProducts, ...createPutRetried];
     if (inventoryTargets.length > 0) {
       const invItems = inventoryTargets
         .filter((p) => p.barcode?.trim())

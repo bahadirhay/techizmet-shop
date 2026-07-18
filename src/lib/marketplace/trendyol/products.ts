@@ -36,6 +36,13 @@ function parseTrendyolProduct(raw: Record<string, unknown>): MarketplaceCatalogI
   const sku = String(raw.stockCode ?? raw.productMainId ?? "").trim();
   if (!barcode && !sku) return null;
 
+  const productContentIdRaw = raw.productContentId ?? raw.contentId;
+  const productContentId =
+    typeof productContentIdRaw === "number"
+      ? productContentIdRaw
+      : Number(productContentIdRaw);
+  const contentId = Number.isFinite(productContentId) && productContentId > 0 ? productContentId : undefined;
+
   return {
     barcode: barcode || undefined,
     sku: sku || undefined,
@@ -53,7 +60,28 @@ function parseTrendyolProduct(raw: Record<string, unknown>): MarketplaceCatalogI
       rejectReasonDetails: raw.rejectReasonDetails,
       categoryId: raw.pimCategoryId ?? raw.categoryId,
       brandId: raw.brandId,
+      contentId,
+      productContentId: contentId,
+      description: typeof raw.description === "string" ? raw.description : undefined,
+      hasHtmlContent: raw.hasHtmlContent,
+      productUrl: raw.productUrl,
     },
+  };
+}
+
+/** Onaylı ürün content güncellemesi için contentId (+ barkod) döner. */
+export async function lookupTrendyolContentIdByBarcode(
+  creds: TrendyolCredentials,
+  barcode: string,
+): Promise<{ contentId: number; approved: boolean; productUrl?: string } | null> {
+  const item = await lookupTrendyolProductByBarcode(creds, barcode);
+  if (!item) return null;
+  const contentId = Number(item.meta?.contentId ?? item.meta?.productContentId ?? 0);
+  if (!Number.isFinite(contentId) || contentId <= 0) return null;
+  return {
+    contentId,
+    approved: item.meta?.approved === true || item.listingStatus === "active",
+    productUrl: typeof item.meta?.productUrl === "string" ? item.meta.productUrl : undefined,
   };
 }
 
