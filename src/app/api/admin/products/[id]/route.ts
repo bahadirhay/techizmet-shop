@@ -273,6 +273,21 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       /* stok kartı senkronu isteğe bağlı */
     }
 
+    const priceOrStockTouched =
+      body.stockQty != null ||
+      body.price != null ||
+      body.compareAt !== undefined ||
+      body.marketplacePrices !== undefined ||
+      body.marketplaceMarkups !== undefined;
+    if (priceOrStockTouched) {
+      try {
+        const { syncStockToAllMarketplaces } = await import("@/lib/marketplace/stock-sync-all");
+        await syncStockToAllMarketplaces(auth.siteId, [id]);
+      } catch {
+        /* pazaryeri stok push — hata ürün kaydını engellemez */
+      }
+    }
+
     const marketplaceSync = product
       ? await getMarketplaceSyncForProduct(auth.siteId, product.id)
       : null;

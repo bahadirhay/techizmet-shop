@@ -3,6 +3,13 @@ import { toMarketplaceSyncPrices } from "@/lib/marketplace/product-prices";
 import { syncTrendyolPriceAndInventory } from "@/lib/marketplace/trendyol/inventory";
 import { parseTrendyolConfig } from "@/lib/marketplace/trendyol/client";
 import { syncProductsToHepsiburada } from "@/lib/marketplace/hepsiburada";
+import {
+  getAmazonAccessToken,
+  parseAmazonConfig,
+  resolveAmazonMarketplaceId,
+} from "@/lib/marketplace/amazon/client";
+import { syncAmazonPriceAndInventory } from "@/lib/marketplace/amazon/inventory";
+import { resolveAmazonListingSku } from "@/lib/marketplace/amazon/sku";
 
 function parseConfig(raw: string | null): Record<string, string> {
   if (!raw) return {};
@@ -66,10 +73,59 @@ async function syncOnePlatform(
     return { ok: hb.ok, itemsCount: hb.sent, message: hb.message };
   }
 
+  if (platform === "amazon_tr") {
+    const creds = parseAmazonConfig(config);
+    if (!creds) return { ok: false, itemsCount: 0, message: "Amazon SP-API bilgileri eksik" };
+    const token = await getAmazonAccessToken(creds);
+    if (!token.accessToken) {
+      return { ok: false, itemsCount: 0, message: token.error ?? "Amazon token alınamadı" };
+    }
+    const marketplaceId = resolveAmazonMarketplaceId(config);
+    const listings = await prisma.marketplaceProductListing.findMany({
+      where: {
+        siteId,
+        platform: "amazon_tr",
+        productId: { in: products.map((p) => p.id) },
+      },
+      select: { productId: true, metaJson: true },
+    });
+    const listingByProduct = new Map(listings.map((l) => [l.productId, l.metaJson]));
+    const items = products
+      .map((p) => {
+        const sku = resolveAmazonListingSku(listingByProduct.get(p.id) ?? null, p);
+        if (!sku.trim()) return null;
+        const prices = toMarketplaceSyncPrices(p, "amazon_tr");
+        return {
+          sku,
+          quantity: p.stockQty,
+          salePriceMinor: prices.salePriceMinor,
+          listPriceMinor: prices.listPriceMinor,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null);
+
+    if (!items.length) {
+      return {
+        ok: false,
+        itemsCount: 0,
+        message: "Amazon SKU bulunamadı — önce ürünü Amazon’a gönderin / eşleştirin",
+      };
+    }
+
+    const result = await syncAmazonPriceAndInventory(
+      creds,
+      token.accessToken,
+      marketplaceId,
+      items,
+      config,
+    );
+    return { ok: result.ok, itemsCount: result.sent, message: result.message };
+  }
+
   return { ok: false, itemsCount: 0, message: `${platform} stok API henüz yok` };
 }
 
-/** Merkezi stok değişince tüm aktif pazaryerlerine stok/fiyat push. */
+/** Merkezi stok/fiyat değişince tüm aktif pazaryerlerine push (Trendyol, HB, Amazon). */
 export async function syncStockToAllMarketplaces(
   siteId: string,
   productIds?: string[],
