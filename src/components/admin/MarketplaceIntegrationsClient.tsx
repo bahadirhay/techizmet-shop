@@ -445,10 +445,12 @@ export function MarketplaceIntegrationsClient({
         </label>
 
         <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-sm text-blue-950">
-          <p className="font-medium">Otomatik sipariş çekme (ücretsiz)</p>
+          <p className="font-medium">Otomatik senkron (GitHub Actions)</p>
           <p className="mt-1 text-xs text-blue-900">
-            Ek sunucu maliyeti yok — Windows Görev Zamanlayıcı veya cron, mağaza API&apos;nizi
-            periyodik çağırır. <code className="text-[11px]">CRON_SECRET</code> ile korunur.
+            Repo&apos;daki <code className="text-[11px]">marketplace-sync-cron</code> workflow ~15 dk&apos;da bir
+            sipariş, stok ve Trendyol sorularını çağırır.{" "}
+            <code className="text-[11px]">CRON_SECRET</code> ile korunur. Aşağıdaki anahtarlar gerçek
+            çalışma sıklığını belirler.
           </p>
           <label className="mt-2 flex items-center gap-2 text-sm">
             <input
@@ -458,7 +460,7 @@ export function MarketplaceIntegrationsClient({
             />
             Zamanlanmış sipariş çekmeyi aç
           </label>
-          <AdminField label="Aralık (dakika, min. 5)">
+          <AdminField label="Sipariş aralığı (dakika, min. 5)">
             <input
               type="number"
               min={5}
@@ -469,15 +471,39 @@ export function MarketplaceIntegrationsClient({
           </AdminField>
           {cfg.lastOrderPullAt ? (
             <p className="text-xs text-blue-800">
-              Son otomatik çekim: {new Date(cfg.lastOrderPullAt).toLocaleString("tr-TR")}
+              Son otomatik sipariş çekim: {new Date(cfg.lastOrderPullAt).toLocaleString("tr-TR")}
             </p>
           ) : null}
+
+          <label className="mt-3 flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={cfg.inventorySyncAuto === "true"}
+              onChange={(e) =>
+                setCfg({ ...cfg, inventorySyncAuto: e.target.checked ? "true" : "false" })
+              }
+            />
+            Zamanlanmış stok/fiyat gönderimini aç
+          </label>
+          <AdminField label="Stok aralığı (dakika, min. 15)">
+            <input
+              type="number"
+              min={15}
+              className={inputClass}
+              value={cfg.inventorySyncMinutes ?? "60"}
+              onChange={(e) => setCfg({ ...cfg, inventorySyncMinutes: e.target.value })}
+            />
+          </AdminField>
+          {cfg.lastInventorySyncAt ? (
+            <p className="text-xs text-blue-800">
+              Son otomatik stok sync: {new Date(cfg.lastInventorySyncAt).toLocaleString("tr-TR")}
+            </p>
+          ) : null}
+
           <p className="mt-2 text-xs text-blue-800">
-            Görev URL:{" "}
-            <code className="break-all">
-              {appOrigin
-                ? `${appOrigin}/api/cron/marketplace/orders?secret=CRON_SECRET`
-                : "/api/cron/marketplace/orders?secret=CRON_SECRET"}
+            Cron uçları:{" "}
+            <code className="break-all text-[11px]">
+              {appOrigin || ""}/api/cron/marketplace/orders · inventory · trendyol-qna
             </code>
           </p>
         </div>

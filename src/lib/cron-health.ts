@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 export type CronJobId =
   | "cartAbandonmentRemind"
   | "marketplaceOrders"
+  | "marketplaceInventory"
   | "ordersAutoDeliver"
   | "blogAutomation"
   | "gscSync"
@@ -32,7 +33,10 @@ export type CronHealthSnapshot = {
 const SCHEDULES: Record<CronJobId, string> = {
   cartAbandonmentRemind:
     "Harici zamanlayıcı (Hobby: günde 1×) — GET /api/cron/cart-abandonment/remind?secret=CRON_SECRET",
-  marketplaceOrders: "Harici zamanlayıcı / manuel — GET /api/cron/marketplace/orders?secret=CRON_SECRET",
+  marketplaceOrders:
+    "GitHub Actions (her ~15 dk) — GET /api/cron/marketplace/orders — Authorization: Bearer CRON_SECRET",
+  marketplaceInventory:
+    "GitHub Actions (her ~15 dk) — GET /api/cron/marketplace/inventory — Authorization: Bearer CRON_SECRET",
   ordersAutoDeliver:
     "Vercel cron (günlük) veya GET /api/cron/orders/auto-deliver?secret=CRON_SECRET — kargoda 7+ gün kalan siparişleri teslim edildi yapar",
   blogAutomation:
@@ -44,7 +48,7 @@ const SCHEDULES: Record<CronJobId, string> = {
   socialPublish:
     "Harici zamanlayıcı — GET /api/cron/social/publish?secret=CRON_SECRET (öneri: her 15 dk)",
   trendyolQna:
-    "Vercel cron (günde 1× 06:00 UTC) veya sık cevap için harici zamanlayıcı: GET /api/cron/marketplace/trendyol-qna?secret=CRON_SECRET",
+    "GitHub Actions (her ~15 dk) + Vercel günlük — GET /api/cron/marketplace/trendyol-qna — Authorization: Bearer CRON_SECRET",
 };
 
 function getOps(settings: SiteSettings) {

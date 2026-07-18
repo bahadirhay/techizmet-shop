@@ -1,0 +1,69 @@
+name: Marketplace sync cron
+
+on:
+  schedule:
+    # GitHub ~15 dk; endpoint içindeki aralık ayarları (orderPullMinutes vb.) gerçek sıklığı belirler
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  # CRON_SECRET_ANATOLIANPAW = Vercel Production CRON_SECRET
+  anatolianpaw:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Preflight — secret tanımlı mı?
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET_ANATOLIANPAW }}
+        run: |
+          if [ -z "${CRON_SECRET}" ]; then
+            echo "::error::CRON_SECRET_ANATOLIANPAW GitHub secret'i tanımlı değil."
+            exit 1
+          fi
+
+      - name: Sipariş çek
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET_ANATOLIANPAW }}
+        run: |
+          set -euo pipefail
+          URL="https://www.anatolianpaw.com/api/cron/marketplace/orders"
+          HTTP_CODE=$(curl -sS -o /tmp/cron-orders.txt -w "%{http_code}" \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "$URL")
+          echo "orders HTTP ${HTTP_CODE}"
+          cat /tmp/cron-orders.txt
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "::error::Sipariş cron başarısız (HTTP ${HTTP_CODE})"
+            exit 22
+          fi
+
+      - name: Stok / fiyat sync
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET_ANATOLIANPAW }}
+        run: |
+          set -euo pipefail
+          URL="https://www.anatolianpaw.com/api/cron/marketplace/inventory"
+          HTTP_CODE=$(curl -sS -o /tmp/cron-inv.txt -w "%{http_code}" \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "$URL")
+          echo "inventory HTTP ${HTTP_CODE}"
+          cat /tmp/cron-inv.txt
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "::error::Stok cron başarısız (HTTP ${HTTP_CODE})"
+            exit 22
+          fi
+
+      - name: Trendyol soru-cevap
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET_ANATOLIANPAW }}
+        run: |
+          set -euo pipefail
+          URL="https://www.anatolianpaw.com/api/cron/marketplace/trendyol-qna"
+          HTTP_CODE=$(curl -sS -o /tmp/cron-qna.txt -w "%{http_code}" \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "$URL")
+          echo "qna HTTP ${HTTP_CODE}"
+          cat /tmp/cron-qna.txt
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "::error::QnA cron başarısız (HTTP ${HTTP_CODE})"
+            exit 22
+          fi

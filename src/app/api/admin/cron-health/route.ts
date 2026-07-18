@@ -9,7 +9,9 @@ export async function GET() {
   const health = await loadCronHealth(auth.siteId);
   const stale: Partial<Record<CronJobId, boolean>> = {
     cartAbandonmentRemind: cronJobStale(health.jobs.cartAbandonmentRemind, 26),
-    marketplaceOrders: cronJobStale(health.jobs.marketplaceOrders, 48),
+    marketplaceOrders: cronJobStale(health.jobs.marketplaceOrders, 2),
+    marketplaceInventory: cronJobStale(health.jobs.marketplaceInventory, 4),
+    trendyolQna: cronJobStale(health.jobs.trendyolQna, 4),
     blogAutomation: cronJobStale(health.jobs.blogAutomation, 96),
     gscSync: cronJobStale(health.jobs.gscSync, 30),
     seoDistribution: cronJobStale(health.jobs.seoDistribution, 26),
