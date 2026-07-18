@@ -20,50 +20,35 @@ jobs:
             exit 1
           fi
 
-      - name: Sipariş çek
+      - name: Sipariş + stok + Trendyol QnA
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET_ANATOLIANPAW }}
         run: |
           set -euo pipefail
-          URL="https://www.anatolianpaw.com/api/cron/marketplace/orders"
-          HTTP_CODE=$(curl -sS -o /tmp/cron-orders.txt -w "%{http_code}" \
-            -H "Authorization: Bearer ${CRON_SECRET}" \
-            "$URL")
-          echo "orders HTTP ${HTTP_CODE}"
-          cat /tmp/cron-orders.txt
-          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
-            echo "::error::Sipariş cron başarısız (HTTP ${HTTP_CODE})"
-            exit 22
-          fi
 
-      - name: Stok / fiyat sync
-        env:
-          CRON_SECRET: ${{ secrets.CRON_SECRET_ANATOLIANPAW }}
-        run: |
-          set -euo pipefail
-          URL="https://www.anatolianpaw.com/api/cron/marketplace/inventory"
-          HTTP_CODE=$(curl -sS -o /tmp/cron-inv.txt -w "%{http_code}" \
-            -H "Authorization: Bearer ${CRON_SECRET}" \
-            "$URL")
-          echo "inventory HTTP ${HTTP_CODE}"
-          cat /tmp/cron-inv.txt
-          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
-            echo "::error::Stok cron başarısız (HTTP ${HTTP_CODE})"
-            exit 22
-          fi
+          call_cron() {
+            local name="$1"
+            local path="$2"
+            local url="https://www.anatolianpaw.com${path}"
+            local body="/tmp/cron-${name}.txt"
+            local code
+            code=$(curl -sS -o "$body" -w "%{http_code}" \
+              -H "Authorization: Bearer ${CRON_SECRET}" \
+              -H "Accept: application/json" \
+              "$url")
+            echo "${name} HTTP ${code}"
+            head -c 2000 "$body"; echo
+            if [ "$code" -lt 200 ] || [ "$code" -ge 300 ]; then
+              echo "::error::${name} cron başarısız (HTTP ${code})"
+              exit 22
+            fi
+            # Next soft-404 HTML bazen 200 döner — JSON zorunlu
+            if ! grep -q '"ok"' "$body"; then
+              echo "::error::${name} JSON yanıt değil (muhtemel 404/HTML). Deploy tamamlanmamış olabilir."
+              exit 22
+            fi
+          }
 
-      - name: Trendyol soru-cevap
-        env:
-          CRON_SECRET: ${{ secrets.CRON_SECRET_ANATOLIANPAW }}
-        run: |
-          set -euo pipefail
-          URL="https://www.anatolianpaw.com/api/cron/marketplace/trendyol-qna"
-          HTTP_CODE=$(curl -sS -o /tmp/cron-qna.txt -w "%{http_code}" \
-            -H "Authorization: Bearer ${CRON_SECRET}" \
-            "$URL")
-          echo "qna HTTP ${HTTP_CODE}"
-          cat /tmp/cron-qna.txt
-          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
-            echo "::error::QnA cron başarısız (HTTP ${HTTP_CODE})"
-            exit 22
-          fi
+          call_cron orders "/api/cron/marketplace/orders"
+          call_cron inventory "/api/cron/marketplace/inventory"
+          call_cron qna "/api/cron/marketplace/trendyol-qna"
