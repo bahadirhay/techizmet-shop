@@ -11,6 +11,7 @@ import { trendyolAuthHeaders } from "@/lib/marketplace/trendyol/headers";
 import { checkTrendyolBatchRequest, fetchTrendyolAddresses } from "@/lib/marketplace/trendyol/categories";
 import type { TrendyolCredentials } from "@/lib/marketplace/trendyol/client";
 import { syncTrendyolPriceAndInventory } from "@/lib/marketplace/trendyol/inventory";
+import { lookupTrendyolProductByBarcode } from "@/lib/marketplace/trendyol/products";
 import { toAbsoluteMediaUrl } from "@/lib/seo/site-url";
 import { htmlToPlainText } from "@/lib/html-plain-text";
 import { prisma } from "@/lib/prisma";
@@ -118,7 +119,26 @@ type TrendyolBatchResult = {
 
 function isDuplicateCreateError(detail: string): boolean {
   const d = detail.toLocaleLowerCase("tr");
-  return d.includes("tekrarl") || d.includes("duplicate") || d.includes("zaten");
+  return (
+    d.includes("tekrarl") ||
+    d.includes("duplicate") ||
+    d.includes("zaten") ||
+    d.includes("aynı barkod") ||
+    d.includes("ayni barkod") ||
+    d.includes("oluşturulamaz") ||
+    d.includes("olusturulamaz") ||
+    (d.includes("barkod") && (d.includes("bulunduğundan") || d.includes("bulundugundan"))) ||
+    (d.includes("barkod") && d.includes("yeni ürün"))
+  );
+}
+
+function batchHasDuplicateCreateErrors(
+  batchByBarcode: Map<string, { status: string; error: string | null }>,
+): boolean {
+  for (const v of batchByBarcode.values()) {
+    if (v.status === "rejected" && v.error && isDuplicateCreateError(v.error)) return true;
+  }
+  return false;
 }
 
 // PUT (güncelleme) sırasında ürün Trendyol'da yoksa dönen hata.
@@ -437,10 +457,31 @@ export async function syncProductsToTrendyol(
     const base = buildTrendyolItemBase(p, mapped, config, attributes, resolvedAddresses);
     const listingStatus = listingStatuses.get(p.id) ?? "none";
     // Sadece Trendyol'da gerçekten var olan (yayında/pasif) ürünler PUT ile
-    // güncellenir. "rejected/exported/pending/error/none" durumundakiler henüz
-    // Trendyol'da OLUŞMAMIŞ demektir → POST (oluştur) yapılır. Zaten varsa POST
-    // "tekrarlı" hatası verir ve aşağıda PUT'a düşülür.
-    const existsOnTrendyol = listingStatus === "active" || listingStatus === "inactive";
+    // güncellenir. Yerel "rejected" bazen yanlış — barkod TY'de varken POST
+    // "aynı barkod" hatası verir. Bu yüzden belirsiz durumlarda TY'ye soruyoruz.
+    let existsOnTrendyol = listingStatus === "active" || listingStatus === "inactive";
+    if (!existsOnTrendyol && p.barcode?.trim()) {
+      try {
+        const onTy = await lookupTrendyolProductByBarcode(creds, p.barcode.trim());
+        if (onTy) {
+          existsOnTrendyol = true;
+          const status =
+            onTy.listingStatus === "active" || onTy.listingStatus === "inactive"
+              ? onTy.listingStatus
+              : "active";
+          listingStatuses.set(p.id, status);
+          if (siteId && marketplaceProductListingDb()) {
+            await upsertProductMarketplaceListing(siteId, p.id, "trendyol", {
+              barcode: p.barcode.trim(),
+              listingStatus: status,
+              lastError: null,
+            });
+          }
+        }
+      } catch {
+        /* lookup başarısız — POST dene, duplicate olursa PUT'a düşülür */
+      }
+    }
 
     if (existsOnTrendyol) {
       updateItems.push(base);
@@ -482,24 +523,48 @@ export async function syncProductsToTrendyol(
     const createProdChunks = chunk(createProducts, CHUNK);
     let createSent = 0;
     let createFailedBatches = 0;
+    const createPutRetried: SyncProductInput[] = [];
     for (let i = 0; i < createChunks.length; i++) {
       let r = await sendTrendyolProductBatch(creds, "POST", createChunks[i], createProdChunks[i], siteId);
-      if (!r.ok && isDuplicateCreateError(r.message) && createProdChunks[i].length > 0) {
+      const duplicate =
+        isDuplicateCreateError(r.message) || batchHasDuplicateCreateErrors(r.batchByBarcode);
+      if (!r.ok && duplicate && createProdChunks[i].length > 0) {
+        // Barkod TY'de zaten var → özellik güncellemesi için PUT
         const retryItems = createChunks[i].map((item) => {
-          const { quantity: _q, listPrice: _l, salePrice: _s, cargoCompanyId: _c, currencyType: _ct, dimensionalWeight: _d, ...rest } = item;
+          const {
+            quantity: _q,
+            listPrice: _l,
+            salePrice: _s,
+            cargoCompanyId: _c,
+            currencyType: _ct,
+            dimensionalWeight: _d,
+            ...rest
+          } = item;
           return rest;
         });
         r = await sendTrendyolProductBatch(creds, "PUT", retryItems, createProdChunks[i], siteId);
+        if (r.ok || [...r.batchByBarcode.values()].some((v) => v.status !== "rejected")) {
+          createPutRetried.push(...createProdChunks[i]);
+        }
       }
       createSent += r.sent;
       if (!r.ok) {
         allOk = false;
         createFailedBatches++;
-        if (i === 0) messages.push(r.message);
+        // Batch hata nedenlerini mesaja ekle (örn. aynı barkod)
+        const failReasons = [...r.batchByBarcode.values()]
+          .map((v) => v.error)
+          .filter(Boolean)
+          .slice(0, 3);
+        if (i === 0) {
+          messages.push(failReasons.length ? `${r.message} — ${failReasons.join(" · ")}` : r.message);
+        }
       }
     }
     if (createSent > 0) {
-      messages.push(`${createSent} yeni ürün gönderildi${createFailedBatches ? ` (${createFailedBatches} grup hatalı)` : ""}`);
+      messages.push(
+        `${createSent} yeni ürün gönderildi${createFailedBatches ? ` (${createFailedBatches} grup hatalı)` : ""}`,
+      );
     }
     totalSent += createSent;
 
@@ -535,8 +600,9 @@ export async function syncProductsToTrendyol(
     // Trendyol PUT (ürün güncelleme) fiyat/stok kabul ETMEZ — bunlar ayrı
     // price-and-inventory endpoint'inden gider. Var olan ürünler güncellenirken
     // fiyat/stoğu da güncel tutmak için burada ayrıca gönderiyoruz.
-    if (updateProducts.length > 0) {
-      const invItems = updateProducts
+    const inventoryTargets = [...updateProducts, ...createPutRetried];
+    if (inventoryTargets.length > 0) {
+      const invItems = inventoryTargets
         .filter((p) => p.barcode?.trim())
         .map((p) => {
           const prices = toMarketplaceSyncPrices(p, "trendyol");
