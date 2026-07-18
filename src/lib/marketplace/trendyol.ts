@@ -301,7 +301,8 @@ function buildTrendyolItemBase(
     description: toTrendyolDescriptionHtml({
       description: p.description,
       descriptionHtml: p.descriptionHtml,
-      imageUrl: imageUrls[0] ?? p.imageUrl,
+      // imageUrls zaten https absolute — client-safe html-plain-text relatif path çözmez
+      imageUrl: imageUrls[0],
     }),
     images: imageUrls.length ? imageUrls.map((url) => ({ url })) : undefined,
     attributes: attributes.length ? attributes : undefined,

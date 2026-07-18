@@ -1,5 +1,3 @@
-import { toAbsoluteMediaUrl } from "@/lib/seo/site-url";
-
 /** Admin metin kutuları — HTML yerine satır sonları */
 
 const ENTITY: Record<string, string> = {
@@ -75,11 +73,12 @@ export function toTrendyolDescriptionHtml(input: {
   return html.slice(0, 30000) || "<p>-</p>";
 }
 
+/** Client-safe: site-url/tenant-context import etmez. Relatif URL’ler atlanır. */
 function toAbsoluteHttpsImage(url: string | null | undefined): string | null {
-  const absolute = toAbsoluteMediaUrl((url ?? "").trim());
-  if (!absolute) return null;
-  if (/^https:\/\//i.test(absolute)) return absolute;
-  if (/^http:\/\//i.test(absolute)) return absolute.replace(/^http:\/\//i, "https://");
+  const u = (url ?? "").trim();
+  if (!u) return null;
+  if (/^https:\/\//i.test(u)) return u;
+  if (/^http:\/\//i.test(u)) return u.replace(/^http:\/\//i, "https://");
   return null;
 }
 
