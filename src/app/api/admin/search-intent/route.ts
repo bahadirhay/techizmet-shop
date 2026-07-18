@@ -32,7 +32,13 @@ export async function POST(req: Request) {
 
   if (body.action === "apply-meta") {
     const staticPages = { ...(settings.seo?.staticPages ?? {}) };
-    if (intent.staticPageKey) {
+    // Landing path her zaman yazılır (collection slug landings dahil)
+    staticPages[intent.landingPath] = {
+      ...staticPages[intent.landingPath],
+      seoTitle: intent.title,
+      seoDescription: intent.description,
+    };
+    if (intent.staticPageKey && intent.staticPageKey !== intent.landingPath) {
       staticPages[intent.staticPageKey] = {
         ...staticPages[intent.staticPageKey],
         seoTitle: intent.title,

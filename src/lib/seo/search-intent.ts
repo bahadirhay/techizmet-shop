@@ -32,13 +32,24 @@ const LANDING_ALL = "/collections/all";
 const LANDING_DOGAL_KOPEK_ODULU = "/collections/dogal-kopek-odulu";
 const LANDING_KOPEK_ODUL_MAMASI = "/collections/kopek-odul-mamasi";
 const LANDING_DOGAL_KOPEK_ODUL_MAMASI = "/collections/dogal-kopek-odul-mamasi";
+const LANDING_ODUL_MAMASI = "/collections/odul-mamasi";
+
+/**
+ * Google'da öncelikli 3 hedef sorgu — admin Google Sıralama paneli + ana sayfa meta.
+ * Sıra = iş önceliği.
+ */
+export const PRIMARY_GOOGLE_KEYWORD_IDS = [
+  "dog-treat-food",
+  "treat-food",
+  "natural-dog-treat-food",
+] as const;
 
 /** anatolianpaw.com — organik + AI arama hedefleri */
 export const DEFAULT_SEARCH_INTENTS: SearchIntentTarget[] = [
   {
     id: "dog-natural-treat",
     query: "doğal köpek ödülü",
-    priority: 1,
+    priority: 3,
     landingPath: LANDING_DOGAL_KOPEK_ODULU,
     landingKind: "collection",
     collectionSlug: "dogal-kopek-odulu",
@@ -74,7 +85,7 @@ export const DEFAULT_SEARCH_INTENTS: SearchIntentTarget[] = [
   {
     id: "dog-treat-food",
     query: "köpek ödül maması",
-    priority: 2,
+    priority: 1,
     landingPath: LANDING_KOPEK_ODUL_MAMASI,
     landingKind: "collection",
     collectionSlug: "kopek-odul-mamasi",
@@ -108,9 +119,45 @@ export const DEFAULT_SEARCH_INTENTS: SearchIntentTarget[] = [
     ],
   },
   {
+    id: "treat-food",
+    query: "ödül maması",
+    priority: 1,
+    landingPath: LANDING_ODUL_MAMASI,
+    landingKind: "collection",
+    collectionSlug: "odul-mamasi",
+    title: "Ödül Maması | Doğal Köpek Ödül Maması | Anatolian Paw",
+    description:
+      "Ödül maması — köpekler için doğal, tahılsız ve katkısız ödül mamaları. Kurutulmuş organ etleri ve eğitim ödülleri; Türkiye üretimi, hızlı kargo, güvenilir içerik.",
+    h1: "Ödül Maması",
+    productKeywords: ["ödül", "mama", "köpek", "doğal", "kurutulmuş", "eğitim", "tahılsız"],
+    suggestedBlogTitle: "Ödül Maması Nedir? Köpekler İçin Doğru Seçim Rehberi",
+    faqs: [
+      {
+        question: "Ödül maması nedir?",
+        answer:
+          "Ödül maması, köpeklerin eğitim ve ödüllendirilmesinde kullanılan; ana öğünün yerine geçmeyen atıştırmalık ve kurutulmuş et ürünleridir. Doğal ödül maması katkısız ve tahılsız formülleri tercih eder.",
+      },
+      {
+        question: "Ödül maması köpekler için mi?",
+        answer:
+          "Evet — Anatolian Paw ödül mamaları köpekler için üretilir. Köpek ödül maması ve doğal köpek ödül maması koleksiyonlarımızda tüm ürünleri görebilirsiniz.",
+      },
+      {
+        question: "Ödül maması ile köpek maması aynı mı?",
+        answer:
+          "Hayır. Köpek maması (ana mama) günlük beslenmeyi karşılar; ödül maması küçük porsiyonlarda eğitim ve ödüllendirme içindir.",
+      },
+      {
+        question: "En iyi ödül maması nasıl seçilir?",
+        answer:
+          "Tek proteinli, tahılsız, kısa içerik listeli ve Türkiye üretimi ürünleri tercih edin. Eğitim için küçük parçalar, çiğneme için orta-büyük boy uygundur.",
+      },
+    ],
+  },
+  {
     id: "natural-dog-treat-food",
     query: "doğal köpek ödül maması",
-    priority: 2,
+    priority: 1,
     landingPath: LANDING_DOGAL_KOPEK_ODUL_MAMASI,
     landingKind: "collection",
     collectionSlug: "dogal-kopek-odul-mamasi",
@@ -521,6 +568,15 @@ export function getSearchIntents(_settings?: SiteSettings): SearchIntentTarget[]
   return DEFAULT_SEARCH_INTENTS;
 }
 
+/** Google'da öncelikli 3 hedef (Köpek Ödül Maması, Ödül maması, Doğal Köpek Ödül Maması) */
+export function getPrimaryGoogleIntents(settings?: SiteSettings): SearchIntentTarget[] {
+  const all = getSearchIntents(settings);
+  const byId = new Map(all.map((i) => [i.id, i]));
+  return PRIMARY_GOOGLE_KEYWORD_IDS.map((id) => byId.get(id)).filter(
+    (i): i is SearchIntentTarget => Boolean(i),
+  );
+}
+
 /** Adanmış landing sayfası olan (collection-kind) hedeflerin slug'larını döner */
 export const LANDING_COLLECTION_SLUGS: string[] = DEFAULT_SEARCH_INTENTS.filter(
   (i) => i.landingKind === "collection" && Boolean(i.collectionSlug),
@@ -534,6 +590,7 @@ const BLOG_SLUG_FAQ_MAP: Record<string, SearchIntentFaq[]> = {
   "dogal-kopek-odulu-nedir": DEFAULT_SEARCH_INTENTS.find((i) => i.id === "dog-natural-treat")?.faqs ?? [],
   "dogal-kopek-odul-mamasi-rehberi": DEFAULT_SEARCH_INTENTS.find((i) => i.id === "natural-dog-treat-food")?.faqs ?? [],
   "kopek-odul-mamasi-secimi": DEFAULT_SEARCH_INTENTS.find((i) => i.id === "dog-treat-food")?.faqs ?? [],
+  "odul-mamasi-nedir": DEFAULT_SEARCH_INTENTS.find((i) => i.id === "treat-food")?.faqs ?? [],
 };
 
 /** Blog yazısı slug'ı için FAQPage schema'da kullanılacak S/C listesini döner */

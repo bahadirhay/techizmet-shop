@@ -80,9 +80,10 @@ export async function loadCollectionSeoContent(
   const relatedLinks: SeoContentLink[] = [];
   const currentSlug = canonicalPath.replace("/collections/", "").split("?")[0];
   const landingTargets: { slug: string; label: string }[] = [
-    { slug: "dogal-kopek-odulu", label: "Doğal Köpek Ödülü" },
+    { slug: "odul-mamasi", label: "Ödül Maması" },
     { slug: "kopek-odul-mamasi", label: "Köpek Ödül Maması" },
     { slug: "dogal-kopek-odul-mamasi", label: "Doğal Köpek Ödül Maması" },
+    { slug: "dogal-kopek-odulu", label: "Doğal Köpek Ödülü" },
   ];
   for (const t of landingTargets) {
     if (t.slug !== currentSlug && findLandingIntentBySlug(t.slug)) {

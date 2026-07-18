@@ -71,6 +71,8 @@ export function SeoAiSettingsForm({ initial }: { initial: SeoAiFormState }) {
     <div className="admin-card admin-card-pad max-w-2xl">
       <p className="text-sm text-zinc-600">
         Ürün formundaki <strong>SEO çalışması</strong> butonu açıklama ve özellik metinlerini AI ile üretir.
+        Pet ürünlerde açıklamaya zorunlu olarak <em>köpek ödül maması</em>, <em>ödül maması</em> ve{" "}
+        <em>doğal köpek ödül maması</em> eklenir (web + pazaryeri).
         Anahtarları burada veya <code>.env</code> dosyasında tanımlayabilirsiniz.
       </p>
 

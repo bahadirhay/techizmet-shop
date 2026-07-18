@@ -1,5 +1,7 @@
 /** SEO meta ve şablon metin — istemci + sunucu (server-only değil) */
 
+import { getPrimaryGoogleIntents } from "@/lib/seo/search-intent";
+
 export function truncateSeoText(text: string, max: number): string {
   const t = text.trim();
   if (t.length <= max) return t;
@@ -16,6 +18,69 @@ function containsWord(haystack: string, needle: string): boolean {
   if (!needle.trim()) return true;
   const re = new RegExp(`\\b${needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
   return re.test(haystack);
+}
+
+/** Ürün açıklamasında zorunlu Google hedef ifadeleri (tam geçmeli) */
+export function getProductDescriptionPrimaryPhrases(): string[] {
+  return getPrimaryGoogleIntents().map((i) => i.query);
+}
+
+export function findMissingPrimaryPhrases(text: string): string[] {
+  const hay = text.toLocaleLowerCase("tr-TR");
+  return getProductDescriptionPrimaryPhrases().filter((phrase) => {
+    const needle = phrase.toLocaleLowerCase("tr-TR");
+    return !hay.includes(needle);
+  });
+}
+
+/**
+ * Profesyonel pet ürün açıklaması — web + pazaryeri.
+ * "Köpek Ödül Maması", "Ödül maması", "Doğal Köpek Ödül Maması" ifadeleri zorunlu geçer.
+ */
+export function buildProfessionalPetProductDescription(input: {
+  productTitle: string;
+  brandTitle?: string;
+  categoryTitles: string[];
+  siteName: string;
+}): string {
+  const brand = input.brandTitle?.trim();
+  const title = normalizeProductTitle(input.productTitle);
+  const name =
+    brand && !title.toLocaleLowerCase("tr-TR").includes(brand.toLocaleLowerCase("tr-TR"))
+      ? `${brand} ${title}`
+      : title;
+  const cat = input.categoryTitles[0]?.trim() || "doğal köpek ödülleri";
+
+  const paragraph1 =
+    `${name}; köpek ödül maması olarak eğitim, ödüllendirme ve kontrollü atıştırmalık ihtiyacı için ` +
+    `%100 doğal yaklaşımla hazırlanmış bir üründür. ${cat} kategorisinde, tahılsız ve katkısız formülüyle ` +
+    `besin değerlerini koruyan uzun ömürlü bir çiğneme / ödül seçeneğidir.`;
+
+  const paragraph2 =
+    `Bu ödül maması; günlük rasyonun en fazla %10'u kadar küçük porsiyonlarda verilir, ana mama yerine geçmez. ` +
+    `Doğal köpek ödül maması arayanlar için kısa içerik listesi, şeffaf üretim ve güvenilir protein ` +
+    `kaynağı önceliğidir — ${input.siteName} mağazası ve bağlı pazaryeri listelerinde aynı kalite standardıyla sunulur.`;
+
+  const paragraph3 =
+    `Saklama: serin, kuru ve ışık almayan ortamda; açıldıktan sonra hava almayan kapta muhafaza edin. ` +
+    `Yavru, yaşlı veya özel diyetteki köpeklerde veterinere danışın.`;
+
+  return [paragraph1, paragraph2, paragraph3].join(" ");
+}
+
+/** Eksik hedef ifadeleri doğal bir cümleyle tamamlar (AI çıktısı için güvenlik ağı) */
+export function ensurePrimaryPhrasesInDescription(description: string, siteName: string): string {
+  const missing = findMissingPrimaryPhrases(description);
+  if (!missing.length) return description.trim();
+
+  const bridge =
+    missing.length === 3
+      ? `Bu ürün köpek ödül maması ve ödül maması kategorisinde doğal köpek ödül maması standardıyla ${siteName} güvencesinde sunulur.`
+      : missing.includes("doğal köpek ödül maması") && missing.length === 1
+        ? `Doğal köpek ödül maması arayanlar için katkısız ve tahılsız bir seçenektir.`
+        : `Ürün; ${missing.join(", ")} aramalarında öne çıkacak şekilde konumlandırılmıştır.`;
+
+  return `${description.trim()} ${bridge}`.trim();
 }
 
 export function buildProductSeoTitle(
@@ -56,8 +121,18 @@ export function buildProductSeoDescription(input: {
   keywords?: string[];
   siteName: string;
 }): string {
-  const cat = input.categoryTitles.filter(Boolean).join(", ") || "ürün";
   const brand = input.brandTitle?.trim();
+  const name = brand ? `${brand} ${input.productTitle}` : input.productTitle;
+  const pet = isPetFoodContext(input.productTitle, input.categoryTitles);
+
+  if (pet) {
+    return truncateSeoText(
+      `${name} — doğal köpek ödül maması ve köpek ödül maması. Tahılsız ödül maması; eğitim ve günlük ödül için. ${input.siteName}'da hızlı kargo.`,
+      160,
+    ).replace(/…$/, "");
+  }
+
+  const cat = input.categoryTitles.filter(Boolean).join(", ") || "ürün";
   const descSnippet = (input.description ?? "")
     .replace(/\s+/g, " ")
     .trim()
@@ -68,7 +143,6 @@ export function buildProductSeoDescription(input: {
     .slice(0, 3)
     .join(", ");
 
-  const name = brand ? `${brand} ${input.productTitle}` : input.productTitle;
   const parts = [
     `${name} — ${cat} kategorisinde güvenilir seçim.`,
     descSnippet || `${input.siteName} üzerinden hızlı kargo ve güvenli ödeme.`,

@@ -99,8 +99,9 @@ export function ProductSeoOptimizer(props: Props) {
         <div>
           <p className="text-sm font-semibold text-violet-950">SEO çalışması (tam paket)</p>
           <p className="mt-1 text-xs text-violet-900/80">
-            Meta başlık/açıklama, ürün tanıtımı, özellikler (besin değerleri), kullanım talimatları ve
-            pazaryeri başlıkları. Ürünü kaydetmeden çalışır. AI:{" "}
+            Profesyonel ürün açıklaması (web + Trendyol/HB), meta, besin değerleri ve kullanım. Açıklamada zorunlu:{" "}
+            <strong>köpek ödül maması</strong>, <strong>ödül maması</strong>,{" "}
+            <strong>doğal köpek ödül maması</strong>. AI:{" "}
             <a href="/admin/settings/seo-ai" className="text-[var(--kn-brand)] underline">
               Ayarlar → SEO AI
             </a>

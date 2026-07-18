@@ -12,6 +12,7 @@ import { checkTrendyolBatchRequest, fetchTrendyolAddresses } from "@/lib/marketp
 import type { TrendyolCredentials } from "@/lib/marketplace/trendyol/client";
 import { syncTrendyolPriceAndInventory } from "@/lib/marketplace/trendyol/inventory";
 import { toAbsoluteMediaUrl } from "@/lib/seo/site-url";
+import { htmlToPlainText } from "@/lib/html-plain-text";
 import { prisma } from "@/lib/prisma";
 
 type TrendyolProduct = {
@@ -56,6 +57,7 @@ type SyncProductInput = {
   marketplaceAttributesJson?: string | null;
   stockQty: number;
   description: string | null;
+  descriptionHtml?: string | null;
   imageUrl: string | null;
   images?: { url: string }[];
   brand?: { name: string } | null;
@@ -274,7 +276,11 @@ function buildTrendyolItemBase(
     deliveryOption: deliveryDuration ? { deliveryDuration } : undefined,
     shipmentAddressId,
     returningAddressId,
-    description: (p.description ?? "").slice(0, 3000) || undefined,
+    description:
+      (
+        (p.description ?? "").trim() ||
+        htmlToPlainText(p.descriptionHtml ?? "").trim()
+      ).slice(0, 3000) || undefined,
     images: imageUrls.length ? imageUrls.map((url) => ({ url })) : undefined,
     attributes: attributes.length ? attributes : undefined,
   };

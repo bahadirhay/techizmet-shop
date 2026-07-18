@@ -28,6 +28,7 @@ export const ADMIN_SEO_HUB = "/admin/settings/seo-dashboard";
 export const ADMIN_SEO_BREADCRUMB = { label: "SEO", href: ADMIN_SEO_HUB } as const;
 
 export const ADMIN_SEO_NAV_ITEMS: AdminNavLink[] = [
+  { href: "/admin/settings/google-ranking", label: "Google Sıralama", perm: "site.settings" },
   { href: "/admin/settings/seo-dashboard", label: "Komuta Merkezi", perm: "site.settings" },
   { href: "/admin/settings/performance", label: "Site Performansı", perm: "site.settings" },
   { href: "/admin/settings/search-intent", label: "Hedef Aramalar", perm: "site.settings" },

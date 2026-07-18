@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getCachedParsedSiteSettings } from "@/lib/cache/store-cache";
 import { loadActiveMarketplacePlatforms } from "@/lib/marketplace/active-integrations";
 import { resolveProductCommission } from "@/lib/marketplace/commission-rules";
 import { requireStaffApi } from "@/lib/staff-auth";
@@ -10,6 +11,7 @@ export async function GET(req: Request) {
 
   const categoryId = new URL(req.url).searchParams.get("categoryId")?.trim() || null;
   const platforms = await loadActiveMarketplacePlatforms(auth.siteId);
+  const settings = await getCachedParsedSiteSettings(auth.siteId);
 
   const rules: Record<string, Awaited<ReturnType<typeof resolveProductCommission>>> = {};
   await Promise.all(
@@ -18,5 +20,12 @@ export async function GET(req: Request) {
     }),
   );
 
-  return NextResponse.json({ rules, platforms });
+  return NextResponse.json({
+    rules,
+    platforms,
+    finance: {
+      trendyolFixedFeeMinor: Math.max(0, settings.finance?.trendyolFixedFeeMinor ?? 0),
+      packagingCostMinor: Math.max(0, settings.finance?.packagingCostMinor ?? 0),
+    },
+  });
 }

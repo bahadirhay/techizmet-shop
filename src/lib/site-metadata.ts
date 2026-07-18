@@ -6,7 +6,7 @@ import { getSiteBranding, getSiteSeo } from "@/lib/site-settings";
 import { withBrandAssetVersion } from "@/lib/branding-asset-url";
 import { ensureStoreTenant } from "@/lib/store-tenant";
 import { blogFeedPath } from "@/lib/seo/rss-feed";
-import { getSearchIntents } from "@/lib/seo/search-intent";
+import { getPrimaryGoogleIntents } from "@/lib/seo/search-intent";
 
 function faviconMime(url: string): string {
   const path = url.split("?")[0]?.toLowerCase() ?? "";
@@ -26,11 +26,8 @@ export async function buildSiteMetadata(): Promise<Metadata> {
   const branding = getSiteBranding(settings);
   const homeMeta = seo.staticPages?.["/"];
 
-  // Ana sayfa için özel SEO başlığı/açıklaması yoksa hedef aramalardan anahtar
-  // kelimeli varsayılan üret (marka-only başlık organik aramada zayıf kalır).
-  const topIntents = getSearchIntents(settings)
-    .slice()
-    .sort((a, b) => (a.priority ?? 100) - (b.priority ?? 100));
+  // Ana sayfa için özel SEO başlığı/açıklaması yoksa öncelikli Google hedeflerinden üret.
+  const topIntents = getPrimaryGoogleIntents(settings);
   const keywordTitle = topIntents
     .slice(0, 2)
     .map((i) => i.h1 ?? i.query)

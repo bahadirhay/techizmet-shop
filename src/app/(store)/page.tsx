@@ -8,7 +8,7 @@ import { StorePublicBlocks } from "@/components/store/StorePublicBlocks";
 import { getStoreLocale } from "@/lib/i18n/server";
 import { getStoreMessages } from "@/lib/i18n/messages";
 import { getStoreHomepageBlocks } from "@/lib/store-homepage-blocks";
-import { getHomepageMode, getSiteSeo } from "@/lib/site-settings";
+import { getHomepageMode } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
 import { resolveStoreBlockMessages } from "@/lib/store-static-texts";
 import { ensureStoreTenant } from "@/lib/store-tenant";
@@ -22,23 +22,8 @@ import { getCachedParsedSiteSettings } from "@/lib/cache/store-cache";
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const site = await getDefaultSite();
-  const settings = await getCachedParsedSiteSettings(site.id);
-  const seo = getSiteSeo(settings, site.name);
-  const base = await buildSiteMetadata();
-  const homeMeta = seo.staticPages?.["/"];
-  const title = homeMeta?.seoTitle?.trim() || seo.siteTitle;
-  const description = homeMeta?.seoDescription?.trim() || seo.metaDescription;
-  return {
-    ...base,
-    title: { absolute: title },
-    description,
-    openGraph: {
-      ...(typeof base.openGraph === "object" ? base.openGraph : {}),
-      title,
-      description,
-    },
-  };
+  // Ana sayfa meta — hedef kelimeli varsayılanlar buildSiteMetadata içinde
+  return buildSiteMetadata();
 }
 
 export default async function HomePage({

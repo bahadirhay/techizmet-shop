@@ -56,6 +56,11 @@ export function suggestMarketplacePriceMinor(input: {
   commissionPercent: number;
   extraCommissionPercent?: number;
   shippingFeeMinor: number;
+  /** Sipariş başı sabit kesinti (Trendyol hizmet bedeli vb.) */
+  fixedFeeMinor?: number;
+  /** Satıcı kargo modeli için sizin ödediğiniz kargo */
+  sellerShippingCostMinor?: number;
+  packagingCostMinor?: number;
 }): number | null {
   const { costMinor, targetMarginPercent, commissionPercent, shippingFeeMinor } = input;
   const extra = input.extraCommissionPercent ?? 0;
@@ -64,7 +69,12 @@ export function suggestMarketplacePriceMinor(input: {
   const totalCommission = (commissionPercent + extra) / 100;
   const divisor = 1 - totalCommission;
   if (divisor <= 0.01) return null;
-  const needAfterCommission = costMinor * (1 + margin) + shippingFeeMinor;
+  const needAfterCommission =
+    costMinor * (1 + margin) +
+    shippingFeeMinor +
+    Math.max(0, input.fixedFeeMinor ?? 0) +
+    Math.max(0, input.sellerShippingCostMinor ?? 0) +
+    Math.max(0, input.packagingCostMinor ?? 0);
   return Math.max(0, Math.ceil(needAfterCommission / divisor));
 }
 

@@ -1,3 +1,6 @@
+import { findMissingPrimaryPhrases, isPetFoodContext } from "@/lib/admin/product-seo/content-builders";
+import { htmlToPlainText } from "@/lib/html-plain-text";
+
 export type ProductSeoHealthStatus = "ok" | "warn" | "fail";
 
 export type ProductSeoHealthItem = {
@@ -31,11 +34,15 @@ export function evaluateProductSeoHealth(input: ProductSeoHealthInput): ProductS
   const seoTitle = input.seoTitle.trim();
   const seoDesc = input.seoDescription.trim();
   const slug = input.slug.trim();
-  const hasIntro = Boolean(input.description.trim() || input.descriptionHtml.trim());
+  const bodyPlain =
+    input.description.trim() ||
+    (input.descriptionHtml.trim() ? htmlToPlainText(input.descriptionHtml) : "");
+  const hasIntro = Boolean(bodyPlain);
   const hasFeatures = Boolean(input.keyFeaturesHtml.trim());
   const hasHowToUse = Boolean(input.howToUseHtml.trim());
   const previewUrl =
     input.siteUrl && slug ? `${input.siteUrl.replace(/\/$/, "")}/products/${slug}` : null;
+  const pet = isPetFoodContext(title, []);
 
   items.push({
     id: "title",
@@ -105,9 +112,26 @@ export function evaluateProductSeoHealth(input: ProductSeoHealthInput): ProductS
   items.push({
     id: "body",
     label: "Ürün tanıtımı (Description)",
-    status: hasIntro ? "ok" : "warn",
-    detail: hasIntro ? "Vitrin accordion — Google içerik sinyali" : "Tanıtım metni ekleyin veya SEO çalışması yapın",
+    status: hasIntro ? (bodyPlain.length >= 200 ? "ok" : "warn") : "warn",
+    detail: hasIntro
+      ? bodyPlain.length >= 200
+        ? `${bodyPlain.length} karakter — web + pazaryeri`
+        : `${bodyPlain.length} karakter — en az ~200 önerilir (SEO çalışması)`
+      : "Tanıtım metni ekleyin veya SEO çalışması yapın",
   });
+
+  if (pet) {
+    const missing = findMissingPrimaryPhrases(bodyPlain);
+    items.push({
+      id: "primary-keywords",
+      label: "Hedef aramalar (açıklama)",
+      status: !hasIntro ? "fail" : missing.length === 0 ? "ok" : "fail",
+      detail:
+        missing.length === 0
+          ? "Köpek ödül maması · Ödül maması · Doğal köpek ödül maması — hepsi geçiyor"
+          : `Eksik: ${missing.join(", ")} — «SEO çalışması yap» ile doldurun`,
+    });
+  }
 
   items.push({
     id: "features",

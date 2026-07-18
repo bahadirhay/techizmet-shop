@@ -82,10 +82,14 @@ export function SearchIntentPanel() {
   return (
     <div className="space-y-6">
       <p className="text-sm text-[var(--kn-muted)]">
-        <strong className="font-medium text-[var(--kn-fg)]">{reports.length} hedef sorgu</strong> — Google&apos;da
-        &quot;doğal köpek ödülü&quot;, &quot;köpek ödül maması&quot; gibi aramalarda çıkmak için landing meta, FAQ
-        schema, ürün listesi (ItemList) ve Merchant feed birlikte çalışır. Trendyol/kito.pet gibi sitelerin önünde
-        olmak aylar sürebilir — her hedef için aşağıdaki adımları uygulayın.
+        <strong className="font-medium text-[var(--kn-fg)]">{reports.length} hedef sorgu</strong> — öncelik:{" "}
+        <strong>Köpek Ödül Maması</strong>, <strong>Ödül maması</strong>,{" "}
+        <strong>Doğal Köpek Ödül Maması</strong>. Landing meta, FAQ schema, ürün listesi (ItemList) ve Merchant
+        feed birlikte çalışır. Sıra takibi için{" "}
+        <Link href="/admin/settings/google-ranking" className="underline">
+          Google Sıralama
+        </Link>{" "}
+        panelini kullanın.
       </p>
 
       {!aiEnabled ? (
