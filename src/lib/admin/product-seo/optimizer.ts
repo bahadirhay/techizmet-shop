@@ -6,6 +6,8 @@ import { getSeoAiConfig } from "@/lib/admin/product-seo/ai-settings";
 import {
   buildProductSeoDescription,
   buildProductSeoTitle,
+  buildProfessionalPetProductDescription,
+  ensurePrimaryPhrasesInDescription,
   isPetFoodContext,
   normalizeProductTitle,
 } from "@/lib/admin/product-seo/content-builders";
@@ -21,14 +23,15 @@ import {
 import { fetchPetNutritionFromWeb, formatNutritionLines } from "@/lib/admin/product-seo/nutrition-search";
 import { suggestProductHighlights } from "@/lib/admin/product-seo/product-highlights-suggest";
 import type { ProductSeoInsight, ProductSeoOptimizeInput, ProductSeoOptimizeResult } from "@/lib/admin/product-seo/types";
+import { scoreLabel, scoreSeoPackage } from "@/lib/admin/product-seo/score-package";
 import { MARKETPLACE_PLATFORMS } from "@/lib/admin/marketplace-platforms";
 import {
   MARKETPLACE_TITLE_RULES,
   buildAllPlatformListingTitles,
   buildCanonicalProductTitle,
-  containsWord,
 } from "@/lib/marketplace/title-rules";
 import { listCategoryMappings } from "@/lib/marketplace/category-mapping";
+import { plainToDescriptionHtml } from "@/lib/product-content-format";
 import { prisma } from "@/lib/prisma";
 import { getSiteSettings, getSiteSeo } from "@/lib/site-settings";
 
@@ -42,20 +45,30 @@ function extractTokens(text: string): string[] {
     .filter((w) => w.length > 2);
 }
 
-function scoreTitle(title: string, keywords: string[], categoryTitles: string[]): number {
-  let score = 50;
-  const len = title.length;
-  if (len >= 40 && len <= 100) score += 15;
-  else if (len >= 25 && len <= 120) score += 8;
-  else score -= 10;
+function finalizeMetaTitle(candidate: string, productTitle: string, brandTitle: string | undefined, siteName: string): string {
+  const t = candidate.trim();
+  if (t.length >= 25 && t.length <= 65) {
+    return t.length <= 60 ? t : buildProductSeoTitle(productTitle, brandTitle, siteName);
+  }
+  return buildProductSeoTitle(productTitle, brandTitle, siteName);
+}
 
-  for (const kw of keywords.slice(0, 5)) {
-    if (title.toLowerCase().includes(kw.toLowerCase())) score += 5;
+function finalizeMetaDescription(
+  candidate: string,
+  opts: {
+    productTitle: string;
+    categoryTitles: string[];
+    brandTitle?: string;
+    description?: string;
+    keywords: string[];
+    siteName: string;
+  },
+): string {
+  const t = candidate.trim();
+  if (t.length >= 70 && t.length <= 165) {
+    return t.length <= 160 ? t : buildProductSeoDescription(opts);
   }
-  for (const cat of categoryTitles) {
-    if (containsWord(title, cat.split(/\s+/)[0] ?? "")) score += 8;
-  }
-  return Math.min(100, Math.max(0, score));
+  return buildProductSeoDescription(opts);
 }
 
 export async function optimizeProductSeo(
@@ -381,15 +394,59 @@ export async function optimizeProductSeo(
     },
     aiConfig,
   );
-  if (aiCopy.seoTitle?.trim()) seoTitle = aiCopy.seoTitle;
-  if (aiCopy.seoDescription?.trim()) seoDescription = aiCopy.seoDescription;
+
+  let suggestedDescription = aiCopy.description?.trim() || "";
+  let suggestedDescriptionHtml = aiCopy.descriptionHtml;
+  let suggestedKeyFeaturesHtml = aiCopy.keyFeaturesHtml;
+  let suggestedHowToUseHtml = aiCopy.howToUseHtml;
+
+  if (petFood) {
+    const before = suggestedDescription;
+    if (suggestedDescription.length < 280) {
+      suggestedDescription = buildProfessionalPetProductDescription({
+        productTitle: suggestedTitle,
+        brandTitle,
+        categoryTitles,
+        siteName,
+      });
+    }
+    suggestedDescription = ensurePrimaryPhrasesInDescription(suggestedDescription, siteName);
+    if (suggestedDescription !== before || !suggestedDescriptionHtml?.trim()) {
+      suggestedDescriptionHtml = plainToDescriptionHtml(suggestedDescription);
+    }
+  }
+
+  seoTitle = finalizeMetaTitle(aiCopy.seoTitle?.trim() || seoTitle, title, brandTitle, siteName);
+  seoDescription = finalizeMetaDescription(aiCopy.seoDescription?.trim() || seoDescription, {
+    productTitle: suggestedTitle,
+    categoryTitles,
+    brandTitle,
+    description: suggestedDescription || input.description,
+    keywords,
+    siteName,
+  });
+
   insights.push({
     source: "ai",
     label: aiCopy.used ? "AI açıklama üretildi" : "Şablon açıklama",
     detail: aiCopy.message,
   });
 
-  const score = scoreTitle(suggestedTitle, keywords, categoryTitles);
+  const { score, parts: scoreBreakdown } = scoreSeoPackage({
+    suggestedTitle,
+    seoTitle,
+    seoDescription,
+    suggestedSlug,
+    description: suggestedDescription,
+    descriptionHtml: suggestedDescriptionHtml,
+    keyFeaturesHtml: suggestedKeyFeaturesHtml,
+    howToUseHtml: suggestedHowToUseHtml,
+    highlightsCount: suggestedHighlights.filter((h) => h.label).length,
+    keywords,
+    categoryTitles,
+    brandTitle,
+    marketplaceTitles,
+  });
 
   insights.push({
     source: "analysis",
@@ -416,10 +473,16 @@ export async function optimizeProductSeo(
     detail: `Marka öneksiz kanonik ad (Trendyol API brandId ile gider): "${suggestedTitle}"`,
   });
 
+  const gaps = scoreBreakdown.filter((p) => p.points < p.max);
   insights.push({
     source: "analysis",
     label: "SEO skoru",
-    detail: `${score}/100 — ${score >= 75 ? "iyi uyum" : score >= 55 ? "orta — önerileri uygulayın" : "zayıf — kategori ve anahtar kelime ekleyin"}`,
+    detail:
+      gaps.length === 0
+        ? `${score}/100 — ${scoreLabel(score)}`
+        : `${score}/100 — ${scoreLabel(score)}. Eksik: ${gaps
+            .map((g) => `${g.label} (${g.points}/${g.max})`)
+            .join(" · ")}`,
   });
 
   return {
@@ -428,13 +491,14 @@ export async function optimizeProductSeo(
     suggestedSlug,
     seoTitle,
     seoDescription,
-    suggestedDescription: aiCopy.description,
-    suggestedDescriptionHtml: aiCopy.descriptionHtml,
-    suggestedKeyFeaturesHtml: aiCopy.keyFeaturesHtml,
-    suggestedHowToUseHtml: aiCopy.howToUseHtml,
+    suggestedDescription,
+    suggestedDescriptionHtml,
+    suggestedKeyFeaturesHtml,
+    suggestedHowToUseHtml,
     suggestedHighlights,
     keywords,
     score,
+    scoreBreakdown,
     insights,
     competitorTitles: competitors,
     ai: {

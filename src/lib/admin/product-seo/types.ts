@@ -24,6 +24,14 @@ export type ProductSeoOptimizeResult = {
   suggestedHighlights?: ProductHighlight[];
   keywords: string[];
   score: number;
+  /** Skor kırılımı — 100 için hangi parçaların eksik olduğu */
+  scoreBreakdown?: {
+    id: string;
+    label: string;
+    points: number;
+    max: number;
+    detail: string;
+  }[];
   insights: ProductSeoInsight[];
   competitorTitles?: { trendyol: string[]; hepsiburada: string[] };
   ai?: { used: boolean; provider?: string; message: string };

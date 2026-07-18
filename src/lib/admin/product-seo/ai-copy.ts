@@ -193,9 +193,26 @@ function toResult(
   const description = pet
     ? ensurePrimaryPhrasesInDescription(parsed.description, input.siteName)
     : parsed.description;
-  const seoDescription = pet
-    ? ensurePrimaryPhrasesInDescription(parsed.seoDescription, input.siteName).slice(0, 160)
-    : parsed.seoDescription;
+  // Meta alanlarını Google ideal aralığına sabitle (AI bazen taşır/kısa bırakır)
+  const seoTitleRaw = (parsed.seoTitle ?? "").trim();
+  const seoTitle =
+    seoTitleRaw.length >= 25 && seoTitleRaw.length <= 65
+      ? truncate(seoTitleRaw, 60).replace(/…$/, "")
+      : truncate(`${input.title} | ${input.brandTitle ?? input.siteName}`, 60).replace(/…$/, "");
+  let seoDescription = (parsed.seoDescription ?? "").trim();
+  if (pet) {
+    seoDescription = ensurePrimaryPhrasesInDescription(seoDescription, input.siteName);
+  }
+  if (seoDescription.length < 70 || seoDescription.length > 165) {
+    seoDescription = truncate(
+      pet
+        ? `${input.brandTitle ? `${input.brandTitle} ` : ""}${input.title} — doğal köpek ödül maması / köpek ödül maması. Tahılsız ödül maması; eğitim için. ${input.siteName}'da hızlı kargo.`
+        : `${input.brandTitle ? `${input.brandTitle} ` : ""}${input.title} — güvenilir seçim. ${input.siteName}'da hızlı kargo.`,
+      155,
+    ).replace(/…$/, "");
+  } else {
+    seoDescription = truncate(seoDescription, 155).replace(/…$/, "");
+  }
   return {
     used: true,
     provider,
@@ -204,7 +221,7 @@ function toResult(
     descriptionHtml: plainToDescriptionHtml(description),
     keyFeaturesHtml: plainToAccordionHtml(parsed.keyFeatures),
     howToUseHtml: plainToAccordionHtml(parsed.howToUse),
-    seoTitle: parsed.seoTitle,
+    seoTitle,
     seoDescription,
   };
 }

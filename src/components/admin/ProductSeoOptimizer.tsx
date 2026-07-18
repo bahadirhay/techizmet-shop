@@ -127,11 +127,36 @@ export function ProductSeoOptimizer(props: Props) {
       {result ? (
         <div className="mt-4 space-y-4 rounded-lg border border-violet-100 bg-white p-4">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-medium text-violet-900">
+            <span
+              className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                result.score >= 95
+                  ? "bg-emerald-100 text-emerald-900"
+                  : result.score >= 75
+                    ? "bg-violet-100 text-violet-900"
+                    : "bg-amber-100 text-amber-950"
+              }`}
+            >
               Skor: {result.score}/100
             </span>
             <span className="text-xs text-green-700">Forma uygulandı</span>
           </div>
+
+          {result.scoreBreakdown?.some((p) => p.points < p.max) ? (
+            <div className="rounded-md border border-amber-100 bg-amber-50/80 px-3 py-2">
+              <p className="text-xs font-medium text-amber-950">100 için tamamlanması gerekenler</p>
+              <ul className="mt-1 space-y-0.5 text-xs text-amber-900/90">
+                {result.scoreBreakdown
+                  .filter((p) => p.points < p.max)
+                  .map((p) => (
+                    <li key={p.id}>
+                      {p.label}: {p.points}/{p.max} — {p.detail}
+                    </li>
+                  ))}
+              </ul>
+            </div>
+          ) : result.score === 100 ? (
+            <p className="text-xs text-emerald-800">Tam paket tamam — meta, tanıtım, özellikler ve hedef aramalar uyumlu.</p>
+          ) : null}
 
           <div className="grid gap-3 text-sm sm:grid-cols-2">
             <AdminField label="SEO başlık (Google)">
