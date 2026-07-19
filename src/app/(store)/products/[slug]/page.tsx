@@ -24,6 +24,7 @@ import { ProductGalleryMedia } from "@/components/store/ProductGalleryMedia";
 import { sanitizePublicHtml } from "@/lib/html-sanitize";
 import { getDefaultSite } from "@/lib/site";
 import { ensureStoreTenant } from "@/lib/store-tenant";
+import { storefrontListedWhere } from "@/lib/storefront-product-where";
 import { resolveThemeShellProductContent } from "@/lib/theme-shell-product-content";
 import {
   isThemeShellEnabledForProductPath,
@@ -146,7 +147,7 @@ export default async function ProductPage({
       images: { orderBy: { sortOrder: "asc" } },
     },
   });
-  if (!product?.published) notFound();
+  if (!product?.published || !product.storeVisible) notFound();
 
   const bundleComponents =
     product.kind === "bundle"

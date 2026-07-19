@@ -74,6 +74,8 @@ export type ProductFormData = {
   exploreLooks: ProductExploreLook[];
   useSiteDefaultExplore: boolean;
   published: boolean;
+  /** false = web sitesinde gizle; pazaryeri sync published ile devam eder */
+  storeVisible: boolean;
 };
 
 export function ProductForm({
@@ -956,8 +958,20 @@ export function ProductForm({
             checked={form.published}
             onChange={(e) => set("published", e.target.checked)}
           />
-          Yayında
+          Yayında (pazaryeri + site için ana anahtar)
         </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={form.storeVisible}
+            onChange={(e) => set("storeVisible", e.target.checked)}
+            disabled={!form.published}
+          />
+          Web sitesinde göster
+        </label>
+        <p className="-mt-2 text-xs text-zinc-500">
+          İşareti kaldırınca ürün sitede gizlenir; yayındaysa pazaryerine gönderilmeye devam eder.
+        </p>
       </div>
 
       {form.id && form.published ? (

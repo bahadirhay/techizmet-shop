@@ -38,6 +38,7 @@ type BundleRow = {
   imageUrl: string | null;
   badgesJson: string | null;
   published: boolean;
+  storeVisible?: boolean;
   images?: { url: string; sortOrder: number; mediaType?: string }[];
   bundleComponents?: {
     componentProductId: string;
@@ -78,6 +79,7 @@ export function emptyBundleForm(): BundleFormData {
     mediaItems: [],
     badges: [],
     published: true,
+    storeVisible: true,
     components: [],
     computedStockQty: 0,
   };
@@ -135,6 +137,7 @@ export function bundleToForm(
     mediaItems,
     badges: parseProductBadges(product.badgesJson),
     published: product.published,
+    storeVisible: product.storeVisible !== false,
     components:
       product.bundleComponents?.map((c) => ({
         productId: c.componentProductId,

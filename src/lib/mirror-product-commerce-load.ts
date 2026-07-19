@@ -48,7 +48,7 @@ export async function loadMirrorProductCommerceUncached(
     where: { siteId_slug: { siteId, slug } },
     include: { variants: { orderBy: { sortOrder: "asc" } } },
   });
-  if (!product?.published) return null;
+  if (!product?.published || !product.storeVisible) return null;
 
   const memberPricing = options?.memberPricing ?? null;
   const variants: VariantRow[] = product.variants.map((v) => ({

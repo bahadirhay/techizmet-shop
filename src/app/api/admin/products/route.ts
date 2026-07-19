@@ -128,6 +128,7 @@ export async function POST(req: Request) {
             : [],
         ),
         published: body.published !== false,
+        storeVisible: body.storeVisible !== false,
         sortOrder: nextSortOrder,
         catalogSortOrder: nextCatalogSortOrder,
         images: {

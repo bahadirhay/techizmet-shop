@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCustomerSession } from "@/lib/customer-session";
 import { prisma } from "@/lib/prisma";
 import { getDefaultSite } from "@/lib/site";
+import { storefrontListedWhere } from "@/lib/storefront-product-where";
 
 async function requireCustomer() {
   const site = await getDefaultSite();
@@ -39,7 +40,7 @@ export async function POST(req: Request) {
 
   if (!productId && body.slug?.trim()) {
     const bySlug = await prisma.storeProduct.findFirst({
-      where: { slug: body.slug.trim(), siteId: auth.site.id, published: true },
+      where: { slug: body.slug.trim(), siteId: auth.site.id, ...storefrontListedWhere },
       select: { id: true, slug: true },
     });
     if (!bySlug) {
@@ -57,7 +58,7 @@ export async function POST(req: Request) {
     productSlug !== undefined
       ? { id: productId, slug: productSlug }
       : await prisma.storeProduct.findFirst({
-          where: { id: productId, siteId: auth.site.id, published: true },
+          where: { id: productId, siteId: auth.site.id, ...storefrontListedWhere },
           select: { id: true, slug: true },
         });
   if (!product) {

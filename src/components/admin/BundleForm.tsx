@@ -59,6 +59,8 @@ export type BundleFormData = {
   mediaItems: ProductMediaItem[];
   badges: ProductBadgeId[];
   published: boolean;
+  /** false = web sitesinde gizle; pazaryeri sync published ile devam eder */
+  storeVisible: boolean;
   components: BundleComponentRow[];
   computedStockQty: number;
 };
@@ -650,8 +652,20 @@ export function BundleForm({
             checked={form.published}
             onChange={(e) => set("published", e.target.checked)}
           />
-          Yayında
+          Yayında (pazaryeri + site için ana anahtar)
         </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={form.storeVisible}
+            onChange={(e) => set("storeVisible", e.target.checked)}
+            disabled={!form.published}
+          />
+          Web sitesinde göster
+        </label>
+        <p className="-mt-2 text-xs text-zinc-500">
+          İşareti kaldırınca ürün sitede gizlenir; yayındaysa pazaryerine gönderilmeye devam eder.
+        </p>
       </div>
 
       <div className="space-y-4 rounded-xl border bg-white p-6">

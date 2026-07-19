@@ -60,7 +60,7 @@ export default async function FavoritesPage({
     orderBy: { createdAt: "desc" },
   });
 
-  const items = favorites.filter((f) => f.product.siteId === site.id && f.product.published);
+  const items = favorites.filter((f) => f.product.siteId === site.id && f.product.published && f.product.storeVisible);
 
   return (
     <div className="kn-section kn-account-page">

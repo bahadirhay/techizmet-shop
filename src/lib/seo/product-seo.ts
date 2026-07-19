@@ -24,6 +24,7 @@ export const loadPublishedProductSeo = cache(async (slug: string) => {
       pieceCount: true,
       stockQty: true,
       published: true,
+      storeVisible: true,
       collection: { select: { slug: true, title: true } },
       category: {
         select: {
@@ -51,7 +52,7 @@ export const loadPublishedProductSeo = cache(async (slug: string) => {
     },
   });
 
-  if (!product?.published) return null;
+  if (!product?.published || !product.storeVisible) return null;
 
   const galleryUrls =
     product.images.length > 0

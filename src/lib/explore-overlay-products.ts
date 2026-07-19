@@ -2,6 +2,7 @@ import { formatTry } from "@/lib/format";
 import { formatProductDisplayTitle } from "@/lib/product-display-title";
 import type { ExploreOverlayProduct } from "@/lib/product-explore-looks";
 import { prisma } from "@/lib/prisma";
+import { storefrontListedWhere } from "@/lib/storefront-product-where";
 
 export async function loadExploreOverlayProducts(
   siteId: string,
@@ -11,7 +12,7 @@ export async function loadExploreOverlayProducts(
   if (!unique.length) return {};
 
   const rows = await prisma.storeProduct.findMany({
-    where: { siteId, slug: { in: unique }, published: true },
+    where: { siteId, slug: { in: unique }, ...storefrontListedWhere },
     select: {
       slug: true,
       title: true,

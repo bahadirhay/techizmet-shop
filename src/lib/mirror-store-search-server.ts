@@ -2,6 +2,7 @@ import { formatTry } from "@/lib/format";
 import { withProductDisplayTitle } from "@/lib/product-display-title";
 import { prisma } from "@/lib/prisma";
 import { getDefaultSite } from "@/lib/site";
+import { storefrontListedWhere } from "@/lib/storefront-product-where";
 
 export type MirrorSearchProductHit = {
   slug: string;
@@ -31,7 +32,7 @@ export async function loadMirrorSearchDrawerPayload(q = ""): Promise<MirrorSearc
     prisma.storeProduct.findMany({
       where: {
         siteId: site.id,
-        published: true,
+        ...storefrontListedWhere,
         ...(term.length >= 2
           ? {
               OR: [

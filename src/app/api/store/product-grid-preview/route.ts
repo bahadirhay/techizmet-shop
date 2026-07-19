@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getDefaultSite } from "@/lib/site";
+import { storefrontListedWhere } from "@/lib/storefront-product-where";
 
 /** Admin önizleme — ürün grid kartları */
 export async function GET(req: Request) {
@@ -12,7 +13,7 @@ export async function GET(req: Request) {
   const products = await prisma.storeProduct.findMany({
     where: {
       siteId: site.id,
-      published: true,
+      ...storefrontListedWhere,
       ...(collectionSlug ? { collection: { slug: collectionSlug } } : {}),
     },
     take: limit,

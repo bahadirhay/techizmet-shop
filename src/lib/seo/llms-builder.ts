@@ -7,6 +7,7 @@ import { blogFeedUrl } from "@/lib/seo/rss-feed";
 import type { SiteSettings } from "@/lib/site-settings";
 import { getSiteSeo } from "@/lib/site-settings";
 import { prisma } from "@/lib/prisma";
+import { storefrontListedWhere } from "@/lib/storefront-product-where";
 
 function mdLink(title: string, url: string, description: string): string {
   return `- [${title}](${url}): ${description}`;
@@ -23,7 +24,7 @@ export async function buildLlmsTxt(siteId: string, settings: SiteSettings, siteN
 
   const [products, collections, blogPosts] = await Promise.all([
     prisma.storeProduct.findMany({
-      where: { siteId, published: true },
+      where: { siteId, ...storefrontListedWhere },
       orderBy: { title: "asc" },
       take: 20,
       select: { slug: true, title: true, seoDescription: true, description: true },

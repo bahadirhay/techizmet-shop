@@ -154,6 +154,7 @@ export async function POST(req: Request) {
             })(),
           ),
           published: body.published !== false,
+          storeVisible: body.storeVisible !== false,
           images: {
             create: mediaItems.map((m, i) => ({
               url: m.url,

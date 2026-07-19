@@ -223,6 +223,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
               }
             : {}),
           ...(body.published !== undefined ? { published: body.published !== false } : {}),
+          ...(body.storeVisible !== undefined ? { storeVisible: body.storeVisible !== false } : {}),
         },
       });
 

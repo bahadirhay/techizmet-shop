@@ -11,12 +11,13 @@ import { getSiteSettingsUncached } from "@/lib/site-settings-load";
 import { resolveMirrorCollectionTexts } from "@/lib/store-static-texts";
 import { resolveHomeListingSort, homeListingOrderBy } from "@/lib/home-listing-sort";
 import { withProductDisplayTitle } from "@/lib/product-display-title";
+import { storefrontListedWhere } from "@/lib/storefront-product-where";
 
 export async function loadHomeListingProducts(siteId: string): Promise<VitrinCollectionProductCard[]> {
   const settings = await getSiteSettingsUncached(siteId);
   const sort = resolveHomeListingSort(settings.store?.texts);
   const rows = await prisma.storeProduct.findMany({
-    where: { siteId, published: true },
+    where: { siteId, ...storefrontListedWhere },
     orderBy: homeListingOrderBy(sort),
     select: {
       slug: true,

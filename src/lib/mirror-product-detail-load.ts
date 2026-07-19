@@ -129,7 +129,7 @@ export async function loadPublishedProductMirrorPatch(
       variants: { orderBy: { sortOrder: "asc" } },
     },
   });
-  if (!product?.published) return null;
+  if (!product?.published || !product.storeVisible) return null;
 
   let bundleComponents: VitrinProductDetail["bundleComponents"];
   if (product.kind === PRODUCT_KIND_BUNDLE) {

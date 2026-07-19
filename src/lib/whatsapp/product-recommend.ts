@@ -4,6 +4,7 @@ import { formatTry } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { stripHtmlForAssistant } from "@/lib/assistant/html";
 import { toAbsoluteUrl } from "@/lib/seo/site-url";
+import { storefrontListedWhere } from "@/lib/storefront-product-where";
 
 export type ProductRecommendHit = {
   slug: string;
@@ -182,7 +183,7 @@ export async function recommendProductsForPet(
   const queryTokens = [...new Set([...breedTokens, ...noteTokens, ...ageHints.tokens])];
 
   const products = await prisma.storeProduct.findMany({
-    where: { siteId: input.siteId, published: true, stockQty: { gt: 0 } },
+    where: { siteId: input.siteId, ...storefrontListedWhere, stockQty: { gt: 0 } },
     select: {
       title: true,
       slug: true,

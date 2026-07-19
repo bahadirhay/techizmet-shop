@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { computeBundleAvailableQty, PRODUCT_KIND_BUNDLE } from "@/lib/product-bundle";
 import { pickDefaultVariant } from "@/lib/product-variants";
+import { storefrontListedWhere } from "@/lib/storefront-product-where";
 
 export type AddToCartInput = {
   productId?: string;
@@ -55,11 +56,11 @@ export async function resolveAddToCartInput(
 
   const product = productId
     ? await prisma.storeProduct.findFirst({
-        where: { id: productId, siteId, published: true },
+        where: { id: productId, siteId, ...storefrontListedWhere },
         include: { variants: { orderBy: { sortOrder: "asc" } } },
       })
     : await prisma.storeProduct.findFirst({
-        where: { siteId, slug, published: true },
+        where: { siteId, slug, ...storefrontListedWhere },
         include: { variants: { orderBy: { sortOrder: "asc" } } },
       });
 

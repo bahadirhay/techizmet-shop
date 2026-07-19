@@ -218,9 +218,9 @@ export async function buildMirrorHtmlCore(params: MirrorHtmlBuildParams): Promis
       try {
         const productRow = await prisma.storeProduct.findUnique({
           where: { siteId_slug: { siteId, slug } },
-          select: { exploreLooksJson: true, published: true },
+          select: { exploreLooksJson: true, published: true, storeVisible: true },
         });
-        if (productRow?.published) {
+        if (productRow?.published && productRow.storeVisible) {
           const exploreLooks = resolveExploreLooksSync(settings, productRow.exploreLooksJson ?? null);
           hideExplore = exploreLooks.length === 0;
           localized = injectProductExploreMirrorHtml(localized, exploreLooks);

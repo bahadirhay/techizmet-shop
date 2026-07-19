@@ -17,6 +17,7 @@ import {
 } from "@/lib/product-bundle";
 import { variantCatalogPrices } from "@/lib/product-variants";
 import { prisma } from "@/lib/prisma";
+import { storefrontListedWhere } from "@/lib/storefront-product-where";
 import { ensureGeliverCheckoutRate } from "@/lib/shipping/geliver/ensure-checkout-rate";
 import { prepareGeliverCheckoutRates } from "@/lib/shipping/geliver/checkout-quotes";
 import { LEGACY_GELIVER_CARRIER_CODE } from "@/lib/shipping/geliver/provider-labels";
@@ -258,7 +259,7 @@ export async function buildCartView(
 
   const productIds = session.items.map((i) => i.productId);
   const products = await prisma.storeProduct.findMany({
-    where: { siteId: sid, id: { in: productIds }, published: true },
+    where: { siteId: sid, id: { in: productIds }, ...storefrontListedWhere },
     include: {
       variants: { orderBy: { sortOrder: "asc" } },
       categoryLinks: { select: { categoryId: true } },

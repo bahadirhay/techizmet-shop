@@ -80,7 +80,7 @@ export default async function AccountPage({
   if (!customer) redirect(accountLoginPath("/account"));
 
   const favorites = customer.favorites
-    .filter((f) => f.product.siteId === site.id && f.product.published)
+    .filter((f) => f.product.siteId === site.id && f.product.published && f.product.storeVisible)
     .map((f) => ({
       productId: f.product.id,
       slug: f.product.slug,

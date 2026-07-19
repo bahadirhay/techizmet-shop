@@ -39,6 +39,7 @@ import {
 import { withProductDisplayTitle } from "@/lib/product-display-title";
 import { prisma } from "@/lib/prisma";
 import { imageUrlsFromProductRow, primaryImageUrlFromProductRow } from "@/lib/mirror-product-card-images";
+import { storefrontListedWhere } from "@/lib/storefront-product-where";
 
 const MIRROR_CART_REL = "theme/techizmet-shop/mirror/cart/index.html";
 const MIRROR_CHECKOUT_REL = "theme/techizmet-shop/mirror/checkout/index.html";
@@ -57,7 +58,7 @@ async function loadSearchProducts(siteId: string, term: string): Promise<VitrinC
   const rows = await prisma.storeProduct.findMany({
     where: {
       siteId,
-      published: true,
+      ...storefrontListedWhere,
       OR: [
         { title: contains },
         { description: contains },

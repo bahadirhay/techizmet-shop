@@ -11,6 +11,7 @@ import { withProductDisplayTitle } from "@/lib/product-display-title";
 import { prisma } from "@/lib/prisma";
 import { resolveMirrorCollectionTexts } from "@/lib/store-static-texts";
 import { imageUrlsFromProductRow, primaryImageUrlFromProductRow } from "@/lib/mirror-product-card-images";
+import { storefrontListedWhere } from "@/lib/storefront-product-where";
 
 function searchMirrorRel(locale: "tr" | "en") {
   return locale === "tr"
@@ -26,7 +27,7 @@ async function loadSearchProducts(siteId: string, term: string): Promise<VitrinC
   const rows = await prisma.storeProduct.findMany({
     where: {
       siteId,
-      published: true,
+      ...storefrontListedWhere,
       OR: [
         { title: contains },
         { description: contains },

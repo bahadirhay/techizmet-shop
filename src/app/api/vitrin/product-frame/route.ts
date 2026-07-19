@@ -19,9 +19,9 @@ export async function GET(req: Request) {
   const locale = await getStoreLocaleFromHeaders();
   const product = await prisma.storeProduct.findUnique({
     where: { siteId_slug: { siteId: site.id, slug } },
-    select: { exploreLooksJson: true, published: true },
+    select: { exploreLooksJson: true, published: true, storeVisible: true },
   });
-  if (!product?.published) {
+  if (!product?.published || !product.storeVisible) {
     return NextResponse.json({ error: "Bulunamadı" }, { status: 404 });
   }
 

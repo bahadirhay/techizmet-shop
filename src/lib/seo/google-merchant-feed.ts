@@ -8,6 +8,7 @@ import {
 } from "@/lib/seo/google-merchant-types";
 import { getPublicSiteUrl, toAbsoluteMediaUrl } from "@/lib/seo/site-url";
 import { prisma } from "@/lib/prisma";
+import { storefrontListedWhere } from "@/lib/storefront-product-where";
 
 function escapeXml(value: string): string {
   return value
@@ -81,7 +82,7 @@ function normalizeGtin(barcode: string | null | undefined): string | undefined {
 export async function loadGoogleMerchantFeedItems(siteId: string): Promise<FeedItem[]> {
   const siteOrigin = getPublicSiteUrl();
   const rows = await prisma.storeProduct.findMany({
-    where: { siteId, published: true },
+    where: { siteId, ...storefrontListedWhere },
     orderBy: { title: "asc" },
     select: {
       id: true,

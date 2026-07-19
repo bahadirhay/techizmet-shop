@@ -57,6 +57,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
       badgesJson: true,
       variantOptionName: true,
       published: true,
+      storeVisible: true,
       images: { orderBy: { sortOrder: "asc" }, select: { url: true, sortOrder: true, mediaType: true } },
       variants: {
         orderBy: { sortOrder: "asc" },

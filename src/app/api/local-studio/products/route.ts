@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { verifyCronRequest } from "@/lib/cron-auth";
 import { getDefaultSite } from "@/lib/site";
 import { prisma } from "@/lib/prisma";
+import { storefrontListedWhere } from "@/lib/storefront-product-where";
 
 /** Local studio (anatolian-paw-ai) — yayın ürün listesi. Authorization: Bearer CRON_SECRET */
 export async function GET(req: Request) {
@@ -12,7 +13,7 @@ export async function GET(req: Request) {
 
   const site = await getDefaultSite();
   const products = await prisma.storeProduct.findMany({
-    where: { siteId: site.id, published: true },
+    where: { siteId: site.id, ...storefrontListedWhere },
     orderBy: { title: "asc" },
     select: {
       id: true,

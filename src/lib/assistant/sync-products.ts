@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { stripHtmlForAssistant } from "@/lib/assistant/html";
+import { storefrontListedWhere } from "@/lib/storefront-product-where";
 
 function formatTry(minor: number): string {
   return new Intl.NumberFormat("tr-TR", {
@@ -42,7 +43,7 @@ export async function syncAssistantProductsToKnowledge(siteId: string): Promise<
   deactivated: number;
 }> {
   const products = await prisma.storeProduct.findMany({
-    where: { siteId, published: true },
+    where: { siteId, ...storefrontListedWhere },
     select: {
       id: true,
       title: true,

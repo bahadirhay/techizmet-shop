@@ -18,6 +18,7 @@ import {
 import Link from "next/link";
 import { Suspense } from "react";
 import { ProductCard } from "@/components/store/ProductCard";
+import { storefrontListedWhere } from "@/lib/storefront-product-where";
 
 async function SearchResults({ q }: { q: string }) {
   const site = await getDefaultSite();
@@ -34,7 +35,7 @@ async function SearchResults({ q }: { q: string }) {
   const products = await prisma.storeProduct.findMany({
     where: {
       siteId: site.id,
-      published: true,
+      ...storefrontListedWhere,
       OR: [
         { title: contains },
         { description: contains },
@@ -114,7 +115,7 @@ export default async function SearchPage({
         ? await prisma.storeProduct.count({
             where: {
               siteId: site.id,
-              published: true,
+              ...storefrontListedWhere,
               OR: [
                 { title: { contains: term, mode: "insensitive" } },
                 { description: { contains: term, mode: "insensitive" } },
@@ -143,7 +144,7 @@ export default async function SearchPage({
       ? await prisma.storeProduct.count({
           where: {
             siteId: site.id,
-            published: true,
+            ...storefrontListedWhere,
             OR: [
               { title: { contains: term, mode: "insensitive" } },
               { description: { contains: term, mode: "insensitive" } },

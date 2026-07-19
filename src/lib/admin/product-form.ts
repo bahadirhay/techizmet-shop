@@ -50,6 +50,7 @@ type ProductRow = {
   badgesJson: string | null;
   variantOptionName: string | null;
   published: boolean;
+  storeVisible?: boolean;
   images?: { url: string; sortOrder: number; mediaType?: string }[];
   variants?: {
     id: string;
@@ -101,6 +102,7 @@ export function emptyProductForm(): ProductFormData {
     exploreLooks: [],
     useSiteDefaultExplore: false,
     published: false,
+    storeVisible: true,
   };
 }
 
@@ -184,5 +186,6 @@ export function productToForm(
     exploreLooks: parseExploreLooksJson(p.exploreLooksJson) ?? [],
     useSiteDefaultExplore: isSiteDefaultExploreJson(p.exploreLooksJson),
     published: p.published,
+    storeVisible: p.storeVisible !== false,
   };
 }

@@ -3,6 +3,7 @@ import { formatProductDisplayTitle } from "@/lib/product-display-title";
 import type { MegaNavProduct } from "@/lib/mirror-nav-resolve";
 import { productHref } from "@/lib/nav-menu-link";
 import { prisma } from "@/lib/prisma";
+import { storefrontListedWhere } from "@/lib/storefront-product-where";
 
 export async function resolveMegaMenuProductsBySlug(
   siteId: string,
@@ -13,7 +14,7 @@ export async function resolveMegaMenuProductsBySlug(
 
   try {
     const rows = await prisma.storeProduct.findMany({
-      where: { siteId, published: true, slug: { in: unique } },
+      where: { siteId, ...storefrontListedWhere, slug: { in: unique } },
       select: {
         slug: true,
         title: true,

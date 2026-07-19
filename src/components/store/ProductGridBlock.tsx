@@ -7,6 +7,7 @@ import { getLoggedInCustomerPricing } from "@/lib/store/customer-pricing";
 import { getDefaultSite } from "@/lib/site";
 import { formatProductDisplayTitle } from "@/lib/product-display-title";
 import { getCategoryScopeIds } from "@/lib/store-category-tree";
+import { storefrontListedWhere } from "@/lib/storefront-product-where";
 
 export async function ProductGridBlock({
   limit = 8,
@@ -33,7 +34,7 @@ export async function ProductGridBlock({
   const products = await prisma.storeProduct.findMany({
     where: {
       siteId: site.id,
-      published: true,
+      ...storefrontListedWhere,
       ...(collectionSlug ? { collection: { slug: collectionSlug } } : {}),
       ...(categorySlug
         ? categoryScopeIds?.length

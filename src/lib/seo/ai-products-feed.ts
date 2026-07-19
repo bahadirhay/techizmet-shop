@@ -5,6 +5,7 @@ import { getPublicSiteUrl, toAbsoluteMediaUrl } from "@/lib/seo/site-url";
 import { parseGoogleMerchantSettings } from "@/lib/seo/google-merchant-types";
 import type { GoogleMerchantSettings } from "@/lib/seo/google-merchant-types";
 import { prisma } from "@/lib/prisma";
+import { storefrontListedWhere } from "@/lib/storefront-product-where";
 
 export type AiProductFeedItem = {
   id: string;
@@ -53,7 +54,7 @@ export async function loadAiProductFeedItems(
 ): Promise<AiProductFeedItem[]> {
   const origin = getPublicSiteUrl();
   const rows = await prisma.storeProduct.findMany({
-    where: { siteId, published: true },
+    where: { siteId, ...storefrontListedWhere },
     orderBy: { title: "asc" },
     select: {
       id: true,

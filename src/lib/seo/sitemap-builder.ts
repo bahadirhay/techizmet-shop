@@ -5,6 +5,7 @@ import type { MetadataRoute } from "next";
 import { getPublicSiteUrl } from "@/lib/seo/site-url";
 import { LANDING_COLLECTION_SLUGS } from "@/lib/seo/search-intent";
 import { prisma } from "@/lib/prisma";
+import { storefrontListedWhere } from "@/lib/storefront-product-where";
 
 export async function buildStoreSitemapEntries(siteId: string): Promise<MetadataRoute.Sitemap> {
   const root = getPublicSiteUrl();
@@ -12,7 +13,7 @@ export async function buildStoreSitemapEntries(siteId: string): Promise<Metadata
 
   const [products, collections, pages, categories, blogPosts] = await Promise.all([
     prisma.storeProduct.findMany({
-      where: { siteId, published: true },
+      where: { siteId, ...storefrontListedWhere },
       select: { slug: true, updatedAt: true, imageUrl: true },
     }),
     prisma.storeCollection.findMany({

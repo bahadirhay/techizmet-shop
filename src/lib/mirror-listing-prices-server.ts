@@ -1,5 +1,6 @@
 /** DB fiyat haritası — prebuild (tsx) ve runtime; server-only değil */
 import { prisma } from "@/lib/prisma";
+import { storefrontListedWhere } from "@/lib/storefront-product-where";
 import { parseHTML } from "@/lib/linkedom-server";
 import {
   applyCatalogPricesToDocument,
@@ -18,7 +19,7 @@ export function applyCatalogPricesToHtml(html: string, map: CatalogPriceMap): st
 
 export async function loadCatalogPriceMap(siteId: string): Promise<CatalogPriceMap> {
   const rows = await prisma.storeProduct.findMany({
-    where: { siteId, published: true },
+    where: { siteId, ...storefrontListedWhere },
     select: { slug: true, priceMinor: true, compareAtMinor: true },
   });
   const map: CatalogPriceMap = {};

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
+import { storefrontListedWhere } from "@/lib/storefront-product-where";
 import { getDefaultSite } from "@/lib/site";
 import {
   findIntentForPath,
@@ -49,7 +50,7 @@ export type CollectionSeoContentData = {
 
 async function loadTopProducts(siteId: string, limit = 12): Promise<SeoContentProduct[]> {
   const rows = await prisma.storeProduct.findMany({
-    where: { siteId, published: true },
+    where: { siteId, ...storefrontListedWhere },
     orderBy: { title: "asc" },
     take: limit,
     select: { slug: true, title: true, priceMinor: true },

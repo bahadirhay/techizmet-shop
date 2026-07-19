@@ -2,6 +2,7 @@
 
 import { parseHTML } from "@/lib/linkedom-server";
 import { prisma } from "@/lib/prisma";
+import { storefrontListedWhere } from "@/lib/storefront-product-where";
 
 const PRODUCT_HREF = /\/products\/([^/?#]+)/i;
 
@@ -60,7 +61,7 @@ export function pruneMirrorHtmlToPublishedCatalog(
 
 export async function loadPublishedProductSlugSet(siteId: string): Promise<Set<string>> {
   const rows = await prisma.storeProduct.findMany({
-    where: { siteId, published: true },
+    where: { siteId, ...storefrontListedWhere },
     select: { slug: true },
   });
   return new Set(rows.map((r) => r.slug.toLowerCase()));

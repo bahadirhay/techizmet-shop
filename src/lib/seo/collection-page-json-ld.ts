@@ -10,10 +10,11 @@ import {
 import { loadCollectionSeo } from "@/lib/seo/collection-seo";
 import { findIntentForPath, mergeFaqsForPath } from "@/lib/seo/search-intent";
 import { prisma } from "@/lib/prisma";
+import { storefrontListedWhere } from "@/lib/storefront-product-where";
 
 async function loadListingProducts(siteId: string, limit = 24) {
   return prisma.storeProduct.findMany({
-    where: { siteId, published: true },
+    where: { siteId, ...storefrontListedWhere },
     orderBy: { title: "asc" },
     take: limit,
     select: {

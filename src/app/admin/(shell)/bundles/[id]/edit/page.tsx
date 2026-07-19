@@ -54,6 +54,7 @@ export default async function EditBundlePage({ params }: { params: Promise<{ id:
       imageUrl: true,
       badgesJson: true,
       published: true,
+      storeVisible: true,
       images: { orderBy: { sortOrder: "asc" }, select: { url: true, sortOrder: true, mediaType: true } },
       bundleComponents: {
         orderBy: { sortOrder: "asc" },

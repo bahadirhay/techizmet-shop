@@ -7,6 +7,7 @@ import {
 import type { MirrorPageConfig } from "@/lib/mirror-home-overlay";
 import { formatTry } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+import { storefrontListedWhere } from "@/lib/storefront-product-where";
 import { vitrinMirrorFileRel, type VitrinPageKey } from "@/lib/mirror-vitrin-pages";
 
 /** Sunucu — TR + EN mirror dosyalarından sekme varsayılanları */
@@ -29,7 +30,7 @@ export async function enrichMirrorPageConfigCollectionsTabs(
   if (!hasTabs) return config;
 
   const rows = await prisma.storeProduct.findMany({
-    where: { siteId, published: true },
+    where: { siteId, ...storefrontListedWhere },
     select: {
       slug: true,
       title: true,

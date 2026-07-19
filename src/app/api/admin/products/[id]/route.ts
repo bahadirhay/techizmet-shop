@@ -191,6 +191,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
               ? String(body.imageUrl).trim() || null
               : undefined,
         published: body.published !== undefined ? Boolean(body.published) : undefined,
+        storeVisible: body.storeVisible !== undefined ? Boolean(body.storeVisible) : undefined,
         badgesJson:
           body.badges !== undefined
             ? serializeProductBadges(

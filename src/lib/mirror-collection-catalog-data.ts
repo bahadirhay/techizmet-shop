@@ -16,6 +16,7 @@ import { MIRROR_COLLECTION_PAGE_SIZE } from "@/lib/mirror-collections-sync";
 import { withProductDisplayTitle } from "@/lib/product-display-title";
 import { imageUrlsFromProductRow, primaryImageUrlFromProductRow } from "@/lib/mirror-product-card-images";
 import { getCategoryFilterOptions, getCategoryScopeIds } from "@/lib/store-category-tree";
+import { storefrontListedWhere } from "@/lib/storefront-product-where";
 
 /** Koleksiyon/kategori ürün listesi — prebuild ve runtime (server-only değil) */
 export async function loadCollectionCatalogCore(
@@ -54,7 +55,7 @@ export async function loadCollectionCatalogCore(
   const categoryScopeIds = getCategoryScopeIds(categories, categorySlug);
   const baseProductWhere = {
     siteId,
-    published: true,
+    ...storefrontListedWhere,
     ...(categorySlug
       ? categoryScopeIds?.length
         ? {

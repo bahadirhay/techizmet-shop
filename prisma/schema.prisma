@@ -625,6 +625,11 @@ model StoreProduct {
    */
   kind                         String                      @default("standard")
   published                    Boolean                     @default(true)
+  /**
+   * false = web sitesinde gizle (liste, PDP, sepet, SEO feed).
+   * Pazaryeri sync `published` ile devam eder.
+   */
+  storeVisible                 Boolean                     @default(true)
   createdAt                    DateTime                    @default(now())
   updatedAt                    DateTime                    @updatedAt
   images                       StoreProductImage[]
