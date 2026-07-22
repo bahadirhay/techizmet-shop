@@ -63,24 +63,30 @@ export async function runScheduledMarketplaceOrderPulls(options?: {
     }
 
     const fullConfig = await getIntegrationConfig(integration.siteId, integration.platform);
-    const startDate = fullConfig.lastOrderPullAt
-      ? new Date(fullConfig.lastOrderPullAt).getTime() - 60_000
-      : undefined;
+    // GitHub Actions ~15 dk iddiası güvenilir değil; en az 48 saat geriye bak.
+    const minLookbackMs = Date.now() - 48 * 60 * 60 * 1000;
+    const fromLast = fullConfig.lastOrderPullAt
+      ? new Date(fullConfig.lastOrderPullAt).getTime() - 60 * 60 * 1000
+      : minLookbackMs;
+    const startDate = Math.min(fromLast, minLookbackMs);
 
     const result = await pullMarketplaceOrders(
       integration.siteId,
       integration.platform,
       fullConfig,
-      "Created",
+      integration.platform === "trendyol" ? "open" : "Created",
       startDate,
     );
 
     await logMarketplaceAction(integration.siteId, integration.platform, "pull_orders_cron", result);
-    await patchIntegrationConfig(integration.id, fullConfig, {
-      lastOrderPullAt: new Date().toISOString(),
-    });
+    // Başarısız çekimde lastOrderPullAt ilerletme — pencere kaçmasın.
+    if (result.ok) {
+      await patchIntegrationConfig(integration.id, fullConfig, {
+        lastOrderPullAt: new Date().toISOString(),
+      });
+    }
 
-    if (result.itemsCount > 0) {
+    if (result.ok && result.itemsCount > 0) {
       await syncStockToAllMarketplaces(integration.siteId);
     }
 

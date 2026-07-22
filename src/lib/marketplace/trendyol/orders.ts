@@ -114,6 +114,17 @@ export const TRENDYOL_ALL_STATUSES = [
   "Returned",
 ] as const;
 
+/**
+ * Cron / "yeni sipariş" çekimi: yalnızca Created yetmez —
+ * panelde onaylanan paketler Picking/Invoiced olur ve kaçardı.
+ */
+export const TRENDYOL_OPEN_STATUSES = [
+  "Created",
+  "Picking",
+  "Invoiced",
+  "UnPacked",
+] as const;
+
 export async function fetchTrendyolOrders(
   creds: TrendyolCredentials,
   params: {

@@ -29,7 +29,8 @@ export async function POST(req: Request) {
     auth.siteId,
     platform,
     config,
-    body.status ?? "Created",
+    // Trendyol: Created yetmez (Picking/Invoiced kaçardı). "all" manuel tam çekim.
+    body.status ?? (platform === "trendyol" ? "open" : "Created"),
   );
 
   await logMarketplaceAction(auth.siteId, platform, "pull_orders", result);

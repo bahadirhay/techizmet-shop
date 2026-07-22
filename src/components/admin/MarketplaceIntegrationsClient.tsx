@@ -892,6 +892,7 @@ export function MarketplaceIntegrationsClient({
             type="button"
             className={btnSecondary}
             disabled={syncBusy}
+            title="Trendyol: Created + Picking + Invoiced (onaylanmışlar dahil)"
             onClick={() => void runAction("/api/admin/integrations/marketplaces/orders/pull", "Sipariş çek")}
           >
             Yeni siparişleri çek
