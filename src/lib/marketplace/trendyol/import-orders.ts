@@ -249,15 +249,46 @@ export async function importTrendyolPackages(
   const touchedProductIds = new Set<string>();
 
   for (const pkg of packages) {
+    try {
+      const result = await importOneTrendyolPackage(siteId, pkg, notes, touchedProductIds);
+      if (result === "imported") imported++;
+      else if (result === "repaired") repaired++;
+      else skipped++;
+    } catch (e) {
+      const detail = e instanceof Error ? e.message : "bilinmeyen hata";
+      notes.push(`#${pkg.orderNumber}: ${detail.slice(0, 160)}`);
+    }
+  }
+
+  const errorCount = notes.filter((n) => n.startsWith("#")).length;
+
+  return {
+    imported,
+    skipped,
+    repaired,
+    productIds: [...touchedProductIds],
+    message:
+      imported || skipped || repaired || errorCount
+        ? `${imported} yeni sipariş, ${repaired} tutar güncellendi, ${skipped} atlandı (değişmedi)${
+            errorCount ? `, ${errorCount} hata` : ""
+          }${notes.length ? ` · ${notes.slice(0, 3).join("; ")}` : ""}`
+        : "Yeni sipariş yok",
+  };
+}
+
+async function importOneTrendyolPackage(
+  siteId: string,
+  pkg: TrendyolShipmentPackage,
+  notes: string[],
+  touchedProductIds: Set<string>,
+): Promise<"imported" | "repaired" | "skipped"> {
     const ref = marketplacePackageRef("trendyol", pkg.shipmentPackageId);
     const existing = await prisma.storeOrder.findFirst({
       where: { siteId, marketplaceRef: ref },
     });
     if (existing) {
       const didRepair = await repairExistingTrendyolOrder(siteId, existing.id, pkg);
-      if (didRepair) repaired++;
-      else skipped++;
-      continue;
+      return didRepair ? "repaired" : "skipped";
     }
 
     const meta: MarketplaceOrderMeta = {
@@ -332,7 +363,8 @@ export async function importTrendyolPackages(
       createShipmentMeta = withDeliveredAt(createShipmentMeta);
     }
 
-    const createdOrder = await prisma.$transaction(async (tx) => {
+    const createdOrder = await prisma.$transaction(
+      async (tx) => {
       const created = await tx.storeOrder.create({
         data: {
           siteId,
@@ -394,7 +426,9 @@ export async function importTrendyolPackages(
       }
 
       return created;
-    });
+    },
+      { maxWait: 15_000, timeout: 60_000 },
+    );
 
     try {
       await applyOrderFinanceSnapshot(siteId, createdOrder.id);
@@ -405,17 +439,5 @@ export async function importTrendyolPackages(
     const { notifyTelegramForOrderId } = await import("@/lib/email/send-order-notifications");
     await notifyTelegramForOrderId(createdOrder.id);
 
-    imported++;
-  }
-
-  return {
-    imported,
-    skipped,
-    repaired,
-    productIds: [...touchedProductIds],
-    message:
-      imported || skipped || repaired
-        ? `${imported} yeni sipariş, ${repaired} tutar güncellendi, ${skipped} atlandı (değişmedi)${notes.length ? ` · ${notes.slice(0, 3).join("; ")}` : ""}`
-        : "Yeni sipariş yok",
-  };
+    return "imported";
 }

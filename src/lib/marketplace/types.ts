@@ -10,6 +10,12 @@ export type MarketplaceActionResult = {
   ok: boolean;
   itemsCount: number;
   message: string;
+  /** Sipariş çekiminde ek özet (UI / log). */
+  fetchedCount?: number;
+  importedCount?: number;
+  repairedCount?: number;
+  skippedCount?: number;
+  errorCount?: number;
 };
 
 export type MarketplaceOrderMeta = {

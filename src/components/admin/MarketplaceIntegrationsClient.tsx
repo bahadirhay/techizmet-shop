@@ -81,6 +81,7 @@ export function MarketplaceIntegrationsClient({
   const [cfg, setCfg] = useState<Record<string, string>>({});
   const [active, setActive] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [lastImportedCount, setLastImportedCount] = useState(0);
   const [logs, setLogs] = useState<SyncLog[]>([]);
   const [syncBusy, setSyncBusy] = useState(false);
   const [testBusy, setTestBusy] = useState(false);
@@ -226,20 +227,55 @@ export function MarketplaceIntegrationsClient({
 
   async function runAction(path: string, label: string, extraBody?: Record<string, unknown>) {
     setSyncBusy(true);
-    setMsg(null);
-    const res = await fetch(path, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ platform: selected, ...extraBody }),
-    });
-    const json = (await res.json()) as { result?: { message: string; ok: boolean }; error?: string };
-    setSyncBusy(false);
-    if (!res.ok) {
-      setMsg(json.error ?? `${label} başarısız`);
-      return;
+    setMsg(`${label} çalışıyor…`);
+    try {
+      const res = await fetch(path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ platform: selected, ...extraBody }),
+      });
+      const raw = await res.text();
+      let json: {
+        result?: {
+          message?: string;
+          ok?: boolean;
+          itemsCount?: number;
+          fetchedCount?: number;
+          importedCount?: number;
+          repairedCount?: number;
+          skippedCount?: number;
+        };
+        error?: string;
+      } = {};
+      if (raw.trim()) {
+        try {
+          json = JSON.parse(raw) as typeof json;
+        } catch {
+          setMsg(`✗ ${label}: geçersiz yanıt (HTTP ${res.status})`);
+          return;
+        }
+      }
+      if (!res.ok) {
+        setMsg(`✗ ${json.error ?? `${label} başarısız`} (HTTP ${res.status})`);
+        return;
+      }
+      const r = json.result;
+      const prefix = r?.ok === false ? "✗" : "✓";
+      const importedN = r?.importedCount ?? r?.itemsCount ?? 0;
+      setLastImportedCount(typeof importedN === "number" ? importedN : 0);
+      const detail =
+        r?.fetchedCount != null
+          ? ` · Trendyol’dan ${r.fetchedCount} paket · yeni ${importedN}` +
+            (r.repairedCount ? ` · güncellenen ${r.repairedCount}` : "") +
+            (r.skippedCount ? ` · atlanan ${r.skippedCount}` : "")
+          : "";
+      setMsg(`${prefix} ${r?.message ?? `${label} tamam`}${detail}`);
+      router.refresh();
+    } catch (e) {
+      setMsg(`✗ ${label}: ${e instanceof Error ? e.message : "bağlantı hatası"}`);
+    } finally {
+      setSyncBusy(false);
     }
-    setMsg(json.result?.message ?? `${label} tamam`);
-    window.location.reload();
   }
 
   async function saveCategoryMapping() {
@@ -921,11 +957,26 @@ export function MarketplaceIntegrationsClient({
           </a>
         </div>
         {msg ? (
-          <p
-            className={`text-sm ${msg.startsWith("✗") ? "text-red-700" : msg.startsWith("✓") ? "text-green-700" : "text-green-700"}`}
+          <div
+            role="status"
+            className={`rounded-lg border px-3 py-2 text-sm ${
+              msg.startsWith("✗")
+                ? "border-red-200 bg-red-50 text-red-800"
+                : msg.includes("çalışıyor")
+                  ? "border-amber-200 bg-amber-50 text-amber-950"
+                  : "border-green-200 bg-green-50 text-green-900"
+            }`}
           >
-            {msg}
-          </p>
+            <p className="font-medium">Son işlem sonucu</p>
+            <p className="mt-0.5 whitespace-pre-wrap break-words">{msg}</p>
+            {lastImportedCount > 0 ? (
+              <p className="mt-2">
+                <a href="/admin/orders" className="underline">
+                  Siparişler sayfasına git →
+                </a>
+              </p>
+            ) : null}
+          </div>
         ) : null}
 
         {!marketplaceTablesReady ? (
@@ -1093,7 +1144,7 @@ export function MarketplaceIntegrationsClient({
           {logs.length === 0 ? (
             <p className="mt-2 text-xs text-zinc-500">Henüz log yok.</p>
           ) : (
-            <ul className="mt-2 max-h-48 space-y-2 overflow-auto text-xs">
+            <ul className="mt-2 max-h-72 space-y-2 overflow-auto text-xs">
               {logs.map((l) => (
                 <li key={l.id} className="rounded border border-zinc-100 bg-zinc-50 px-2 py-1.5">
                   <span className={l.status === "success" ? "text-green-700" : "text-red-600"}>

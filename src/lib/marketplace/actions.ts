@@ -58,26 +58,53 @@ export async function pullMarketplaceOrders(
     if (!creds) {
       return { ok: false, itemsCount: 0, message: "Trendyol API bilgileri eksik" };
     }
+    const effectiveStart = startDate ?? Date.now() - 14 * 24 * 60 * 60 * 1000;
     // status === "all" → tüm statüler; "open" → Created/Picking/Invoiced (cron)
     const fetched =
       status === "all"
-        ? await fetchAllTrendyolOrders(creds, { startDate })
+        ? await fetchAllTrendyolOrders(creds, { startDate: effectiveStart })
         : status === "open"
           ? await fetchAllTrendyolOrders(creds, {
               statuses: TRENDYOL_OPEN_STATUSES,
-              startDate,
+              startDate: effectiveStart,
               size: 50,
               maxPagesPerStatus: 10,
             })
-          : await fetchTrendyolOrders(creds, { status, size: 50, startDate });
-    if (!fetched.ok) return { ok: false, itemsCount: 0, message: fetched.message };
-    const imported = await importTrendyolPackages(siteId, fetched.packages);
+          : await fetchTrendyolOrders(creds, {
+              status,
+              size: 50,
+              startDate: effectiveStart,
+            });
+    if (!fetched.ok) {
+      return {
+        ok: false,
+        itemsCount: 0,
+        fetchedCount: 0,
+        message: fetched.message,
+      };
+    }
+    let imported: Awaited<ReturnType<typeof importTrendyolPackages>>;
+    try {
+      imported = await importTrendyolPackages(siteId, fetched.packages);
+    } catch (e) {
+      const detail = e instanceof Error ? e.message : "import hatası";
+      return {
+        ok: false,
+        itemsCount: 0,
+        fetchedCount: fetched.packages.length,
+        message: `${fetched.message} · içe aktarma kırıldı: ${detail.slice(0, 240)}`,
+      };
+    }
     if (imported.productIds.length) {
       await syncStockToAllMarketplaces(siteId, imported.productIds);
     }
     return {
       ok: true,
       itemsCount: imported.imported,
+      fetchedCount: fetched.packages.length,
+      importedCount: imported.imported,
+      repairedCount: imported.repaired,
+      skippedCount: imported.skipped,
       message: `${fetched.message} · ${imported.message}`,
       productIds: imported.productIds,
     };
