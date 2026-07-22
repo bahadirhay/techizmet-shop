@@ -81,11 +81,27 @@ export type ProfitabilityKpis = {
   varianceOrders: number;
 };
 
+/** Dönem içi sipariş satırı — liste / kârlılık tablosu. */
+export type OrderProfitRow = {
+  orderId: string;
+  orderNumber: string;
+  channel: string;
+  label: string;
+  orderDate: Date;
+  grossMinor: number;
+  deductionsMinor: number;
+  costMinor: number;
+  netProfitMinor: number | null;
+  marginPercent: number | null;
+  hasConfirmedDeductions: boolean;
+};
+
 export type ProfitabilityReport = {
   periodDays: number;
   channels: ChannelProfitRow[];
   categories: CategoryProfitRow[];
   topProducts: ProductProfitRow[];
+  ordersByProfit: OrderProfitRow[];
   estimateVsActual: EstimateVsActualRow[];
   payouts: PlatformPayoutRow[];
   totals: ProfitabilityKpis;
@@ -250,6 +266,48 @@ export async function loadProfitabilityReport(
   }
 
   estimateVsActual.sort((a, b) => b.orderDate.getTime() - a.orderDate.getTime());
+
+  const confirmedDedByOrder = new Map<string, number>();
+  for (const d of deductions) {
+    if (!d.orderId || d.reconciliationStatus === "estimated") continue;
+    confirmedDedByOrder.set(d.orderId, (confirmedDedByOrder.get(d.orderId) ?? 0) + d.amountMinor);
+  }
+
+  const ordersByProfit: OrderProfitRow[] = orders
+    .map((order) => {
+      const channel = order.marketplacePlatform ?? "web";
+      const snap = resolveOrderSnapshot(order);
+      const isMarketplace = Boolean(order.marketplacePlatform);
+      const gross = snap?.grossMinor ?? order.totalMinor;
+      const estimatedDed =
+        snap && isMarketplace ? marketplaceDeductionsFromSnapshot(snap) : 0;
+      const confirmedDed = confirmedDedByOrder.get(order.id) ?? 0;
+      const hasConfirmedDeductions = confirmedDed > 0;
+      const deductionsMinor = hasConfirmedDeductions ? confirmedDed : estimatedDed;
+      const cost = snap ? orderTotalCostMinor(snap, isMarketplace) : 0;
+      let netProfitMinor: number | null = null;
+      let marginPercent: number | null = null;
+      if (cost > 0 || deductionsMinor > 0) {
+        netProfitMinor = gross - deductionsMinor - cost;
+        marginPercent =
+          gross > 0 ? Math.round((netProfitMinor / gross) * 1000) / 10 : null;
+      }
+      return {
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        channel,
+        label: channelLabel(channel),
+        orderDate: order.createdAt,
+        grossMinor: gross,
+        deductionsMinor,
+        costMinor: cost,
+        netProfitMinor,
+        marginPercent,
+        hasConfirmedDeductions,
+      };
+    })
+    .sort((a, b) => b.orderDate.getTime() - a.orderDate.getTime())
+    .slice(0, 200);
 
   const platformIds = [
     ...new Set(orders.map((o) => o.marketplacePlatform).filter(Boolean) as string[]),
@@ -432,6 +490,7 @@ export async function loadProfitabilityReport(
     channels,
     categories,
     topProducts,
+    ordersByProfit,
     estimateVsActual: estimateVsActual.slice(0, 50),
     payouts: payoutRows,
     totals,

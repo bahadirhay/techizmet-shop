@@ -19,11 +19,38 @@ import {
   isOrderInvoiceComplete,
   orderInvoicePendingWhere,
 } from "@/lib/admin/order-invoice-workflow";
+import {
+  alignSnapshotToOrder,
+  parseOrderFinanceSnapshot,
+} from "@/lib/finance/order-economics";
+import {
+  marketplaceDeductionsFromSnapshot,
+  orderTotalCostMinor,
+} from "@/lib/finance/economics-math";
 import { prisma } from "@/lib/prisma";
 import { requireStaffPage } from "@/lib/staff-auth";
 
 function statusLabel(id: string) {
   return ORDER_STATUSES.find((s) => s.id === id)?.label ?? id;
+}
+
+function orderListNetProfitMinor(order: {
+  totalMinor: number;
+  subtotalMinor: number;
+  marketplacePlatform: string | null;
+  financeSnapshotJson: string | null;
+}): number | null {
+  const raw = parseOrderFinanceSnapshot(order.financeSnapshotJson);
+  if (!raw) return null;
+  const snap = alignSnapshotToOrder(
+    { totalMinor: order.totalMinor, subtotalMinor: order.subtotalMinor },
+    raw,
+  );
+  const isMarketplace = Boolean(order.marketplacePlatform);
+  const cost = orderTotalCostMinor(snap, isMarketplace);
+  const deductions = isMarketplace ? marketplaceDeductionsFromSnapshot(snap) : 0;
+  if (cost <= 0 && deductions <= 0) return null;
+  return snap.grossMinor - deductions - cost;
 }
 
 export default async function OrdersPage({
@@ -161,6 +188,7 @@ export default async function OrdersPage({
                 <th>Sipariş</th>
                 <th>Müşteri</th>
                 <th>Tutar</th>
+                <th>Net kâr</th>
                 <th>Durum</th>
                 <th>Ödeme</th>
                 <th>Kargo</th>
@@ -170,7 +198,9 @@ export default async function OrdersPage({
               </tr>
             </thead>
             <tbody>
-              {orders.map((o) => (
+              {orders.map((o) => {
+                const netProfit = orderListNetProfitMinor(o);
+                return (
                 <tr key={o.id}>
                   <td>
                     <span
@@ -182,6 +212,21 @@ export default async function OrdersPage({
                   <td className="font-medium">{o.orderNumber}</td>
                   <td>{o.customerName ?? o.customerEmail ?? "—"}</td>
                   <td>{formatTry(o.totalMinor)}</td>
+                  <td className="tabular-nums">
+                    {netProfit != null ? (
+                      <span
+                        className={
+                          netProfit >= 0
+                            ? "text-xs font-medium text-emerald-700"
+                            : "text-xs font-medium text-red-700"
+                        }
+                      >
+                        {formatTry(netProfit)}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-zinc-400">—</span>
+                    )}
+                  </td>
                   <td>{statusLabel(o.status)}</td>
                   <td>
                     <span
@@ -223,7 +268,8 @@ export default async function OrdersPage({
                     </Link>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

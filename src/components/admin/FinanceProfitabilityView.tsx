@@ -205,6 +205,94 @@ export function FinanceProfitabilityView({ report }: { report: ProfitabilityRepo
       </div>
 
       <section className="admin-card admin-card-pad mt-8 overflow-x-auto">
+        <h2 className="font-semibold">Sipariş bazlı kârlılık</h2>
+        <p className="mt-1 text-xs text-zinc-500">
+          Dönem içi siparişler (en fazla 200). Detay kırılımı için siparişe tıklayın — tam P&amp;L sipariş
+          sayfasında.
+        </p>
+        {report.ordersByProfit.length === 0 ? (
+          <p className="mt-4 text-sm text-zinc-500">Bu dönemde sipariş yok.</p>
+        ) : (
+          <table className="mt-4 w-full min-w-[780px] text-sm">
+            <thead>
+              <tr className="border-b text-left text-xs text-zinc-500">
+                <th className="pb-2">Sipariş</th>
+                <th className="pb-2">Kanal</th>
+                <th className="pb-2">Tarih</th>
+                <th className="pb-2 text-right">Brüt</th>
+                <th className="pb-2 text-right">Kesinti</th>
+                <th className="pb-2 text-right">Maliyet</th>
+                <th className="pb-2 text-right">Net kâr</th>
+                <th className="pb-2 text-right">Marj</th>
+              </tr>
+            </thead>
+            <tbody>
+              {report.ordersByProfit.map((o) => {
+                const profitTone =
+                  o.netProfitMinor == null
+                    ? "default"
+                    : o.netProfitMinor >= 0
+                      ? "profit"
+                      : "loss";
+                return (
+                  <tr key={o.orderId} className="border-b border-zinc-100">
+                    <td className="py-2 font-medium">
+                      <Link
+                        href={`/admin/orders/${o.orderId}`}
+                        className="text-[var(--kn-brand)] underline"
+                      >
+                        {o.orderNumber}
+                      </Link>
+                    </td>
+                    <td className="py-2">{o.label}</td>
+                    <td className="py-2 text-zinc-500 whitespace-nowrap">
+                      {new Date(o.orderDate).toLocaleDateString("tr-TR")}
+                    </td>
+                    <td className="py-2 text-right tabular-nums">{formatTry(o.grossMinor)}</td>
+                    <td className="py-2 text-right tabular-nums">
+                      {o.deductionsMinor > 0 ? (
+                        <span>
+                          {formatTry(o.deductionsMinor)}
+                          {!o.hasConfirmedDeductions ? (
+                            <span className="ml-1 text-xs text-amber-700">(tahmini)</span>
+                          ) : null}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="py-2 text-right tabular-nums">
+                      {o.costMinor > 0 ? formatTry(o.costMinor) : "—"}
+                    </td>
+                    <td className="py-2 text-right tabular-nums font-medium">
+                      {o.netProfitMinor != null ? (
+                        <span
+                          className={
+                            profitTone === "profit"
+                              ? "text-emerald-700"
+                              : profitTone === "loss"
+                                ? "text-red-700"
+                                : undefined
+                          }
+                        >
+                          {formatTry(o.netProfitMinor)}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="py-2 text-right tabular-nums">
+                      {o.marginPercent != null ? `%${o.marginPercent}` : "—"}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </section>
+
+      <section className="admin-card admin-card-pad mt-8 overflow-x-auto">
         <h2 className="font-semibold">Kanal kârlılığı</h2>
         <p className="mt-1 text-xs text-zinc-500">Web vs pazaryeri — brüt, kesinti, toplam maliyet (ürün + paket + kart), net marj</p>
         {report.channels.length === 0 ? (
