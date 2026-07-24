@@ -59,56 +59,97 @@ export function ShippingCarrierForm({
   async function saveCarrier(): Promise<string | null> {
     setBusy(true);
     setErr(null);
-    const config = buildCarrierConfigPayload({
-      ...form,
-      apiPassword: passwordDirty || !form.passwordConfigured ? form.apiPassword : "",
-    });
-    const payload = {
-      code: form.code,
-      name: form.name,
-      active: form.active,
-      trackingUrlTemplate: form.trackingUrlTemplate,
-      customerServicePhone: form.customerServicePhone,
-      notes: form.notes,
-      config,
-      sortOrder: form.sortOrder,
-    };
-    const url = form.id
-      ? `/api/admin/shipping/carriers/${form.id}`
-      : "/api/admin/shipping/carriers";
-    const res = await fetch(url, {
-      method: form.id ? "PATCH" : "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const json = (await res.json()) as { error?: string; carrier?: { id: string } };
-    setBusy(false);
-    if (!res.ok) {
-      setErr(json.error ?? "Kayıt başarısız");
-      return null;
-    }
-    const carrierId = form.id ?? json.carrier?.id ?? null;
-    if (carrierId && rates.length) {
-      for (const r of rates.filter((x) => !x.id && x.name.trim())) {
-        await fetch(`/api/admin/shipping/carriers/${carrierId}/rates`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(r),
-        });
+    try {
+      const config = buildCarrierConfigPayload({
+        ...form,
+        apiUsername: form.apiUsername.trim(),
+        apiPassword:
+          passwordDirty || !form.passwordConfigured ? form.apiPassword.trim() : "",
+        abbreviationCode: form.abbreviationCode.trim(),
+        companyName: form.companyName.trim(),
+        companyAddressId: form.companyAddressId.trim(),
+        currentXDockCode: form.currentXDockCode.trim(),
+      });
+      const payload = {
+        code: form.code.trim(),
+        name: form.name.trim(),
+        active: form.active,
+        trackingUrlTemplate: form.trackingUrlTemplate,
+        customerServicePhone: form.customerServicePhone,
+        notes: form.notes,
+        config,
+        sortOrder: form.sortOrder,
+      };
+      const url = form.id
+        ? `/api/admin/shipping/carriers/${form.id}`
+        : "/api/admin/shipping/carriers";
+      const res = await fetch(url, {
+        method: form.id ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const raw = await res.text();
+      let json: { error?: string; carrier?: { id: string } } = {};
+      if (raw.trim()) {
+        try {
+          json = JSON.parse(raw) as typeof json;
+        } catch {
+          setErr(`Kayıt başarısız (HTTP ${res.status})`);
+          return null;
+        }
       }
+      if (!res.ok) {
+        setErr(json.error ?? `Kayıt başarısız (HTTP ${res.status})`);
+        return null;
+      }
+      const carrierId = form.id ?? json.carrier?.id ?? null;
+      if (carrierId && rates.length) {
+        for (const r of rates.filter((x) => !x.id && x.name.trim())) {
+          await fetch(`/api/admin/shipping/carriers/${carrierId}/rates`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(r),
+          });
+        }
+      }
+      if (carrierId && passwordDirty) {
+        setForm((f) => ({ ...f, id: carrierId, passwordConfigured: true, apiPassword: "" }));
+        setPasswordDirty(false);
+      } else if (carrierId && !form.id) {
+        setForm((f) => ({ ...f, id: carrierId }));
+      }
+      return carrierId;
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Kayıt hatası");
+      return null;
+    } finally {
+      setBusy(false);
     }
-    return carrierId;
   }
 
   async function testHepsijet() {
-    setTestMsg(null);
+    setTestMsg("Kaydediliyor / test ediliyor…");
+    setErr(null);
     const carrierId = await saveCarrier();
-    if (!carrierId) return;
-    const res = await fetch(`/api/admin/shipping/carriers/${carrierId}/test`, { method: "POST" });
-    const j = (await res.json()) as { message?: string; error?: string };
-    setTestMsg(res.ok ? (j.message ?? "Bağlantı başarılı") : (j.error ?? "Bağlantı hatası"));
-    if (!form.id) {
-      setForm({ ...form, id: carrierId });
+    if (!carrierId) {
+      setTestMsg(null);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/admin/shipping/carriers/${carrierId}/test`, { method: "POST" });
+      const raw = await res.text();
+      let j: { message?: string; error?: string } = {};
+      if (raw.trim()) {
+        try {
+          j = JSON.parse(raw) as typeof j;
+        } catch {
+          setTestMsg(`✗ Test yanıtı okunamadı (HTTP ${res.status})`);
+          return;
+        }
+      }
+      setTestMsg(res.ok ? `✓ ${j.message ?? "Bağlantı başarılı"}` : `✗ ${j.error ?? "Bağlantı hatası"}`);
+    } catch (e) {
+      setTestMsg(`✗ ${e instanceof Error ? e.message : "Bağlantı hatası"}`);
     }
   }
 

@@ -1,14 +1,28 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ShippingCarrierForm } from "@/components/admin/ShippingCarrierForm";
 import { emptyCarrierForm } from "@/lib/admin/shipping-form";
 import { SHIPPING_CARRIER_PRESETS } from "@/lib/admin/marketplace-platforms";
+import { prisma } from "@/lib/prisma";
+import { requireStaffPage } from "@/lib/staff-auth";
 
 export default async function NewShippingPage({
   searchParams,
 }: {
   searchParams: Promise<{ preset?: string }>;
 }) {
+  const auth = await requireStaffPage();
   const { preset: presetCode } = await searchParams;
+
+  // HepsiJet zaten varsa "yeni" yerine düzenleme sayfasına git (unique code çakışması).
+  if (presetCode === "hepsijet") {
+    const existing = await prisma.shippingCarrier.findFirst({
+      where: { siteId: auth.siteId, code: "hepsijet" },
+      select: { id: true },
+    });
+    if (existing) redirect(`/admin/shipping/${existing.id}`);
+  }
+
   const preset = SHIPPING_CARRIER_PRESETS.find((p) => p.code === presetCode);
   const initial = emptyCarrierForm(
     preset
