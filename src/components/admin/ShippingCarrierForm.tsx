@@ -193,6 +193,11 @@ export function ShippingCarrierForm({
         {isHepsijet ? (
           <>
             <h2 className="text-sm font-semibold text-zinc-800">HepsiJet API bilgileri</h2>
+            <p className="text-xs text-zinc-500">
+              HepsiJet&apos;ten gelen kullanıcı adı, şifre, kısaltma kodu, adres ID ve X-Dock kodunu buraya
+              yazın. Şifreyi kaydettikten sonra tekrar görünmez; değiştirmek için yeniden girin. Test
+              bitene kadar &quot;Test ortamı&quot; açık kalsın.
+            </p>
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
@@ -202,14 +207,15 @@ export function ShippingCarrierForm({
               Test ortamı (integration-apitest.hepsijet.com)
             </label>
             <div className="grid gap-4 sm:grid-cols-2">
-              <AdminField label="API kullanıcı adı *">
+              <AdminField label="API kullanıcı adı *" hint="örn. techizmet_integration">
                 <input
                   className={inputClass}
                   value={form.apiUsername}
                   onChange={(e) => setForm({ ...form, apiUsername: e.target.value })}
+                  autoComplete="off"
                 />
               </AdminField>
-              <AdminField label="API şifre *">
+              <AdminField label="API şifre *" hint="HepsiJet’ten gelen parola — yalnızca admin’de saklanır">
                 <input
                   className={inputClass}
                   type="password"
@@ -219,9 +225,10 @@ export function ShippingCarrierForm({
                     setPasswordDirty(true);
                     setForm({ ...form, apiPassword: e.target.value });
                   }}
+                  autoComplete="new-password"
                 />
               </AdminField>
-              <AdminField label="Kısaltma kodu *" hint="Takip no öneki — HepsiJet'ten verilir">
+              <AdminField label="Kısaltma kodu *" hint="company_abbreviation_code — örn. TECHİZMET">
                 <input
                   className={inputClass}
                   value={form.abbreviationCode}
@@ -234,21 +241,25 @@ export function ShippingCarrierForm({
                   }
                 />
               </AdminField>
-              <AdminField label="Firma adı (HepsiJet) *">
+              <AdminField label="Firma adı (HepsiJet) *" hint="company_name — max 30 karakter">
                 <input
                   className={inputClass}
                   value={form.companyName}
+                  maxLength={30}
                   onChange={(e) => setForm({ ...form, companyName: e.target.value })}
                 />
               </AdminField>
-              <AdminField label="Gönderici adres ID *">
+              <AdminField label="Gönderici adres ID *" hint="company_address_id — örn. tech-techizmet-639">
                 <input
                   className={inputClass}
                   value={form.companyAddressId}
                   onChange={(e) => setForm({ ...form, companyAddressId: e.target.value })}
                 />
               </AdminField>
-              <AdminField label="Aktarma merkezi kodu *">
+              <AdminField
+                label="Aktarma merkezi kodu *"
+                hint="xdock_abbreviation_code — örn. TECHIZMETBAKIRKOY"
+              >
                 <input
                   className={inputClass}
                   value={form.currentXDockCode}
@@ -276,6 +287,7 @@ export function ShippingCarrierForm({
                   <option value="RETAIL">RETAIL</option>
                   <option value="MARKET_PLACE">MARKET_PLACE</option>
                   <option value="EXPRESS">EXPRESS</option>
+                  <option value="RETURNED">RETURNED</option>
                 </select>
               </AdminField>
             </div>

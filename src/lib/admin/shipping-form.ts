@@ -28,6 +28,7 @@ export function emptyCarrierForm(preset?: {
   trackingUrlTemplate: string;
   provider?: ShippingProvider;
 }): CarrierFormData {
+  const isHepsijet = preset?.provider === "hepsijet" || preset?.code === "hepsijet";
   return {
     code: preset?.code ?? "",
     name: preset?.name ?? "",
@@ -36,15 +37,16 @@ export function emptyCarrierForm(preset?: {
     customerServicePhone: "",
     notes: "",
     provider: preset?.provider ?? "manual",
-    apiUsername: "",
+    // Şifre admin'den girilir — koda gömülmez.
+    apiUsername: isHepsijet ? "techizmet_integration" : "",
     apiPassword: "",
-    apiCustomerCode: "",
-    abbreviationCode: "",
-    companyName: "",
-    companyAddressId: "",
-    currentXDockCode: "",
+    apiCustomerCode: isHepsijet ? "TECHİZMET" : "",
+    abbreviationCode: isHepsijet ? "TECHİZMET" : "",
+    companyName: isHepsijet ? "TECHİZMET BİLİŞİM HİZMETL" : "",
+    companyAddressId: isHepsijet ? "tech-techizmet-639" : "",
+    currentXDockCode: isHepsijet ? "TECHIZMETBAKIRKOY" : "",
     contractNo: "",
-    testMode: false,
+    testMode: isHepsijet,
     productCode: "HX_STD",
     deliveryType: "RETAIL",
     autoMarkShipped: true,

@@ -1,5 +1,6 @@
 import "server-only";
 
+import { randomUUID } from "node:crypto";
 import { parseShippingAddress } from "@/lib/admin/shipping-label";
 import { sendOrderStatusEmailIfNeeded } from "@/lib/email/send-order-email";
 import { prisma } from "@/lib/prisma";
@@ -126,7 +127,7 @@ export async function createHepsijetShipmentForOrder(siteId: string, orderId: st
       email: order.customerEmail ?? undefined,
     },
     recipientAddress: {
-      companyAddressId: "N/A",
+      companyAddressId: randomUUID(),
       addressLine1: line1,
       city: addr.city.trim(),
       town: addr.district.trim(),

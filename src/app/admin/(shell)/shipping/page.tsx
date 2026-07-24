@@ -28,11 +28,12 @@ export default async function ShippingPage() {
         <Link href="/admin/shipping/new?preset=hepsijet" className="font-medium underline">
           HepsiJet ekle
         </Link>{" "}
-        — API bilgilerini girin, aktif/pasif ve tarifeyi buradan yönetin.{" "}
+        — kullanıcı adı, şifre, kısaltma, adres ID ve X-Dock kodunu admin formuna yazın (şifre koda
+        gömülmez). Kaydet → «Bağlantıyı test et». Test bitene kadar test ortamı açık kalsın.{" "}
         <Link href="/admin/integrations/shipping" className="underline">
           Geliver
         </Link>{" "}
-        isteğe bağlı (çoklu firma pazaryeri).
+        isteğe bağlı.
       </div>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
