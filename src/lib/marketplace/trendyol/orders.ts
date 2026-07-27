@@ -115,14 +115,22 @@ export const TRENDYOL_ALL_STATUSES = [
 ] as const;
 
 /**
- * Cron / "yeni sipariş" çekimi: yalnızca Created yetmez —
- * panelde onaylanan paketler Picking/Invoiced olur ve kaçardı.
+ * Cron / "yeni sipariş" çekimi.
+ * Açık paketler + sevkiyat/teslim/iptal — admin durumu Trendyol ile senkron kalsın
+ * (aksi halde "tamamlandı"yı elle yapmak gerekir).
  */
 export const TRENDYOL_OPEN_STATUSES = [
   "Created",
   "Picking",
   "Invoiced",
   "UnPacked",
+  "Shipped",
+  "AtCollectionPoint",
+  "Delivered",
+  "Cancelled",
+  "UnSupplied",
+  "UnDelivered",
+  "Returned",
 ] as const;
 
 export async function fetchTrendyolOrders(
