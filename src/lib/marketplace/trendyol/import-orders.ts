@@ -45,14 +45,18 @@ function trendyolLineNetMinor(line: {
 }
 
 /** Trendyol sevkiyat paketi durumu → yerel sipariş durumu. */
-function trendyolStatusToLocal(tyStatus: string | undefined): string {
+function trendyolStatusToLocal(
+  tyStatus: string | undefined,
+  opts?: { hasTracking?: boolean },
+): string {
   switch (tyStatus) {
     case "Created":
     case "UnPacked":
       return "pending";
     case "Picking":
     case "Invoiced":
-      return "confirmed";
+      // Trendyol sıkça Picking/Invoiced iken takip no üretir; kargo/fatura kuyruğuna düşsün.
+      return opts?.hasTracking ? "shipped" : "confirmed";
     case "Shipped":
     case "AtCollectionPoint":
       return "shipped";
@@ -107,7 +111,8 @@ async function repairExistingTrendyolOrder(
   let changed = false;
 
   // Trendyol durum + kargo — fatura tutarından bağımsız, her yeniden çekmede güncelle.
-  const localStatus = trendyolStatusToLocal(pkg.status);
+  const hasTracking = Boolean(pkg.cargoTrackingNumber?.trim());
+  const localStatus = trendyolStatusToLocal(pkg.status, { hasTracking });
   const trackingNumber = pkg.cargoTrackingNumber ?? order.trackingNumber ?? null;
   let shipmentMetaJson = buildTrendyolShipmentMeta(pkg) ?? order.shipmentMetaJson ?? null;
   if (localStatus === "shipped" || localStatus === "delivered") {
@@ -351,7 +356,8 @@ async function importOneTrendyolPackage(
       orderLines.map((l) => marketplaceOrderLineExtras(prisma, l.productId, l.qty)),
     );
 
-    const localStatus = trendyolStatusToLocal(pkg.status);
+    const hasTracking = Boolean(pkg.cargoTrackingNumber?.trim());
+    const localStatus = trendyolStatusToLocal(pkg.status, { hasTracking });
     // İptal/iade hariç tüm yeni siparişlerde stok düş (shipped/delivered dahil —
     // geçmiş paketler PRE_SHIPMENT filtresi yüzünden hiç düşülmüyordu).
     const deductStock = !isOrderStockRestoreStatus(localStatus);
