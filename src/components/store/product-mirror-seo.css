@@ -1,0 +1,47 @@
+.kn-product-mirror-seo {
+  background: var(--background);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 1.75rem 1rem 2.5rem;
+}
+
+.kn-product-mirror-seo__inner {
+  max-width: 42rem;
+  margin: 0 auto;
+}
+
+.kn-product-mirror-seo__title {
+  font-size: clamp(1.25rem, 2.5vw, 1.65rem);
+  font-weight: 700;
+  margin: 0 0 0.65rem;
+  color: var(--foreground);
+}
+
+.kn-product-mirror-seo__lead {
+  margin: 0 0 0.75rem;
+  line-height: 1.65;
+  color: #3f3f46;
+  font-size: 0.95rem;
+}
+
+.kn-product-mirror-seo__price {
+  margin: 0 0 1rem;
+  font-size: 0.95rem;
+  color: var(--foreground);
+}
+
+.kn-product-mirror-seo__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1rem;
+  font-size: 0.9rem;
+}
+
+.kn-product-mirror-seo__links a {
+  color: var(--kn-brand);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.kn-product-mirror-seo__links a:hover {
+  text-decoration: underline;
+}

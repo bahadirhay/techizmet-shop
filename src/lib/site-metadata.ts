@@ -58,9 +58,21 @@ export async function buildSiteMetadata(): Promise<Metadata> {
       apple: favicon,
     },
     openGraph: ogImage
-      ? { title: pageTitle, description: pageDescription, images: [{ url: ogImage }] }
-      : { title: pageTitle, description: pageDescription },
+      ? {
+          title: pageTitle,
+          description: pageDescription,
+          url: siteOrigin,
+          images: [{ url: ogImage }],
+        }
+      : { title: pageTitle, description: pageDescription, url: siteOrigin },
+    twitter: {
+      card: ogImage ? "summary_large_image" : "summary",
+      title: pageTitle,
+      description: pageDescription,
+      ...(ogImage ? { images: [ogImage] } : {}),
+    },
     alternates: {
+      canonical: siteOrigin,
       types: {
         "application/rss+xml": blogFeedPath(),
       },

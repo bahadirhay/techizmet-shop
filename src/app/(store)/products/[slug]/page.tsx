@@ -6,6 +6,7 @@ import { MirrorProductFrame } from "@/components/store/MirrorProductFrame";
 import { ThemeShellProductView } from "@/components/store/ThemeShellProductView";
 import { JsonLdScript } from "@/components/store/JsonLdScript";
 import { ProductSeoShell } from "@/components/store/ProductSeoShell";
+import { ProductMirrorSeoAside } from "@/components/store/ProductMirrorSeoAside";
 import { ProductReviews } from "@/components/store/ProductReviews";
 import { resolveMirrorProductTemplateSlug } from "@/lib/mirror-html-path";
 import { ProductPurchasePanel } from "@/components/store/ProductPurchasePanel";
@@ -114,6 +115,12 @@ export default async function ProductPage({
           templateSlug={mirrorTemplateSlug}
           title={seoCtx.visibleTitle}
           breadcrumbs={breadcrumbs}
+        />
+        <ProductMirrorSeoAside
+          title={seoCtx.visibleTitle}
+          description={seoCtx.visibleDescription}
+          priceMinor={seoCtx.priceMinor}
+          slug={slug}
         />
       </>
     );

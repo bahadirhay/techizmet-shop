@@ -126,7 +126,7 @@ export default async function CollectionPage({
   const landingIntent = findLandingIntentBySlug(slug);
   if (landingIntent) {
     const canonicalPath = `/collections/${slug}`;
-    const content = await loadCollectionSeoContent(canonicalPath, { includeProducts: false });
+    const content = await loadCollectionSeoContent(canonicalPath, { includeProducts: true });
     return (
       <>
         {jsonLdNode}
@@ -136,6 +136,7 @@ export default async function CollectionPage({
               heading={content.heading}
               intro={content.intro}
               criteria={content.criteria}
+              products={content.products}
               faqs={content.faqs}
               relatedLinks={content.relatedLinks}
             />

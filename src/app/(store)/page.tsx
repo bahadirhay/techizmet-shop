@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MirrorVitrinFrame } from "@/components/store/MirrorVitrinFrame";
 import { ThemeShellHomeView } from "@/components/store/ThemeShellHomeView";
+import { CollectionSeoContent } from "@/components/store/CollectionSeoContent";
 import { buildSiteMetadata } from "@/lib/site-metadata";
 import { StorePublicBlocks } from "@/components/store/StorePublicBlocks";
 import { getStoreLocale } from "@/lib/i18n/server";
@@ -18,6 +19,7 @@ import {
   type ThemeShellPilotQuery,
 } from "@/lib/theme-shell-pilot";
 import { getCachedParsedSiteSettings } from "@/lib/cache/store-cache";
+import { loadHomeSeoContent } from "@/lib/seo/collection-seo-content";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +41,17 @@ export default async function HomePage({
   const useThemeShell =
     homepageMode === "mirror" &&
     isThemeShellEnabledForHomePath("/", query, themeShellLive);
+  const homeSeo = await loadHomeSeoContent();
+  const seoBlock = homeSeo ? (
+    <CollectionSeoContent
+      heading={homeSeo.heading}
+      intro={homeSeo.intro}
+      criteria={homeSeo.criteria}
+      products={homeSeo.products}
+      faqs={homeSeo.faqs}
+      relatedLinks={homeSeo.relatedLinks}
+    />
+  ) : null;
 
   if (useThemeShell) {
     const locale = await getStoreLocale();
@@ -50,20 +63,33 @@ export default async function HomePage({
       locale,
     );
     if (!content) notFound();
-    return <ThemeShellHomeView content={content} />;
+    return (
+      <>
+        <ThemeShellHomeView content={content} />
+        {seoBlock}
+      </>
+    );
   }
 
   if (homepageMode === "mirror") {
-    return <MirrorVitrinFrame pageKey="home" />;
+    return (
+      <>
+        <MirrorVitrinFrame pageKey="home" />
+        {seoBlock}
+      </>
+    );
   }
 
   const locale = await getStoreLocale();
   const messages = getStoreMessages(locale);
   const blocks = await getStoreHomepageBlocks(locale);
   return (
-    <StorePublicBlocks
-      blocks={blocks}
-      messages={resolveStoreBlockMessages(locale, settings.store?.texts, messages.blocks)}
-    />
+    <>
+      <StorePublicBlocks
+        blocks={blocks}
+        messages={resolveStoreBlockMessages(locale, settings.store?.texts, messages.blocks)}
+      />
+      {seoBlock}
+    </>
   );
 }

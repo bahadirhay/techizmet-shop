@@ -590,9 +590,28 @@ export const LANDING_COLLECTION_SLUGS: string[] = DEFAULT_SEARCH_INTENTS.filter(
  * Blog post page'de FAQPage schema enjekte etmek için kullanılır.
  */
 const BLOG_SLUG_FAQ_MAP: Record<string, SearchIntentFaq[]> = {
-  "dogal-kopek-odulu-nedir": DEFAULT_SEARCH_INTENTS.find((i) => i.id === "dog-natural-treat")?.faqs ?? [],
-  "dogal-kopek-odul-mamasi-rehberi": DEFAULT_SEARCH_INTENTS.find((i) => i.id === "natural-dog-treat-food")?.faqs ?? [],
-  "kopek-odul-mamasi-secimi": DEFAULT_SEARCH_INTENTS.find((i) => i.id === "dog-treat-food")?.faqs ?? [],
+  // Gerçek yayınlanan slug'lar (seed + production)
+  "kopek-odul-mamasi-nasil-secilir":
+    DEFAULT_SEARCH_INTENTS.find((i) => i.id === "dog-treat-food")?.faqs ?? [],
+  "kopek-odul-mamasi-gunluk-kalori":
+    DEFAULT_SEARCH_INTENTS.find((i) => i.id === "dog-treat-food")?.faqs ?? [],
+  "yavru-kopeklere-odul-mamasi":
+    DEFAULT_SEARCH_INTENTS.find((i) => i.id === "treat-food")?.faqs ?? [],
+  "freeze-dried-odul-mamasi":
+    DEFAULT_SEARCH_INTENTS.find((i) => i.id === "natural-dog-treat-food")?.faqs ?? [],
+  "alerjik-kopek-odul-mamasi":
+    DEFAULT_SEARCH_INTENTS.find((i) => i.id === "natural-dog-treat-food")?.faqs ?? [],
+  "ev-yapimi-kopek-odulu":
+    DEFAULT_SEARCH_INTENTS.find((i) => i.id === "dog-natural-treat")?.faqs ?? [],
+  "kopek-egitimi-odul-zamanlama":
+    DEFAULT_SEARCH_INTENTS.find((i) => i.id === "treat-food")?.faqs ?? [],
+  // Eski önerilen slug'lar (geriye dönük)
+  "dogal-kopek-odulu-nedir":
+    DEFAULT_SEARCH_INTENTS.find((i) => i.id === "dog-natural-treat")?.faqs ?? [],
+  "dogal-kopek-odul-mamasi-rehberi":
+    DEFAULT_SEARCH_INTENTS.find((i) => i.id === "natural-dog-treat-food")?.faqs ?? [],
+  "kopek-odul-mamasi-secimi":
+    DEFAULT_SEARCH_INTENTS.find((i) => i.id === "dog-treat-food")?.faqs ?? [],
   "odul-mamasi-nedir": DEFAULT_SEARCH_INTENTS.find((i) => i.id === "treat-food")?.faqs ?? [],
 };
 
