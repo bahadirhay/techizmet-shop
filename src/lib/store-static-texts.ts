@@ -113,13 +113,13 @@ export function resolveCollectionsFallbackTexts(
   overrides: StoreTextSettings | undefined,
 ): ResolvedCollectionsFallbackTexts {
   return {
-    title: pickLocalized(locale, overrides?.collectionsListTitleTr, overrides?.collectionsListTitleEn, "Koleksiyonlarımız", "Our Skincare Picks"),
+    title: pickLocalized(locale, overrides?.collectionsListTitleTr, overrides?.collectionsListTitleEn, "Koleksiyonlarımız", "Our Collections"),
     lead: pickLocalized(
       locale,
       overrides?.collectionsListLeadTr,
       overrides?.collectionsListLeadEn,
-      "Cildiniz için güvenilir favoriler.",
-      "Whether you're starting a new routine or upgrading your current one, these favorites deliver radiant, healthy-looking skin.",
+      "Doğal köpek ödül mamaları ve tahılsız atıştırmalıklar.",
+      "Natural dog treats and grain-free rewards for training and everyday care.",
     ),
     empty: pickLocalized(
       locale,

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { revalidateStorePublicCache } from "@/lib/cache/revalidate-store-public";
 import { mergeSiteSettings } from "@/lib/merge-site-settings";
+import { normalizeRobotsDisallowPaths } from "@/lib/seo/robots-disallow-paths";
 import { getSiteBranding, getSiteSeo, parseSiteSettings, type SiteSettings } from "@/lib/site-settings";
 import { requireStaffApi } from "@/lib/staff-auth";
 import { prisma } from "@/lib/prisma";
@@ -34,6 +36,9 @@ export async function PATCH(req: Request) {
   if (seoPatch && !("searchIntentMeta" in (body.seo ?? {}))) {
     delete seoPatch.searchIntentMeta;
   }
+  if (seoPatch && "robotsDisallowPaths" in seoPatch) {
+    seoPatch.robotsDisallowPaths = normalizeRobotsDisallowPaths(seoPatch.robotsDisallowPaths);
+  }
   const next = mergeSiteSettings(current, {
     branding: body.branding,
     seo: seoPatch,
@@ -45,5 +50,6 @@ export async function PATCH(req: Request) {
   });
 
   revalidateStorePublicCache(auth.siteId);
+  revalidatePath("/robots.txt");
   return NextResponse.json({ ok: true, branding: next.branding, seo: next.seo });
 }

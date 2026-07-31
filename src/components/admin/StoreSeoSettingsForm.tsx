@@ -6,6 +6,7 @@ import { AdminField, btnPrimary, inputClass } from "@/components/admin/AdminForm
 import { ImageUploadField } from "@/components/admin/ImageUploadField";
 import { SiteSeoAuditPanel } from "@/components/admin/SiteSeoAuditPanel";
 import { extractUrls } from "@/lib/social-links";
+import { normalizeRobotsDisallowPaths } from "@/lib/seo/robots-disallow-paths";
 
 export function StoreSeoSettingsForm({
   initial,
@@ -28,6 +29,7 @@ export function StoreSeoSettingsForm({
       googleAnalyticsId: string;
       facebookPixelId: string;
       robotsIndex: boolean;
+      robotsDisallowPaths: string[];
       extraHeadHtml: string;
       googleSwg: {
         enabled: boolean;
@@ -54,6 +56,7 @@ export function StoreSeoSettingsForm({
       staticPages?: Record<string, unknown>;
     };
     seoFields.organizationSameAs = extractUrls(seoFields.organizationSameAs);
+    seoFields.robotsDisallowPaths = normalizeRobotsDisallowPaths(seoFields.robotsDisallowPaths);
     const res = await fetch("/api/admin/settings/seo", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -210,6 +213,31 @@ export function StoreSeoSettingsForm({
           />
           Arama motorlarında indekslensin (robots index)
         </label>
+        <AdminField label="robots.txt — indeksleme istemediğim yollar (satır başına bir)">
+          <textarea
+            className={inputClass}
+            rows={6}
+            value={(seo.robotsDisallowPaths ?? []).join("\n")}
+            onChange={(e) =>
+              setSeo((s) => ({
+                ...s,
+                robotsDisallowPaths: e.target.value.split(/\r?\n/),
+              }))
+            }
+            placeholder={"/_mirror-prebuilt/\n/theme/techizmet-shop/mirror/\n/eski-sayfa"}
+            spellCheck={false}
+          />
+        </AdminField>
+        <p className="text-xs text-zinc-500">
+          Her satıra bir yol yazın (ör. <code>/eski-kampanya</code>). Tam URL de kabul edilir; yol
+          kısmı alınır. <code>/</code> yazılamaz (tüm site kapama için üstteki kutuyu kullanın).
+          Kayıttan sonra{" "}
+          <a href="/robots.txt" target="_blank" rel="noreferrer" className="text-[var(--kn-brand)] underline">
+            robots.txt
+          </a>{" "}
+          güncellenir. Google’da zaten indexlenmiş URL’ler için Search Console → Kaldırma isteği de
+          gönderin; robots tek başına anında silmez.
+        </p>
         <p className="text-sm text-zinc-500">
           Site haritası:{" "}
           <a href="/sitemap.xml" target="_blank" rel="noreferrer" className="text-[var(--kn-brand)] underline">

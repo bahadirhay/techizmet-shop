@@ -22,6 +22,7 @@ import { injectFooterIntoMirrorHtml } from "@/lib/mirror-html-footer-inject";
 import { patchMirrorHeaderIconsHtml } from "@/lib/mirror-html-header-fix";
 import { patchMirrorCriticalImageLoading } from "@/lib/mirror-html-image-loading";
 import { localizeMirrorHtml } from "@/lib/mirror-html-locale";
+import { sanitizeLegacyThemeCopy } from "@/lib/mirror-theme-copy-sanitize";
 import { patchMirrorPerformance } from "@/lib/mirror-html-perf";
 import { patchMirrorProductPageHtml } from "@/lib/mirror-html-product-fix";
 import {
@@ -172,6 +173,7 @@ export async function buildMirrorHtmlCore(params: MirrorHtmlBuildParams): Promis
   html = patchMirrorProductPageHtml(html);
   html = injectBrandingIntoMirrorHtml(fixMirrorCdnPathsInHtml(html), branding);
   let localized = localizeMirrorHtml(html, normalized, locale);
+  localized = sanitizeLegacyThemeCopy(localized, locale, siteName);
   if (isCollectionMirrorPath(normalized)) {
     localized = pruneCollectionSortOptionsHtml(localized);
   }

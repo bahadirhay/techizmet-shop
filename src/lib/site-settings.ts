@@ -2,6 +2,7 @@ import { cache } from "react";
 import { getCachedParsedSiteSettings } from "@/lib/cache/store-cache";
 import { getSiteBranding as getSiteBrandingCore } from "@/lib/site-settings-branding";
 import { getGoogleSwgSettings } from "@/lib/seo/google-swg-settings";
+import { normalizeRobotsDisallowPaths } from "@/lib/seo/robots-disallow-paths";
 import { prisma } from "@/lib/prisma";
 import { getDefaultSite } from "@/lib/site";
 import { resolveCardProvider } from "@/lib/payments/card-provider";
@@ -262,6 +263,12 @@ export type SiteSettings = {
     googleAnalyticsId?: string;
     facebookPixelId?: string;
     robotsIndex?: boolean;
+    /**
+     * robots.txt Disallow — satır başına bir yol (örn. /_mirror-prebuilt/ veya
+     * https://www.anatolianpaw.com/eski-sayfa). Kanonik ürün/koleksiyon yollarını
+     * yazmayın; indeks dışı bırakmak istediğiniz URL yolları.
+     */
+    robotsDisallowPaths?: string[];
     extraHeadHtml?: string;
     /** Google Haberler — Subscribe with Google Basic (blog sayfaları) */
     googleSwg?: import("@/lib/seo/google-swg-settings").GoogleSwgSettings;
@@ -447,6 +454,7 @@ export function getSiteSeo(settings: SiteSettings, siteName: string) {
     googleAnalyticsId: s.googleAnalyticsId?.trim() || "",
     facebookPixelId: s.facebookPixelId?.trim() || "",
     robotsIndex: s.robotsIndex !== false,
+    robotsDisallowPaths: normalizeRobotsDisallowPaths(s.robotsDisallowPaths),
     extraHeadHtml: s.extraHeadHtml?.trim() || "",
     googleSwg: getGoogleSwgSettings(settings),
     staticPages: s.staticPages ?? {},

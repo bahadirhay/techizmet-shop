@@ -37,7 +37,7 @@ export function MirrorPageBannerPanel({
           type="text"
           className="mt-1 w-full rounded-lg border border-zinc-600 bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
           value={title}
-          placeholder="Our Skincare Picks"
+          placeholder="Koleksiyonlarımız"
           onChange={(e) => onChange({ id: titleId, kind: "text", text: e.target.value })}
         />
       </label>
