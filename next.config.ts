@@ -96,6 +96,11 @@ const nextConfig: NextConfig = {
     // Revalidation API çağrıldığında CDN cache temizlenir
     const prebuiltHtmlCache = [
       { key: "Cache-Control", value: "public, max-age=300, s-maxage=86400, stale-while-revalidate=604800" },
+      { key: "X-Robots-Tag", value: "noindex, nofollow" },
+    ] as const;
+    const mirrorHtmlNoIndex = [
+      { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },
+      { key: "X-Robots-Tag", value: "noindex, nofollow" },
     ] as const;
     /**
      * SEO tarama dosyaları — dinamik route handler'ları varsayılan no-store
@@ -160,9 +165,10 @@ const nextConfig: NextConfig = {
         headers: [...prebuiltCache],
       },
       {
-        // HTML dosyaları — admin değişikliklerinin anında yansıması için kısa cache
+        // HTML dosyaları — admin değişikliklerinin anında yansıması için kısa cache;
+        // kanonik mağaza URL'leri değil → noindex
         source: "/theme/techizmet-shop/mirror/:path*.html",
-        headers: [{ key: "Cache-Control", value: "public, max-age=0, must-revalidate" }],
+        headers: [...mirrorHtmlNoIndex],
       },
     ];
   },

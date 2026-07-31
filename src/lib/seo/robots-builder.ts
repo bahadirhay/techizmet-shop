@@ -5,12 +5,22 @@ import { getPublicSiteHost, getPublicSiteUrl } from "@/lib/seo/site-url";
 import type { SiteSettings } from "@/lib/site-settings";
 import { getSiteSeo } from "@/lib/site-settings";
 
-const DISALLOW = ["/admin/", "/api/", "/checkout/", "/cart", "/account/", "/bakim/"];
+const DISALLOW = [
+  "/admin/",
+  "/api/",
+  "/checkout/",
+  "/cart",
+  "/account/",
+  "/bakim/",
+  // Mirror iframe kabukları — kanonik URL değil; çift içerik indekslenmesin
+  "/_mirror-prebuilt/",
+  "/theme/techizmet-shop/mirror/",
+];
 
 /** Ürün görselleri /api/media altında — genel /api/ engeli bunları da kapatıyordu */
-const GOOGLE_CRAWL_ALLOW = ["/", "/products/", "/api/media/", "/uploads/", "/feeds/", "/_mirror-prebuilt/"];
+const GOOGLE_CRAWL_ALLOW = ["/", "/products/", "/api/media/", "/uploads/", "/feeds/"];
 
-const GOOGLE_IMAGE_ALLOW = ["/", "/products/", "/api/media/", "/uploads/", "/_mirror-prebuilt/"];
+const GOOGLE_IMAGE_ALLOW = ["/", "/products/", "/api/media/", "/uploads/"];
 
 /** AI arama / alıntı botları — ürün sayfaları ve beslemeler */
 const AI_SEARCH_ALLOW = [
@@ -22,7 +32,6 @@ const AI_SEARCH_ALLOW = [
   "/llms.txt",
   "/api/media/",
   "/uploads/",
-  "/_mirror-prebuilt/",
 ];
 
 /** Eğitim amaçlı tarama — opt-out (llms.txt bunu geçersiz kılmaz) */
