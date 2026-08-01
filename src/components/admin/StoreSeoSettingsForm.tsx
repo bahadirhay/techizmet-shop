@@ -5,6 +5,7 @@ import { useState } from "react";
 import { AdminField, btnPrimary, inputClass } from "@/components/admin/AdminForm";
 import { ImageUploadField } from "@/components/admin/ImageUploadField";
 import { SiteSeoAuditPanel } from "@/components/admin/SiteSeoAuditPanel";
+import { GoogleAppearanceScanPanel } from "@/components/admin/GoogleAppearanceScanPanel";
 import { extractUrls } from "@/lib/social-links";
 import { normalizeRobotsDisallowPaths } from "@/lib/seo/robots-disallow-paths";
 
@@ -249,6 +250,8 @@ export function StoreSeoSettingsForm({
           </a>
         </p>
       </section>
+
+      <GoogleAppearanceScanPanel />
 
       <SiteSeoAuditPanel />
 
