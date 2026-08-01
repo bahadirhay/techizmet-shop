@@ -24,7 +24,17 @@ export function GoogleAppearanceScanPanel() {
     }
     setScan(j);
     if (!j.findings.length) {
-      setMsg("Temiz: tarama kalıntı bulmadı. Google sitelinkleri birkaç gün içinde kendini güncelleyebilir.");
+      setMsg(
+        j.searchBlocked?.added?.length
+          ? `Temiz. Search Console engeli: ${j.searchBlocked.added.join(", ")} robots.txt’e eklendi.`
+          : "Temiz: tarama kalıntı bulmadı. Google sitelinkleri birkaç gün içinde kendini güncelleyebilir.",
+      );
+    } else {
+      setMsg(
+        j.searchBlocked?.added?.length
+          ? `Bulgular var. Search Console engeli eklendi: ${j.searchBlocked.added.join(", ")}`
+          : null,
+      );
     }
   }
 
@@ -52,8 +62,9 @@ export function GoogleAppearanceScanPanel() {
       <h2 className="text-lg font-semibold">Google görünüm temizliği</h2>
       <p className="text-sm text-zinc-600">
         Tüm vitrin sayfalarını ve kayıtlı metinleri tarar; eski kozmetik şablon kalıntılarını
-        (Our Skincare Picks, Glow Begins Here, theking-noor…) bulur ve tek tıkla düzeltir.
-        Google’daki eski sitelinkler için Search Console’da yeniden tarama / kaldırma da gerekir.
+        (Our Skincare Picks, Glow Begins Here, theking-noor…) bulur. Tarama bitince şablon/demo
+        yolları otomatik <strong>robots.txt + sitemap dışı</strong> bırakılır — Search Console’a
+        düşmesin. Ana sayfa/koleksiyon gibi gerçek sayfalar engellenmez; onlar düzeltilir.
       </p>
       <div className="flex flex-wrap gap-2">
         <button type="button" className={btnSecondary} disabled={!!busy} onClick={() => void runScan()}>
@@ -82,6 +93,24 @@ export function GoogleAppearanceScanPanel() {
             <span className="text-amber-700">{scan.summary.warn} uyarı</span>,{" "}
             <span className="text-green-700">{scan.summary.clean} temiz canlı sayfa</span>
           </p>
+          {scan.searchBlocked?.robotsDisallowPaths?.length ? (
+            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              Search Console engeli (robots/sitemap):{" "}
+              <code className="text-xs">
+                {(scan.searchBlocked.added.length
+                  ? scan.searchBlocked.added
+                  : scan.searchBlocked.robotsDisallowPaths.filter(
+                      (p) =>
+                        p.startsWith("/_mirror-prebuilt") ||
+                        p.startsWith("/theme/techizmet-shop/mirror"),
+                    )
+                ).join(", ") || "aktif"}
+              </code>
+              {scan.searchBlocked.added.length
+                ? " — yeni eklendi"
+                : " — zaten tanımlı"}
+            </p>
+          ) : null}
           {scan.findings.length ? (
             <div className="max-h-[32rem] overflow-auto rounded-lg border">
               <table className="w-full text-left text-sm">

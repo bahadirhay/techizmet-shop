@@ -1,16 +1,20 @@
 import "server-only";
 
-import { loadSiteSeoPages } from "@/lib/admin/site-seo/page-loader";
-import { LANDING_COLLECTION_SLUGS } from "@/lib/seo/search-intent";
+import {
+  applySearchIndexBlocks,
+  collectPathsToBlockFromFindings,
+} from "@/lib/admin/google-appearance/search-index-block";
+import { VITRIN_PAGES } from "@/lib/mirror-vitrin-pages";
+import { getMirrorPageConfig } from "@/lib/mirror-page-settings";
+import { getSiteSeo, parseSiteSettings, type SiteSettings } from "@/lib/site-settings";
+import { prisma } from "@/lib/prisma";
 import { getPublicSiteUrl } from "@/lib/seo/site-url";
+import { LANDING_COLLECTION_SLUGS } from "@/lib/seo/search-intent";
+import { loadSiteSeoPages } from "@/lib/admin/site-seo/page-loader";
 import {
   findLegacyThemeHits,
   type LegacyThemeHit,
 } from "@/lib/mirror-theme-copy-sanitize";
-import { getSiteSeo, parseSiteSettings, type SiteSettings } from "@/lib/site-settings";
-import { prisma } from "@/lib/prisma";
-import { VITRIN_PAGES } from "@/lib/mirror-vitrin-pages";
-import { getMirrorPageConfig } from "@/lib/mirror-page-settings";
 
 export type GoogleAppearanceFinding = {
   source: "live" | "settings";
@@ -33,6 +37,11 @@ export type GoogleAppearanceScanResult = {
     clean: number;
   };
   findings: GoogleAppearanceFinding[];
+  /** Tarama sonrası robots/sitemap ile engellenen yollar */
+  searchBlocked: {
+    added: string[];
+    robotsDisallowPaths: string[];
+  };
 };
 
 function excerptAround(hay: string, needle: string, radius = 60): string {
@@ -211,6 +220,12 @@ export async function scanGoogleAppearance(siteId: string): Promise<GoogleAppear
     else warn += 1;
   }
 
+  // Tarama sonrası: şablon/demo yollarını robots + sitemap dışı bırak (Search Console’a düşmesin)
+  const block = await applySearchIndexBlocks(
+    siteId,
+    collectPathsToBlockFromFindings(findings),
+  );
+
   return {
     scannedAt: new Date().toISOString(),
     siteName,
@@ -223,5 +238,9 @@ export async function scanGoogleAppearance(siteId: string): Promise<GoogleAppear
       clean: liveOk,
     },
     findings,
+    searchBlocked: {
+      added: block.added,
+      robotsDisallowPaths: block.robotsDisallowPaths,
+    },
   };
 }

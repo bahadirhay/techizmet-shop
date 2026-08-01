@@ -6,10 +6,30 @@ import { getPublicSiteUrl } from "@/lib/seo/site-url";
 import { LANDING_COLLECTION_SLUGS } from "@/lib/seo/search-intent";
 import { prisma } from "@/lib/prisma";
 import { storefrontListedWhere } from "@/lib/storefront-product-where";
+import { parseSiteSettings, getSiteSeo } from "@/lib/site-settings";
+import { normalizeRobotsDisallowPaths } from "@/lib/seo/robots-disallow-paths";
+import { pathMatchesRobotsDisallow } from "@/lib/admin/google-appearance/search-index-block";
 
 export async function buildStoreSitemapEntries(siteId: string): Promise<MetadataRoute.Sitemap> {
   const root = getPublicSiteUrl();
   const now = new Date();
+
+  const site = await prisma.storeSite.findUnique({
+    where: { id: siteId },
+    select: { settingsJson: true, name: true },
+  });
+  const settings = parseSiteSettings(site?.settingsJson);
+  const seo = getSiteSeo(settings, site?.name ?? "Mağaza");
+  const disallow = normalizeRobotsDisallowPaths(seo.robotsDisallowPaths);
+
+  const allowUrl = (absoluteUrl: string) => {
+    try {
+      const pathname = new URL(absoluteUrl).pathname;
+      return !pathMatchesRobotsDisallow(pathname, disallow);
+    } catch {
+      return true;
+    }
+  };
 
   const [products, collections, pages, categories, blogPosts] = await Promise.all([
     prisma.storeProduct.findMany({
@@ -109,5 +129,5 @@ export async function buildStoreSitemapEntries(siteId: string): Promise<Metadata
       changeFrequency: "monthly" as const,
       priority: 0.6,
     })),
-  ];
+  ].filter((entry) => allowUrl(entry.url));
 }

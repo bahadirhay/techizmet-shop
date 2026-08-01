@@ -7,13 +7,14 @@ import {
   applyLegacyThemeCopyToText,
   findLegacyThemeHits,
 } from "@/lib/mirror-theme-copy-sanitize";
-import { normalizeRobotsDisallowPaths } from "@/lib/seo/robots-disallow-paths";
+import {
+  applySearchIndexBlocks,
+  REQUIRED_SEARCH_BLOCKS,
+} from "@/lib/admin/google-appearance/search-index-block";
 import { VITRIN_PAGES } from "@/lib/mirror-vitrin-pages";
 import { getMirrorPageConfig } from "@/lib/mirror-page-settings";
 import { parseSiteSettings, type SiteSettings } from "@/lib/site-settings";
 import { prisma } from "@/lib/prisma";
-
-const REQUIRED_ROBOTS_DISALLOW = ["/_mirror-prebuilt/", "/theme/techizmet-shop/mirror/"];
 
 export type GoogleAppearanceFixResult = {
   updatedSettings: boolean;
@@ -118,20 +119,9 @@ function fixSeoBlock(
   }
   seo.staticPages = staticPages;
 
-  const existing = normalizeRobotsDisallowPaths(seo.robotsDisallowPaths);
-  const robotsAdded: string[] = [];
-  const robotsSet = new Set(existing);
-  for (const path of REQUIRED_ROBOTS_DISALLOW) {
-    if (!robotsSet.has(path)) {
-      robotsSet.add(path);
-      robotsAdded.push(path);
-    }
-  }
-  seo.robotsDisallowPaths = [...robotsSet];
-
   return {
     settings: { ...settings, seo },
-    count: count + (robotsAdded.length ? 1 : 0),
+    count,
   };
 }
 
@@ -228,23 +218,19 @@ export async function fixGoogleAppearance(siteId: string): Promise<GoogleAppeara
   settings = seoFix.settings;
   patchedFields += seoFix.count;
 
-  const beforeRobots = new Set(
-    normalizeRobotsDisallowPaths(parseSiteSettings(site.settingsJson).seo?.robotsDisallowPaths),
-  );
-  const afterRobots = normalizeRobotsDisallowPaths(settings.seo?.robotsDisallowPaths);
-  const robotsDisallowAdded = afterRobots.filter((p) => !beforeRobots.has(p));
-
   const mirrorFix = fixMirrorPages(settings, site.name, details);
   settings = mirrorFix.settings;
   patchedFields += mirrorFix.count;
 
-  const updatedSettings = patchedFields > 0 || robotsDisallowAdded.length > 0;
+  const updatedSettings = patchedFields > 0;
   if (updatedSettings) {
     await prisma.storeSite.update({
       where: { id: siteId },
       data: { settingsJson: JSON.stringify(settings) },
     });
   }
+
+  const block = await applySearchIndexBlocks(siteId, [...REQUIRED_SEARCH_BLOCKS]);
 
   clearDevMirrorHtmlCache();
   revalidateStorePublicCache(siteId);
@@ -256,14 +242,15 @@ export async function fixGoogleAppearance(siteId: string): Promise<GoogleAppeara
     "/pages/faq",
     "/blogs/news",
     "/robots.txt",
+    "/sitemap.xml",
   ]) {
     revalidatePath(path);
   }
 
   return {
-    updatedSettings,
+    updatedSettings: updatedSettings || block.updated,
     patchedFields,
-    robotsDisallowAdded,
+    robotsDisallowAdded: block.added,
     details: details.slice(0, 80),
   };
 }
