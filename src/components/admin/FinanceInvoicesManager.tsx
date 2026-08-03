@@ -332,7 +332,7 @@ export function FinanceInvoicesManager({
               disabled={gibBusy}
               onClick={async () => {
                 setGibBusy(true);
-                setMsg("GİB'den gelen faturalar çekiliyor…");
+                setMsg("GİB'den faturalar çekiliyor (gelen + kesilen)…");
                 try {
                   const res = await fetch("/api/admin/finance/invoices/gib-sync", { method: "POST" });
                   const j = (await res.json().catch(() => ({}))) as { error?: string; message?: string };
@@ -345,7 +345,7 @@ export function FinanceInvoicesManager({
                 }
               }}
             >
-              {gibBusy ? "Çekiliyor…" : "GİB’den gelenleri çek"}
+              {gibBusy ? "Çekiliyor…" : "GİB’den fatura çek"}
             </button>
             <button
               className="rounded border px-2 py-1 text-sm"
