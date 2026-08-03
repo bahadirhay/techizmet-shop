@@ -3,10 +3,12 @@ import "server-only";
 import { getEfaturaConfig } from "@/lib/efatura/settings";
 import { getGibSession, refreshGibSession, closeGibSession } from "@/lib/efatura/gib-session";
 import { fetchInvoicesIssuedToMe } from "@/lib/efatura/gib-inbound-fetch";
+import { fetchInvoicesIssuedByMe } from "@/lib/efatura/gib-outbound-fetch";
 import { normalizeInvoiceLines, invoiceLinesToJson, type DraftInvoiceLineInput } from "@/lib/finance/invoices";
 import { prisma } from "@/lib/prisma";
 
 type AnyRow = Record<string, unknown>;
+type GibDirection = "incoming" | "outgoing";
 
 /** GİB tarih formatı: gg/AA/yyyy */
 function gibDate(d: Date): string {
@@ -15,11 +17,13 @@ function gibDate(d: Date): string {
   return `${dd}/${mm}/${d.getFullYear()}`;
 }
 
-/** "gg/AA/yyyy" veya ISO tarihini Date'e çevir */
+/** "gg/AA/yyyy" | "gg-AA-yyyy" | ISO → Date */
 function parseGibDate(s: string | null): Date {
   if (!s) return new Date();
-  const tr = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(s.trim());
-  if (tr) return new Date(Number(tr[3]), Number(tr[2]) - 1, Number(tr[1]));
+  const trSlash = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(s.trim());
+  if (trSlash) return new Date(Number(trSlash[3]), Number(trSlash[2]) - 1, Number(trSlash[1]));
+  const trDash = /^(\d{2})-(\d{2})-(\d{4})$/.exec(s.trim());
+  if (trDash) return new Date(Number(trDash[3]), Number(trDash[2]) - 1, Number(trDash[1]));
   const d = new Date(s);
   return Number.isNaN(d.getTime()) ? new Date() : d;
 }
@@ -40,6 +44,7 @@ function firstStr(row: AnyRow, keys: string[]): string | null {
   for (const k of keys) {
     const v = row[k];
     if (typeof v === "string" && v.trim()) return v.trim();
+    if (typeof v === "number" && Number.isFinite(v)) return String(v);
   }
   return null;
 }
@@ -57,7 +62,9 @@ function parseInboundRows(raw: unknown): AnyRow[] {
   if (raw && typeof raw === "object") {
     const obj = raw as AnyRow;
     for (const key of ["invoices", "items", "data", "list"]) {
-      if (Array.isArray(obj[key])) return (obj[key] as unknown[]).filter((x): x is AnyRow => !!x && typeof x === "object");
+      if (Array.isArray(obj[key])) {
+        return (obj[key] as unknown[]).filter((x): x is AnyRow => !!x && typeof x === "object");
+      }
     }
   }
   return [];
@@ -80,114 +87,120 @@ function parseLines(row: AnyRow): DraftInvoiceLineInput[] {
   return lines.length ? lines : [{ description: "Gelen fatura", qty: 1, unitPrice: 0, vatRate: 20 }];
 }
 
-/** GİB'den gelen KDV oranını geçerli bir InvoiceEntry oranına (1|10|20) yuvarla */
 function normalizeKdvRate(rate: number): 1 | 10 | 20 {
   if (rate <= 2) return 1;
   if (rate <= 15) return 10;
   return 20;
 }
 
-export async function syncInboundGibInvoices(siteId: string, actorUserId?: string | null) {
-  const cfg = await getEfaturaConfig(siteId);
-  if (!cfg.enabled || !cfg.username || !cfg.password) {
-    return { ok: false as const, message: "GİB e-Arşiv ayarları eksik. /admin/settings/efatura sayfasından kullanıcı adı ve şifre girin.", imported: 0, kdvEntriesCreated: 0 };
-  }
-  // 1) Önbellekli GİB oturumu al (aynı token tekrar kullanılır → "aynı anda
-  //    birden fazla giriş" hatasını önler). Token süresi dolmuşsa yenilenir.
-  let session: Awaited<ReturnType<typeof getGibSession>>;
-  try {
-    session = await getGibSession(siteId, cfg);
-  } catch (e) {
-    const detail = (e as Error & { detail?: string }).detail || (e instanceof Error ? e.message : "bilinmeyen hata");
-    const alreadyLoggedIn = /birden fazla giriş|birden fazla giris|güvenli çıkış|guvenli cikis/i.test(detail);
-    return {
-      ok: false as const,
-      message: alreadyLoggedIn
-        ? `GİB'de açık bir oturum var: ${detail} · Çözüm: earsivportal.efatura.gov.tr adresine girip "Güvenli Çıkış" yapın veya birkaç dakika bekleyip tekrar deneyin.`
-        : `GİB girişi başarısız: ${detail}. Kullanıcı kodu ve şifreyi /admin/settings/efatura sayfasından kontrol edin.`,
-      imported: 0,
-      kdvEntriesCreated: 0,
-    };
-  }
+function rowExtId(row: AnyRow): string | null {
+  // GİB liste yanıtında asıl kimlik genelde ettn
+  return firstStr(row, ["ettn", "uuid", "invoiceUuid", "id"]);
+}
 
-  // 2) Son 90 günde adıma kesilen belgeleri getir.
-  //    fatura paketinin getAllInvoicesIssuedToMeByDateRange metodu yanlış payload
-  //    gönderdiği için NPE üretiyordu; doğru komutu gib-inbound-fetch ile çağırıyoruz.
-  const end = new Date();
-  const start = new Date();
-  start.setDate(start.getDate() - 90);
-  const range = { startDate: gibDate(start), endDate: gibDate(end) };
-  const env = cfg.testMode ? ("TEST" as const) : ("PROD" as const);
+function rowTitle(row: AnyRow, direction: GibDirection): string {
+  return (
+    firstStr(row, ["belgeNumarasi", "invoiceNumber", "faturaNo", "documentNumber", "title"]) ||
+    (direction === "outgoing" ? "GİB kesilen fatura" : "GİB gelen fatura")
+  );
+}
 
-  let raw: unknown;
-  try {
-    try {
-      raw = await fetchInvoicesIssuedToMe(env, session.token, range);
-    } catch {
-      // Token süresi dolmuş olabilir — oturumu yenileyip bir kez daha dene
-      session = await refreshGibSession(siteId, cfg);
-      raw = await fetchInvoicesIssuedToMe(env, session.token, range);
-    }
-  } catch (e) {
-    await closeGibSession(siteId, cfg);
-    const detail = e instanceof Error ? e.message : "bilinmeyen hata";
-    const sessionIssue = /oturum geçersiz|clientip|birden fazla giriş|birden fazla giris|güvenli çıkış|guvenli cikis|kimlik doğrulanamadı|kimlik dogrulanamadi/i.test(detail);
-    const gibBug = /genel sistem hatası|genel sistem hatasi|nullpointer|null pointer/i.test(detail);
-    return {
-      ok: false as const,
-      message: sessionIssue
-        ? `GİB oturumu geçersiz oldu (${detail}). Sunucu IP'si her istekte değiştiği için açık oturum kalmış olabilir. Çözüm: earsivportal.efatura.gov.tr adresine girip "Güvenli Çıkış" yapın, 1-2 dakika bekleyin ve tekrar deneyin.`
-        : gibBug
-          ? `GİB "adına kesilen belgeler" servisi hâlâ hata veriyor (${detail}). Not: e-Arşiv portalı yalnızca portal üzerinden kesilen gelen faturaları listeler; Trendyol vb. entegratör faturaları genelde burada görünmez. Bu faturaları "Yeni fatura → Yön: Gelen" ile manuel ekleyin veya PDF yükleyin. Liste için: earsivportal.efatura.gov.tr → e-Arşiv Faturalarım.`
-          : `GİB gelen fatura sorgusu başarısız: ${detail}`,
-      imported: 0,
-      kdvEntriesCreated: 0,
-    };
+function rowCounterparty(row: AnyRow, direction: GibDirection): string {
+  if (direction === "outgoing") {
+    return (
+      firstStr(row, ["aliciUnvanAdSoyad", "aliciUnvan", "aliciAdSoyad", "receiverTitle", "unvan"]) ||
+      "GİB alıcı"
+    );
   }
+  return (
+    firstStr(row, [
+      "saticiUnvan",
+      "gonderenUnvan",
+      "supplierTitle",
+      "senderTitle",
+      "unvan",
+      "aliciUnvan",
+    ]) || "GİB satıcı"
+  );
+}
 
-  const rows = parseInboundRows(raw);
-  let imported = 0;
-  let kdvEntriesCreated = 0;
+function rowTaxId(row: AnyRow, direction: GibDirection): string | null {
+  if (direction === "outgoing") {
+    return firstStr(row, ["aliciVknTckn", "aliciVkn", "receiverTaxId", "vknTckn", "vkn"]);
+  }
+  return firstStr(row, [
+    "saticiVknTckn",
+    "gonderenVknTckn",
+    "supplierTaxId",
+    "senderTaxId",
+    "vknTckn",
+    "vkn",
+  ]);
+}
+
+function rowGrossTotal(row: AnyRow): number {
+  return firstNum(row, [
+    "belgeTutari",
+    "odenecekTutar",
+    "toplamTutar",
+    "tutar",
+    "grandTotalInclVAT",
+    "paymentTotal",
+    "malHizmetToplamTutari",
+  ]);
+}
+
+function isApprovedOutgoing(row: AnyRow): boolean {
+  const status = (firstStr(row, ["onayDurumu", "status", "durum"]) || "").toLocaleLowerCase("tr-TR");
+  if (!status) return true;
+  if (/silin|iptal|taslak|onaylanmad/i.test(status)) return false;
+  return /onayland/i.test(status) || status === "onaylandı" || status === "onaylandi";
+}
+
+type ImportCounters = {
+  fetched: number;
+  imported: number;
+  kdvEntriesCreated: number;
+  skippedNoId: number;
+  skippedDuplicate: number;
+  skippedNotApproved: number;
+  skippedZeroAmount: number;
+};
+
+async function importGibRows(
+  siteId: string,
+  actorUserId: string | null | undefined,
+  direction: GibDirection,
+  rows: AnyRow[],
+  counters: ImportCounters,
+) {
+  counters.fetched += rows.length;
 
   for (const row of rows) {
-    const extId = firstStr(row, ["id", "uuid", "invoiceUuid", "ettn"]);
-    if (!extId) continue;
+    if (direction === "outgoing" && !isApprovedOutgoing(row)) {
+      counters.skippedNotApproved++;
+      continue;
+    }
 
-    // ── FinanceInvoice (onay akışı) ────────────────────────────────────────
+    const extId = rowExtId(row);
+    if (!extId) {
+      counters.skippedNoId++;
+      continue;
+    }
+
     const exists = await prisma.financeInvoice.findFirst({
-      where: { siteId, source: "gib", direction: "incoming", gibExternalId: extId },
+      where: { siteId, source: "gib", direction, gibExternalId: extId },
       select: { id: true },
     });
 
     const safeIssueDate = parseGibDate(
-      firstStr(row, ["issueDate", "date", "faturaTarihi", "belgeTarihi"]),
+      firstStr(row, ["belgeTarihi", "issueDate", "date", "faturaTarihi", "belgeTarihiStr"]),
     );
+    const title = rowTitle(row, direction);
+    const counterpartyName = rowCounterparty(row, direction);
+    const taxId = rowTaxId(row, direction);
+    const grossTotal = rowGrossTotal(row);
 
-    const title =
-      firstStr(row, ["title", "belgeNumarasi", "documentNumber", "invoiceNumber", "faturaNo"]) ||
-      "GİB gelen fatura";
-    const counterpartyName =
-      firstStr(row, ["saticiUnvan", "gonderenUnvan", "supplierTitle", "senderTitle", "unvan", "aliciUnvan"]) ||
-      "GİB karşı taraf";
-    const taxId = firstStr(row, [
-      "saticiVknTckn",
-      "gonderenVknTckn",
-      "supplierTaxId",
-      "senderTaxId",
-      "vknTckn",
-      "vkn",
-    ]);
-
-    // GİB liste yanıtı satır kalemi içermez; belge tutarından tek satır üret.
-    // Toplam KDV dahil kabul edilip %20 ile net'e indirgenir (onay ekranında düzeltilebilir).
-    const grossTotal = firstNum(row, [
-      "belgeTutari",
-      "tutar",
-      "toplamTutar",
-      "grandTotalInclVAT",
-      "paymentTotal",
-      "odenecekTutar",
-    ]);
     const linesInput: DraftInvoiceLineInput[] =
       grossTotal > 0
         ? [{ description: title, qty: 1, unitPrice: grossTotal / 1.2, vatRate: 20 }]
@@ -199,7 +212,7 @@ export async function syncInboundGibInvoices(siteId: string, actorUserId?: strin
         data: {
           siteId,
           source: "gib",
-          direction: "incoming",
+          direction,
           status: "pending_approval",
           issueDate: safeIssueDate,
           counterpartyType: "external_manual",
@@ -209,8 +222,8 @@ export async function syncInboundGibInvoices(siteId: string, actorUserId?: strin
           vatMinor: calc.vatMinor,
           totalMinor: calc.totalMinor,
           gibExternalId: extId,
-          gibInvoiceNumber: firstStr(row, ["invoiceNumber", "faturaNo"]),
-          gibUuid: firstStr(row, ["uuid", "ettn"]),
+          gibInvoiceNumber: firstStr(row, ["belgeNumarasi", "invoiceNumber", "faturaNo"]),
+          gibUuid: firstStr(row, ["ettn", "uuid"]),
           gibPayloadJson: JSON.stringify(row),
           description: counterpartyName,
           createdByStaffUserId: actorUserId || null,
@@ -225,11 +238,11 @@ export async function syncInboundGibInvoices(siteId: string, actorUserId?: strin
           note: taxId ? `${counterpartyName} (${taxId})` : counterpartyName,
         },
       });
-      imported++;
+      counters.imported++;
+    } else {
+      counters.skippedDuplicate++;
     }
 
-    // ── InvoiceEntry (KDV takibi) ──────────────────────────────────────────
-    // Satırları KDV oranına göre grupla, her oran için ayrı InvoiceEntry yaz
     const rateGroups = new Map<number, { netMinor: number; kdvMinor: number }>();
     for (const line of calc.lines) {
       const rate = normalizeKdvRate(line.vatRate);
@@ -239,16 +252,22 @@ export async function syncInboundGibInvoices(siteId: string, actorUserId?: strin
         kdvMinor: g.kdvMinor + line.vatMinor,
       });
     }
-    // Eğer satır yoksa (unitPrice=0 gibi) calc.subtotalMinor'dan tek giriş yap
     if (rateGroups.size === 0 && calc.subtotalMinor > 0) {
       rateGroups.set(20, { netMinor: calc.subtotalMinor, kdvMinor: calc.vatMinor });
     }
 
+    let createdAny = false;
     for (const [rate, amounts] of rateGroups) {
       if (amounts.netMinor <= 0) continue;
-      const dedupKey = `gib:${extId}:r${rate}`;
+      const dedupKey = `gib:${direction === "outgoing" ? "out" : "in"}:${extId}:r${rate}`;
+      const legacyKey = direction === "incoming" ? `gib:${extId}:r${rate}` : null;
       const entryExists = await prisma.invoiceEntry.findFirst({
-        where: { siteId, invoiceNo: dedupKey },
+        where: {
+          siteId,
+          OR: legacyKey
+            ? [{ invoiceNo: dedupKey }, { invoiceNo: legacyKey }]
+            : [{ invoiceNo: dedupKey }],
+        },
         select: { id: true },
       });
       if (entryExists) continue;
@@ -256,7 +275,7 @@ export async function syncInboundGibInvoices(siteId: string, actorUserId?: strin
       await prisma.invoiceEntry.create({
         data: {
           siteId,
-          direction: "incoming",
+          direction,
           invoiceDate: safeIssueDate,
           invoiceNo: dedupKey,
           counterparty: taxId ? `${counterpartyName} (${taxId})` : counterpartyName,
@@ -266,20 +285,154 @@ export async function syncInboundGibInvoices(siteId: string, actorUserId?: strin
           description: title,
         },
       });
-      kdvEntriesCreated++;
+      counters.kdvEntriesCreated++;
+      createdAny = true;
+    }
+
+    if (!createdAny && calc.subtotalMinor <= 0 && !exists) {
+      counters.skippedZeroAmount++;
     }
   }
+}
 
-  // Oturumu kapat — sonraki isteğin (farklı IP) temiz giriş yapabilmesi için.
+async function fetchWithRetry(
+  siteId: string,
+  cfg: Awaited<ReturnType<typeof getEfaturaConfig>>,
+  session: Awaited<ReturnType<typeof getGibSession>>,
+  fetchFn: (env: "PROD" | "TEST", token: string, range: { startDate: string; endDate: string }) => Promise<unknown>,
+  range: { startDate: string; endDate: string },
+): Promise<{ raw: unknown; session: Awaited<ReturnType<typeof getGibSession>> }> {
+  const env = cfg.testMode ? ("TEST" as const) : ("PROD" as const);
+  try {
+    const raw = await fetchFn(env, session.token, range);
+    return { raw, session };
+  } catch {
+    const refreshed = await refreshGibSession(siteId, cfg);
+    const raw = await fetchFn(env, refreshed.token, range);
+    return { raw, session: refreshed };
+  }
+}
+
+/** GİB'den gelen (adıma kesilen) + kesilen (düzenlenen) faturaları çeker. */
+export async function syncInboundGibInvoices(siteId: string, actorUserId?: string | null) {
+  const cfg = await getEfaturaConfig(siteId);
+  if (!cfg.enabled || !cfg.username || !cfg.password) {
+    return {
+      ok: false as const,
+      message:
+        "GİB e-Arşiv ayarları eksik. /admin/settings/efatura sayfasından kullanıcı adı ve şifre girin.",
+      imported: 0,
+      kdvEntriesCreated: 0,
+      fetched: 0,
+    };
+  }
+
+  let session: Awaited<ReturnType<typeof getGibSession>>;
+  try {
+    session = await getGibSession(siteId, cfg);
+  } catch (e) {
+    const detail =
+      (e as Error & { detail?: string }).detail ||
+      (e instanceof Error ? e.message : "bilinmeyen hata");
+    const alreadyLoggedIn = /birden fazla giriş|birden fazla giris|güvenli çıkış|guvenli cikis/i.test(
+      detail,
+    );
+    return {
+      ok: false as const,
+      message: alreadyLoggedIn
+        ? `GİB'de açık bir oturum var: ${detail} · Çözüm: earsivportal.efatura.gov.tr adresine girip "Güvenli Çıkış" yapın veya birkaç dakika bekleyip tekrar deneyin.`
+        : `GİB girişi başarısız: ${detail}. Kullanıcı kodu ve şifreyi /admin/settings/efatura sayfasından kontrol edin.`,
+      imported: 0,
+      kdvEntriesCreated: 0,
+      fetched: 0,
+    };
+  }
+
+  const end = new Date();
+  const start = new Date();
+  start.setDate(start.getDate() - 90);
+  const range = { startDate: gibDate(start), endDate: gibDate(end) };
+
+  const counters: ImportCounters = {
+    fetched: 0,
+    imported: 0,
+    kdvEntriesCreated: 0,
+    skippedNoId: 0,
+    skippedDuplicate: 0,
+    skippedNotApproved: 0,
+    skippedZeroAmount: 0,
+  };
+
+  let incomingRaw: unknown = [];
+  let outgoingRaw: unknown = [];
+  let incomingErr: string | null = null;
+  let outgoingErr: string | null = null;
+
+  try {
+    const inRes = await fetchWithRetry(siteId, cfg, session, fetchInvoicesIssuedToMe, range);
+    session = inRes.session;
+    incomingRaw = inRes.raw;
+  } catch (e) {
+    incomingErr = e instanceof Error ? e.message : "bilinmeyen hata";
+  }
+
+  try {
+    const outRes = await fetchWithRetry(siteId, cfg, session, fetchInvoicesIssuedByMe, range);
+    session = outRes.session;
+    outgoingRaw = outRes.raw;
+  } catch (e) {
+    outgoingErr = e instanceof Error ? e.message : "bilinmeyen hata";
+  }
+
+  if (incomingErr && outgoingErr) {
+    await closeGibSession(siteId, cfg);
+    const detail = `${incomingErr} / ${outgoingErr}`;
+    const sessionIssue =
+      /oturum geçersiz|clientip|birden fazla giriş|birden fazla giris|güvenli çıkış|guvenli cikis|kimlik doğrulanamadı|kimlik dogrulanamadi/i.test(
+        detail,
+      );
+    return {
+      ok: false as const,
+      message: sessionIssue
+        ? `GİB oturumu geçersiz oldu (${detail}). earsivportal.efatura.gov.tr → Güvenli Çıkış yapıp tekrar deneyin.`
+        : `GİB fatura sorgusu başarısız: ${detail}`,
+      imported: 0,
+      kdvEntriesCreated: 0,
+      fetched: 0,
+    };
+  }
+
+  await importGibRows(siteId, actorUserId, "incoming", parseInboundRows(incomingRaw), counters);
+  await importGibRows(siteId, actorUserId, "outgoing", parseInboundRows(outgoingRaw), counters);
+
   await closeGibSession(siteId, cfg);
+
+  const parts: string[] = [];
+  parts.push(`GİB’den ${counters.fetched} kayıt okundu`);
+  if (counters.imported > 0 || counters.kdvEntriesCreated > 0) {
+    parts.push(`${counters.imported} yeni fatura`);
+    parts.push(`${counters.kdvEntriesCreated} KDV satırı`);
+  } else if (counters.fetched > 0) {
+    parts.push("yeni kayıt yok (zaten içe aktarılmış veya tutarsız)");
+  } else {
+    parts.push("liste boş — son 90 günde portalda kayıt yok");
+  }
+  if (incomingErr) parts.push(`gelen hata: ${incomingErr}`);
+  if (outgoingErr) parts.push(`kesilen hata: ${outgoingErr}`);
+  if (counters.skippedZeroAmount > 0) {
+    parts.push(
+      `${counters.skippedZeroAmount} faturada tutar yok (KDV için GİB Excel yükleyin)`,
+    );
+  }
+  if (counters.skippedNotApproved > 0) {
+    parts.push(`${counters.skippedNotApproved} onaylanmamış/taslak atlandı`);
+  }
 
   return {
     ok: true as const,
-    imported,
-    kdvEntriesCreated,
-    message:
-      imported > 0 || kdvEntriesCreated > 0
-        ? `${imported} yeni fatura, ${kdvEntriesCreated} KDV kaydı içe aktarıldı.`
-        : "Yeni fatura bulunamadı (tümü zaten içe aktarılmış).",
+    imported: counters.imported,
+    kdvEntriesCreated: counters.kdvEntriesCreated,
+    fetched: counters.fetched,
+    message: parts.join(" · "),
   };
 }

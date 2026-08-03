@@ -146,21 +146,25 @@ export function KdvTracker({
     setGibMsg(null);
     try {
       const r = await fetch("/api/admin/finance/invoices/gib-sync", { method: "POST" });
-      const data = (await r.json()) as { message?: string; error?: string; kdvEntriesCreated?: number };
+      const data = (await r.json()) as {
+        message?: string;
+        error?: string;
+        kdvEntriesCreated?: number;
+        imported?: number;
+        fetched?: number;
+      };
       if (!r.ok) {
         setGibMsg({ text: data.error ?? "GİB senkronizasyonu başarısız.", ok: false });
         return;
       }
       setGibMsg({ text: data.message ?? "Senkronize edildi.", ok: true });
-      // Yeni KDV girişleri varsa listeyi yenile
-      if ((data.kdvEntriesCreated ?? 0) > 0) {
-        const re = await fetch(`/api/admin/finance/invoices?year=${year}`);
-        const rd = (await re.json()) as { entries?: InvoiceEntryRow[] };
-        setEntries(rd.entries ?? []);
-      }
+      // Listeyi her zaman yenile (ay filtresi / tutarsız tutar durumlarında da görünsün)
+      const re = await fetch(`/api/admin/finance/invoices?year=${year}`);
+      const rd = (await re.json()) as { entries?: InvoiceEntryRow[] };
+      setEntries(rd.entries ?? []);
     } finally {
       setGibSyncing(false);
-      window.setTimeout(() => setGibMsg(null), 6000);
+      window.setTimeout(() => setGibMsg(null), 12000);
     }
   }, [year]);
 
@@ -306,7 +310,7 @@ export function KdvTracker({
             {gibSyncing ? "GİB'e bağlanıyor…" : "📥 GİB'den Fatura Çek"}
           </button>
           <p className="mt-1 text-xs text-zinc-400">
-            e-Arşiv gelen kutusundan otomatik içe aktar
+            Son 90 gün: gelen + kesilen (onaylı) e-Arşiv faturaları
           </p>
         </div>
         {/* Excel import — kesilen faturalar (GİB Excel export) */}

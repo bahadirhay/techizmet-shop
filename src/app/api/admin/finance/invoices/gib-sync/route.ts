@@ -7,7 +7,7 @@ import { parseSiteSettings } from "@/lib/site-settings";
 import { prisma } from "@/lib/prisma";
 import { requireStaffApi } from "@/lib/staff-auth";
 
-export const maxDuration = 60;
+export const maxDuration = 90;
 
 export async function POST() {
   const auth = await requireStaffApi("store.finance");
