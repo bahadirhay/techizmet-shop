@@ -159,7 +159,8 @@ export function StreetFoodFundPanel() {
           publish: donationForm.publish,
         }),
       });
-      if (!res.ok) throw new Error();
+      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) throw new Error(body.error ?? `Kayıt başarısız (${res.status})`);
       setDonationForm({
         recipientName: "",
         gramsDelivered: "",
@@ -169,9 +170,13 @@ export function StreetFoodFundPanel() {
         publish: true,
       });
       await load();
-      setMessage("Bağış kaydı oluşturuldu.");
-    } catch {
-      setMessage("Bağış kaydı oluşturulamadı.");
+      setMessage(
+        donationForm.publish
+          ? "Bağış kaydı yayınlandı; yeni kumbara döngüsü başladı."
+          : "Bağış kaydı taslak olarak oluşturuldu (yayınlanmadı).",
+      );
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Bağış kaydı oluşturulamadı.");
     } finally {
       setSaving(false);
     }

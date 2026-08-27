@@ -17,6 +17,41 @@ export function detectEmbedProvider(url: string): EmbedVideoProvider | null {
   }
 }
 
+/** youtube.com / youtu.be / shorts / embed → video id */
+export function extractYoutubeVideoId(url: string): string | null {
+  const raw = url.trim();
+  if (!raw) return null;
+  try {
+    const normalized = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+    const u = new URL(normalized);
+    const h = u.hostname.replace(/^www\./, "");
+
+    if (h === "youtu.be") {
+      const id = u.pathname.split("/").filter(Boolean)[0];
+      return id || null;
+    }
+    if (h === "youtube.com" || h === "m.youtube.com" || h === "music.youtube.com" || h === "youtube-nocookie.com") {
+      const v = u.searchParams.get("v");
+      if (v) return v;
+      const shorts = u.pathname.match(/^\/shorts\/([^/?]+)/);
+      if (shorts?.[1]) return shorts[1];
+      const embed = u.pathname.match(/^\/embed\/([^/?]+)/);
+      if (embed?.[1]) return embed[1];
+      const live = u.pathname.match(/^\/live\/([^/?]+)/);
+      if (live?.[1]) return live[1];
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/** YouTube kapak görseli (hqdefault — Shorts dahil güvenilir) */
+export function youtubeThumbnailUrl(url: string): string | null {
+  const id = extractYoutubeVideoId(url);
+  return id ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : null;
+}
+
 export function toVideoIframeSrc(url: string): string | null {
   const raw = url.trim();
   if (!raw) return null;

@@ -16,6 +16,7 @@ import {
   isThemeShellEnabledForVitrinRoutePath,
   type ThemeShellPilotQuery,
 } from "@/lib/theme-shell-pilot";
+import { youtubeThumbnailUrl } from "@/lib/video-embed";
 
 export async function generateMetadata(): Promise<Metadata> {
   const site = await getDefaultSite();
@@ -109,7 +110,9 @@ export default async function StreetFoodFundPublicPage({
         {donations.length ? (
           <section className="space-y-4">
             <h2 className="text-lg font-semibold">Bağış günlüğü</h2>
-            {donations.map((d) => (
+            {donations.map((d) => {
+              const videoThumb = d.videoUrl ? youtubeThumbnailUrl(d.videoUrl) : null;
+              return (
               <article
                 key={d.id}
                 className="rounded-2xl border border-black/10 bg-white p-6 space-y-4"
@@ -127,7 +130,41 @@ export default async function StreetFoodFundPublicPage({
                     dangerouslySetInnerHTML={{ __html: d.storyHtml }}
                   />
                 ) : null}
-                {d.videoUrl ? (
+                {d.videoUrl && videoThumb ? (
+                  <a
+                    href={d.videoUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label="Bağış videosunu izle"
+                    className="relative block aspect-video overflow-hidden rounded-xl bg-black"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={videoThumb}
+                      alt=""
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                    <span
+                      className="absolute inset-0 flex items-center justify-center bg-black/30"
+                      aria-hidden
+                    >
+                      <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white/90 shadow-lg">
+                        <span
+                          className="ml-0.5 inline-block"
+                          style={{
+                            width: 0,
+                            height: 0,
+                            borderTop: "10px solid transparent",
+                            borderBottom: "10px solid transparent",
+                            borderLeft: "16px solid #18181b",
+                          }}
+                        />
+                      </span>
+                    </span>
+                  </a>
+                ) : d.videoUrl ? (
                   <p>
                     <a href={d.videoUrl} className="underline" target="_blank" rel="noreferrer">
                       Bağış videosunu izle
@@ -148,7 +185,8 @@ export default async function StreetFoodFundPublicPage({
                   </div>
                 ) : null}
               </article>
-            ))}
+              );
+            })}
           </section>
         ) : null}
       </div>
