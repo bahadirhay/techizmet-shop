@@ -1205,6 +1205,12 @@ button.header--icon-link-text {
   opacity: 0.92;
   font-size: 11px;
 }
+.kn-street-food-fund-bar__impact {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.98;
+}
 .kn-street-food-fund-bar__link {
   color: #fff;
   text-decoration: underline;
@@ -1222,7 +1228,8 @@ button.header--icon-link-text {
     grid-template-areas:
       "title link"
       "meter meter"
-      "sub sub";
+      "sub sub"
+      "impact impact";
     gap: 6px 10px;
     padding: 8px 12px;
     align-items: center;
@@ -1244,6 +1251,11 @@ button.header--icon-link-text {
   }
   .kn-street-food-fund-bar__sub {
     grid-area: sub;
+    font-size: 10px;
+    line-height: 1.3;
+  }
+  .kn-street-food-fund-bar__impact {
+    grid-area: impact;
     font-size: 10px;
     line-height: 1.3;
   }

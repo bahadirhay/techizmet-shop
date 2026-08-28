@@ -15,6 +15,7 @@ export type StreetFoodBarPayload = {
   collectedLabel?: string;
   targetLabel?: string;
   progressPercent?: number;
+  impactLabel?: string | null;
 };
 
 function ensureStyles(doc: Document) {
@@ -70,6 +71,11 @@ function ensureStyles(doc: Document) {
 .kn-street-food-bar__sub {
   opacity: 0.92;
   font-size: 11px;
+}
+.kn-street-food-bar__impact {
+  opacity: 0.98;
+  font-size: 11px;
+  font-weight: 600;
 }
 .kn-street-food-bar__link {
   color: #fff;
@@ -149,6 +155,13 @@ function ensureHeroStyles(doc: Document) {
   color: #fff !important;
   opacity: 0.9;
 }
+.kn-street-food-hero__impact {
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff !important;
+  line-height: 1.35;
+}
 .kn-street-food-hero__link {
   display: inline-block;
   margin-top: 8px;
@@ -171,6 +184,9 @@ function ensureHeroStyles(doc: Document) {
 
 function renderBarHtml(payload: StreetFoodBarPayload): string {
   const pct = Math.max(0, Math.min(100, payload.progressPercent ?? 0));
+  const impact = payload.impactLabel?.trim()
+    ? `<div class="kn-street-food-bar__impact">${payload.impactLabel}</div>`
+    : "";
   return `<div class="kn-street-food-bar__inner">
   <div class="kn-street-food-bar__title">🐾 ${payload.title ?? ""}</div>
   <div class="kn-street-food-bar__meter">
@@ -178,6 +194,7 @@ function renderBarHtml(payload: StreetFoodBarPayload): string {
     <div class="kn-street-food-bar__track" aria-hidden="true"><div class="kn-street-food-bar__fill" style="width:${pct}%"></div></div>
   </div>
   <div class="kn-street-food-bar__sub">${payload.counterSubtext ?? ""}</div>
+  ${impact}
   <a class="kn-street-food-bar__link" href="${payload.detailHref ?? "/sokak-dostlari"}">Detaylar</a>
 </div>`;
 }
@@ -185,12 +202,16 @@ function renderBarHtml(payload: StreetFoodBarPayload): string {
 function renderHeroHtml(payload: StreetFoodBarPayload): string {
   const pct = Math.max(0, Math.min(100, payload.progressPercent ?? 0));
   const detailHref = payload.detailHref ?? "/sokak-dostlari";
+  const impact = payload.impactLabel?.trim()
+    ? `<p class="kn-street-food-hero__impact">${payload.impactLabel}</p>`
+    : "";
   return `<div class="kn-street-food-hero__card">
   <div class="kn-street-food-hero__title">🐾 ${payload.title ?? ""}</div>
   <p class="kn-street-food-hero__slogan">${payload.slogan ?? ""}</p>
   <div class="kn-street-food-hero__counts">Toplanan Mama: ${payload.collectedLabel ?? "0 kg"} / ${payload.targetLabel ?? "50 kg"}</div>
   <div class="kn-street-food-hero__track" aria-hidden="true"><div class="kn-street-food-hero__fill" style="width:${pct}%"></div></div>
   <p class="kn-street-food-hero__sub">${payload.counterSubtext ?? ""}</p>
+  ${impact}
   <a class="kn-street-food-hero__link" href="${detailHref}">Detaylar →</a>
 </div>`;
 }

@@ -44,6 +44,9 @@ export function StreetFoodFundBar() {
           </div>
         </div>
         <p className="kn-street-food-fund-bar__sub">{data.counterSubtext}</p>
+        {data.impactLabel ? (
+          <p className="kn-street-food-fund-bar__impact">{data.impactLabel}</p>
+        ) : null}
         <Link href={data.detailHref} className="kn-street-food-fund-bar__link">
           Detaylar
         </Link>

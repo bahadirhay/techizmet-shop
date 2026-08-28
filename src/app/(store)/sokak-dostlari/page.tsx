@@ -77,6 +77,9 @@ export default async function StreetFoodFundPublicPage({
           <p className="text-3xl">🐾</p>
           <h1 className="text-2xl font-semibold">{fund.title}</h1>
           <p className="text-lg text-[var(--kn-muted,#555)]">{fund.slogan}</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-[var(--kn-muted,#555)]">
+            Bu kumbara döngüsü
+          </p>
           <p className="text-xl font-semibold">
             Toplanan Mama: {fund.collectedLabel} / {fund.targetLabel}
           </p>
@@ -90,6 +93,11 @@ export default async function StreetFoodFundPublicPage({
             />
           </div>
           <p className="text-sm text-[var(--kn-muted,#555)]">{fund.counterSubtext}</p>
+          {fund.impactLabel ? (
+            <p className="mx-auto max-w-md rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900">
+              {fund.impactLabel}
+            </p>
+          ) : null}
         </header>
 
         <section className="rounded-2xl border border-black/10 bg-white p-6 space-y-3 text-center">

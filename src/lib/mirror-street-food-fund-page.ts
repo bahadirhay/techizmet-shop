@@ -26,6 +26,16 @@ export const STREET_FOOD_PAGE_STYLES = `
 }
 .kn-street-food-stats__fill { height: 100%; border-radius: 999px; background: #059669; transition: width .4s ease; }
 .kn-street-food-stats__sub { margin: 0; font-size: .9rem; color: color-mix(in srgb, var(--text_color, #111) 65%, transparent); }
+.kn-street-food-stats__cycle {
+  margin: 0 0 6px; font-size: .8rem; font-weight: 500; letter-spacing: .02em;
+  text-transform: uppercase; color: color-mix(in srgb, var(--text_color, #111) 55%, transparent);
+}
+.kn-street-food-stats__impact {
+  margin: 14px 0 0; padding: 12px 14px; border-radius: 10px;
+  background: color-mix(in srgb, #059669 12%, transparent);
+  color: color-mix(in srgb, #065f46 85%, #111);
+  font-size: .95rem; font-weight: 600; line-height: 1.4;
+}
 .kn-street-food-donations__title { font-size: 1.15rem; font-weight: 600; margin: 0 0 16px; text-align: center; }
 .kn-street-food-donation {
   padding: 20px; margin-bottom: 16px; border-radius: var(--product_card_radius, 12px);
@@ -115,17 +125,23 @@ function ensureStyles(doc: Document) {
 
 function renderStatsHtml(payload: StreetFoodFundPublicPayload, locale: string): string {
   const pct = Math.max(0, Math.min(100, payload.progressPercent));
+  const cycleLabel = locale === "en" ? "Current piggy bank" : "Bu kumbara döngüsü";
   const countsLabel =
     locale === "en"
       ? `Collected food: ${payload.collectedLabel} / ${payload.targetLabel}`
       : `Toplanan Mama: ${payload.collectedLabel} / ${payload.targetLabel}`;
+  const impact = payload.impactLabel?.trim()
+    ? `<p class="kn-street-food-stats__impact">${escHtml(payload.impactLabel)}</p>`
+    : "";
   return `<div class="kn-street-food-stats__card">
   <div class="kn-street-food-stats__emoji">🐾</div>
   <h2 class="kn-street-food-stats__title">${escHtml(payload.title)}</h2>
   <p class="kn-street-food-stats__slogan">${escHtml(payload.slogan)}</p>
+  <p class="kn-street-food-stats__cycle">${escHtml(cycleLabel)}</p>
   <p class="kn-street-food-stats__counts">${escHtml(countsLabel)}</p>
   <div class="kn-street-food-stats__track" aria-hidden="true"><div class="kn-street-food-stats__fill" style="width:${pct}%"></div></div>
   <p class="kn-street-food-stats__sub">${escHtml(payload.counterSubtext)}</p>
+  ${impact}
 </div>`;
 }
 

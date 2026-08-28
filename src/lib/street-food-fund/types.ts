@@ -22,6 +22,15 @@ export type StreetFoodFundPublicPayload = {
   detailHref: string;
   collectedLabel: string;
   targetLabel: string;
+  /** Yayınlanmış bağış adedi (tüm zamanlar) */
+  publishedDonationCount: number;
+  /** Benzersiz alıcı / kurum sayısı */
+  uniqueRecipientCount: number;
+  /** Yayınlanmış bağışların toplam gramı */
+  totalDeliveredGrams: number;
+  totalDeliveredLabel: string;
+  /** Örn. “Şimdiye kadar 2 yere toplam 30 kg mama ulaştırdık.” — yoksa null */
+  impactLabel: string | null;
 };
 
 export type StreetFoodDonationPublic = {

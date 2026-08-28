@@ -33,6 +33,61 @@ export async function ensureActiveStreetFoodCampaign(
   });
 }
 
+function buildImpactLabel(
+  locale: ShopLocale,
+  uniqueRecipientCount: number,
+  publishedDonationCount: number,
+  totalDeliveredGrams: number,
+): string | null {
+  if (uniqueRecipientCount <= 0 || totalDeliveredGrams <= 0 || publishedDonationCount <= 0) {
+    return null;
+  }
+  const kg = formatFoodFundKg(totalDeliveredGrams, locale === "en" ? "en" : "tr");
+  if (locale === "en") {
+    const places = uniqueRecipientCount === 1 ? "1 place" : `${uniqueRecipientCount} places`;
+    const donations =
+      publishedDonationCount === 1 ? "1 donation" : `${publishedDonationCount} donations`;
+    return `So far: ${donations} to ${places} · ${kg} kg delivered.`;
+  }
+  const places = uniqueRecipientCount === 1 ? "1 yere" : `${uniqueRecipientCount} yere`;
+  const donations =
+    publishedDonationCount === 1 ? "1 bağış" : `${publishedDonationCount} bağış`;
+  return `Şimdiye kadar ${places} ${donations} yaptık · toplam ${kg} kg mama.`;
+}
+
+async function loadPublishedImpact(siteId: string, locale: ShopLocale) {
+  const [agg, recipientGroups] = await Promise.all([
+    prisma.streetFoodDonation.aggregate({
+      where: { siteId, published: true },
+      _count: { _all: true },
+      _sum: { gramsDelivered: true },
+    }),
+    prisma.streetFoodDonation.groupBy({
+      by: ["recipientName"],
+      where: { siteId, published: true },
+    }),
+  ]);
+
+  const publishedDonationCount = agg._count._all;
+  const uniqueRecipientCount = recipientGroups.length;
+  const totalDeliveredGrams = agg._sum.gramsDelivered ?? 0;
+  const totalDeliveredLabel = `${formatFoodFundKg(totalDeliveredGrams, locale === "en" ? "en" : "tr")} kg`;
+  const impactLabel = buildImpactLabel(
+    locale,
+    uniqueRecipientCount,
+    publishedDonationCount,
+    totalDeliveredGrams,
+  );
+
+  return {
+    publishedDonationCount,
+    uniqueRecipientCount,
+    totalDeliveredGrams,
+    totalDeliveredLabel,
+    impactLabel,
+  };
+}
+
 export async function buildStreetFoodFundPublicPayload(
   siteId: string,
   locale: ShopLocale,
@@ -41,7 +96,11 @@ export async function buildStreetFoodFundPublicPayload(
   const cfg = getStreetFoodFundSettings(settings);
   if (!cfg.enabled) return null;
 
-  const campaign = await getActiveStreetFoodCampaign(siteId);
+  const [campaign, impact] = await Promise.all([
+    getActiveStreetFoodCampaign(siteId),
+    loadPublishedImpact(siteId, locale),
+  ]);
+
   if (!campaign) {
     return {
       enabled: true,
@@ -54,6 +113,7 @@ export async function buildStreetFoodFundPublicPayload(
       detailHref: cfg.detailPath,
       collectedLabel: `${formatFoodFundKg(0, locale)} kg`,
       targetLabel: `${formatFoodFundKg(cfg.defaultTargetGrams, locale)} kg`,
+      ...impact,
     };
   }
 
@@ -72,5 +132,6 @@ export async function buildStreetFoodFundPublicPayload(
     detailHref: cfg.detailPath,
     collectedLabel: `${formatFoodFundKg(collectedGrams, locale)} kg`,
     targetLabel: `${formatFoodFundKg(targetGrams, locale)} kg`,
+    ...impact,
   };
 }
