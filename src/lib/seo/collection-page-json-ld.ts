@@ -75,9 +75,6 @@ export async function buildCollectionPageJsonLd(slug: string, categorySlug?: str
         products.map((p) => ({
           name: p.title,
           url: `/products/${p.slug}`,
-          image: p.imageUrl ?? p.images[0]?.url,
-          priceMinor: p.priceMinor,
-          currency: site.currency,
         })),
         intent?.h1 ?? ctx.collectionName,
         ctx.canonicalPath,

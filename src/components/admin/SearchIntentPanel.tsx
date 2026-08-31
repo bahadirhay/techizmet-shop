@@ -84,7 +84,8 @@ export function SearchIntentPanel() {
       <p className="text-sm text-[var(--kn-muted)]">
         <strong className="font-medium text-[var(--kn-fg)]">{reports.length} hedef sorgu</strong> — öncelik:{" "}
         <strong>Köpek Ödül Maması</strong>, <strong>Ödül maması</strong>,{" "}
-        <strong>Doğal Köpek Ödül Maması</strong>. Landing meta, FAQ schema, ürün listesi (ItemList) ve Merchant
+        <strong>Doğal Köpek Ödül Maması</strong>. Landing meta, FAQ schema, ürün listesi (ItemList
+        name+url; Product şeması yalnızca PDP’de) ve Merchant
         feed birlikte çalışır. Sıra takibi için{" "}
         <Link href="/admin/settings/google-ranking" className="underline">
           Google Sıralama

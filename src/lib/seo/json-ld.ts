@@ -151,11 +151,18 @@ export function buildFaqPageJsonLd(
 export type ItemListProductJsonLd = {
   name: string;
   url: string;
+  /** Liste sayfalarında kullanılmaz — Product snippet GSC uyarısı üretmesin diye */
   image?: string;
-  priceMinor: number;
-  currency: string;
+  priceMinor?: number;
+  currency?: string;
 };
 
+/**
+ * Koleksiyon / listing ItemList.
+ * Google: Product zengin sonuçları yalnızca tek ürün sayfalarına yöneliktir.
+ * Liste sayfalarında iç içe Product+Offer gömmek "aggregateRating eksik" uyarısına yol açar;
+ * bu yüzden yalnızca ListItem name+url kullanılır. Tam Product JSON-LD PDP'de üretilir.
+ */
 export function buildItemListJsonLd(
   items: ItemListProductJsonLd[],
   listName: string,
@@ -172,17 +179,8 @@ export function buildItemListJsonLd(
     itemListElement: items.map((item, index) => ({
       "@type": "ListItem",
       position: index + 1,
-      item: {
-        "@type": "Product",
-        name: item.name,
-        url: toAbsoluteUrl(item.url, origin),
-        ...(item.image ? { image: toAbsoluteMediaUrl(item.image, origin) } : {}),
-        offers: {
-          "@type": "Offer",
-          price: (item.priceMinor / 100).toFixed(2),
-          priceCurrency: item.currency,
-        },
-      },
+      name: item.name,
+      url: toAbsoluteUrl(item.url, origin),
     })),
   };
 }
