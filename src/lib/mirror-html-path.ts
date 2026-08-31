@@ -19,38 +19,23 @@ export function mirrorCollectionHtmlExists(slug: string) {
   return existsSync(join(collectionRoot(), `${slug}.html`));
 }
 
+/** Admin ürün PDP şablonu — bilinmeyen slug'lar rastgele dosyaya düşmesin (SEO soft-404) */
+export const DEFAULT_PRODUCT_MIRROR_TEMPLATE_SLUG = "24hr-smudge-proof-mascara";
+
 /** Yeni admin koleksiyonları için uygun bir detail şablonu seç */
 export function resolveMirrorCollectionTemplateSlug(slug: string): string | null {
   if (mirrorCollectionHtmlExists(slug)) return slug;
-
-  for (const preferred of [] as string[]) {
-    if (mirrorCollectionHtmlExists(preferred)) return preferred;
-  }
-
-  try {
-    const first = readdirSync(collectionRoot())
-      .find((name) => name.endsWith(".html") && !name.endsWith("-tr.html") && name !== "all.html" && name !== "index.html");
-    return first ? first.replace(/\.html$/i, "") : null;
-  } catch {
-    return null;
-  }
+  if (slug !== "all" && mirrorCollectionHtmlExists("all")) return "all";
+  return null;
 }
 
 /** Yeni admin ürünleri için uygun bir PDP şablonu seç */
 export function resolveMirrorProductTemplateSlug(slug: string): string | null {
   if (mirrorProductHtmlExists(slug)) return slug;
-
-  for (const preferred of [] as string[]) {
-    if (mirrorProductHtmlExists(preferred)) return preferred;
+  if (mirrorProductHtmlExists(DEFAULT_PRODUCT_MIRROR_TEMPLATE_SLUG)) {
+    return DEFAULT_PRODUCT_MIRROR_TEMPLATE_SLUG;
   }
-
-  try {
-    const first = readdirSync(productRoot())
-      .find((name) => name.endsWith(".html") && !name.endsWith("-tr.html") && name !== "index.html");
-    return first ? first.replace(/\.html$/i, "") : null;
-  } catch {
-    return null;
-  }
+  return null;
 }
 
 export function mirrorStaticPageHtmlExists(slug: string) {

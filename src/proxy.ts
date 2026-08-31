@@ -105,6 +105,10 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const host = normalizeRequestHost(request.headers.get("host") ?? "");
 
+  if (pathname === "/&" || pathname === "/%26") {
+    return NextResponse.redirect(new URL("/", request.url), 308);
+  }
+
   const wwwHost = APEX_TO_WWW[host];
   if (wwwHost) {
     const url = request.nextUrl.clone();

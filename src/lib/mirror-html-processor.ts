@@ -23,6 +23,7 @@ import { patchMirrorHeaderIconsHtml } from "@/lib/mirror-html-header-fix";
 import { patchMirrorCriticalImageLoading } from "@/lib/mirror-html-image-loading";
 import { localizeMirrorHtml } from "@/lib/mirror-html-locale";
 import { sanitizeLegacyThemeCopy } from "@/lib/mirror-theme-copy-sanitize";
+import { rewriteLegacyThemeHrefsInHtml } from "@/lib/seo/legacy-url-redirects";
 import { patchMirrorPerformance } from "@/lib/mirror-html-perf";
 import { patchMirrorProductPageHtml } from "@/lib/mirror-html-product-fix";
 import {
@@ -359,5 +360,5 @@ export async function buildMirrorHtmlCore(params: MirrorHtmlBuildParams): Promis
     localized = repairFeaturedBlogSectionInHtml(localized);
   }
   localized = patchMirrorCriticalImageLoading(localized);
-  return rewriteLegacyThemePaths(localized);
+  return rewriteLegacyThemeHrefsInHtml(rewriteLegacyThemePaths(localized));
 }

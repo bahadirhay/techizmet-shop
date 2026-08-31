@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import { LEGACY_PRODUCT_REDIRECTS } from "./src/lib/catalog/mirror-catalog";
+import { buildLegacySeoRedirects } from "./src/lib/seo/legacy-url-redirects";
 import { adminContentSecurityPolicy, storeContentSecurityPolicy } from "./src/lib/security/csp";
 
 const legacyProductRedirects = Object.entries(LEGACY_PRODUCT_REDIRECTS).map(([from, to]) => ({
@@ -79,6 +80,7 @@ const nextConfig: NextConfig = {
       { source: "/iade-degisim.html", destination: "/pages/refund-policy", permanent: true },
       { source: "/iade-degisim", destination: "/pages/refund-policy", permanent: true },
       { source: "/index.html", destination: "/", permanent: true },
+      ...buildLegacySeoRedirects(),
       ...legacyProductRedirects,
     ];
   },
