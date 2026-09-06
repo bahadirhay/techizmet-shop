@@ -23,19 +23,50 @@ jobs:
       - name: Sipariş + stok + Trendyol QnA
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET_ANATOLIANPAW }}
+          SITE_ORIGIN: https://www.anatolianpaw.com
         run: |
           set -euo pipefail
+
+          # GitHub runner'larda ara sıra DNS (curl exit 6) / kısa ağ kesintisi olur.
+          curl_with_retry() {
+            local out="$1"
+            local http_file="$2"
+            shift 2
+            local attempt=1
+            local max=6
+            local delay=5
+            local curl_exit=0
+            : >"$http_file"
+            while [ "$attempt" -le "$max" ]; do
+              curl_exit=0
+              curl -sS --connect-timeout 20 --max-time 120 \
+                --retry 2 --retry-delay 3 --retry-all-errors \
+                -o "$out" -w "%{http_code}" "$@" >"$http_file" || curl_exit=$?
+              if [ "$curl_exit" -eq 0 ]; then
+                return 0
+              fi
+              echo "::warning::curl deneme ${attempt}/${max} başarısız (exit ${curl_exit}); ${delay}s sonra tekrar…"
+              sleep "$delay"
+              attempt=$((attempt + 1))
+              delay=$((delay * 2))
+              if [ "$delay" -gt 60 ]; then delay=60; fi
+            done
+            echo "::error::curl ${max} denemeden sonra başarısız (son exit ${curl_exit}). DNS/ağ sorunu olabilir."
+            return "$curl_exit"
+          }
 
           call_cron() {
             local name="$1"
             local path="$2"
-            local url="https://www.anatolianpaw.com${path}"
+            local url="${SITE_ORIGIN}${path}"
             local body="/tmp/cron-${name}.txt"
-            local code
-            code=$(curl -sS -o "$body" -w "%{http_code}" \
+            local http_file="/tmp/cron-${name}.http"
+            curl_with_retry "$body" "$http_file" \
               -H "Authorization: Bearer ${CRON_SECRET}" \
               -H "Accept: application/json" \
-              "$url")
+              "$url"
+            local code
+            code=$(cat "$http_file")
             echo "${name} HTTP ${code}"
             head -c 2000 "$body"; echo
             if [ "$code" -lt 200 ] || [ "$code" -ge 300 ]; then

@@ -26,14 +26,43 @@ jobs:
       - name: Trigger anatolianpaw.com reminder
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET_ANATOLIANPAW }}
+          SITE_ORIGIN: https://www.anatolianpaw.com
         run: |
           set -euo pipefail
-          URL="https://www.anatolianpaw.com/api/cron/cart-abandonment/remind"
-          HTTP_CODE=$(curl -sS -o /tmp/cron-body.txt -w "%{http_code}" \
-            -H "Authorization: Bearer ${CRON_SECRET}" \
-            "$URL")
+          URL="${SITE_ORIGIN}/api/cron/cart-abandonment/remind"
+          BODY="/tmp/cron-body.txt"
+          HTTP_FILE="/tmp/cron-http.txt"
+
+          # GitHub runner'larda ara sıra DNS (curl exit 6) / kısa ağ kesintisi olur.
+          attempt=1
+          max=6
+          delay=5
+          curl_exit=1
+          while [ "$attempt" -le "$max" ]; do
+            curl_exit=0
+            curl -sS --connect-timeout 20 --max-time 120 \
+              --retry 2 --retry-delay 3 --retry-all-errors \
+              -o "$BODY" -w "%{http_code}" \
+              -H "Authorization: Bearer ${CRON_SECRET}" \
+              "$URL" >"$HTTP_FILE" || curl_exit=$?
+            if [ "$curl_exit" -eq 0 ]; then
+              break
+            fi
+            echo "::warning::curl deneme ${attempt}/${max} başarısız (exit ${curl_exit}); ${delay}s sonra tekrar…"
+            sleep "$delay"
+            attempt=$((attempt + 1))
+            delay=$((delay * 2))
+            if [ "$delay" -gt 60 ]; then delay=60; fi
+          done
+
+          if [ "$curl_exit" -ne 0 ]; then
+            echo "::error::Cron çağrısı DNS/ağ hatası (curl exit ${curl_exit}). Host: www.anatolianpaw.com"
+            exit 6
+          fi
+
+          HTTP_CODE=$(cat "$HTTP_FILE")
           echo "HTTP ${HTTP_CODE}"
-          cat /tmp/cron-body.txt
+          cat "$BODY"
           if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
             echo "::error::Cron cagrisi basarisiz (HTTP ${HTTP_CODE}). Vercel CRON_SECRET ile GitHub secret eslesmiyor olabilir."
             exit 22
