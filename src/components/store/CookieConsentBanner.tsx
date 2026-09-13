@@ -3,98 +3,18 @@
 import "./cookie-consent-banner.css";
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-
-type CookieCategory = {
-  id: string;
-  label: string;
-  summary?: string;
-  detail?: string;
-  description?: string;
-  required?: boolean;
-  defaultEnabled?: boolean;
-};
-
-type CookieCfg = {
-  enabled?: boolean;
-  title?: string;
-  body?: string;
-  policyHref?: string;
-  acceptLabel?: string;
-  rejectLabel?: string;
-  settingsLabel?: string;
-  saveSettingsLabel?: string;
-  categories?: CookieCategory[];
-  personalDataNoticeTitle?: string;
-  personalDataNoticeItems?: string[];
-};
+import {
+  parseCookieConsentConfig,
+} from "@/lib/cookie-consent/config";
+import type { CookieConsentCategory, CookieConsentSource } from "@/lib/cookie-consent/types";
 
 const STORAGE_KEY = "cookie-consent-choice-v1";
+const PREFS_KEY = "cookie-consent-prefs-v1";
 const DEVICE_KEY = "cookie-consent-device-v1";
+const AT_KEY = "cookie-consent-at-v1";
+const POLICY_KEY = "cookie-consent-policy-v1";
 
-const DEFAULT_PERSONAL_DATA_ITEMS = [
-  "Kullanılan Tarayıcı ve İşletim Sistemi: Tarayıcı ve işletim sistemi bilgileri kaydedilir.",
-  "IP Adresi: Kullanıcının IP adresi kaydedilir.",
-  "Kullanıcı ID: Benzersiz bir kullanıcı kimliği oluşturulur.",
-  "Ziyaret Tarihi ve Saati: Kullanıcının siteye erişim tarihi ve saati kaydedilir.",
-  "Etkileşim Durumu: Siteye erişim durumu ve hata uyarıları kaydedilir.",
-  "Sitedeki Özelliklerin Kullanımı: Kullanıcıların site içindeki etkileşimleri ve özellikleri kullanımları takip edilir.",
-  "Arama İfadeleri: Girilen arama ifadeleri kaydedilir.",
-  "Site Ziyaret Sıklığı: Kullanıcının siteyi ne sıklıkta ziyaret ettiği kaydedilir.",
-  "Dil Tercihleri: Kullanıcı tercihleri ve dil ayarları kaydedilir.",
-  "Sayfa Kaydırma Hareketleri: Sayfalar arasındaki kaydırma hareketleri takip edilir.",
-  "Erişilen Sekmeler: Hangi sekmelere erişildiği kaydedilir.",
-];
-
-const FUNCTIONAL_DETAIL =
-  "Zorunlu çerezler; sitenin güvenli şekilde çalışması, oturumun korunması, tercihlerinizi (ör. dil) hatırlamamız için gereklidir.";
-
-function parseCfg(raw: string | null | undefined): CookieCfg {
-  if (!raw?.trim()) {
-    return {
-      enabled: true,
-      title: "Çerez kullanıyoruz",
-      body: "Deneyiminizi iyileştirmek için çerez kullanıyoruz.",
-      policyHref: "/pages/faq",
-      acceptLabel: "Kabul et",
-      rejectLabel: "Reddet",
-      settingsLabel: "Ayarlar",
-      saveSettingsLabel: "Ayarları Kaydet",
-      personalDataNoticeTitle: "Çerezler aracılığıyla kişisel veriler şu şekilde toplanır:",
-      personalDataNoticeItems: DEFAULT_PERSONAL_DATA_ITEMS,
-      categories: [
-        {
-          id: "functional",
-          label: "Fonksiyonel",
-          summary: "Her zaman aktif.",
-          detail: FUNCTIONAL_DETAIL,
-          required: true,
-        },
-        {
-          id: "analytics",
-          label: "İstatistik",
-          summary: "Anonim analiz çerezleri.",
-          detail:
-            "Ziyaretçi sayıları ve sayfa görüntülemeleri anonim veya toplu halde analiz için kullanılır.",
-          defaultEnabled: true,
-        },
-        {
-          id: "marketing",
-          label: "Pazarlama",
-          summary: "Reklam ve pazarlama çerezleri.",
-          detail: "İlgi alanlarınıza uygun içerik ve reklamlar için kullanılabilir.",
-          defaultEnabled: true,
-        },
-      ],
-    };
-  }
-  try {
-    return JSON.parse(raw) as CookieCfg;
-  } catch {
-    return { enabled: false };
-  }
-}
-
-function categoryHeaderLine(c: CookieCategory): string {
+function categoryHeaderLine(c: CookieConsentCategory): string {
   if (c.summary?.trim()) return c.summary.trim();
   if (c.description?.trim()) {
     const d = c.description.trim();
@@ -104,49 +24,42 @@ function categoryHeaderLine(c: CookieCategory): string {
   return "";
 }
 
-function categoryDetailText(c: CookieCategory): string {
+function categoryDetailText(c: CookieConsentCategory): string {
   if (c.detail?.trim()) return c.detail.trim();
   if (c.description?.trim()) return c.description.trim();
   return "";
 }
 
+function needsReconsent(policyVersion: string, reconsentDays: number): boolean {
+  try {
+    const choice = window.localStorage.getItem(STORAGE_KEY);
+    if (!choice) return true;
+    const storedPolicy = window.localStorage.getItem(POLICY_KEY);
+    if (!storedPolicy || storedPolicy !== policyVersion) return true;
+    if (reconsentDays > 0) {
+      const at = Number(window.localStorage.getItem(AT_KEY) || "0");
+      if (!at || Date.now() - at > reconsentDays * 24 * 60 * 60 * 1000) return true;
+    }
+    return false;
+  } catch {
+    return true;
+  }
+}
+
 export function CookieConsentBanner({ rawConfig }: { rawConfig: string | null | undefined }) {
-  const cfg = useMemo(() => parseCfg(rawConfig), [rawConfig]);
-  const categories = cfg.categories?.length
-    ? cfg.categories
-    : [
-        {
-          id: "functional",
-          label: "Fonksiyonel",
-          summary: "Her zaman aktif.",
-          detail: FUNCTIONAL_DETAIL,
-          required: true,
-        },
-        {
-          id: "analytics",
-          label: "İstatistik",
-          summary: "Anonim analiz çerezleri.",
-          detail:
-            "Ziyaretçi sayıları ve sayfa görüntülemeleri anonim veya toplu halde analiz için kullanılır.",
-          defaultEnabled: true,
-        },
-        {
-          id: "marketing",
-          label: "Pazarlama",
-          summary: "Reklam ve pazarlama çerezleri.",
-          detail: "İlgi alanlarınıza uygun içerik ve reklamlar için kullanılabilir.",
-          defaultEnabled: true,
-        },
-      ];
+  const cfg = useMemo(() => parseCookieConsentConfig(rawConfig), [rawConfig]);
+  const categories = cfg.categories?.length ? cfg.categories : [];
+  const policyVersion = cfg.policyVersion || "2026-09";
+  const reconsentDays = cfg.reconsentDays ?? 365;
 
   const noticeTitle =
     cfg.personalDataNoticeTitle?.trim() || "Çerezler aracılığıyla kişisel veriler şu şekilde toplanır:";
-  const noticeItems =
-    cfg.personalDataNoticeItems?.length ? cfg.personalDataNoticeItems : DEFAULT_PERSONAL_DATA_ITEMS;
+  const noticeItems = cfg.personalDataNoticeItems?.length ? cfg.personalDataNoticeItems : [];
 
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [readyToPrompt, setReadyToPrompt] = useState(false);
+  const [reconsentMode, setReconsentMode] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -157,11 +70,13 @@ export function CookieConsentBanner({ rawConfig }: { rawConfig: string | null | 
       setReadyToPrompt(false);
       return;
     }
-    try {
-      if (window.localStorage.getItem(STORAGE_KEY)) return;
-    } catch {
-      /* ignore */
+
+    const mustAsk = needsReconsent(policyVersion, reconsentDays);
+    if (!mustAsk) {
+      setReadyToPrompt(false);
+      return;
     }
+    setReconsentMode(Boolean(window.localStorage.getItem(STORAGE_KEY)));
 
     const mobile = window.matchMedia("(max-width: 768px)").matches;
     const delayMs = mobile ? 6000 : 2000;
@@ -178,19 +93,27 @@ export function CookieConsentBanner({ rawConfig }: { rawConfig: string | null | 
       window.removeEventListener("load", arm);
       if (timer) window.clearTimeout(timer);
     };
-  }, [cfg.enabled]);
+  }, [cfg.enabled, policyVersion, reconsentDays]);
 
   useEffect(() => {
     if (!readyToPrompt || cfg.enabled === false) {
       setOpen(false);
       return;
     }
-    try {
-      if (!window.localStorage.getItem(STORAGE_KEY)) setOpen(true);
-    } catch {
-      setOpen(true);
-    }
+    setOpen(true);
   }, [readyToPrompt, cfg.enabled]);
+
+  useEffect(() => {
+    const openPrefs = () => {
+      setReconsentMode(true);
+      setReadyToPrompt(true);
+      setOpen(true);
+      setSettingsOpen(true);
+    };
+    window.addEventListener("kn-open-cookie-preferences", openPrefs);
+    return () => window.removeEventListener("kn-open-cookie-preferences", openPrefs);
+  }, []);
+
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [prefs, setPrefs] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
@@ -211,22 +134,45 @@ export function CookieConsentBanner({ rawConfig }: { rawConfig: string | null | 
     return created;
   };
 
-  const save = async (v: "accepted" | "rejected" | "custom", nextPrefs?: Record<string, boolean>) => {
+  const save = async (
+    v: "accepted" | "rejected" | "custom" | "withdrawn",
+    nextPrefs?: Record<string, boolean>,
+    sourceOverride?: CookieConsentSource,
+  ) => {
     const applied = nextPrefs ?? prefs;
     try {
-      window.localStorage.setItem(STORAGE_KEY, v);
-      window.localStorage.setItem("cookie-consent-prefs-v1", JSON.stringify(applied));
-      window.dispatchEvent(new CustomEvent("kn-cookie-consent", { detail: { decision: v, preferences: applied } }));
+      window.localStorage.setItem(STORAGE_KEY, v === "withdrawn" ? "rejected" : v);
+      window.localStorage.setItem(PREFS_KEY, JSON.stringify(applied));
+      window.localStorage.setItem(AT_KEY, String(Date.now()));
+      window.localStorage.setItem(POLICY_KEY, policyVersion);
+      window.dispatchEvent(
+        new CustomEvent("kn-cookie-consent", { detail: { decision: v, preferences: applied } }),
+      );
       const consentKey = getDeviceKey();
+      const source: CookieConsentSource =
+        sourceOverride ??
+        (reconsentMode ? "reconsent" : settingsOpen && v === "custom" ? "settings" : "banner");
+      const locale =
+        typeof document !== "undefined"
+          ? document.documentElement.lang?.slice(0, 12) || undefined
+          : undefined;
       await fetch("/api/cookie-consent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ consentKey, decision: v, preferences: applied }),
+        body: JSON.stringify({
+          consentKey,
+          decision: v,
+          preferences: applied,
+          policyVersion,
+          source,
+          locale,
+        }),
       });
     } catch {
       /* ignore */
     }
     setOpen(false);
+    setSettingsOpen(false);
   };
 
   const panel = (
@@ -238,9 +184,15 @@ export function CookieConsentBanner({ rawConfig }: { rawConfig: string | null | 
     >
       <div className="kn-cookie-bar__compact">
         <p className="kn-cookie-bar__text">
-          <strong>{cfg.title || "Çerez kullanıyoruz"}</strong>
+          <strong>
+            {reconsentMode
+              ? "Çerez tercihlerinizi güncelleyin"
+              : cfg.title || "Çerez kullanıyoruz"}
+          </strong>
           {" — "}
-          {cfg.body || "Deneyiminizi iyileştirmek için çerez kullanıyoruz."}
+          {reconsentMode
+            ? "Politika veya süre güncellendi. Tercihlerinizi tekrar seçebilirsiniz."
+            : cfg.body || "Deneyiminizi iyileştirmek için çerez kullanıyoruz."}
           {cfg.policyHref ? (
             <>
               {" "}
@@ -262,7 +214,10 @@ export function CookieConsentBanner({ rawConfig }: { rawConfig: string | null | 
             type="button"
             className="kn-cookie-bar__btn kn-cookie-bar__btn--ghost"
             onClick={() =>
-              save("rejected", Object.fromEntries(categories.map((item) => [item.id, !!item.required])))
+              save(
+                "rejected",
+                Object.fromEntries(categories.map((item) => [item.id, !!item.required])),
+              )
             }
           >
             {cfg.rejectLabel || "Reddet"}
@@ -285,7 +240,7 @@ export function CookieConsentBanner({ rawConfig }: { rawConfig: string | null | 
             <button
               type="button"
               className="kn-cookie-bar__btn kn-cookie-bar__btn--primary"
-              onClick={() => save("custom")}
+              onClick={() => save("custom", undefined, "settings")}
             >
               {cfg.saveSettingsLabel || "Kaydet"}
             </button>
@@ -319,6 +274,9 @@ export function CookieConsentBanner({ rawConfig }: { rawConfig: string | null | 
                 <li key={i}>{line}</li>
               ))}
             </ul>
+            <p style={{ margin: "10px 0 0", fontSize: 11, color: "#71717a" }}>
+              Politika sürümü: {policyVersion}
+            </p>
           </div>
         </div>
       ) : null}

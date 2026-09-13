@@ -369,11 +369,15 @@ export function StoreNavigationForm({ initial }: { initial: SiteSettings }) {
       <section className="rounded-xl border bg-white p-6 space-y-4">
         <h2 className="font-semibold">Çerez bildirimi (KVKK)</h2>
         <p className="text-sm text-zinc-600">
-          web-page projesindeki ile aynı JSON yapısı. Boş bırakırsanız varsayılan metinler kullanılır. Kayıtlar{" "}
+          Banner metinleri ve kategoriler. Uyumluluk alanları (
+          <code className="text-xs">policyVersion</code>,{" "}
+          <code className="text-xs">retentionDays</code>,{" "}
+          <code className="text-xs">reconsentDays</code>) tercihen{" "}
           <a href="/admin/settings/cookie-consents" className="underline">
-            çerez onay logları
+            Çerez Onay Kayıtları
           </a>{" "}
-          sayfasında listelenir.
+          panelinden yönetilir; JSON içinde de tutulabilir. Boş bırakırsanız varsayılan metinler
+          kullanılır.
         </p>
         <label className="block text-sm">
           cookieConsentJson
@@ -382,7 +386,7 @@ export function StoreNavigationForm({ initial }: { initial: SiteSettings }) {
             rows={12}
             value={cookieConsentJson}
             onChange={(e) => setCookieConsentJson(e.target.value)}
-            placeholder='{"enabled":true,"title":"Çerez kullanıyoruz.",...}'
+            placeholder='{"enabled":true,"policyVersion":"2026-09","retentionDays":730,"reconsentDays":365,"title":"Çerez kullanıyoruz.",...}'
           />
         </label>
       </section>

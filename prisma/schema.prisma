@@ -186,14 +186,23 @@ model CookieConsentLog {
   id              String    @id @default(cuid())
   siteId          String
   site            StoreSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  /** Pseudonym cihaz / rıza kimliği (KVKK ispat; CRM değil) */
   consentKey      String
+  /** accepted | rejected | custom | withdrawn */
   decision        String
   preferencesJson String?
+  /** Banner / aydınlatma metni sürümü — denetimde “ne gösterildi” */
+  policyVersion   String?
+  /** banner | settings | reconsent | withdrawn */
+  source          String?
+  locale          String?
   ipAddress       String?
   userAgent       String?
   createdAt       DateTime  @default(now())
 
   @@index([siteId, consentKey, createdAt])
+  @@index([siteId, createdAt])
+  @@index([siteId, decision, createdAt])
   @@map("cookie_consent_log")
   @@schema("shop")
 }

@@ -9,10 +9,12 @@ export default async function CookieConsentsAdminPage() {
       <div>
         <h1 className="text-2xl font-semibold">Çerez onay logları</h1>
         <p className="mt-1 text-sm text-zinc-600">
-          Ziyaretçilerin çerez tercih kayıtları (son 200). Ayarlar:{" "}
+          KVKK ispat defteri — rıza olayları, politika sürümü, saklama ve denetim export. Banner
+          metinleri:{" "}
           <a href="/admin/settings/navigation" className="underline">
             Footer & Çerez Ayarları
           </a>
+          .
         </p>
       </div>
       <CookieConsentLogs />
