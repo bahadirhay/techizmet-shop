@@ -11,15 +11,22 @@ import {
 } from "@/lib/finance/economics-settings";
 import { resolveCardFeePercent } from "@/lib/finance/payment-fee";
 import { getDefaultSite } from "@/lib/site";
+import { prisma } from "@/lib/prisma";
 
 export default async function NewProductPage() {
   const auth = await requireStaffPage();
-  const [{ collections, categories, brands }, activeMarketplaces, settings, site] = await Promise.all([
-    loadCatalogOptions(auth.siteId),
-    loadActiveMarketplacePlatforms(auth.siteId),
-    getSiteSettings(auth.siteId),
-    getDefaultSite(),
-  ]);
+  const [{ collections, categories, brands }, activeMarketplaces, settings, site, allProducts] =
+    await Promise.all([
+      loadCatalogOptions(auth.siteId),
+      loadActiveMarketplacePlatforms(auth.siteId),
+      getSiteSettings(auth.siteId),
+      getDefaultSite(),
+      prisma.storeProduct.findMany({
+        where: { siteId: auth.siteId, published: true },
+        orderBy: { title: "asc" },
+        select: { slug: true, title: true },
+      }),
+    ]);
   const { autoGenerate: defaultAutoGenerateBarcode } = getProductBarcodeSettings(settings);
   const siteName = getSiteSeo(settings, site.name).siteTitle;
 
@@ -29,6 +36,7 @@ export default async function NewProductPage() {
       collections={collections}
       categories={categories}
       brands={brands}
+      allProducts={allProducts}
       activeMarketplaces={activeMarketplaces}
       defaultAutoGenerateBarcode={defaultAutoGenerateBarcode}
       homepageMode={getHomepageMode(settings)}

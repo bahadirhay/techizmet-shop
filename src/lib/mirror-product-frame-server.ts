@@ -5,11 +5,14 @@ import { STORE_PUBLIC_REVALIDATE_SEC, storeMirrorTag } from "@/lib/cache/store-c
 import { getCachedParsedSiteSettings } from "@/lib/cache/store-cache";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import { loadExploreOverlayProducts } from "@/lib/explore-overlay-products";
+import { loadRelatedProductCards } from "@/lib/load-related-products";
 import { loadPublishedProductMirrorPatch } from "@/lib/mirror-product-detail-load";
 import type { VitrinProductDetail } from "@/lib/mirror-product-detail-sync";
 import type { ProductContentOverlay } from "@/lib/mirror-product-overlay";
 import type { MirrorProductCommercePayload } from "@/lib/mirror-product-commerce";
+import type { VitrinCollectionProductCard } from "@/lib/mirror-collections-sync";
 import type { ExploreOverlayProduct, ProductExploreLook } from "@/lib/product-explore-looks";
+import type { RelatedProductsSettings } from "@/lib/product-related";
 import {
   getProductPageBottomSettings,
   type ProductPageBottomSettings,
@@ -24,6 +27,8 @@ export type MirrorProductFramePayload = {
   productPageBottom: ProductPageBottomSettings;
   exploreLooks: ProductExploreLook[];
   exploreProductsBySlug: Record<string, ExploreOverlayProduct>;
+  relatedProducts: VitrinCollectionProductCard[];
+  relatedSettings: RelatedProductsSettings;
 };
 
 async function loadMirrorProductFramePayloadUncached(
@@ -37,11 +42,14 @@ async function loadMirrorProductFramePayloadUncached(
 
   const productRow = await prisma.storeProduct.findUnique({
     where: { siteId_slug: { siteId, slug } },
-    select: { exploreLooksJson: true },
+    select: { exploreLooksJson: true, relatedProductsJson: true },
   });
   const exploreLooks = await resolveProductExploreLooks(siteId, productRow?.exploreLooksJson ?? null);
   const allSlugs = exploreLooks.flatMap((l) => l.productSlugs);
-  const exploreProductsBySlug = await loadExploreOverlayProducts(siteId, allSlugs);
+  const [exploreProductsBySlug, related] = await Promise.all([
+    loadExploreOverlayProducts(siteId, allSlugs),
+    loadRelatedProductCards(siteId, slug, productRow?.relatedProductsJson ?? null),
+  ]);
 
   return {
     overlay: patch.overlay,
@@ -50,6 +58,8 @@ async function loadMirrorProductFramePayloadUncached(
     productPageBottom: getProductPageBottomSettings(settings, locale),
     exploreLooks,
     exploreProductsBySlug,
+    relatedProducts: related.products,
+    relatedSettings: related.settings,
   };
 }
 
@@ -61,7 +71,7 @@ export function loadMirrorProductFramePayload(
 ): Promise<MirrorProductFramePayload | null> {
   return unstable_cache(
     () => loadMirrorProductFramePayloadUncached(siteId, slug, locale),
-    ["mirror-product-frame-v8", siteId, slug, locale],
+    ["mirror-product-frame-v9", siteId, slug, locale],
     {
       revalidate: STORE_PUBLIC_REVALIDATE_SEC,
       tags: [storeMirrorTag(siteId), `product:${slug}`],

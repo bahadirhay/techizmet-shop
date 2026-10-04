@@ -576,6 +576,11 @@ model StoreProduct {
    * Sayfa altı EXPLORE kartları JSON; null = mağaza varsayılanı
    */
   exploreLooksJson             String?
+  /**
+   * PDP önerilen ürünler JSON: { mode, productSlugs?, count?, columns? }
+   * null = otomatik (diğer vitrin ürünleri, 4 sütun)
+   */
+  relatedProductsJson          String?
   sku                          String?
   barcode                      String?
   priceMinor                   Int

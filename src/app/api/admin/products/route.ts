@@ -97,6 +97,7 @@ export async function POST(req: Request) {
           body.useSiteDefaultExplore === true
             ? SITE_DEFAULT_EXPLORE_SENTINEL
             : String(body.exploreLooksJson ?? "").trim() || null,
+        relatedProductsJson: String(body.relatedProductsJson ?? "").trim() || null,
         sku: String(body.sku ?? "").trim() || null,
         barcode,
         collectionId: String(body.collectionId ?? "").trim() || null,

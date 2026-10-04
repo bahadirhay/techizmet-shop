@@ -13,6 +13,11 @@ import {
   type ExploreOverlayProduct,
   type ProductExploreLook,
 } from "@/lib/product-explore-looks";
+import { applyRelatedProductsOverlay } from "@/lib/mirror-related-products";
+import type { RelatedProductsSettings } from "@/lib/product-related";
+import { DEFAULT_RELATED_PRODUCTS } from "@/lib/product-related";
+import type { VitrinCollectionProductCard } from "@/lib/mirror-collections-sync";
+import { resolveMirrorCollectionTexts } from "@/lib/store-static-texts";
 import { scheduleMirrorFramePatches } from "@/lib/mirror-frame-patch";
 import { applyMirrorScrollStability } from "@/lib/mirror-scroll-stability";
 import { applyMirrorStoreUiFixToDocument } from "@/lib/mirror-store-ui-fix";
@@ -70,6 +75,8 @@ export function MirrorProductFrameClient({
   exploreLooks: exploreLooksInitial,
   exploreProductsBySlug: exploreProductsInitial,
   explorePrefetched = false,
+  relatedProducts: relatedProductsInitial = [],
+  relatedSettings: relatedSettingsInitial,
   productPageBottom,
   productSlug,
   templateMirrorSlug,
@@ -92,6 +99,8 @@ export function MirrorProductFrameClient({
   exploreProductsBySlug?: Record<string, ExploreOverlayProduct>;
   /** SSR'den Keşfet verisi geldiyse istemci fetch beklemeden gizleme uygulanır */
   explorePrefetched?: boolean;
+  relatedProducts?: VitrinCollectionProductCard[];
+  relatedSettings?: RelatedProductsSettings;
   productPageBottom?: ProductPageBottomSettings;
   productSlug?: string;
   templateMirrorSlug?: string;
@@ -108,6 +117,12 @@ export function MirrorProductFrameClient({
     Record<string, ExploreOverlayProduct>
   >(exploreProductsInitial ?? {});
   const [exploreResolved, setExploreResolved] = useState(explorePrefetched);
+  const [relatedProducts, setRelatedProducts] = useState<VitrinCollectionProductCard[]>(
+    relatedProductsInitial,
+  );
+  const [relatedSettings, setRelatedSettings] = useState<RelatedProductsSettings>(
+    relatedSettingsInitial ?? { ...DEFAULT_RELATED_PRODUCTS },
+  );
   const [pageBottomLive, setPageBottomLive] = useState<ProductPageBottomSettings | undefined>(
     productPageBottom,
   );
@@ -136,6 +151,8 @@ export function MirrorProductFrameClient({
             pageBottom?: ProductPageBottomSettings;
             exploreLooks?: ProductExploreLook[];
             exploreProductsBySlug?: Record<string, ExploreOverlayProduct>;
+            relatedProducts?: VitrinCollectionProductCard[];
+            relatedSettings?: RelatedProductsSettings;
           } | null,
         ) => {
           if (cancelled) return;
@@ -144,6 +161,8 @@ export function MirrorProductFrameClient({
             setExploreLooks(data?.exploreLooks ?? []);
             setExploreProductsBySlug(data?.exploreProductsBySlug ?? {});
           }
+          if (data?.relatedProducts) setRelatedProducts(data.relatedProducts);
+          if (data?.relatedSettings) setRelatedSettings(data.relatedSettings);
           setExploreResolved(true);
         },
       )
@@ -286,6 +305,13 @@ export function MirrorProductFrameClient({
     }
     if (exploreResolved) {
       applyExploreLooksOverlay(doc, exploreLooks, exploreProductsBySlug);
+      applyRelatedProductsOverlay(
+        doc,
+        relatedProducts,
+        relatedSettings,
+        locale ?? "tr",
+        resolveMirrorCollectionTexts(locale ?? "tr", undefined),
+      );
     }
 
     const galleryReady = productGalleryReady(doc, productFromAdmin);
@@ -306,6 +332,8 @@ export function MirrorProductFrameClient({
     exploreProductsBySlug,
     explorePrefetched,
     exploreResolved,
+    relatedProducts,
+    relatedSettings,
     footer,
     locale,
     nav,

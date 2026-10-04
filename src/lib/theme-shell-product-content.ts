@@ -28,6 +28,8 @@ import {
 } from "@/lib/product-page-bottom";
 import { enhanceMarqueeSectionsInDocument } from "@/lib/marquee-section-enhance";
 import { applyExploreLooksOverlay } from "@/lib/product-explore-looks";
+import { applyRelatedProductsOverlay } from "@/lib/mirror-related-products";
+import { resolveMirrorCollectionTexts } from "@/lib/store-static-texts";
 import { getApprovedReviews, getReviewStats } from "@/lib/reviews/service";
 import { adaptMirrorInlineScriptForThemeShell } from "@/lib/product-media-zoom-fix";
 
@@ -211,6 +213,13 @@ async function buildThemeShellProductShell(
       framePayload.exploreLooks,
       framePayload.exploreProductsBySlug,
     );
+    applyRelatedProductsOverlay(
+      document,
+      framePayload.relatedProducts,
+      framePayload.relatedSettings,
+      locale,
+      resolveMirrorCollectionTexts(locale, settings.store?.texts),
+    );
   } else {
     ensureProductMediaZoomFix(document);
   }
@@ -258,7 +267,7 @@ function getCachedThemeShellProductShell(
 ): Promise<ThemeShellProductShell | null> {
   return unstable_cache(
     () => buildThemeShellProductShell(siteId, siteName, tenantSlug, slug, locale),
-    ["theme-shell-product-shell-v1", siteId, tenantSlug, slug, locale],
+    ["theme-shell-product-shell-v2", siteId, tenantSlug, slug, locale],
     {
       revalidate: STORE_PUBLIC_REVALIDATE_SEC,
       tags: [storeSettingsTag(siteId), storeMirrorTag(siteId), "store-products"],

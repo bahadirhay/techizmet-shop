@@ -130,6 +130,10 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
             : body.exploreLooksJson !== undefined
               ? String(body.exploreLooksJson).trim() || null
               : undefined,
+        relatedProductsJson:
+          body.relatedProductsJson !== undefined
+            ? String(body.relatedProductsJson).trim() || null
+            : undefined,
         sku: body.sku != null ? String(body.sku).trim() || null : undefined,
         barcode: nextBarcode,
         collectionId:

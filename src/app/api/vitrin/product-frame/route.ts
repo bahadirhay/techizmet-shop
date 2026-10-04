@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { loadExploreOverlayProducts } from "@/lib/explore-overlay-products";
+import { loadRelatedProductCards } from "@/lib/load-related-products";
 import { getStoreLocaleFromHeaders } from "@/lib/i18n/server";
 import { getProductPageBottomSettings } from "@/lib/product-page-bottom";
 import { parseSiteSettings, resolveProductExploreLooks } from "@/lib/site-settings";
@@ -8,7 +9,7 @@ import { prisma } from "@/lib/prisma";
 
 export const revalidate = 300;
 
-/** Ürün EXPLORE bölümü — ana kabuktan ayrı, hafif JSON */
+/** Ürün EXPLORE + önerilen ürünler — ana kabuktan ayrı, hafif JSON */
 export async function GET(req: Request) {
   const slug = new URL(req.url).searchParams.get("slug")?.trim();
   if (!slug) {
@@ -19,7 +20,12 @@ export async function GET(req: Request) {
   const locale = await getStoreLocaleFromHeaders();
   const product = await prisma.storeProduct.findUnique({
     where: { siteId_slug: { siteId: site.id, slug } },
-    select: { exploreLooksJson: true, published: true, storeVisible: true },
+    select: {
+      exploreLooksJson: true,
+      relatedProductsJson: true,
+      published: true,
+      storeVisible: true,
+    },
   });
   if (!product?.published || !product.storeVisible) {
     return NextResponse.json({ error: "Bulunamadı" }, { status: 404 });
@@ -28,14 +34,22 @@ export async function GET(req: Request) {
   const settings = parseSiteSettings(site.settingsJson);
   const exploreLooks = await resolveProductExploreLooks(site.id, product.exploreLooksJson ?? null);
   const allSlugs = exploreLooks.flatMap((l) => l.productSlugs);
-  const exploreProductsBySlug = await loadExploreOverlayProducts(site.id, allSlugs);
+  const [exploreProductsBySlug, related] = await Promise.all([
+    loadExploreOverlayProducts(site.id, allSlugs),
+    loadRelatedProductCards(site.id, slug, product.relatedProductsJson ?? null),
+  ]);
   const pageBottom = getProductPageBottomSettings(settings, locale);
 
   return NextResponse.json(
-    { exploreLooks, exploreProductsBySlug, pageBottom },
+    {
+      exploreLooks,
+      exploreProductsBySlug,
+      pageBottom,
+      relatedProducts: related.products,
+      relatedSettings: related.settings,
+    },
     {
       headers: {
-        // Kullanıcıya özel değil, kısa browser cache + edge stale-while-revalidate
         "Cache-Control": "public, max-age=60, s-maxage=300, stale-while-revalidate=600",
       },
     },

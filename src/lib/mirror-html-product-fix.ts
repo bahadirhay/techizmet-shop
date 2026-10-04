@@ -36,7 +36,12 @@ const PRODUCT_RECS_BRIDGE = `<script id="kn-product-recs-quiet">(function(){
     document.querySelectorAll("product-recommendations").forEach(function(el){
       el.removeAttribute("data-url");
       var sec=el.closest(".section-related-products");
-      if(sec&&!el.querySelector(".product-card,.card-product,.product-item,swiper-slide"))sec.style.display="none";
+      if(!sec)return;
+      if(sec.getAttribute("data-kn-related")==="on"||el.querySelector(".kn-related-products-grid,.product--card,.product-card,.card-product,.product-item,swiper-slide")){
+        sec.style.display="";
+        return;
+      }
+      sec.style.display="none";
     });
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",hideEmptyRecs);

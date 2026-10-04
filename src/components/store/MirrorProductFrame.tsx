@@ -67,6 +67,8 @@ export async function MirrorProductFrame({
       exploreLooks={payload.exploreLooks}
       exploreProductsBySlug={payload.exploreProductsBySlug}
       explorePrefetched
+      relatedProducts={payload.relatedProducts}
+      relatedSettings={payload.relatedSettings}
       productSlug={slug}
       templateMirrorSlug={resolvedTemplateSlug !== slug ? resolvedTemplateSlug : undefined}
       productPageBottom={payload.productPageBottom}

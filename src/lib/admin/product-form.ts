@@ -7,6 +7,11 @@ import {
   parseExploreLooksJson,
   type ProductExploreLook,
 } from "@/lib/product-explore-looks";
+import {
+  DEFAULT_RELATED_PRODUCTS,
+  parseRelatedProductsJson,
+  type RelatedProductsSettings,
+} from "@/lib/product-related";
 import type { ProductHighlight } from "@/lib/product-highlights";
 import { emptyProductHighlights, parseProductHighlightsJson } from "@/lib/product-highlights";
 import type { ProductMediaItem } from "@/lib/product-media";
@@ -26,6 +31,7 @@ type ProductRow = {
   howToUseHtml: string | null;
   highlightsJson: string | null;
   exploreLooksJson: string | null;
+  relatedProductsJson?: string | null;
   sku: string | null;
   barcode: string | null;
   collectionId: string | null;
@@ -101,6 +107,7 @@ export function emptyProductForm(): ProductFormData {
     variants: [],
     exploreLooks: [],
     useSiteDefaultExplore: false,
+    relatedProducts: { ...DEFAULT_RELATED_PRODUCTS },
     published: false,
     storeVisible: true,
   };
@@ -185,6 +192,7 @@ export function productToForm(
     ),
     exploreLooks: parseExploreLooksJson(p.exploreLooksJson) ?? [],
     useSiteDefaultExplore: isSiteDefaultExploreJson(p.exploreLooksJson),
+    relatedProducts: parseRelatedProductsJson(p.relatedProductsJson),
     published: p.published,
     storeVisible: p.storeVisible !== false,
   };

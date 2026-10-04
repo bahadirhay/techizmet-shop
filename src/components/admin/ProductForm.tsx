@@ -14,6 +14,7 @@ import { discountPercent } from "@/lib/product-discount";
 import { emptyVariantRow } from "@/lib/admin/product-variants";
 import type { VariantFormRow } from "@/lib/product-variants";
 import { ProductExploreEditor } from "@/components/admin/ProductExploreEditor";
+import { ProductRelatedEditor } from "@/components/admin/ProductRelatedEditor";
 import { ProductHighlightsEditor } from "@/components/admin/ProductHighlightsEditor";
 import { ProductSeoHealthPanel } from "@/components/admin/ProductSeoHealthPanel";
 import { ProductSeoOptimizer } from "@/components/admin/ProductSeoOptimizer";
@@ -26,6 +27,11 @@ import { ProductPricingBreakdown } from "@/components/admin/ProductPricingBreakd
 import { DEFAULT_TR_VAT_RATE } from "@/lib/tr-vat-rates";
 import type { ActiveMarketplaceOption } from "@/lib/marketplace/product-prices";
 import { serializeExploreLooks, type ProductExploreLook } from "@/lib/product-explore-looks";
+import {
+  DEFAULT_RELATED_PRODUCTS,
+  serializeRelatedProducts,
+  type RelatedProductsSettings,
+} from "@/lib/product-related";
 import {
   serializeProductHighlights,
   type ProductHighlight,
@@ -73,6 +79,7 @@ export type ProductFormData = {
   variants: VariantFormRow[];
   exploreLooks: ProductExploreLook[];
   useSiteDefaultExplore: boolean;
+  relatedProducts: RelatedProductsSettings;
   published: boolean;
   /** false = web sitesinde gizle; pazaryeri sync published ile devam eder */
   storeVisible: boolean;
@@ -124,6 +131,9 @@ export function ProductForm({
   const [useSiteDefaultExplore, setUseSiteDefaultExplore] = useState(
     initial.useSiteDefaultExplore,
   );
+  const [relatedProducts, setRelatedProducts] = useState<RelatedProductsSettings>(
+    () => initial.relatedProducts ?? { ...DEFAULT_RELATED_PRODUCTS },
+  );
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [rebuildBusy, setRebuildBusy] = useState(false);
@@ -140,6 +150,7 @@ export function ProductForm({
         ? [...siteDefaultExplore]
         : [...initial.exploreLooks],
     );
+    setRelatedProducts(initial.relatedProducts ?? { ...DEFAULT_RELATED_PRODUCTS });
     setErr(null);
   }, [galleryKey]);
 
@@ -244,6 +255,7 @@ export function ProductForm({
         exploreLooksJson: useSiteDefaultExplore
           ? null
           : serializeExploreLooks(cleanedLooks),
+        relatedProductsJson: serializeRelatedProducts(relatedProducts),
         highlightsJson: serializeProductHighlights(form.highlights),
       };
       const url = form.id ? `/api/admin/products/${form.id}` : "/api/admin/products";
@@ -653,24 +665,46 @@ export function ProductForm({
           </AdminField>
         </div>
         <AdminField
-          label="Ek kategoriler"
-          hint="Ürün birden fazla kategoride görünebilir. Ana kategori seçili kategorilerden biri olmalıdır."
+          label="Kategoriler"
+          hint="Tıklayarak seçin (Ctrl gerekmez). Birden fazla kategori seçilebilir; ana kategori breadcrumb için kullanılır."
         >
-          <select
-            multiple
-            size={Math.min(Math.max(categories.length, 4), 8)}
-            className={`${inputClass} min-h-[10rem]`}
-            value={form.categoryIds}
-            onChange={(e) =>
-              setCategoryIds(Array.from(e.currentTarget.selectedOptions, (option) => option.value))
-            }
-          >
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.title}
-              </option>
-            ))}
-          </select>
+          {categories.length ? (
+            <div className="flex flex-wrap gap-2">
+              {categories.map((c) => {
+                const checked = form.categoryIds.includes(c.id);
+                return (
+                  <label
+                    key={c.id}
+                    className={`cursor-pointer rounded-full border px-3 py-1 text-sm ${
+                      checked ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-300"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      className="sr-only"
+                      checked={checked}
+                      onChange={() =>
+                        setCategoryIds(
+                          checked
+                            ? form.categoryIds.filter((id) => id !== c.id)
+                            : [...form.categoryIds, c.id],
+                        )
+                      }
+                    />
+                    {c.title}
+                  </label>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-zinc-500">
+              Henüz kategori yok.{" "}
+              <Link href="/admin/categories/new" className="text-[var(--kn-brand)] underline">
+                Kategori ekleyin
+              </Link>
+              .
+            </p>
+          )}
           {form.categoryIds.length ? (
             <p className="mt-2 text-xs text-zinc-500">
               Seçili:{" "}
@@ -679,7 +713,11 @@ export function ProductForm({
                 .map((c) => c.title)
                 .join(", ")}
             </p>
-          ) : null}
+          ) : (
+            <p className="mt-2 text-xs text-amber-700">
+              En az bir kategori seçmeden ana kategori alanı pasif kalır.
+            </p>
+          )}
         </AdminField>
 
         <ProductMediaEditor
@@ -950,6 +988,13 @@ export function ProductForm({
             if (v && siteDefaultExplore.length) setExploreLooks([...siteDefaultExplore]);
           }}
           productOptions={allProducts}
+        />
+
+        <ProductRelatedEditor
+          value={relatedProducts}
+          onChange={setRelatedProducts}
+          productOptions={allProducts}
+          currentSlug={form.slug}
         />
 
         <label className="flex items-center gap-2 text-sm">
