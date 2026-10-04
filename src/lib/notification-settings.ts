@@ -90,13 +90,20 @@ export function telegramNotifications(settings: SiteSettings): StoreTelegramNoti
   const t = settings.notifications?.telegram ?? {};
   return {
     onNewOrder: t.onNewOrder !== false,
+    onNewMember: t.onNewMember !== false,
     ...t,
     enabled: t.enabled === true,
   };
 }
 
-/** Bildirim gönderilebilir mi */
+/** Sipariş Telegram bildirimi gönderilebilir mi */
 export function telegramReady(settings: SiteSettings): boolean {
-  const t = settings.notifications?.telegram ?? {};
+  const t = telegramNotifications(settings);
   return Boolean(t.enabled && t.botToken?.trim() && t.chatId?.trim() && t.onNewOrder !== false);
+}
+
+/** Yeni üyelik Telegram bildirimi gönderilebilir mi */
+export function telegramMemberReady(settings: SiteSettings): boolean {
+  const t = telegramNotifications(settings);
+  return Boolean(t.enabled && t.botToken?.trim() && t.chatId?.trim() && t.onNewMember !== false);
 }

@@ -79,7 +79,7 @@ export function buildEmptyStoreSettings(input: {
         adminOnNewOrder: false,
       },
       sms: { enabled: false, provider: "netgsm" },
-      telegram: { enabled: false, onNewOrder: true },
+      telegram: { enabled: false, onNewOrder: true, onNewMember: true },
     },
   };
 }

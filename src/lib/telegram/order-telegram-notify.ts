@@ -112,3 +112,50 @@ export async function notifyTelegramNewOrder(
   if (!sent.ok) return { ok: false, error: sent.error };
   return { ok: true };
 }
+
+export async function notifyTelegramNewMember(
+  settings: SiteSettings,
+  siteName: string,
+  member: {
+    id: string;
+    email: string;
+    firstName?: string | null;
+    lastName?: string | null;
+    phone?: string | null;
+    source?: string | null;
+    b2bPending?: boolean;
+  },
+): Promise<{ ok: true } | { ok: false; error: string; skipped?: boolean }> {
+  const tg = telegramNotifications(settings);
+  if (!tg.enabled || tg.onNewMember === false) {
+    return { ok: false, error: "Üyelik Telegram bildirimi kapalı.", skipped: true };
+  }
+  if (!tg.botToken || !tg.chatId) {
+    return { ok: false, error: "Bot token veya chat id eksik.", skipped: true };
+  }
+
+  const baseUrl = process.env.NEXT_PUBLIC_STORE_URL?.replace(/\/$/, "") ?? "";
+  const adminUrl = baseUrl ? `${baseUrl}/admin/customers/${member.id}` : "";
+  const name = [member.firstName, member.lastName].filter(Boolean).join(" ").trim() || "—";
+  const source = member.source?.trim() || "web";
+  const now = new Date().toLocaleString("tr-TR", { timeZone: "Europe/Istanbul" });
+
+  const text = [
+    "Yeni üyelik",
+    "",
+    `Mağaza: ${siteName}`,
+    `Zaman: ${now}`,
+    `Ad: ${name}`,
+    `E-posta: ${member.email}`,
+    `Telefon: ${member.phone?.trim() || "—"}`,
+    `Kaynak: ${source}`,
+    member.b2bPending ? "B2B: başvuru bekliyor" : null,
+    adminUrl ? ["", `Panel: ${adminUrl}`].join("\n") : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const sent = await sendTelegramMessage(tg.botToken, tg.chatId, text);
+  if (!sent.ok) return { ok: false, error: sent.error };
+  return { ok: true };
+}

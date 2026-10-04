@@ -75,6 +75,8 @@ export type StoreTelegramNotificationSettings = {
   chatId?: string;
   /** Yeni sipariş oluşunca Telegram mesajı */
   onNewOrder?: boolean;
+  /** Yeni üyelik (kayıt) oluşunca Telegram mesajı */
+  onNewMember?: boolean;
 };
 
 export type StoreSmtpSettings = {

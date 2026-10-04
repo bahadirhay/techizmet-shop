@@ -516,8 +516,8 @@ export function NotificationSettingsForm({ initial }: { initial: SiteSettings })
       <section id="telegram" className="scroll-mt-6 rounded-xl border bg-white p-6">
         <h2 className="text-lg font-semibold">Telegram bildirimleri</h2>
         <p className="mt-1 text-sm text-zinc-500">
-          Web sitesi ve pazaryeri (Trendyol, Hepsiburada, Amazon) siparişlerinde Telegram grubuna
-          veya kanala mesaj gider.{" "}
+          Web sitesi ve pazaryeri (Trendyol, Hepsiburada, Amazon) siparişlerinde ve yeni üyeliklerde
+          Telegram grubuna veya kanala mesaj gider.{" "}
           <a
             href="https://t.me/BotFather"
             target="_blank"
@@ -568,6 +568,15 @@ export function NotificationSettingsForm({ initial }: { initial: SiteSettings })
             onChange={(e) => patchTelegram({ onNewOrder: e.target.checked })}
           />
           Yeni siparişte Telegram mesajı gönder
+        </label>
+
+        <label className="mt-3 flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={telegram.onNewMember !== false}
+            onChange={(e) => patchTelegram({ onNewMember: e.target.checked })}
+          />
+          Yeni üyelikte Telegram mesajı gönder
         </label>
 
         <div className="mt-4">
