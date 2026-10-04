@@ -44,7 +44,7 @@ export function getCollectionCatalogPayload(
         activeFilters ?? emptyActiveCollectionFilters(),
         databaseUrl,
       ),
-    ["collection-catalog-v4", siteId, dbKey, slug, locale, cat, String(page), titleHint ?? "", filterKey],
+    ["collection-catalog-v5", siteId, dbKey, slug, locale, cat, String(page), titleHint ?? "", filterKey],
     {
       revalidate: STORE_PUBLIC_REVALIDATE_SEC,
       tags: [storeSettingsTag(siteId), storeMirrorTag(siteId), "store-products"],

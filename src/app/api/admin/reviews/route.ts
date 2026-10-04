@@ -8,6 +8,8 @@ import {
 } from "@/lib/admin/reviews/service";
 import { createReview } from "@/lib/reviews/service";
 import type { ReviewStatus } from "@/lib/reviews/service";
+import { revalidateStorePublicCache } from "@/lib/cache/revalidate-store-public";
+import { prisma } from "@/lib/prisma";
 
 const REVIEW_PERM = "store.products";
 
@@ -44,10 +46,11 @@ export async function POST(req: Request) {
   }
 
   const status = parseStatus(String(body.status ?? "approved")) ?? "approved";
+  const productId = String(body.productId ?? "");
 
   const result = await createReview({
     siteId: auth.siteId,
-    productId: String(body.productId ?? ""),
+    productId,
     authorName: String(body.authorName ?? ""),
     authorEmail: body.authorEmail ? String(body.authorEmail) : null,
     rating: Number(body.rating),
@@ -62,6 +65,13 @@ export async function POST(req: Request) {
     return NextResponse.json(result, { status: 400 });
   }
 
+  const product = await prisma.storeProduct.findFirst({
+    where: { id: productId, siteId: auth.siteId },
+    select: { slug: true },
+  });
+  revalidateStorePublicCache(auth.siteId, product?.slug);
+  if (product?.slug) revalidatePath(`/products/${product.slug}`);
   revalidatePath("/products/[slug]", "page");
+  revalidatePath("/collections/all");
   return NextResponse.json({ ok: true, id: result.id, status: result.status });
 }

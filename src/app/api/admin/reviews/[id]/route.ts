@@ -7,12 +7,15 @@ import {
   updateReview,
 } from "@/lib/admin/reviews/service";
 import type { ReviewStatus } from "@/lib/reviews/service";
+import { revalidateStorePublicCache } from "@/lib/cache/revalidate-store-public";
 
 const REVIEW_PERM = "store.products";
 
-function revalidateProduct(slug: string | null) {
+function revalidateProduct(siteId: string, slug: string | null) {
+  revalidateStorePublicCache(siteId, slug ?? undefined);
   if (slug) revalidatePath(`/products/${slug}`);
   revalidatePath("/products/[slug]", "page");
+  revalidatePath("/collections/all");
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -34,7 +37,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       action === "approve" ? "approved" : action === "reject" ? "rejected" : "pending";
     const res = await setReviewStatus(auth.siteId, id, status);
     if (!res.ok) return NextResponse.json({ ok: false, error: "Bulunamadı." }, { status: 404 });
-    revalidateProduct(res.slug);
+    revalidateProduct(auth.siteId, res.slug);
     return NextResponse.json({ ok: true });
   }
 
@@ -48,7 +51,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         body.isVerifiedPurchase != null ? Boolean(body.isVerifiedPurchase) : undefined,
     });
     if (!res.ok) return NextResponse.json({ ok: false, error: "Güncellenemedi." }, { status: 400 });
-    revalidateProduct(res.slug);
+    revalidateProduct(auth.siteId, res.slug);
     return NextResponse.json({ ok: true });
   }
 
@@ -62,6 +65,6 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
 
   const res = await deleteReview(auth.siteId, id);
   if (!res.ok) return NextResponse.json({ ok: false, error: "Bulunamadı." }, { status: 404 });
-  revalidateProduct(res.slug);
+  revalidateProduct(auth.siteId, res.slug);
   return NextResponse.json({ ok: true });
 }
