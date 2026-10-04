@@ -26,14 +26,22 @@ export async function generateMetadata(): Promise<Metadata> {
   const branding = getSiteBranding(settings);
   const base = await buildSiteMetadata();
   const staticMeta = seo.staticPages?.["/collections"];
-  return buildPageMetadata(base, {
-    title: staticMeta?.seoTitle?.trim() || `Koleksiyonlar | ${site.name}`,
-    description:
-      staticMeta?.seoDescription?.trim() ||
-      `Tüm ürün koleksiyonları — ${site.name}`,
-    imageUrl: staticMeta?.imageUrl?.trim() || seo.ogImageUrl?.trim() || branding.logoUrl?.trim() || null,
-    canonicalPath: "/collections",
-  });
+  return {
+    ...buildPageMetadata(base, {
+      title: staticMeta?.seoTitle?.trim() || `Koleksiyonlar | ${site.name}`,
+      description:
+        staticMeta?.seoDescription?.trim() ||
+        `Tüm ürün koleksiyonları — ${site.name}`,
+      imageUrl: staticMeta?.imageUrl?.trim() || seo.ogImageUrl?.trim() || branding.logoUrl?.trim() || null,
+      canonicalPath: "/collections",
+    }),
+    // İndeks sayfası — arama motorlarına kapalı (/collections/all ve slug'lar açık kalır)
+    robots: {
+      index: false,
+      follow: false,
+      googleBot: { index: false, follow: false },
+    },
+  };
 }
 
 export default async function CollectionsIndexPage({

@@ -56,7 +56,7 @@ export async function buildStoreSitemapEntries(siteId: string): Promise<Metadata
 
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: root, lastModified: now, changeFrequency: "daily", priority: 1 },
-    { url: `${root}/collections`, lastModified: now, changeFrequency: "weekly", priority: 0.9 },
+    // /collections indeks sayfası bilerek sitemap dışı (noindex)
     { url: `${root}/collections/all`, lastModified: now, changeFrequency: "daily", priority: 0.9 },
     ...LANDING_COLLECTION_SLUGS.map((slug) => ({
       url: `${root}/collections/${slug}`,

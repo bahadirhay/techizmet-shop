@@ -151,7 +151,13 @@ const nextConfig: NextConfig = {
       },
       { source: "/", headers: [...storeShellNoEdgeCache] },
       { source: "/products/:path*", headers: [...storeShellNoEdgeCache] },
-      { source: "/collections", headers: [...storeShellNoEdgeCache] },
+      {
+        source: "/collections",
+        headers: [
+          ...storeShellNoEdgeCache,
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+        ],
+      },
       { source: "/collections/:path*", headers: [...storeShellNoEdgeCache] },
       { source: "/blogs/news", headers: [...storeShellNoEdgeCache] },
       { source: "/blogs/news/:path*", headers: [...storeShellNoEdgeCache] },

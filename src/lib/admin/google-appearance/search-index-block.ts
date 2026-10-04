@@ -8,7 +8,6 @@ import { prisma } from "@/lib/prisma";
 /** Bu yollar asla robots/sitemap’ten düşürülmez — içerik düzeltilir */
 const NEVER_BLOCK_PATHS = new Set([
   "/",
-  "/collections",
   "/collections/all",
   "/blogs/news",
   "/pages/about",
@@ -66,6 +65,11 @@ export function pathMatchesRobotsDisallow(pathname: string, disallowRules: strin
   const path = pathname.startsWith("/") ? pathname : `/${pathname}`;
   for (const rule of disallowRules) {
     if (!rule || rule === "/") continue;
+    // Google/Bing: /path$ → yalnızca tam eşleşme
+    if (rule.endsWith("$")) {
+      if (path === rule.slice(0, -1)) return true;
+      continue;
+    }
     if (path === rule) return true;
     if (rule.endsWith("/")) {
       if (path.startsWith(rule) || `${path}/` === rule) return true;

@@ -13,6 +13,8 @@ const DISALLOW = [
   "/cart",
   "/account/",
   "/bakim/",
+  // Koleksiyonlar indeks sayfası — yalnızca tam /collections (alt slug'lar açık)
+  "/collections$",
   // Mirror iframe kabukları — kanonik URL değil; çift içerik indekslenmesin
   "/_mirror-prebuilt/",
   "/theme/techizmet-shop/mirror/",
