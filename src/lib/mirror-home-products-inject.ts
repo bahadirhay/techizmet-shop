@@ -148,12 +148,25 @@ function patchProductCardMedia(card: Element, product: VitrinCollectionProductCa
   if (viewDetail) viewDetail.textContent = isTr ? "Detayları gör" : "View details";
 }
 
+function isHomeProductListingWrapper(wrapper: Element): boolean {
+  if (wrapper.closest(".section-testimonial, .section-trending-products, .section-scrolling-collections")) {
+    return false;
+  }
+  if (wrapper.classList.contains("featured-collection--wrapper")) return true;
+  if (wrapper.closest(".section-featured-collection, .section-best-selling-products, .section-main-collection")) {
+    return true;
+  }
+  // Eski davranış: yalnızca zaten ürün kartı olan swiper'lar
+  return Boolean(wrapper.querySelector(".product--card"));
+}
+
 function patchHomeListingSwipersInPlace(
   doc: Document,
   products: VitrinCollectionProductCard[],
   locale?: ShopLocale,
 ) {
-  doc.querySelectorAll("#MainContent .swiper-wrapper").forEach((wrapper) => {
+  doc.querySelectorAll("#MainContent .swiper-wrapper, #MainContent .featured-collection--wrapper").forEach((wrapper) => {
+    if (!isHomeProductListingWrapper(wrapper)) return;
     const cards = wrapper.querySelectorAll(".product--card");
     if (!cards.length) return;
     cards.forEach((card, index) => {
@@ -168,6 +181,8 @@ function rebuildHomeListingSwipers(
   locale: ShopLocale | undefined,
   texts: ReturnType<typeof resolveMirrorCollectionTexts>,
 ) {
+  if (!products.length) return;
+
   const wrappers = [
     ...doc.querySelectorAll(
       "#MainContent .swiper-wrapper, #MainContent .featured-collection--wrapper",
@@ -177,14 +192,17 @@ function rebuildHomeListingSwipers(
   for (const wrapper of wrappers) {
     if (seen.has(wrapper)) continue;
     seen.add(wrapper);
-    if (!wrapper.querySelector(".product--card") && !wrapper.classList.contains("featured-collection--wrapper") && !wrapper.classList.contains("swiper-wrapper")) {
-      continue;
-    }
-    if (!wrapper.querySelector(".product--card") && products.length === 0) continue;
+    if (!isHomeProductListingWrapper(wrapper)) continue;
+
     const isStacked = wrapper.classList.contains("stacked");
-    const slotCount = Math.max(wrapper.querySelectorAll(".product--card").length, 4);
-    const count = Math.min(Math.max(slotCount, products.length), 12);
-    if (!products.length) continue;
+    const existingCards = wrapper.querySelectorAll(".product--card").length;
+    // Featured grid: mevcut kart yoksa da ürünleri yaz
+    const isFeatured = wrapper.classList.contains("featured-collection--wrapper")
+      || Boolean(wrapper.closest(".section-featured-collection"));
+    if (!existingCards && !isFeatured) continue;
+
+    const slotCount = Math.max(existingCards, isFeatured ? products.length : 4);
+    const count = Math.min(Math.max(slotCount, isFeatured ? products.length : existingCards), 12);
     const items = Array.from({ length: count }, (_, i) => products[i % products.length]!);
     wrapper.innerHTML = items
       .map((product) =>
@@ -203,7 +221,7 @@ function homeListingNeedsFullRebuild(doc: Document, products: VitrinCollectionPr
     ...doc.querySelectorAll(
       "#MainContent .swiper-wrapper, #MainContent .featured-collection--wrapper",
     ),
-  ].filter((wrapper) => wrapper.querySelector(".product--card"));
+  ].filter((wrapper) => isHomeProductListingWrapper(wrapper) && wrapper.querySelector(".product--card"));
   if (!wrappers.length) return true;
 
   return wrappers.some((wrapper) =>
