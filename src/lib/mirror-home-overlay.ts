@@ -39,7 +39,7 @@ import {
   applyProductGridColumns,
   type ProductGridColumns,
 } from "@/lib/mirror-product-grid";
-import { applyFeaturedCollectionGrid } from "@/lib/mirror-featured-collection-grid";
+import { applyFeaturedCollectionGrid, parseFeaturedCollectionColumns } from "@/lib/mirror-featured-collection-grid";
 import {
   applyVideoSectionToElement,
   type VideoSectionData,
@@ -406,8 +406,10 @@ function applyMirrorSectionLayout(doc: Document, config: MirrorPageConfig, local
     }
     const featuredWrapper = el.querySelector(".featured-collection--wrapper");
     if (featuredWrapper) {
-      const cols = (edit?.productGridColumns ?? 4) as 3 | 4 | 5 | 6;
-      applyFeaturedCollectionGrid(el, cols === 7 || cols === 8 ? 4 : cols);
+      applyFeaturedCollectionGrid(
+        el,
+        parseFeaturedCollectionColumns(edit?.productGridColumns) ?? 4,
+      );
     } else if (edit?.productGridColumns) {
       applyProductGridColumns(el, edit.productGridColumns);
     }
@@ -460,9 +462,9 @@ function applyAllFeaturedCollectionGrids(doc: Document, config: MirrorPageConfig
     if (!el.querySelector(".featured-collection--wrapper")) return;
     const id = el.getAttribute("id") ?? "";
     const key = id.includes("__") ? id.slice(id.lastIndexOf("__") + 2) : "";
-    const cols = (key && config.sections[key]?.productGridColumns) || 4;
-    const safe = cols === 3 || cols === 4 || cols === 5 || cols === 6 ? cols : 4;
-    applyFeaturedCollectionGrid(el, safe);
+    const cols =
+      parseFeaturedCollectionColumns(key ? config.sections[key]?.productGridColumns : undefined) ?? 4;
+    applyFeaturedCollectionGrid(el, cols);
   });
 }
 
