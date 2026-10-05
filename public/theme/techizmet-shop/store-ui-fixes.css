@@ -1572,3 +1572,38 @@ cart-drawer [data-kn-cart-footer] {
     gap: 12px;
   }
 }
+
+/* Öne çıkan ürünler — stacked grid (swiper tek satır yerine) */
+.section-featured-collection .featured-collection--wrapper.stacked {
+  display: grid !important;
+  grid-template-columns: repeat(var(--column_count, 4), minmax(0, 1fr)) !important;
+  gap: var(--product_card_column_gap, 16px) !important;
+  overflow: visible !important;
+}
+.section-featured-collection .featured-collection--wrapper.stacked > .product--card,
+.section-featured-collection .featured-collection--wrapper.stacked > .swiper-slide {
+  width: 100% !important;
+  max-width: none !important;
+  flex: none !important;
+  margin: 0 !important;
+}
+.section-featured-collection .featured-collection--outer:not([data-swiper]) {
+  overflow: visible !important;
+}
+.section-featured-collection .featured-collection--wrapper.stacked ~ .swiper--custom-buttons,
+.section-featured-collection .swiper--custom-buttons,
+.section-featured-collection .swiper-scrollbar,
+.section-featured-collection .swiper-pagination {
+  display: none !important;
+}
+@media only screen and (max-width: 1024px) {
+  .section-featured-collection .featured-collection--wrapper.stacked {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+@media only screen and (max-width: 640px) {
+  .section-featured-collection .featured-collection--wrapper.stacked {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+  }
+}

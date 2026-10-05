@@ -9,7 +9,23 @@ import {
 } from "@/lib/mirror-collections-sync";
 import { buildProductCardGalleryMarkup, initProductCardGalleries, stripProductCardGalleryBoundFlags } from "@/lib/mirror-product-card-gallery";
 import { MIRROR_CARD_IMAGE_WIDTH, mirrorCdnImageUrl } from "@/lib/mirror-cdn-image";
+import { applyFeaturedCollectionGrid } from "@/lib/mirror-featured-collection-grid";
 import type { resolveMirrorCollectionTexts } from "@/lib/store-static-texts";
+
+function applyDefaultFeaturedCollectionGrids(doc: Document) {
+  doc.querySelectorAll("#MainContent .section-featured-collection").forEach((el) => {
+    if (!el.querySelector(".featured-collection--wrapper")) return;
+    const style = (el as HTMLElement).getAttribute("style") ?? "";
+    const fromStyle = style.match(/--column_count:\s*(\d+)/i)?.[1];
+    const fromCss = [...el.querySelectorAll("style")]
+      .map((s) => s.textContent ?? "")
+      .join("\n")
+      .match(/--column_count:\s*(\d+)/i)?.[1];
+    const n = Number(fromStyle || fromCss || 4);
+    const cols = n === 3 || n === 4 || n === 5 || n === 6 ? n : 4;
+    applyFeaturedCollectionGrid(el, cols);
+  });
+}
 
 function isDomElement(node: unknown): node is Element {
   return !!node && typeof node === "object" && "nodeType" in node && (node as Element).nodeType === 1;
@@ -152,22 +168,42 @@ function rebuildHomeListingSwipers(
   locale: ShopLocale | undefined,
   texts: ReturnType<typeof resolveMirrorCollectionTexts>,
 ) {
-  doc.querySelectorAll("#MainContent .swiper-wrapper").forEach((wrapper) => {
-    if (!wrapper.querySelector(".product--card")) return;
+  const wrappers = [
+    ...doc.querySelectorAll(
+      "#MainContent .swiper-wrapper, #MainContent .featured-collection--wrapper",
+    ),
+  ];
+  const seen = new Set<Element>();
+  for (const wrapper of wrappers) {
+    if (seen.has(wrapper)) continue;
+    seen.add(wrapper);
+    if (!wrapper.querySelector(".product--card") && !wrapper.classList.contains("featured-collection--wrapper") && !wrapper.classList.contains("swiper-wrapper")) {
+      continue;
+    }
+    if (!wrapper.querySelector(".product--card") && products.length === 0) continue;
+    const isStacked = wrapper.classList.contains("stacked");
     const slotCount = Math.max(wrapper.querySelectorAll(".product--card").length, 4);
     const count = Math.min(Math.max(slotCount, products.length), 12);
+    if (!products.length) continue;
     const items = Array.from({ length: count }, (_, i) => products[i % products.length]!);
     wrapper.innerHTML = items
-      .map((product) => buildMirrorProductCardHtml(product, texts, { swiperSlide: true, locale }))
+      .map((product) =>
+        buildMirrorProductCardHtml(product, texts, {
+          swiperSlide: !isStacked,
+          locale,
+        }),
+      )
       .join("\n");
-  });
+  }
 }
 
 function homeListingNeedsFullRebuild(doc: Document, products: VitrinCollectionProductCard[]): boolean {
   const publishedSlugs = new Set(products.map((product) => product.slug));
-  const wrappers = [...doc.querySelectorAll("#MainContent .swiper-wrapper")].filter((wrapper) =>
-    wrapper.querySelector(".product--card"),
-  );
+  const wrappers = [
+    ...doc.querySelectorAll(
+      "#MainContent .swiper-wrapper, #MainContent .featured-collection--wrapper",
+    ),
+  ].filter((wrapper) => wrapper.querySelector(".product--card"));
   if (!wrappers.length) return true;
 
   return wrappers.some((wrapper) =>
@@ -193,9 +229,13 @@ export function applyHomeListingProductsToDocument(
   const alreadyInjected = doc.documentElement.getAttribute("data-kn-home-products-injected") === "1";
 
   if (alreadyInjected && previousFingerprint === fingerprint) {
+    applyDefaultFeaturedCollectionGrids(doc);
     initProductCardGalleries(doc);
     return;
   }
+
+  // Önce stacked moda al — kart rebuild swiper-slide kullanmasın
+  applyDefaultFeaturedCollectionGrids(doc);
 
   if (alreadyInjected && !homeListingNeedsFullRebuild(doc, enriched)) {
     patchHomeListingSwipersInPlace(doc, enriched, locale);
@@ -206,6 +246,8 @@ export function applyHomeListingProductsToDocument(
   doc.querySelectorAll("#MainContent .section-scrolling-collections .horizontal--product-card").forEach((card, i) => {
     patchProductCardMedia(card, enriched[i % enriched.length]!, locale);
   });
+
+  applyDefaultFeaturedCollectionGrids(doc);
 
   doc.documentElement.setAttribute("data-kn-home-products-injected", "1");
   doc.documentElement.setAttribute("data-kn-home-catalog-fp", fingerprint);

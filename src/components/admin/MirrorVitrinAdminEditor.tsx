@@ -194,6 +194,15 @@ export function MirrorVitrinAdminEditor({
           sections[s.key] = { ...cur, productGridColumns: s.productGridDefaults };
         }
       }
+      if (s.type === "featured-collection") {
+        const cur = sections[s.key];
+        if (!cur?.productGridColumns) {
+          sections[s.key] = {
+            ...cur,
+            productGridColumns: s.productGridDefaults ?? 4,
+          };
+        }
+      }
       if (s.type === "collections-tab" && s.collectionsTabDefaults?.length) {
         const cur = sections[s.key];
         sections[s.key] = {

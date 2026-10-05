@@ -458,6 +458,17 @@ export function MirrorSectionFieldsPanel({
         />
       ) : null}
 
+      {section.type === "featured-collection" ? (
+        <MirrorCollectionGridFields
+          value={productGridCols}
+          min={3}
+          max={6}
+          title="Ürün grid sütunları"
+          description="Masaüstünde kaç ürün yan yana (ör. 4). Fazlası alt satıra geçer — tek satır kaydırma yok."
+          onChange={(c) => onPatchSection({ productGridColumns: c as ProductGridColumns })}
+        />
+      ) : null}
+
       {section.type === "collections-tab" ? (
         <CollectionsTabSectionFields
           tabs={collectionsTabs}

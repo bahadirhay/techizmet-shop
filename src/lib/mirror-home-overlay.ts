@@ -39,6 +39,7 @@ import {
   applyProductGridColumns,
   type ProductGridColumns,
 } from "@/lib/mirror-product-grid";
+import { applyFeaturedCollectionGrid } from "@/lib/mirror-featured-collection-grid";
 import {
   applyVideoSectionToElement,
   type VideoSectionData,
@@ -285,6 +286,8 @@ export function applyMirrorPageOverlay(
   }
   if (hasLayout) {
     applyMirrorSectionLayout(doc, config, locale);
+  } else {
+    applyAllFeaturedCollectionGrids(doc, config);
   }
   if (config.customBlocks?.length) {
     applyCustomBlocksInject(doc, config.customBlocks, locale);
@@ -401,7 +404,11 @@ function applyMirrorSectionLayout(doc: Document, config: MirrorPageConfig, local
     if (edit?.collectionGridColumns) {
       applyCollectionGridColumns(el, edit.collectionGridColumns);
     }
-    if (edit?.productGridColumns) {
+    const featuredWrapper = el.querySelector(".featured-collection--wrapper");
+    if (featuredWrapper) {
+      const cols = (edit?.productGridColumns ?? 4) as 3 | 4 | 5 | 6;
+      applyFeaturedCollectionGrid(el, cols === 7 || cols === 8 ? 4 : cols);
+    } else if (edit?.productGridColumns) {
       applyProductGridColumns(el, edit.productGridColumns);
     }
     if (edit?.collectionsTabs?.length) {
@@ -443,6 +450,20 @@ function applyMirrorSectionLayout(doc: Document, config: MirrorPageConfig, local
       }
     }
   }
+
+  // Öne çıkan ürünler — config'te olmasa bile carousel yerine grid
+  applyAllFeaturedCollectionGrids(doc, config);
+}
+
+function applyAllFeaturedCollectionGrids(doc: Document, config: MirrorPageConfig) {
+  doc.querySelectorAll("#MainContent .section-featured-collection").forEach((el) => {
+    if (!el.querySelector(".featured-collection--wrapper")) return;
+    const id = el.getAttribute("id") ?? "";
+    const key = id.includes("__") ? id.slice(id.lastIndexOf("__") + 2) : "";
+    const cols = (key && config.sections[key]?.productGridColumns) || 4;
+    const safe = cols === 3 || cols === 4 || cols === 5 || cols === 6 ? cols : 4;
+    applyFeaturedCollectionGrid(el, safe);
+  });
 }
 
 export { applyMirrorSectionLayout };

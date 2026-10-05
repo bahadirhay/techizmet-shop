@@ -2,6 +2,7 @@ import { readMirrorPageHtml } from "@/lib/mirror-page-html";
 import { extractMediaGridItemsFromHtml } from "@/lib/mirror-media-grid";
 import { extractCollectionGridColumnsFromHtml } from "@/lib/mirror-collection-list-grid";
 import { extractProductGridColumnsFromHtml } from "@/lib/mirror-product-grid";
+import { extractFeaturedCollectionColumnsFromHtml } from "@/lib/mirror-featured-collection-grid";
 import { extractCollectionsTabDefaults } from "@/lib/mirror-collections-tab-server";
 import { extractShopTheLookDefaults } from "@/lib/mirror-shop-the-look-server";
 import { extractFeaturedBlogPostsFromHtml } from "@/lib/mirror-featured-blog";
@@ -96,6 +97,9 @@ export function extractMirrorPageSections(html: string, pageKey: VitrinPageKey):
     }
     if (type === "main-collection") {
       section.productGridDefaults = extractProductGridColumnsFromHtml(main, key);
+    }
+    if (type === "featured-collection") {
+      section.productGridDefaults = extractFeaturedCollectionColumnsFromHtml(main, key);
     }
     if (type === "collections-tab") {
       section.collectionsTabDefaults = extractCollectionsTabDefaults(pageKey, key);
