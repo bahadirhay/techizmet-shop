@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reels Dashboard</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--fg:#1a1d21;--mut:#6b7280;--bd:#e5e7eb;--ac:#d6249f}
+@media(prefers-color-scheme:dark){:root{--bg:#111316;--card:#1b1e23;--fg:#eceef1;--mut:#9aa3af;--bd:#2c3037}}
+*{box-sizing:border-box}body{margin:0;font:15px system-ui,sans-serif;background:var(--bg);color:var(--fg)}
+main{max-width:760px;margin:0 auto;padding:24px 16px}
+h1{font-size:22px;margin:0 0 16px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px;margin-bottom:16px}
+label{display:block;font-size:13px;color:var(--mut);margin-bottom:4px}
+input[type=text],input[type=number]{width:100%;padding:10px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--fg)}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin-top:12px}.row>div{flex:1;min-width:140px}
+button{padding:10px 16px;border:0;border-radius:8px;cursor:pointer;font-weight:600;background:var(--ac);color:#fff}
+button.sec{background:var(--bd);color:var(--fg)}button:disabled{opacity:.5;cursor:default}
+.badge{display:inline-block;padding:2px 10px;border-radius:99px;font-size:12px;background:var(--bd)}
+.badge.on{background:#16a34a;color:#fff}
+pre{margin:0;max-height:340px;overflow:auto;font:12.5px ui-monospace,monospace;white-space:pre-wrap}
+#login{display:none;border-color:var(--ac)}
+</style></head><body><main>
+<h1>Instagram Reels İzleyici <span id="st" class="badge">boşta</span></h1>
+<div class="card">
+  <label for="acc">Instagram hesap adresi</label>
+  <input id="acc" type="text" placeholder="https://www.instagram.com/kullanici/">
+  <div class="row">
+    <div><label for="max">En fazla reel</label><input id="max" type="number" value="50" min="1" max="1000"></div>
+    <div><label><input id="snd" type="checkbox"> Ses açık</label></div>
+    <button id="go">Başlat</button><button id="halt" class="sec">Durdur</button>
+  </div>
+</div>
+<div id="login" class="card">Açılan tarayıcıda Instagram'a giriş yapın, sonra:
+  <button id="cont" style="margin-left:8px">Giriş yaptım, devam et</button></div>
+<div class="card"><label>Günlük</label><pre id="log">—</pre></div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const post=(u,b)=>fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})}).then(r=>r.json());
+$('go').onclick=async()=>{const r=await post('/api/start',{account:$('acc').value,max:+$('max').value,sound:$('snd').checked});if(r.error||!r.ok)alert(r.error||r.message)};
+$('halt').onclick=()=>post('/api/stop');
+$('cont').onclick=()=>post('/api/continue');
+async function tick(){
+  try{const s=await (await fetch('/api/status')).json();
+    $('st').textContent=s.running?'çalışıyor'+(s.account?' · '+s.account:''):'boşta';
+    $('st').className='badge'+(s.running?' on':'');
+    $('go').disabled=s.running;$('halt').disabled=!s.running;
+    $('login').style.display=s.waiting_login?'block':'none';
+    const l=$('log'),atEnd=l.scrollTop+l.clientHeight>=l.scrollHeight-20;
+    l.textContent=s.log.length?s.log.join('\n'):'—';if(atEnd)l.scrollTop=l.scrollHeight;
+  }catch(e){$('st').textContent='sunucuya ulaşılamıyor'}
+}
+setInterval(tick,1000);tick();
+</script></body></html>
