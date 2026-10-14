@@ -8,7 +8,7 @@
  *    bu yüzden liste aşaması ayrı bir actor ile yapılır.)
  *
  * Kullanım:
- *   APIFY_TOKEN=xxx node scripts/linkedin-company-employees.mjs \
+ *   APIFY_TOKEN=xxx node src/index.mjs \
  *     --company https://www.linkedin.com/company/microsoft/ --max 100 --out out.csv
  *
  * Seçenekler:
