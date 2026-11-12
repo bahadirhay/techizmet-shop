@@ -104,6 +104,7 @@ export function promoteProductTitleToH1(main: Element): boolean {
 /**
  * PDP — şablondan kalan demo seçenekleri temizler (ürünün varyantı yokken blok zaten gizlidir):
  * "5ml / 10ml / 15ml" seçenek listesi, başlığı ve `<noscript>` içindeki dolar fiyatlı seçim kutusu.
+ * Sahte İngilizce stok çubuğu ("7 items available") — gerçek stok buraya yazılmıyor.
  * `variants-set` elemanı ve JSON scriptleri yerinde kalır (tema motoru onları okur).
  */
 export function stripTemplateVariantLeftovers(main: Element): void {
@@ -118,4 +119,8 @@ export function stripTemplateVariantLeftovers(main: Element): void {
       title.textContent = "";
     });
   }
+  // Şablon stok çubuğu — ziyaretçiye sahte İngilizce metin göstermesin
+  main.querySelectorAll(".product-inventory, [data-product-inventory-bar-wrapper]").forEach((el) => {
+    el.remove();
+  });
 }

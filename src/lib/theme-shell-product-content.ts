@@ -280,7 +280,7 @@ function getCachedThemeShellProductShell(
 ): Promise<ThemeShellProductShell | null> {
   return unstable_cache(
     () => buildThemeShellProductShell(siteId, siteName, tenantSlug, slug, locale),
-    ["theme-shell-product-shell-v3", siteId, tenantSlug, slug, locale],
+    ["theme-shell-product-shell-v4", siteId, tenantSlug, slug, locale],
     {
       revalidate: STORE_PUBLIC_REVALIDATE_SEC,
       tags: [storeSettingsTag(siteId), storeMirrorTag(siteId), "store-products"],

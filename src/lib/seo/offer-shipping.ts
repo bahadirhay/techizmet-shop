@@ -52,7 +52,7 @@ export function loadStoreShippingSummary(
       }
       return { storeFreeOverMinor, rates };
     },
-    ["store-shipping-summary-v1", siteId, String(geliverEnabled), String(storeFreeOverMinor)],
+    ["store-shipping-summary-v2", siteId, String(geliverEnabled), String(storeFreeOverMinor)],
     {
       revalidate: STORE_PUBLIC_REVALIDATE_SEC,
       tags: [storeSettingsTag(siteId), storeMirrorTag(siteId)],
