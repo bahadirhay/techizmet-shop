@@ -18,7 +18,7 @@ const legacyProductRedirects = Object.entries(LEGACY_PRODUCT_REDIRECTS).map(([fr
  * Özel liste varsayılanı tamamen ezdiği için Next'in kendi listesi de burada tekrarlanır.
  */
 const HTML_LIMITED_BOTS =
-  /Googlebot|[\w-]+-Google|Google-[\w-]+|GoogleOther|Chrome-Lighthouse|Slurp|DuckDuckBot|baiduspider|yandex|sogou|bitlybot|tumblr|vkShare|quora link preview|redditbot|ia_archiver|Bingbot|BingPreview|applebot|facebookexternalhit|facebookcatalog|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|Yeti|googleweblight|AhrefsBot|SemrushBot|MJ12bot|DotBot|PetalBot|SeznamBot|GPTBot|OAI-SearchBot|ChatGPT-User|ClaudeBot|Claude-User|PerplexityBot|Perplexity-User|CCBot|Bytespider|Amazonbot|TelegramBot|Pinterest/;
+  /Googlebot|[\w-]+-Google|Google-[\w-]+|GoogleOther|Chrome-Lighthouse|Slurp|DuckDuckBot|baiduspider|yandex|sogou|bitlybot|tumblr|vkShare|quora link preview|redditbot|ia_archiver|Bingbot|BingPreview|applebot|facebookexternalhit|facebookcatalog|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|Yeti|googleweblight|AhrefsBot|SemrushBot|MJ12bot|DotBot|PetalBot|SeznamBot|GPTBot|OAI-SearchBot|ChatGPT-User|ClaudeBot|Claude-User|PerplexityBot|Perplexity-User|CCBot|Bytespider|Amazonbot|TelegramBot|Pinterestbot|Pinterest\/0\./;
 
 const nextConfig: NextConfig = {
   htmlLimitedBots: HTML_LIMITED_BOTS,

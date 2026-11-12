@@ -12,6 +12,7 @@ import { loadPublishedProductSeo } from "@/lib/seo/product-seo";
 import { getApprovedReviews, getReviewStats } from "@/lib/reviews/service";
 import { getSiteSettings } from "@/lib/site-settings";
 import { ensureStoreTenant } from "@/lib/store-tenant";
+import { tenantStorage, type TenantContext } from "@/lib/tenant-context";
 
 /** Mesafeli satış sözleşmesindeki cayma süresi (bkz. lib/legal/distance-sales-agreement) */
 const WITHDRAWAL_DAYS = 14;
@@ -19,15 +20,25 @@ const WITHDRAWAL_DAYS = 14;
 /**
  * Onaylı yorumlar — yorum onayı / silme `revalidateStorePublicCache(siteId, slug)` ile temizler.
  */
-function loadProductReviewData(siteId: string, productId: string, slug: string) {
+function loadProductReviewData(
+  siteId: string,
+  productId: string,
+  slug: string,
+  tenant: TenantContext,
+) {
   return unstable_cache(
-    async () => {
-      const [stats, reviews] = await Promise.all([
-        getReviewStats(productId),
-        getApprovedReviews(productId, 10),
-      ]);
-      return { stats, reviews };
-    },
+    // Önbellek yenilemesi istek bağlamı dışında da çalışabilir — kiracı (DB) açıkça verilir
+    () =>
+      tenantStorage.run(
+        { slug: tenant.slug, databaseUrl: tenant.databaseUrl, publicOrigin: tenant.publicOrigin },
+        async () => {
+          const [stats, reviews] = await Promise.all([
+            getReviewStats(productId),
+            getApprovedReviews(productId, 10),
+          ]);
+          return { stats, reviews };
+        },
+      ),
     ["product-jsonld-reviews-v1", siteId, productId],
     {
       revalidate: STORE_PUBLIC_REVALIDATE_SEC,
@@ -62,9 +73,9 @@ export async function buildProductPageJsonLd(slug: string) {
   const breadcrumbs = buildProductBreadcrumbItems(product);
 
   // Yıldız/zengin sonuç yalnızca gerçek onaylı yorumlardan
-  const [{ stats, reviews }, tenant, settings] = await Promise.all([
-    loadProductReviewData(site.id, product.id, product.slug),
-    ensureStoreTenant(),
+  const tenant = await ensureStoreTenant();
+  const [{ stats, reviews }, settings] = await Promise.all([
+    loadProductReviewData(site.id, product.id, product.slug, tenant),
     getSiteSettings(site.id),
   ]);
 
