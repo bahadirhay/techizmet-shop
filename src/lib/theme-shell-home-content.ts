@@ -60,7 +60,8 @@ async function buildThemeShellHomeContent(
     html = `${doctype}\n${document.documentElement.outerHTML}`;
   }
 
-  const sections = buildThemeShellMainContentFromHtml(html);
+  // Ana sayfanın H1'i SEO içerik bloğundadır (CollectionSeoContent) — burada başlık yükseltilmez
+  const sections = buildThemeShellMainContentFromHtml(html, { promotePageTitle: false });
   if (!sections) return null;
 
   const { document } = parseHTML(html);
@@ -78,7 +79,7 @@ export function resolveThemeShellHomeContent(
 ): Promise<ThemeShellHomeContent | null> {
   return unstable_cache(
     () => buildThemeShellHomeContent(siteId, siteName, tenantSlug, locale),
-    ["theme-shell-home-v13", siteId, tenantSlug, locale],
+    ["theme-shell-home-v14", siteId, tenantSlug, locale],
     {
       revalidate: STORE_PUBLIC_REVALIDATE_SEC,
       tags: [storeSettingsTag(siteId), storeMirrorTag(siteId), "store-products"],

@@ -1,13 +1,13 @@
 /** SEO meta ve şablon metin — istemci + sunucu (server-only değil) */
 
 import { getPrimaryGoogleIntents } from "@/lib/seo/search-intent";
+import { cutAtWord, fitSeoDescription, fitSeoTitle, splitSentences } from "@/lib/seo/seo-text";
 
+/** Kelime sınırında keser (kelime ortasından asla); kesildiyse sonuna "…" ekler. */
 export function truncateSeoText(text: string, max: number): string {
-  const t = text.trim();
+  const t = text.trim().replace(/\s+/g, " ");
   if (t.length <= max) return t;
-  const cut = t.slice(0, max - 1);
-  const lastSpace = cut.lastIndexOf(" ");
-  return (lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).trim() + "…";
+  return `${cutAtWord(t, max - 1)}…`;
 }
 
 export function normalizeProductTitle(s: string): string {
@@ -97,20 +97,19 @@ export function buildProductSeoTitle(
     product = product.slice(brand.length).trim();
   }
 
-  const segments: string[] = [product];
-  if (brand && !containsWord(product, brand)) segments.push(brand);
-  segments.push(site);
+  const brandSegment = brand && !containsWord(product, brand) ? brand : "";
+  const siteSegment =
+    site && !containsWord(product, site) && site.toLowerCase() !== brandSegment.toLowerCase()
+      ? site
+      : "";
 
-  const full = segments.join(" | ");
-  if (full.length <= maxLen) return full;
-
-  if (brand && !containsWord(product, brand)) {
-    const productBrand = `${product} | ${brand}`;
-    if (productBrand.length <= maxLen) return productBrand;
-    return truncateSeoText(productBrand, maxLen).replace(/…$/, "");
+  // Ürün | Marka | Site — sığıyorsa tamamı
+  if (brandSegment && siteSegment) {
+    const full = `${product} | ${brandSegment} | ${siteSegment}`;
+    if (full.length <= maxLen) return full;
   }
-
-  return truncateSeoText(product, maxLen).replace(/…$/, "");
+  // Marka / site eki ya tam yazılır ya hiç yazılmaz; ürün adı kelime sınırında kısalır
+  return fitSeoTitle(product, brandSegment || siteSegment || null, maxLen);
 }
 
 export function buildProductSeoDescription(input: {
@@ -122,42 +121,54 @@ export function buildProductSeoDescription(input: {
   siteName: string;
 }): string {
   const brand = input.brandTitle?.trim();
-  const name = brand ? `${brand} ${input.productTitle}` : input.productTitle;
+  const titleLower = input.productTitle.toLocaleLowerCase("tr-TR");
+  const name =
+    brand && !titleLower.includes(brand.toLocaleLowerCase("tr-TR"))
+      ? `${brand} ${input.productTitle}`
+      : input.productTitle;
   const pet = isPetFoodContext(input.productTitle, input.categoryTitles);
 
+  // Parçalar tam cümledir; sığmayan cümle atlanır — açıklama asla cümle ortasında bitmez.
   if (pet) {
-    return truncateSeoText(
-      `${name} — doğal köpek ödül maması ve köpek ödül maması. Tahılsız ödül maması; eğitim ve günlük ödül için. ${input.siteName}'da hızlı kargo.`,
-      160,
-    ).replace(/…$/, "");
+    const namesTreat = /ödül\s+mama/i.test(input.productTitle);
+    return fitSeoDescription(
+      [
+        namesTreat ? `${name} — tahılsız, doğal içerik.` : `${name} — doğal köpek ödül maması.`,
+        "Eğitim ve günlük ödül için uygundur.",
+        `${input.siteName}'da hızlı kargo.`,
+      ],
+      { max: 160, target: 150 },
+    );
   }
 
   const cat = input.categoryTitles.filter(Boolean).join(", ") || "ürün";
-  const descSnippet = (input.description ?? "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 90);
+  // Ürün açıklamasından yalnızca tam cümle(ler) alınır; ilk cümle uzunsa hiç alınmaz
+  let descSnippet = "";
+  for (const sentence of splitSentences(input.description ?? "")) {
+    const next = descSnippet ? `${descSnippet} ${sentence}` : sentence;
+    if (next.length > 100 || !/[.!?]$/.test(sentence)) break;
+    descSnippet = next;
+  }
 
   const kwPhrase = (input.keywords ?? [])
     .filter((k) => k.length > 4 && !k.includes(input.productTitle.toLowerCase()))
     .slice(0, 3)
     .join(", ");
 
-  const parts = [
-    `${name} — ${cat} kategorisinde güvenilir seçim.`,
-    descSnippet || `${input.siteName} üzerinden hızlı kargo ve güvenli ödeme.`,
-    kwPhrase ? `${kwPhrase} arayanlar için.` : "",
-    "Detaylı içerik, besin bilgisi ve kullanım önerileri ürün sayfasında.",
-  ].filter(Boolean);
-
-  let result = truncateSeoText(parts.join(" "), 160).replace(/…$/, "");
-  if (result.length < 70) {
-    result = truncateSeoText(
-      `${name}. ${input.siteName}'da ${cat} ürünleri — hızlı teslimat, kolay iade.`,
-      160,
-    ).replace(/…$/, "");
-  }
-  return result;
+  const result = fitSeoDescription(
+    [
+      `${name} — ${cat} kategorisinde güvenilir seçim.`,
+      descSnippet || `${input.siteName} üzerinden hızlı kargo ve güvenli ödeme.`,
+      kwPhrase ? `${kwPhrase} arayanlar için.` : "",
+      "Detaylı içerik, besin bilgisi ve kullanım önerileri ürün sayfasında.",
+    ],
+    { max: 160, target: 150 },
+  );
+  if (result.length >= 70) return result;
+  return fitSeoDescription(
+    [`${name}.`, `${input.siteName}'da ${cat} ürünleri — hızlı teslimat, kolay iade.`],
+    { max: 160, target: 150 },
+  );
 }
 
 const PET_FOOD_HINTS =

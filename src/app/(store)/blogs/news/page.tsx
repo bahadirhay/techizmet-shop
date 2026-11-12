@@ -6,6 +6,7 @@ import { ThemeShellSectionsView } from "@/components/store/ThemeShellSectionsVie
 import { listPublishedBlogPosts } from "@/lib/blog/blog-posts-server";
 import { mirrorBlogListHtmlExists } from "@/lib/mirror-html-path";
 import { buildPageMetadata } from "@/lib/seo/metadata";
+import { repairStoredSeoDescription } from "@/lib/seo/seo-text";
 import { buildSiteMetadata } from "@/lib/site-metadata";
 import { getHomepageMode, getSiteBranding, getSiteSeo, getSiteSettings } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
@@ -27,8 +28,9 @@ export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata(base, {
     title: staticMeta?.seoTitle?.trim() || `Blog | ${site.name}`,
     description:
-      staticMeta?.seoDescription?.trim() ||
-      `${site.name} blog — haberler, ipuçları ve güncellemeler.`,
+      (staticMeta?.seoDescription?.trim()
+        ? repairStoredSeoDescription(staticMeta.seoDescription)
+        : "") || `${site.name} blog — haberler, ipuçları ve güncellemeler.`,
     imageUrl: staticMeta?.imageUrl?.trim() || seo.ogImageUrl?.trim() || branding.logoUrl?.trim() || null,
     canonicalPath: "/blogs/news",
   });

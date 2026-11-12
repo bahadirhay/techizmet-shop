@@ -9,7 +9,19 @@ const legacyProductRedirects = Object.entries(LEGACY_PRODUCT_REDIRECTS).map(([fr
   permanent: true,
 }));
 
+/**
+ * Bu tarayıcılara <title>, description, canonical ve Open Graph etiketleri <head> içinde, sayfa
+ * gövdesinden önce gönderilir (streaming metadata kapalı). Next'in varsayılan listesinde ana
+ * Googlebot yoktur (JS çalıştırdığı varsayılır); canonical/description'ın <body>'de kalmaması için
+ * Googlebot ve yaygın arama / yapay zekâ tarayıcıları eklendi. Ziyaretçi tarayıcıları eşleşmez,
+ * onlar için sayfa eskisi gibi akışla (hızlı ilk bayt) gelir.
+ * Özel liste varsayılanı tamamen ezdiği için Next'in kendi listesi de burada tekrarlanır.
+ */
+const HTML_LIMITED_BOTS =
+  /Googlebot|[\w-]+-Google|Google-[\w-]+|GoogleOther|Chrome-Lighthouse|Slurp|DuckDuckBot|baiduspider|yandex|sogou|bitlybot|tumblr|vkShare|quora link preview|redditbot|ia_archiver|Bingbot|BingPreview|applebot|facebookexternalhit|facebookcatalog|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|Yeti|googleweblight|AhrefsBot|SemrushBot|MJ12bot|DotBot|PetalBot|SeznamBot|GPTBot|OAI-SearchBot|ChatGPT-User|ClaudeBot|Claude-User|PerplexityBot|Perplexity-User|CCBot|Bytespider|Amazonbot|TelegramBot|Pinterest/;
+
 const nextConfig: NextConfig = {
+  htmlLimitedBots: HTML_LIMITED_BOTS,
   productionBrowserSourceMaps: false,
   // Turbopack — Next 16'da varsayılan; webpack config çakışma uyarısını susturur
   turbopack: {},

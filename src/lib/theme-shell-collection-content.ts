@@ -82,7 +82,7 @@ export function resolveThemeShellCollectionContent(
         cat || undefined,
         filters,
       ),
-    ["theme-shell-collection-v1", siteId, dbKey, slug, locale, cat, String(page), filterKey],
+    ["theme-shell-collection-v2", siteId, dbKey, slug, locale, cat, String(page), filterKey],
     {
       revalidate: STORE_PUBLIC_REVALIDATE_SEC,
       tags: [storeSettingsTag(siteId), storeMirrorTag(siteId), "store-products"],

@@ -68,7 +68,6 @@ export default async function ProductPage({
   const homepageMode = getHomepageMode(settings);
   const themeShellLive = readThemeShellPilotLive();
   const seoCtx = await loadPublishedProductSeo(slug);
-  const jsonLd = await buildProductPageJsonLd(slug);
 
   const mirrorTemplateSlug = homepageMode === "mirror" ? resolveMirrorProductTemplateSlug(slug) : null;
 
@@ -85,14 +84,18 @@ export default async function ProductPage({
 
     if (useThemeShell) {
       const tenant = await ensureStoreTenant();
-      const content = await resolveThemeShellProductContent(
-        site.id,
-        site.name,
-        tenant.slug,
-        slug,
-        locale,
-        breadcrumbs,
-      );
+      // Sayfa gövdesi ile yapısal veri birbirinden bağımsız — birlikte yüklenir
+      const [content, jsonLd] = await Promise.all([
+        resolveThemeShellProductContent(
+          site.id,
+          site.name,
+          tenant.slug,
+          slug,
+          locale,
+          breadcrumbs,
+        ),
+        buildProductPageJsonLd(slug),
+      ]);
       if (!content) notFound();
       return (
         <>
@@ -106,6 +109,7 @@ export default async function ProductPage({
       );
     }
 
+    const jsonLd = await buildProductPageJsonLd(slug);
     return (
       <>
         {jsonLd ? <JsonLdScript data={jsonLd} /> : null}
@@ -156,6 +160,7 @@ export default async function ProductPage({
   });
   if (!product?.published || !product.storeVisible) notFound();
 
+  const jsonLd = await buildProductPageJsonLd(slug);
   const bundleComponents =
     product.kind === "bundle"
       ? buildComponentsSnapshot(await loadResolvedBundleComponents(prisma, product.id), 1)

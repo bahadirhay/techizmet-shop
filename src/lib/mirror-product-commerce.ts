@@ -306,6 +306,22 @@ export function applyMirrorProductCommerce(doc: Document, data: MirrorProductCom
     }
   }
 
+  applyMirrorProductPriceLabels(doc, data);
+
+  const script = doc.createElement("script");
+  script.id = "kn-product-commerce";
+  script.textContent = buildCommerceScript(data);
+  doc.body.appendChild(script);
+
+  if (data.share) applyMirrorProductShare(doc, data.share);
+}
+
+/**
+ * Şablondaki demo fiyat yerine gerçek fiyatı sunucu HTML'ine yazar (ana fiyat, üstü çizili fiyat,
+ * yapışkan çubuk). İstemci scripti aynı değerleri yeniden uygular; JS çalıştırmayan tarayıcılar
+ * ve arama motorları da doğru fiyatı görür.
+ */
+export function applyMirrorProductPriceLabels(doc: Document, data: MirrorProductCommercePayload) {
   const el = mainPriceElSafe(doc);
   if (el && data.showPrice) {
     const prefix = data.texts?.startingPricePrefix?.trim() || "Başlayan fiyat";
@@ -341,13 +357,6 @@ export function applyMirrorProductCommerce(doc: Document, data: MirrorProductCom
     const prefix = data.texts?.startingPricePrefix?.trim() || "Başlayan fiyat";
     stickyPrice.textContent = data.fromPrice ? `${prefix}: ${data.priceLabel}` : data.priceLabel;
   }
-
-  const script = doc.createElement("script");
-  script.id = "kn-product-commerce";
-  script.textContent = buildCommerceScript(data);
-  doc.body.appendChild(script);
-
-  if (data.share) applyMirrorProductShare(doc, data.share);
 }
 
 function mainPriceElSafe(doc: Document) {

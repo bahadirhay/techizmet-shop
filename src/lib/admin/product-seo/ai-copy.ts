@@ -3,11 +3,14 @@ import "server-only";
 import type { ResolvedSeoAiConfig } from "@/lib/admin/product-seo/ai-settings";
 import { providerOrder, seoAiAvailable } from "@/lib/admin/product-seo/ai-settings";
 import {
+  buildProductSeoDescription,
+  buildProductSeoTitle,
   buildProfessionalPetProductDescription,
   ensurePrimaryPhrasesInDescription,
   getProductDescriptionPrimaryPhrases,
   isPetFoodContext,
 } from "@/lib/admin/product-seo/content-builders";
+import { clampSeoDescription, clampSeoTitle } from "@/lib/seo/seo-text";
 import type { PetNutritionAnalysis } from "@/lib/admin/product-seo/nutrition-search";
 import { buildPetNutritionKeyFeaturesBlock } from "@/lib/admin/product-seo/nutrition-search";
 import { plainToAccordionHtml, plainToDescriptionHtml } from "@/lib/product-content-format";
@@ -54,8 +57,9 @@ function parseAiJson(text: string): AiPayload | null {
       description: String(o.description).trim(),
       keyFeatures: String(o.keyFeatures ?? "").trim(),
       howToUse: String(o.howToUse ?? "").trim(),
-      seoTitle: o.seoTitle ? String(o.seoTitle).trim().slice(0, 65) : undefined,
-      seoDescription: String(o.seoDescription ?? o.description).trim().slice(0, 160),
+      // Ham AI çıktısı — uzunluk ayarı toResult içinde kelime/cümle sınırında yapılır
+      seoTitle: o.seoTitle ? String(o.seoTitle).trim() : undefined,
+      seoDescription: String(o.seoDescription ?? o.description).trim(),
     };
   } catch {
     return null;
@@ -163,24 +167,16 @@ function templateCopy(input: AiSeoCopyInput): AiPayload {
         `4. Orijinal ambalajında, kuru ve serin ortamda muhafaza edin.`,
       ].join("\n");
 
-  const seoTitle = truncate(`${name} | ${brand ?? input.siteName}`, 60);
-  const seoDescription = pet
-    ? truncate(
-        `${name} — doğal köpek ödül maması / köpek ödül maması. Tahılsız ödül maması; eğitim için. ${input.siteName}'da hızlı kargo.`,
-        155,
-      )
-    : truncate(
-        `${name} — ${cat}. Detaylı tanıtım ve güvenli alışveriş. ${input.siteName}'da hızlı kargo.`,
-        155,
-      );
+  const seoTitle = buildProductSeoTitle(input.title, input.brandTitle, input.siteName);
+  const seoDescription = buildProductSeoDescription({
+    productTitle: input.title,
+    categoryTitles: input.categoryTitles,
+    brandTitle: input.brandTitle,
+    keywords: input.keywords,
+    siteName: input.siteName,
+  });
 
   return { description, keyFeatures, howToUse, seoTitle, seoDescription };
-}
-
-function truncate(s: string, max: number): string {
-  const t = s.trim();
-  if (t.length <= max) return t;
-  return t.slice(0, max - 1).trim() + "…";
 }
 
 function toResult(
@@ -194,24 +190,26 @@ function toResult(
     ? ensurePrimaryPhrasesInDescription(parsed.description, input.siteName)
     : parsed.description;
   // Meta alanlarını Google ideal aralığına sabitle (AI bazen taşır/kısa bırakır)
-  const seoTitleRaw = (parsed.seoTitle ?? "").trim();
+  // Marka eki tam sığmıyorsa bütün olarak düşer; başlık kelime ortasından kesilmez
+  const seoTitleRaw = clampSeoTitle((parsed.seoTitle ?? "").trim(), 60);
   const seoTitle =
-    seoTitleRaw.length >= 25 && seoTitleRaw.length <= 65
-      ? truncate(seoTitleRaw, 60).replace(/…$/, "")
-      : truncate(`${input.title} | ${input.brandTitle ?? input.siteName}`, 60).replace(/…$/, "");
+    seoTitleRaw.length >= 25
+      ? seoTitleRaw
+      : buildProductSeoTitle(input.title, input.brandTitle, input.siteName);
+  // Uzunsa son tam cümlede kesilir (cümle ortasında bitmez); çok kısaysa şablona düşülür.
   let seoDescription = (parsed.seoDescription ?? "").trim();
   if (pet) {
     seoDescription = ensurePrimaryPhrasesInDescription(seoDescription, input.siteName);
   }
-  if (seoDescription.length < 70 || seoDescription.length > 165) {
-    seoDescription = truncate(
-      pet
-        ? `${input.brandTitle ? `${input.brandTitle} ` : ""}${input.title} — doğal köpek ödül maması / köpek ödül maması. Tahılsız ödül maması; eğitim için. ${input.siteName}'da hızlı kargo.`
-        : `${input.brandTitle ? `${input.brandTitle} ` : ""}${input.title} — güvenilir seçim. ${input.siteName}'da hızlı kargo.`,
-      155,
-    ).replace(/…$/, "");
-  } else {
-    seoDescription = truncate(seoDescription, 155).replace(/…$/, "");
+  seoDescription = clampSeoDescription(seoDescription, 160);
+  if (seoDescription.length < 70) {
+    seoDescription = buildProductSeoDescription({
+      productTitle: input.title,
+      categoryTitles: input.categoryTitles,
+      brandTitle: input.brandTitle,
+      keywords: input.keywords,
+      siteName: input.siteName,
+    });
   }
   return {
     used: true,

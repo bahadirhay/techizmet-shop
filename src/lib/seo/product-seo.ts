@@ -1,14 +1,42 @@
 import "server-only";
 
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
+import { STORE_PUBLIC_REVALIDATE_SEC, storeMirrorTag } from "@/lib/cache/store-cache";
 import { formatProductDisplayTitle } from "@/lib/product-display-title";
-import { prisma } from "@/lib/prisma";
+import {
+  clampSeoDescription,
+  repairStoredSeoDescription,
+  repairStoredSeoTitle,
+} from "@/lib/seo/seo-text";
 import { getDefaultSite } from "@/lib/site";
+import { ensureStoreTenant } from "@/lib/store-tenant";
 
-export const loadPublishedProductSeo = cache(async (slug: string) => {
-  const site = await getDefaultSite();
-  const product = await prisma.storeProduct.findUnique({
-    where: { siteId_slug: { siteId: site.id, slug } },
+/**
+ * Ürün SEO satırı — iç içe seçimler nedeniyle birkaç ardışık sorgu yapar; her istekte
+ * DB'ye gitmemek için önbelleklenir. Ürün / yorum kaydında `revalidateStorePublicCache` temizler.
+ */
+function loadProductSeoRow(siteId: string, slug: string, databaseUrl: string) {
+  return unstable_cache(
+    async () => {
+      const { getPrismaForDatabaseUrl } = await import("@/lib/prisma");
+      return queryProductSeoRow(getPrismaForDatabaseUrl(databaseUrl), siteId, slug);
+    },
+    ["product-seo-row-v1", siteId, slug],
+    {
+      revalidate: STORE_PUBLIC_REVALIDATE_SEC,
+      tags: [storeMirrorTag(siteId), "store-products", `product:${slug}`],
+    },
+  )();
+}
+
+function queryProductSeoRow(
+  client: ReturnType<typeof import("@/lib/prisma").getPrismaForDatabaseUrl>,
+  siteId: string,
+  slug: string,
+) {
+  return client.storeProduct.findUnique({
+    where: { siteId_slug: { siteId, slug } },
     select: {
       id: true,
       slug: true,
@@ -51,6 +79,11 @@ export const loadPublishedProductSeo = cache(async (slug: string) => {
       variants: { select: { stockQty: true, priceMinor: true, isDefault: true, sku: true } },
     },
   });
+}
+
+export const loadPublishedProductSeo = cache(async (slug: string) => {
+  const [site, tenant] = await Promise.all([getDefaultSite(), ensureStoreTenant()]);
+  const product = await loadProductSeoRow(site.id, slug, tenant.databaseUrl);
 
   if (!product?.published || !product.storeVisible) return null;
 
@@ -74,13 +107,22 @@ export const loadPublishedProductSeo = cache(async (slug: string) => {
     pieceCount: product.pieceCount,
   });
 
+  // Eski üreticinin kestiği kayıtlar ("… | Anatoli", cümle ortasında biten açıklama) gösterimde onarılır
+  const storedTitle = product.seoTitle?.trim();
+  const storedDescription = product.seoDescription?.trim();
+
   return {
     site,
     product,
-    metaTitle: product.seoTitle?.trim() || visibleTitle,
+    metaTitle: storedTitle
+      ? repairStoredSeoTitle(storedTitle, {
+          brandName: product.brand?.name ?? site.name,
+          sourceTitle: visibleTitle,
+        }) || visibleTitle
+      : visibleTitle,
     metaDescription:
-      product.seoDescription?.trim() ||
-      product.description?.trim().slice(0, 160) ||
+      (storedDescription ? repairStoredSeoDescription(storedDescription) : "") ||
+      (product.description?.trim() ? clampSeoDescription(product.description, 160) : "") ||
       null,
     imageUrl: galleryUrls[0] ?? null,
     imageUrls: galleryUrls,

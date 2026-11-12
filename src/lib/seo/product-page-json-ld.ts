@@ -1,12 +1,47 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
+import { STORE_PUBLIC_REVALIDATE_SEC, storeMirrorTag } from "@/lib/cache/store-cache";
 import { buildProductBreadcrumbItems } from "@/lib/seo/product-breadcrumbs";
 import {
   buildBreadcrumbListJsonLd,
   buildProductJsonLd,
 } from "@/lib/seo/json-ld";
+import { loadStoreShippingSummary, resolveShippingCostMinor } from "@/lib/seo/offer-shipping";
 import { loadPublishedProductSeo } from "@/lib/seo/product-seo";
 import { getApprovedReviews, getReviewStats } from "@/lib/reviews/service";
+import { getSiteSettings } from "@/lib/site-settings";
+import { ensureStoreTenant } from "@/lib/store-tenant";
+
+/** Mesafeli satış sözleşmesindeki cayma süresi (bkz. lib/legal/distance-sales-agreement) */
+const WITHDRAWAL_DAYS = 14;
+
+/**
+ * Onaylı yorumlar — yorum onayı / silme `revalidateStorePublicCache(siteId, slug)` ile temizler.
+ */
+function loadProductReviewData(siteId: string, productId: string, slug: string) {
+  return unstable_cache(
+    async () => {
+      const [stats, reviews] = await Promise.all([
+        getReviewStats(productId),
+        getApprovedReviews(productId, 10),
+      ]);
+      return { stats, reviews };
+    },
+    ["product-jsonld-reviews-v1", siteId, productId],
+    {
+      revalidate: STORE_PUBLIC_REVALIDATE_SEC,
+      tags: [storeMirrorTag(siteId), "store-products", `product:${slug}`],
+    },
+  )();
+}
+
+/** Bugünden bir yıl sonrası (YYYY-MM-DD) — fiyat her ziyarette yeniden doğrulanır */
+function rollingPriceValidUntil(): string {
+  const d = new Date();
+  d.setUTCFullYear(d.getUTCFullYear() + 1);
+  return d.toISOString().slice(0, 10);
+}
 
 export async function buildProductPageJsonLd(slug: string) {
   const ctx = await loadPublishedProductSeo(slug);
@@ -27,10 +62,20 @@ export async function buildProductPageJsonLd(slug: string) {
   const breadcrumbs = buildProductBreadcrumbItems(product);
 
   // Yıldız/zengin sonuç yalnızca gerçek onaylı yorumlardan
-  const [stats, reviews] = await Promise.all([
-    getReviewStats(product.id),
-    getApprovedReviews(product.id, 10),
+  const [{ stats, reviews }, tenant, settings] = await Promise.all([
+    loadProductReviewData(site.id, product.id, product.slug),
+    ensureStoreTenant(),
+    getSiteSettings(site.id),
   ]);
+
+  // Kargo / iade yapısal verisi yalnızca Türkiye içi TL satışta (sözleşme ve tarifeler buna göre)
+  const domesticTr = site.currency === "TRY";
+  const shippingCostMinor = domesticTr
+    ? resolveShippingCostMinor(
+        await loadStoreShippingSummary(site.id, tenant.databaseUrl, settings),
+        priceMinor,
+      )
+    : null;
 
   return [
     buildProductJsonLd({
@@ -54,6 +99,12 @@ export async function buildProductPageJsonLd(slug: string) {
         title: r.title,
         datePublished: r.createdAt,
       })),
+      priceValidUntil: rollingPriceValidUntil(),
+      shipping:
+        shippingCostMinor != null ? { costMinor: shippingCostMinor, countryCode: "TR" } : null,
+      returnPolicy: domesticTr
+        ? { countryCode: "TR", days: WITHDRAWAL_DAYS, customerPaysReturnShipping: true }
+        : null,
     }),
     buildBreadcrumbListJsonLd(breadcrumbs),
   ];

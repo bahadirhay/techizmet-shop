@@ -88,7 +88,7 @@ export function isMirrorPathUncacheable(
 
 function cacheKeyForMirror(params: MirrorHtmlBuildParams, layoutOrderKey: string) {
   return [
-    "mirror-html-v15",
+    "mirror-html-v16",
     params.tenantSlug ?? "",
     params.siteId,
     params.normalized,

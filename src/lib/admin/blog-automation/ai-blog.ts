@@ -3,6 +3,7 @@ import "server-only";
 import type { ResolvedSeoAiConfig } from "@/lib/admin/product-seo/ai-settings";
 import { providerOrder, seoAiAvailable } from "@/lib/admin/product-seo/ai-settings";
 import type { BlogTopicProduct } from "@/lib/admin/blog-automation/topics";
+import { clampSeoDescription, clampSeoTitle } from "@/lib/seo/seo-text";
 
 export type AiBlogCopyInput = {
   keyword: string;
@@ -78,8 +79,9 @@ function parseTurkishJson(text: string): TrPayload | null {
     title: title.slice(0, 120),
     excerpt: String(o.excerpt ?? "").trim().slice(0, 280),
     bodyHtml,
-    seoTitle: String(o.seoTitle ?? title).trim().slice(0, 65),
-    seoDescription: String(o.seoDescription ?? o.excerpt ?? "").trim().slice(0, 165),
+    // Kelime / cümle sınırında kısalt — "… | Anatoli" gibi yarım başlık üretme
+    seoTitle: clampSeoTitle(String(o.seoTitle ?? title).trim(), 65),
+    seoDescription: clampSeoDescription(String(o.seoDescription ?? o.excerpt ?? "").trim(), 165),
   };
 }
 

@@ -117,7 +117,7 @@ export function ProductCard({
           />
           {imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={imageUrl} alt="" className="kn-product-card__img" />
+            <img src={imageUrl} alt={title} className="kn-product-card__img" />
           ) : (
             <div className="kn-product-card__img kn-product-card__img--placeholder" />
           )}

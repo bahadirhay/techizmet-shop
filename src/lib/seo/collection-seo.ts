@@ -4,6 +4,7 @@ import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { getDefaultSite } from "@/lib/site";
 import { findIntentForPath, findLandingIntentBySlug } from "@/lib/seo/search-intent";
+import { clampSeoDescription, repairStoredSeoDescription } from "@/lib/seo/seo-text";
 import { getSiteBranding, getSiteSettings, getSiteSeo } from "@/lib/site-settings";
 
 export type CollectionSeoContext =
@@ -63,7 +64,10 @@ export const loadCollectionSeo = cache(
       return {
         kind: "category",
         metaTitle: label,
-        metaDescription: cat.seoDescription?.trim() || cat.description?.trim().slice(0, 160) || null,
+        metaDescription:
+          (cat.seoDescription?.trim() ? repairStoredSeoDescription(cat.seoDescription) : "") ||
+          (cat.description?.trim() ? clampSeoDescription(cat.description, 160) : "") ||
+          null,
         imageUrl: cat.imageUrl?.trim() || defaultOg,
         canonicalPath: `/collections/all?category=${encodeURIComponent(categorySlug.trim())}`,
         breadcrumbLabel: cat.title,
@@ -126,7 +130,9 @@ export const loadCollectionSeo = cache(
     return {
       kind: "collection",
       metaTitle: `${collection.title} | ${site.name}`,
-      metaDescription: collection.description?.trim().slice(0, 160) || null,
+      metaDescription: collection.description?.trim()
+        ? clampSeoDescription(collection.description, 160)
+        : null,
       imageUrl: collection.imageUrl?.trim() || defaultOg,
       canonicalPath: `/collections/${slug}`,
       breadcrumbLabel: collection.title,

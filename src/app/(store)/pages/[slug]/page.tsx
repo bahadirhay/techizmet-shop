@@ -25,6 +25,7 @@ import { DistanceSalesAgreementView } from "@/components/legal/DistanceSalesAgre
 import { buildWebPageJsonLd } from "@/lib/seo/site-json-ld";
 import { resolveLegalSellerProfile } from "@/lib/legal/seller-profile";
 import { buildPageMetadata } from "@/lib/seo/metadata";
+import { repairStoredSeoDescription, repairStoredSeoTitle } from "@/lib/seo/seo-text";
 import { buildSiteMetadata } from "@/lib/site-metadata";
 import { resolveStoreBlockMessages } from "@/lib/store-static-texts";
 import { resolveThemeShellCmsPageContent } from "@/lib/theme-shell-cms-page-content";
@@ -54,9 +55,21 @@ export async function generateMetadata({
   const page = await getPageBySlug(slug);
   const base = await buildSiteMetadata();
   if (!page) return base;
+  const site = await getDefaultSite();
+  const storedTitle = page.seoTitle?.trim();
+  const storedDescription = page.seoDescription?.trim();
   return buildPageMetadata(base, {
-    title: page.seoTitle?.trim() || page.title,
-    description: page.seoDescription?.trim() || base.description,
+    // Eski üreticinin kestiği kayıtlar gösterimde onarılır (yarım marka eki, "…" ile biten metin)
+    title: storedTitle
+      ? repairStoredSeoTitle(storedTitle, {
+          brandName: site.name,
+          sourceTitle: page.title,
+          rebuildTruncatedSource: true,
+          max: 65,
+        })
+      : page.title,
+    description:
+      (storedDescription ? repairStoredSeoDescription(storedDescription) : "") || base.description,
     canonicalPath: `/pages/${slug}`,
   });
 }

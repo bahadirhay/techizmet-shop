@@ -9,6 +9,7 @@ import {
 import { parseHTML } from "@/lib/linkedom-server";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import { buildMirrorHtml } from "@/lib/mirror-html-build";
+import { promotePageTitleToH1, removeAdminHiddenSections } from "@/lib/theme-shell-seo-finalize";
 import { applyStreetFoodFundPageContent, streetFoodFundPageStyleTag } from "@/lib/mirror-street-food-fund-page";
 import { vitrinMirrorFileRel, type VitrinPageKey } from "@/lib/mirror-vitrin-pages";
 import { buildStreetFoodFundPublicPayload } from "@/lib/street-food-fund/campaign";
@@ -45,16 +46,26 @@ function extractStylesheetsFromMainHtml(mainHtml: string): string[] {
   return [...urls];
 }
 
-function extractMainContentInnerHtml(html: string): string | null {
+function extractMainContentInnerHtml(html: string, promotePageTitle: boolean): string | null {
   const { document } = parseHTML(html);
   const main = document.getElementById("MainContent");
-  const inner = main?.innerHTML?.trim();
+  if (!main) return null;
+  // Admin'in gizlediği bölümler yayındaki HTML'e hiç yazılmaz; sayfa başlığı H1 olur
+  removeAdminHiddenSections(main);
+  if (promotePageTitle) promotePageTitleToH1(main);
+  const inner = main.innerHTML?.trim();
   return inner || null;
 }
 
 /** Overlay uygulanmış tam HTML → MainContent + section CSS */
-export function buildThemeShellMainContentFromHtml(html: string): ThemeShellSectionsContent | null {
-  const mainRaw = extractMainContentInnerHtml(html);
+export function buildThemeShellMainContentFromHtml(
+  html: string,
+  opts?: {
+    /** Sayfada H1 yoksa `.page--title` H1'e çevrilsin mi (varsayılan: evet) */
+    promotePageTitle?: boolean;
+  },
+): ThemeShellSectionsContent | null {
+  const mainRaw = extractMainContentInnerHtml(html, opts?.promotePageTitle ?? true);
   if (!mainRaw) return null;
 
   const stylesheets = extractStylesheetsFromMainHtml(mainRaw);
@@ -109,7 +120,7 @@ function getCachedThemeShellSectionsContent(
 ): Promise<ThemeShellSectionsContent | null> {
   return unstable_cache(
     () => buildThemeShellSectionsContent(siteId, siteName, tenantSlug, pageKey, locale),
-    ["theme-shell-sections-v3", siteId, tenantSlug, pageKey, locale],
+    ["theme-shell-sections-v4", siteId, tenantSlug, pageKey, locale],
     {
       revalidate: STORE_PUBLIC_REVALIDATE_SEC,
       tags: [storeSettingsTag(siteId), storeMirrorTag(siteId), "store-products", "store-blog"],

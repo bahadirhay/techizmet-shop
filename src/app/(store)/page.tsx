@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { MirrorVitrinFrame } from "@/components/store/MirrorVitrinFrame";
 import { ThemeShellHomeView } from "@/components/store/ThemeShellHomeView";
 import { CollectionSeoContent } from "@/components/store/CollectionSeoContent";
+import { JsonLdScript } from "@/components/store/JsonLdScript";
+import { buildFaqPageJsonLd, buildItemListJsonLd } from "@/lib/seo/json-ld";
 import { buildSiteMetadata } from "@/lib/site-metadata";
 import { StorePublicBlocks } from "@/components/store/StorePublicBlocks";
 import { getStoreLocale } from "@/lib/i18n/server";
@@ -25,7 +27,13 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
   // Ana sayfa meta — hedef kelimeli varsayılanlar buildSiteMetadata içinde
-  return buildSiteMetadata();
+  const base = await buildSiteMetadata();
+  const title = base.title;
+  const homeTitle =
+    title && typeof title === "object" && "default" in title ? title.default : null;
+  // Kök layout'un "%s · Marka" şablonu ana sayfa başlığına tekrar uygulanmasın
+  // ("… | Anatolian Paw · Anatolian Paw") — başlık olduğu gibi kullanılır.
+  return homeTitle ? { ...base, title: { absolute: homeTitle } } : base;
 }
 
 export default async function HomePage({
@@ -42,15 +50,33 @@ export default async function HomePage({
     homepageMode === "mirror" &&
     isThemeShellEnabledForHomePath("/", query, themeShellLive);
   const homeSeo = await loadHomeSeoContent();
+  // Yapısal veri — sayfada görünen ürün listesi ve SSS ile birebir aynı içerik
+  const homeJsonLd = homeSeo
+    ? [
+        ...(homeSeo.products.length
+          ? [
+              buildItemListJsonLd(
+                homeSeo.products.map((p) => ({ name: p.name, url: `/products/${p.slug}` })),
+                homeSeo.heading,
+                "/",
+              ),
+            ]
+          : []),
+        ...(homeSeo.faqs.length ? [buildFaqPageJsonLd(homeSeo.faqs, "/")] : []),
+      ]
+    : [];
   const seoBlock = homeSeo ? (
-    <CollectionSeoContent
-      heading={homeSeo.heading}
-      intro={homeSeo.intro}
-      criteria={homeSeo.criteria}
-      products={homeSeo.products}
-      faqs={homeSeo.faqs}
-      relatedLinks={homeSeo.relatedLinks}
-    />
+    <>
+      {homeJsonLd.length ? <JsonLdScript data={homeJsonLd} /> : null}
+      <CollectionSeoContent
+        heading={homeSeo.heading}
+        intro={homeSeo.intro}
+        criteria={homeSeo.criteria}
+        products={homeSeo.products}
+        faqs={homeSeo.faqs}
+        relatedLinks={homeSeo.relatedLinks}
+      />
+    </>
   ) : null;
 
   if (useThemeShell) {

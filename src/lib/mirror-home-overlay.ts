@@ -178,6 +178,9 @@ export function reorderMirrorSectionsInMain(main: Element, order: string[]) {
 
 const MIRROR_SECTION_ORDER_STYLE_ID = "kn-mirror-section-order";
 
+/** Admin'in vitrin düzeninde gizlediği bölümün işareti — yayındaki tema kabuğu bunları HTML'den çıkarır */
+export const MIRROR_SECTION_HIDDEN_ATTR = "data-kn-section-hidden";
+
 function escapeMirrorSectionKeyCss(key: string) {
   return key.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
@@ -360,6 +363,7 @@ function applyMirrorSectionLayout(doc: Document, config: MirrorPageConfig, local
 
   main.querySelectorAll("section.kn-mirror-section").forEach((el) => {
     (el as HTMLElement).style.removeProperty("display");
+    el.removeAttribute(MIRROR_SECTION_HIDDEN_ATTR);
   });
 
   const visibleInOrder = config.order.length - hiddenKeys.size;
@@ -377,6 +381,8 @@ function applyMirrorSectionLayout(doc: Document, config: MirrorPageConfig, local
     if (!el) continue;
     if (edit?.hidden && visibleInOrder > 0) {
       (el as HTMLElement).style.display = "none";
+      // Yayındaki tema kabuğu bu işaretli bölümleri HTML'den çıkarır (theme-shell-seo-finalize)
+      el.setAttribute(MIRROR_SECTION_HIDDEN_ATTR, "1");
       continue;
     }
     (el as HTMLElement).style.removeProperty("display");

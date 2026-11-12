@@ -12,7 +12,15 @@ import { parseHTML } from "@/lib/linkedom-server";
 import { resolveProductMirrorSourceRel } from "@/lib/mirror-html-path";
 import { injectMirrorProductFavoritesBridge } from "@/lib/mirror-product-favorites-bridge";
 import { buildMirrorHtml } from "@/lib/mirror-html-build";
-import { injectMirrorProductCommerceHtml } from "@/lib/mirror-product-commerce";
+import {
+  applyMirrorProductPriceLabels,
+  injectMirrorProductCommerceHtml,
+} from "@/lib/mirror-product-commerce";
+import {
+  promoteProductTitleToH1,
+  removeAdminHiddenSections,
+  stripTemplateVariantLeftovers,
+} from "@/lib/theme-shell-seo-finalize";
 import { loadMirrorProductCommerce } from "@/lib/mirror-product-commerce-server";
 import { loadMirrorProductFramePayload } from "@/lib/mirror-product-frame-server";
 import type { MirrorBreadcrumbItem } from "@/lib/mirror-product-breadcrumb";
@@ -244,6 +252,11 @@ async function buildThemeShellProductShell(
   document.documentElement.setAttribute("data-kn-product-sync", "1");
   document.getElementById("kn-product-sync-guard")?.remove();
 
+  // Yayın HTML'i: gizli alt bölümler ve şablon artıkları çıkarılır, ürün adı H1 olur
+  removeAdminHiddenSections(main);
+  stripTemplateVariantLeftovers(main);
+  promoteProductTitleToH1(main);
+
   const mainHtml = document.getElementById("MainContent")?.innerHTML?.trim();
   if (!mainHtml) return null;
 
@@ -267,7 +280,7 @@ function getCachedThemeShellProductShell(
 ): Promise<ThemeShellProductShell | null> {
   return unstable_cache(
     () => buildThemeShellProductShell(siteId, siteName, tenantSlug, slug, locale),
-    ["theme-shell-product-shell-v2", siteId, tenantSlug, slug, locale],
+    ["theme-shell-product-shell-v3", siteId, tenantSlug, slug, locale],
     {
       revalidate: STORE_PUBLIC_REVALIDATE_SEC,
       tags: [storeSettingsTag(siteId), storeMirrorTag(siteId), "store-products"],
@@ -284,6 +297,31 @@ function applyCommerceToProductShell(
   html = injectMirrorProductCommerceHtml(html, commerce);
 
   const { document } = parseHTML(html);
+  // Şablondaki demo fiyat ("$642.00") yerine gerçek fiyat sunucu HTML'ine yazılır.
+  // Varyantlı üründe istemci scriptinin ilk göstereceği değer: varsayılan varyantın fiyatı.
+  const defaultVariant =
+    commerce.variants.find((v) => v.id === commerce.defaultVariantId) ?? commerce.variants[0];
+  applyMirrorProductPriceLabels(
+    document,
+    defaultVariant
+      ? {
+          ...commerce,
+          priceLabel: defaultVariant.priceLabel,
+          compareLabel: defaultVariant.compareLabel,
+          fromPrice: false,
+        }
+      : commerce,
+  );
+  if (!commerce.showPrice) {
+    // Fiyat gizliyken (kn-hide-product-price ile aynı kapsam) şablonun dolar fiyatı HTML'de de kalmasın
+    document
+      .querySelectorAll(
+        "#MainContent .price-wrapper .product--actual-price, #MainContent .product--pricing .product--actual-price, #MainContent .price-wrapper .product--cut-price, #MainContent .product--pricing .product--cut-price",
+      )
+      .forEach((el) => {
+        el.textContent = "";
+      });
+  }
   const mainHtml = document.getElementById("MainContent")?.innerHTML?.trim() ?? shell.mainHtml;
   const commerceScript = document.getElementById("kn-product-commerce")?.textContent?.trim();
   const hidePriceStyle = document.getElementById("kn-hide-product-price")?.textContent?.trim();

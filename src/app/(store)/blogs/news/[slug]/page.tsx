@@ -6,8 +6,10 @@ import {
   getBlogPostBySlug,
   getPublishedBlogPostBySlug,
 } from "@/lib/blog/blog-posts-server";
-import { blogTitle } from "@/lib/blog/blog-post-types";
+import { blogTitle, type BlogPostRecord } from "@/lib/blog/blog-post-types";
+import type { ShopLocale } from "@/lib/i18n/locale";
 import { getStoreLocale } from "@/lib/i18n/server";
+import { repairStoredSeoDescription, repairStoredSeoTitle } from "@/lib/seo/seo-text";
 import { JsonLdScript } from "@/components/store/JsonLdScript";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { buildNewsArticleJsonLd } from "@/lib/seo/site-json-ld";
@@ -25,6 +27,23 @@ import {
 type BlogArticleSearchParams = ThemeShellPilotQuery & {
   preview?: string | null;
 };
+
+/** Kayıtlı SEO başlığı eski üreticiyle kesilmişse ("… Doğal vs | Marka") yazı başlığından onarılır */
+function blogMetaTitle(post: BlogPostRecord, locale: ShopLocale, siteName: string): string {
+  const stored = post.seoTitle?.trim();
+  if (!stored) return `${blogTitle(post, locale)} | ${siteName}`;
+  return repairStoredSeoTitle(stored, {
+    brandName: siteName,
+    sourceTitle: post.titleTr,
+    rebuildTruncatedSource: true,
+    max: 65,
+  });
+}
+
+function blogMetaDescription(post: BlogPostRecord): string {
+  const stored = post.seoDescription?.trim();
+  return stored ? repairStoredSeoDescription(stored) : (post.excerptTr?.trim() ?? "");
+}
 
 async function resolveBlogPostForPage(siteId: string, slug: string, preview?: string | null) {
   const draftPreview = preview === "1" && (await getStaffAccessOptional());
@@ -52,10 +71,10 @@ export async function generateMetadata({
   const base = await buildSiteMetadata();
   if (!post) return base;
   const locale = await getStoreLocale();
-  const title = post.seoTitle?.trim() || `${blogTitle(post, locale)} | ${site.name}`;
+  const title = blogMetaTitle(post, locale, site.name);
   const pageMeta = buildPageMetadata(base, {
     title,
-    description: post.seoDescription?.trim() || post.excerptTr?.trim() || base.description,
+    description: blogMetaDescription(post) || base.description,
     imageUrl: post.imageUrl,
     canonicalPath: `/blogs/news/${slug}`,
   });
@@ -95,7 +114,9 @@ export default async function BlogArticlePage({
   const { post, draftPreview } = await resolveBlogPostForPage(site.id, slug, query.preview);
   if (!post) notFound();
 
-  const headline = post.seoTitle?.trim() || blogTitle(post, locale);
+  const headline = post.seoTitle?.trim()
+    ? blogMetaTitle(post, locale, site.name)
+    : blogTitle(post, locale);
   const path = `/blogs/news/${slug}`;
   const publishedIso = post.publishedAt?.toISOString() ?? null;
   const modifiedIso = (post.updatedAt ?? post.publishedAt)?.toISOString() ?? null;
@@ -104,7 +125,7 @@ export default async function BlogArticlePage({
     post.published && !draftPreview
       ? buildNewsArticleJsonLd({
           headline,
-          description: post.seoDescription?.trim() || post.excerptTr,
+          description: blogMetaDescription(post) || post.excerptTr,
           path,
           imageUrl: post.imageUrl,
           datePublished: publishedIso,

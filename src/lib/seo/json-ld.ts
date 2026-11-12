@@ -39,6 +39,17 @@ export type ProductJsonLdInput = {
   /** Yalnızca gerçek, onaylı yorumlardan üretilmeli (uydurma puan = Google cezası) */
   aggregateRating?: { ratingValue: number; reviewCount: number } | null;
   reviews?: ProductReviewJsonLd[];
+  /** Fiyatın geçerli sayıldığı son gün (YYYY-MM-DD) */
+  priceValidUntil?: string | null;
+  /** Tek adet siparişte kargo ücreti — ödeme adımındaki tarifeyle aynı olmalı */
+  shipping?: { costMinor: number; countryCode: string } | null;
+  /** Cayma / iade koşulu — mesafeli satış sözleşmesindeki süre ile aynı olmalı */
+  returnPolicy?: {
+    countryCode: string;
+    days: number;
+    /** İade kargo bedelini müşteri öder */
+    customerPaysReturnShipping: boolean;
+  } | null;
 };
 
 export function buildProductJsonLd(input: ProductJsonLdInput, siteOrigin?: string) {
@@ -69,6 +80,37 @@ export function buildProductJsonLd(input: ProductJsonLdInput, siteOrigin?: strin
         ? "https://schema.org/InStock"
         : "https://schema.org/OutOfStock",
       seller: { "@type": "Organization", name: input.siteName },
+      ...(input.priceValidUntil ? { priceValidUntil: input.priceValidUntil } : {}),
+      ...(input.shipping
+        ? {
+            shippingDetails: {
+              "@type": "OfferShippingDetails",
+              shippingRate: {
+                "@type": "MonetaryAmount",
+                value: (input.shipping.costMinor / 100).toFixed(2),
+                currency: input.currency,
+              },
+              shippingDestination: {
+                "@type": "DefinedRegion",
+                addressCountry: input.shipping.countryCode,
+              },
+            },
+          }
+        : {}),
+      ...(input.returnPolicy
+        ? {
+            hasMerchantReturnPolicy: {
+              "@type": "MerchantReturnPolicy",
+              applicableCountry: input.returnPolicy.countryCode,
+              returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
+              merchantReturnDays: input.returnPolicy.days,
+              returnMethod: "https://schema.org/ReturnByMail",
+              returnFees: input.returnPolicy.customerPaysReturnShipping
+                ? "https://schema.org/ReturnFeesCustomerResponsibility"
+                : "https://schema.org/FreeReturn",
+            },
+          }
+        : {}),
     },
   };
 
