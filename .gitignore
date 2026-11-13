@@ -47,4 +47,7 @@ next-env.d.ts
 
 .vercel
 
-.vercel
+# yerel agent / geçici audit çıktıları (repoya girmez)
+.claude/
+/tmp-*
+/scripts/tmp-*
