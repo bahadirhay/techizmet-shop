@@ -9,6 +9,7 @@ import {
   repairStoredSeoDescription,
   repairStoredSeoTitle,
 } from "@/lib/seo/seo-text";
+import { descriptiveMediaUrl, loadMediaNameMap } from "@/lib/media-descriptive-url";
 import { getDefaultSite } from "@/lib/site";
 import { ensureStoreTenant } from "@/lib/store-tenant";
 
@@ -87,12 +88,14 @@ export const loadPublishedProductSeo = cache(async (slug: string) => {
 
   if (!product?.published || !product.storeVisible) return null;
 
-  const galleryUrls =
+  const rawGalleryUrls =
     product.images.length > 0
       ? product.images.filter((i) => i.mediaType !== "video").map((i) => i.url)
       : product.imageUrl
         ? [product.imageUrl]
         : [];
+  const mediaNames = await loadMediaNameMap();
+  const galleryUrls = rawGalleryUrls.map((url) => descriptiveMediaUrl(url, mediaNames));
 
   const defaultVariant = product.variants.find((v) => v.isDefault) ?? product.variants[0];
   const priceMinor = defaultVariant?.priceMinor ?? product.priceMinor;

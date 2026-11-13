@@ -9,11 +9,16 @@ import {
 import { parseHTML } from "@/lib/linkedom-server";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import { buildMirrorHtml } from "@/lib/mirror-html-build";
-import { promotePageTitleToH1, removeAdminHiddenSections } from "@/lib/theme-shell-seo-finalize";
+import {
+  promotePageTitleToH1,
+  removeAdminHiddenSections,
+  removeHiddenCollectionTabs,
+} from "@/lib/theme-shell-seo-finalize";
 import { applyStreetFoodFundPageContent, streetFoodFundPageStyleTag } from "@/lib/mirror-street-food-fund-page";
 import { vitrinMirrorFileRel, type VitrinPageKey } from "@/lib/mirror-vitrin-pages";
 import { buildStreetFoodFundPublicPayload } from "@/lib/street-food-fund/campaign";
 import { listPublishedStreetFoodDonations } from "@/lib/street-food-fund/donations";
+import { withDescriptiveMediaUrls } from "@/lib/media-descriptive-url";
 
 export type ThemeShellSectionsContent = {
   mainHtml: string;
@@ -52,6 +57,7 @@ function extractMainContentInnerHtml(html: string, promotePageTitle: boolean): s
   if (!main) return null;
   // Admin'in gizlediği bölümler yayındaki HTML'e hiç yazılmaz; sayfa başlığı H1 olur
   removeAdminHiddenSections(main);
+  removeHiddenCollectionTabs(main);
   if (promotePageTitle) promotePageTitleToH1(main);
   const inner = main.innerHTML?.trim();
   return inner || null;
@@ -108,7 +114,12 @@ async function buildThemeShellSectionsContent(
     tenantSlug,
     pageKey,
   });
-  return buildThemeShellMainContentFromHtml(html);
+  const sections = buildThemeShellMainContentFromHtml(html);
+  if (!sections) return null;
+  return {
+    ...sections,
+    mainHtml: await withDescriptiveMediaUrls(sections.mainHtml),
+  };
 }
 
 function getCachedThemeShellSectionsContent(
@@ -120,7 +131,7 @@ function getCachedThemeShellSectionsContent(
 ): Promise<ThemeShellSectionsContent | null> {
   return unstable_cache(
     () => buildThemeShellSectionsContent(siteId, siteName, tenantSlug, pageKey, locale),
-    ["theme-shell-sections-v4", siteId, tenantSlug, pageKey, locale],
+    ["theme-shell-sections-v6", siteId, tenantSlug, pageKey, locale],
     {
       revalidate: STORE_PUBLIC_REVALIDATE_SEC,
       tags: [storeSettingsTag(siteId), storeMirrorTag(siteId), "store-products", "store-blog"],

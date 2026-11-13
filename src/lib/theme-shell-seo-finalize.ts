@@ -49,6 +49,33 @@ export function removeAdminHiddenSections(main: Element): number {
   return removed;
 }
 
+const INLINE_DISPLAY_NONE_RE = /(^|;)\s*display\s*:\s*none\b/i;
+
+function isInlineHidden(el: Element): boolean {
+  return INLINE_DISPLAY_NONE_RE.test(el.getAttribute("style") || "");
+}
+
+/**
+ * Koleksiyon sekmeleri — admin'in gizlediği sekmeler ve ürün kutuları (`display:none`) şablonun
+ * demo içeriğini taşır: kozmetik ürün adları, dolar fiyatları ve var olmayan ürün bağlantıları.
+ * Ziyaretçi bunları görmez ama arama motorları ve yapay zekâ botları okur; yayından çıkarılır.
+ * Etkin olmayan sekmeler satır içi stil değil `hidden` sınıfı kullanır, onlara dokunulmaz.
+ */
+export function removeHiddenCollectionTabs(main: Element): number {
+  let removed = 0;
+  const selector = [
+    ".collections-tab--menu-item[data-tab-id]",
+    ".collections-tab--menu-content-item[data-content-id]",
+    ".collections-tab--menu-content-item-box",
+  ].join(", ");
+  for (const el of Array.from(main.querySelectorAll(selector))) {
+    if (!isInlineHidden(el)) continue;
+    el.remove();
+    removed += 1;
+  }
+  return removed;
+}
+
 function retagElement(el: Element, tagName: string, dropAttrs: string[] = []): Element {
   const next = el.ownerDocument.createElement(tagName);
   for (const attr of Array.from(el.attributes)) {

@@ -22,6 +22,7 @@ import {
   buildThemeShellMainContentFromHtml,
   type ThemeShellSectionsContent,
 } from "@/lib/theme-shell-sections-content";
+import { withDescriptiveMediaUrls } from "@/lib/media-descriptive-url";
 
 async function buildThemeShellCollectionContent(
   siteId: string,
@@ -54,7 +55,12 @@ async function buildThemeShellCollectionContent(
   if (config) {
     html = applyMirrorPageOverlayToHtml(html, config, locale);
   }
-  return buildThemeShellMainContentFromHtml(html);
+  const sections = buildThemeShellMainContentFromHtml(html);
+  if (!sections) return null;
+  return {
+    ...sections,
+    mainHtml: await withDescriptiveMediaUrls(sections.mainHtml),
+  };
 }
 
 /** Koleksiyon kataloğu + admin overlay → MainContent (collections/all pilot, önbellekli) */
@@ -82,7 +88,7 @@ export function resolveThemeShellCollectionContent(
         cat || undefined,
         filters,
       ),
-    ["theme-shell-collection-v2", siteId, dbKey, slug, locale, cat, String(page), filterKey],
+    ["theme-shell-collection-v3", siteId, dbKey, slug, locale, cat, String(page), filterKey],
     {
       revalidate: STORE_PUBLIC_REVALIDATE_SEC,
       tags: [storeSettingsTag(siteId), storeMirrorTag(siteId), "store-products"],

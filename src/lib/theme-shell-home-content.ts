@@ -23,6 +23,7 @@ import {
 import { mergeThemeShellVitrinEngineScripts } from "@/lib/theme-shell-vitrin-engine";
 import { applyStreetFoodFundHero } from "@/lib/mirror-street-food-bar";
 import { buildStreetFoodFundPublicPayload } from "@/lib/street-food-fund/campaign";
+import { withDescriptiveMediaUrls } from "@/lib/media-descriptive-url";
 
 export type ThemeShellHomeContent = ThemeShellSectionsContent & {
   scripts: ThemeShellProductScript[];
@@ -66,8 +67,9 @@ async function buildThemeShellHomeContent(
 
   const { document } = parseHTML(html);
   const scripts = mergeThemeShellVitrinEngineScripts(collectThemeShellVitrinScripts(document));
+  const mainHtml = await withDescriptiveMediaUrls(sections.mainHtml);
 
-  return { ...sections, scripts };
+  return { ...sections, mainHtml, scripts };
 }
 
 /** Ana sayfa — iframe ile aynı zengin HTML + vitrin scriptleri */
@@ -79,7 +81,7 @@ export function resolveThemeShellHomeContent(
 ): Promise<ThemeShellHomeContent | null> {
   return unstable_cache(
     () => buildThemeShellHomeContent(siteId, siteName, tenantSlug, locale),
-    ["theme-shell-home-v14", siteId, tenantSlug, locale],
+    ["theme-shell-home-v16", siteId, tenantSlug, locale],
     {
       revalidate: STORE_PUBLIC_REVALIDATE_SEC,
       tags: [storeSettingsTag(siteId), storeMirrorTag(siteId), "store-products"],

@@ -11,6 +11,9 @@ import { loadMirrorFooterData } from "@/lib/mirror-footer-server";
 import { injectFooterIntoMirrorHtml } from "@/lib/mirror-html-footer-inject";
 import { localizeMirrorHtmlChunkForLocale } from "@/lib/mirror-en-locale";
 import { readMirrorPageHtmlForLocale } from "@/lib/mirror-page-html";
+import { sanitizeLegacyThemeCopy } from "@/lib/mirror-theme-copy-sanitize";
+import { withDescriptiveMediaUrls } from "@/lib/media-descriptive-url";
+import { prisma } from "@/lib/prisma";
 
 export type ThemeShellChrome = {
   announcementSlides: string[];
@@ -104,13 +107,19 @@ async function resolveThemeShellChromeUncached(
   let footerHtml: string | undefined;
   const footerBlock = extractFooterBlock(html);
   if (footerBlock) {
-    const footerData = await loadMirrorFooterData(siteId, locale);
+    const [footerData, site] = await Promise.all([
+      loadMirrorFooterData(siteId, locale),
+      prisma.storeSite.findUnique({ where: { id: siteId }, select: { name: true } }),
+    ]);
     let out = injectFooterIntoMirrorHtml(footerBlock, footerData);
     out = stripFooterLocaleSwitcher(out);
     out = fixRelativeLinks(out);
     if (footerLogoLight) {
       out = out.replace(NOOR_WHITE_LOGO, footerLogoLight);
     }
+    // Şablon alt metni "theking-noor" — marka adıyla değiştir (Google Görsel / AI alıntı)
+    out = sanitizeLegacyThemeCopy(out, locale, site?.name?.trim() || "Anatolian Paw");
+    out = await withDescriptiveMediaUrls(out);
     footerHtml = out;
   }
 
@@ -129,7 +138,7 @@ export async function resolveThemeShellChrome(
 ): Promise<ThemeShellChrome> {
   return unstable_cache(
     () => resolveThemeShellChromeUncached(siteId, locale, footerLogoLight),
-    ["theme-shell-chrome", siteId, locale, footerLogoLight ?? ""],
+    ["theme-shell-chrome-v2", siteId, locale, footerLogoLight ?? ""],
     {
       revalidate: STORE_PUBLIC_REVALIDATE_SEC,
       tags: [storeSettingsTag(siteId), storeMirrorTag(siteId)],

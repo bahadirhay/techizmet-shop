@@ -21,6 +21,7 @@ import {
   removeAdminHiddenSections,
   stripTemplateVariantLeftovers,
 } from "@/lib/theme-shell-seo-finalize";
+import { withDescriptiveMediaUrls } from "@/lib/media-descriptive-url";
 import { loadMirrorProductCommerce } from "@/lib/mirror-product-commerce-server";
 import { loadMirrorProductFramePayload } from "@/lib/mirror-product-frame-server";
 import type { MirrorBreadcrumbItem } from "@/lib/mirror-product-breadcrumb";
@@ -257,8 +258,9 @@ async function buildThemeShellProductShell(
   stripTemplateVariantLeftovers(main);
   promoteProductTitleToH1(main);
 
-  const mainHtml = document.getElementById("MainContent")?.innerHTML?.trim();
-  if (!mainHtml) return null;
+  const mainRaw = document.getElementById("MainContent")?.innerHTML?.trim();
+  if (!mainRaw) return null;
+  const mainHtml = await withDescriptiveMediaUrls(mainRaw);
 
   const scripts = collectThemeShellScripts(document);
   const headStyles = extractHeadStyles(document);
@@ -280,7 +282,7 @@ function getCachedThemeShellProductShell(
 ): Promise<ThemeShellProductShell | null> {
   return unstable_cache(
     () => buildThemeShellProductShell(siteId, siteName, tenantSlug, slug, locale),
-    ["theme-shell-product-shell-v5", siteId, tenantSlug, slug, locale],
+    ["theme-shell-product-shell-v6", siteId, tenantSlug, slug, locale],
     {
       revalidate: STORE_PUBLIC_REVALIDATE_SEC,
       tags: [storeSettingsTag(siteId), storeMirrorTag(siteId), "store-products"],

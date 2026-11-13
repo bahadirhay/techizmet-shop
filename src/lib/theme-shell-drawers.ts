@@ -2,6 +2,7 @@ import "server-only";
 
 import { unstable_cache } from "next/cache";
 import type { ShopLocale } from "@/lib/i18n/locale";
+import { parseHTML } from "@/lib/linkedom-server";
 import {
   STORE_PUBLIC_REVALIDATE_SEC,
   storeMirrorTag,
@@ -124,6 +125,23 @@ function patchThemeShellStoreBridgeJs(js: string): string {
   return `document.documentElement.dataset.knNavServer="1";\n${out}`;
 }
 
+/**
+ * Arama çekmecesi şablondan demo öneriler taşır (kozmetik ürünler, "From $642.00" fiyatları,
+ * var olmayan ürün bağlantıları). Liste tarayıcıda `kn-search-bridge` tarafından gerçek ürünlerle
+ * doldurulur; sunucu HTML'inde boş gönderilir ki botlar demo fiyatları mağazanın fiyatı sanmasın.
+ */
+function stripSearchDrawerDemoSuggestions(searchHtml: string): string {
+  const { document } = parseHTML(`<!DOCTYPE html><html><body>${searchHtml}</body></html>`);
+  const lists = document.querySelectorAll(
+    ".predictive-search--products-list, .predictive--search-collections-list",
+  );
+  if (!lists.length) return searchHtml;
+  lists.forEach((list) => {
+    list.innerHTML = "";
+  });
+  return document.body.innerHTML?.trim() || searchHtml;
+}
+
 function resolveThemeShellDrawersUncached(locale: ShopLocale): ThemeShellDrawers | null {
   const raw = readMirrorPageHtmlForLocale("home", locale);
   if (!raw) return null;
@@ -132,8 +150,9 @@ function resolveThemeShellDrawersUncached(locale: ShopLocale): ThemeShellDrawers
 
   const account = extractCustomElement(html, "account-drawer");
   const cart = extractCustomElement(html, "cart-drawer");
-  const search = extractCustomElement(html, "search-drawer");
-  if (!account || !cart || !search) return null;
+  const rawSearch = extractCustomElement(html, "search-drawer");
+  if (!account || !cart || !rawSearch) return null;
+  const search = stripSearchDrawerDemoSuggestions(rawSearch);
 
   const drawersHtml = `${account}\n${cart}\n${search}`;
   const stylesheets = [
@@ -152,7 +171,7 @@ export function resolveThemeShellDrawers(
 ): Promise<ThemeShellDrawers | null> {
   return unstable_cache(
     () => Promise.resolve(resolveThemeShellDrawersUncached(locale)),
-    ["theme-shell-drawers-v7", siteId, locale],
+    ["theme-shell-drawers-v8", siteId, locale],
     {
       revalidate: STORE_PUBLIC_REVALIDATE_SEC,
       tags: [storeMirrorTag(siteId)],

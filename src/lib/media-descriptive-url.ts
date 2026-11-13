@@ -133,3 +133,10 @@ export function rewriteMediaUrlsInText(text: string, names: MediaNameMap): strin
     return name ? `/gorsel/${id}/${name}` : full;
   });
 }
+
+/** Tema kabuğu / SEO HTML — görsel adreslerini ürün adıyla yeniden yazar */
+export async function withDescriptiveMediaUrls(html: string): Promise<string> {
+  if (!html.includes("/api/media/")) return html;
+  const names = await loadMediaNameMap();
+  return rewriteMediaUrlsInText(html, names);
+}
