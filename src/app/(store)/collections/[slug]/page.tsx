@@ -7,15 +7,19 @@ import { MirrorCollectionFrame } from "@/components/store/MirrorCollectionFrame"
 import { ThemeShellSectionsView } from "@/components/store/ThemeShellSectionsView";
 import { JsonLdScript } from "@/components/store/JsonLdScript";
 import { ProductGridBlock } from "@/components/store/ProductGridBlock";
-import { CollectionSeoContent } from "@/components/store/CollectionSeoContent";
+import { LandingPageContent } from "@/components/store/LandingPageContent";
 import { getStoreLocale } from "@/lib/i18n/server";
 import {
   parseCollectionFilterParams,
 } from "@/lib/collection-filter-facets";
 import { prisma } from "@/lib/prisma";
 import { loadCollectionSeo } from "@/lib/seo/collection-seo";
-import { loadCollectionSeoContent } from "@/lib/seo/collection-seo-content";
-import { findLandingIntentBySlug } from "@/lib/seo/search-intent";
+import { loadLandingPageData } from "@/lib/seo/landing-page-data";
+import {
+  findLandingIntentBySlug,
+  LANDING_COLLECTION_SLUGS,
+} from "@/lib/seo/search-intent";
+import { getLoggedInCustomerPricing } from "@/lib/store/customer-pricing";
 import { buildCollectionPageJsonLd } from "@/lib/seo/collection-page-json-ld";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { buildSiteMetadata } from "@/lib/site-metadata";
@@ -122,29 +126,30 @@ export default async function CollectionPage({
 
   const jsonLdNode = jsonLd ? <JsonLdScript data={jsonLd} /> : null;
 
-  // Head terimler için adanmış, içerik-öncelikli (tamamen taranabilir) landing sayfaları
-  const landingIntent = findLandingIntentBySlug(slug);
-  if (landingIntent) {
-    const canonicalPath = `/collections/${slug}`;
-    const content = await loadCollectionSeoContent(canonicalPath, { includeProducts: true });
+  // Head terimler için adanmış, içerik-öncelikli (tamamen taranabilir) landing sayfaları.
+  // LANDING_COLLECTION_SLUGS DB'de koleksiyon olmasa da asla soft-404 olmamalı.
+  const cleanSlug = slug.trim().toLowerCase();
+  const landingIntent = findLandingIntentBySlug(cleanSlug);
+  const isDedicatedLanding =
+    Boolean(landingIntent) || LANDING_COLLECTION_SLUGS.includes(cleanSlug);
+  if (isDedicatedLanding) {
+    // Bütün veri burada beklenir ve bileşenler eşzamanlıdır: ürün ızgarası akışla
+    // sonradan gelen gizli bir bloğa düşmez, gövdede tek parça basılır.
+    const [landing, memberPricing] = await Promise.all([
+      loadLandingPageData(cleanSlug),
+      getLoggedInCustomerPricing(site.id),
+    ]);
+    const fallbackHeading =
+      landingIntent?.h1 ?? landingIntent?.query ?? cleanSlug.replace(/-/g, " ");
     return (
       <>
         {jsonLdNode}
         <div className="kn-section kn-landing">
-          {content ? (
-            <CollectionSeoContent
-              heading={content.heading}
-              intro={content.intro}
-              criteria={content.criteria}
-              products={content.products}
-              faqs={content.faqs}
-              relatedLinks={content.relatedLinks}
-            />
+          {landing ? (
+            <LandingPageContent data={landing} memberPricing={memberPricing} />
           ) : (
-            <h1 className="kn-section__title">{landingIntent.h1 ?? landingIntent.query}</h1>
+            <h1 className="kn-section__title">{fallbackHeading}</h1>
           )}
-          <h2 className="kn-seo-content__subtitle">Ürünler</h2>
-          <ProductGridBlock limit={48} />
           <p className="mt-8 text-center">
             <Link href="/collections/all">← Tüm ürünler</Link>
           </p>

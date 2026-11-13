@@ -4,11 +4,18 @@ import { MIRROR_CONTENT_PAGE_SLUGS } from "@/lib/mirror-vitrin-pages";
 import type { MetadataRoute } from "next";
 import { getPublicSiteUrl } from "@/lib/seo/site-url";
 import { LANDING_COLLECTION_SLUGS } from "@/lib/seo/search-intent";
+import { buildMediaNameMap, descriptiveMediaUrl } from "@/lib/media-descriptive-url";
 import { prisma } from "@/lib/prisma";
 import { storefrontListedWhere } from "@/lib/storefront-product-where";
 import { parseSiteSettings, getSiteSeo } from "@/lib/site-settings";
 import { normalizeRobotsDisallowPaths } from "@/lib/seo/robots-disallow-paths";
 import { pathMatchesRobotsDisallow } from "@/lib/admin/google-appearance/search-index-block";
+
+function absoluteAssetUrl(root: string, url: string): string {
+  const trimmed = url.trim();
+  if (trimmed.startsWith("http")) return trimmed;
+  return `${root}${trimmed.startsWith("/") ? "" : "/"}${trimmed}`;
+}
 
 export async function buildStoreSitemapEntries(siteId: string): Promise<MetadataRoute.Sitemap> {
   const root = getPublicSiteUrl();
@@ -31,10 +38,21 @@ export async function buildStoreSitemapEntries(siteId: string): Promise<Metadata
     }
   };
 
-  const [products, collections, pages, categories, blogPosts] = await Promise.all([
+  const [products, collections, pages, categories, blogPosts, mediaNames] = await Promise.all([
     prisma.storeProduct.findMany({
       where: { siteId, ...storefrontListedWhere },
-      select: { slug: true, updatedAt: true, imageUrl: true },
+      orderBy: [{ title: "asc" }, { priceMinor: "asc" }],
+      select: {
+        slug: true,
+        title: true,
+        updatedAt: true,
+        imageUrl: true,
+        images: {
+          where: { mediaType: "image" },
+          orderBy: { sortOrder: "asc" },
+          select: { url: true },
+        },
+      },
     }),
     prisma.storeCollection.findMany({
       where: { siteId, published: true },
@@ -52,6 +70,7 @@ export async function buildStoreSitemapEntries(siteId: string): Promise<Metadata
       where: { siteId, published: true },
       select: { slug: true, updatedAt: true, publishedAt: true },
     }),
+    buildMediaNameMap(prisma, siteId),
   ]);
 
   const staticRoutes: MetadataRoute.Sitemap = [
@@ -103,17 +122,17 @@ export async function buildStoreSitemapEntries(siteId: string): Promise<Metadata
       changeFrequency: "weekly" as const,
       priority: 0.75,
     })),
-    ...products.map((p) => ({
-      url: `${root}/products/${p.slug}`,
-      lastModified: p.updatedAt,
-      changeFrequency: "weekly" as const,
-      priority: 0.7,
-      ...(p.imageUrl?.trim()
-        ? {
-            images: [p.imageUrl.trim().startsWith("http") ? p.imageUrl.trim() : `${root}${p.imageUrl.trim().startsWith("/") ? "" : "/"}${p.imageUrl.trim()}`],
-          }
-        : {}),
-    })),
+    ...products.map((p) => {
+      const rawImage = p.imageUrl?.trim() || p.images[0]?.url?.trim() || null;
+      const imagePath = rawImage ? descriptiveMediaUrl(rawImage, mediaNames) : null;
+      return {
+        url: `${root}/products/${p.slug}`,
+        lastModified: p.updatedAt,
+        changeFrequency: "weekly" as const,
+        priority: 0.7,
+        ...(imagePath ? { images: [absoluteAssetUrl(root, imagePath)] } : {}),
+      };
+    }),
     ...pages
       .filter((p) => p.slug !== "home")
       .map((p) => ({

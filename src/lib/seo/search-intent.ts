@@ -36,6 +36,9 @@ const LANDING_DOGAL_KOPEK_ODULU = "/collections/dogal-kopek-odulu";
 const LANDING_KOPEK_ODUL_MAMASI = "/collections/kopek-odul-mamasi";
 const LANDING_DOGAL_KOPEK_ODUL_MAMASI = "/collections/dogal-kopek-odul-mamasi";
 const LANDING_ODUL_MAMASI = "/collections/odul-mamasi";
+/** Kullanım amacına göre landing sayfaları — kendi ürün alt kümesi (bkz. landing-content.ts) */
+const LANDING_KOPEK_EGITIM_ODUL_MAMASI = "/collections/kopek-egitim-odul-mamasi";
+const LANDING_KOPEK_CIGNEME_URUNLERI = "/collections/kopek-cigneme-urunleri";
 
 /**
  * Google'da öncelikli 3 hedef sorgu — admin Google Sıralama paneli + ana sayfa meta.
@@ -56,32 +59,32 @@ export const DEFAULT_SEARCH_INTENTS: SearchIntentTarget[] = [
     landingPath: LANDING_DOGAL_KOPEK_ODULU,
     landingKind: "collection",
     collectionSlug: "dogal-kopek-odulu",
-    title: "Doğal Köpek Ödülü | Anatolian Paw",
+    title: "Doğal Köpek Ödülü | Kurutulmuş, Katkısız Ödüller | Anatolian Paw",
     description:
-      "Doğal köpek ödülü ve eğitim maması — tahılsız, katkısız, Türkiye üretimi. Kurutulmuş dana ciğer, akciğer ve kemik ödülleri 150–250 TL aralığında. Hızlı kargo, güvenilir içerik.",
+      "Doğal köpek ödülü çeşitleri protein kaynağına göre: dana akciğer, dana gırtlak, deve derisi, kuzu paça ve tavuk ayağı. Kurutulmuş, tahılsız ve katkısız; saklama ve kullanım bilgisiyle.",
     h1: "Doğal Köpek Ödülü",
-    productKeywords: ["doğal", "köpek", "ödül", "ciğer", "akciğer", "kurutulmuş", "tahılsız", "eğitim"],
+    productKeywords: ["doğal", "köpek", "ödül", "akciğer", "kurutulmuş", "tahılsız", "eğitim"],
     suggestedBlogTitle: "Doğal Köpek Ödülü Nedir? 2026 Fiyat ve Seçim Rehberi",
     faqs: [
       {
-        question: "Doğal köpek ödülü nedir?",
+        question: "Doğal köpek ödülü hangi hammaddelerden yapılır?",
         answer:
-          "Doğal köpek ödülü, yapay renklendirici, tahıl ve koruyucu içermeyen; tek protein kaynaklı kurutulmuş veya minimal işlem görmüş atıştırmalıklardır. Eğitim ve pozitif pekiştirmede kullanılır.",
+          "Anatolian Paw doğal köpek ödülleri dana akciğer, dana gırtlak, deve derisi, kuzu paça ve tavuk ayağından üretilir. Her üründe içerik, ürün adında yazan hammaddedir; tahıl, renklendirici veya koruyucu eklenmez.",
       },
       {
-        question: "Doğal köpek ödülü fiyatları ne kadar?",
+        question: "Kurutulmuş köpek ödülü nasıl saklanır?",
         answer:
-          "Anatolian Paw doğal köpek ödülleri genelde 150–250 TL aralığındadır. Gramaj ve proteine göre değişir; güncel fiyatlar ürün sayfalarında listelenir.",
+          "Serin, kuru ve doğrudan güneş almayan bir yerde saklayın. Paket açıldıktan sonra ağzını kapatın ve 30 gün içinde tüketin.",
       },
       {
-        question: "Hangi köpekler için uygundur?",
+        question: "Sığır etine hassasiyeti olan köpek için hangi ödül seçilir?",
         answer:
-          "Yetişkin ve yavru köpekler için uygun ürünler ayrı etiketlenir. Tahılsız ve tek proteinli ödüller hassas sindirim ve alerji riski düşük beslenme tercih edenler için idealdir.",
+          "Dana kaynaklı olmayan seçenekler deve derisi, kuzu paça ve tavuk ayağıdır. Yeni bir proteini küçük miktarla deneyin; bilinen bir alerji varsa önce veterinerinize danışın.",
       },
       {
-        question: "Eğitim ödülü olarak nasıl kullanılır?",
+        question: "Doğal köpek ödülü ile köpek ödül maması aynı şey mi?",
         answer:
-          "Küçük parçalara bölünerek kısa eğitim seanslarında verin. Günlük rasyonun %10'unu geçmeyecek şekilde ödül miktarını sınırlayın.",
+          "Evet, günlük kullanımda iki ifade aynı ürünleri anlatır: ana öğünün yerine geçmeyen, eğitimde ve ödüllendirmede verilen atıştırmalıklar.",
       },
     ],
   },
@@ -94,7 +97,7 @@ export const DEFAULT_SEARCH_INTENTS: SearchIntentTarget[] = [
     collectionSlug: "kopek-odul-mamasi",
     title: "Köpek Ödül Maması | Doğal ve Tahılsız | Anatolian Paw",
     description:
-      "Köpek ödül maması çeşitleri — kurutulmuş organ etleri, çiğneme kemikleri ve eğitim ödülleri. Tahılsız, katkısız, Türkiye üretimi. Online sipariş, hızlı kargo ve güncel stok.",
+      "Köpek ödül maması çeşitleri: kurutulmuş dana akciğer, dana gırtlak, deve derisi, kuzu paça ve tavuk ayağı. Gramaj ve fiyat karşılaştırması, kullanım amacına göre seçim. Tahılsız, katkısız, Türkiye üretimi.",
     h1: "Köpek Ödül Maması",
     productKeywords: ["köpek", "ödül", "mama", "doğal", "kurutulmuş", "eğitim", "tahılsız"],
     suggestedBlogTitle: "Köpek Ödül Maması Seçerken Nelere Dikkat Edilmeli?",
@@ -107,7 +110,7 @@ export const DEFAULT_SEARCH_INTENTS: SearchIntentTarget[] = [
       {
         question: "Ödül maması ile ana mama arasındaki fark nedir?",
         answer:
-          "Ana mama günlük beslenme ihtiyacını karşılar; ödül maması küçük porsiyonlarda verilir ve genelde daha yüksek protein, daha düşük tahıl içerir.",
+          "Ana mama günlük beslenme ihtiyacını karşılar; ödül maması küçük porsiyonlarda verilir, tam ve dengeli bir öğün değildir ve ana mamanın yerine geçmez.",
       },
       {
         question: "Günde ne kadar köpek ödül maması verilmeli?",
@@ -117,7 +120,12 @@ export const DEFAULT_SEARCH_INTENTS: SearchIntentTarget[] = [
       {
         question: "Hangi köpek ödül maması daha sağlıklı?",
         answer:
-          "Tek proteinli, tahılsız ve katkısız kurutulmuş organ ödülleri (dana ciğer, akciğer gibi) içerik listesi kısa olan ürünler genelde daha sağlıklı kabul edilir.",
+          "İçerik listesi kısa, tek hammaddeli, tahıl ve katkı içermeyen kurutulmuş ödüller (dana akciğer, deve derisi gibi) genelde daha güvenli bir seçimdir. Köpeğinizin özel bir sağlık durumu varsa veterinerinize danışın.",
+      },
+      {
+        question: "Köpek ödül maması fiyatları ne kadar?",
+        answer:
+          "Fiyat gramaja ve hammaddeye göre değişir. Güncel fiyatlar ürün sayfalarında ve köpek ödül maması sayfasındaki karşılaştırma tablosunda yer alır.",
       },
     ],
   },
@@ -128,9 +136,9 @@ export const DEFAULT_SEARCH_INTENTS: SearchIntentTarget[] = [
     landingPath: LANDING_ODUL_MAMASI,
     landingKind: "collection",
     collectionSlug: "odul-mamasi",
-    title: "Ödül Maması | Doğal Köpek Ödül Maması | Anatolian Paw",
+    title: "Ödül Maması | Köpekler İçin Doğal Ödül Maması Türleri | Anatolian Paw",
     description:
-      "Ödül maması — köpekler için doğal, tahılsız ve katkısız ödül mamaları. Kurutulmuş organ etleri ve eğitim ödülleri; Türkiye üretimi, hızlı kargo, güvenilir içerik.",
+      "Köpekler için ödül maması türleri: eğitimde küçük parçalara bölünen akciğer ödülleri, uzun süre çiğnenen deve derisi ve kuzu paça, karışık paketler. Doğal, tahılsız ve katkısız.",
     h1: "Ödül Maması",
     productKeywords: ["ödül", "mama", "köpek", "doğal", "kurutulmuş", "eğitim", "tahılsız"],
     suggestedBlogTitle: "Ödül Maması Nedir? Köpekler İçin Doğru Seçim Rehberi",
@@ -143,7 +151,7 @@ export const DEFAULT_SEARCH_INTENTS: SearchIntentTarget[] = [
       {
         question: "Ödül maması köpekler için mi?",
         answer:
-          "Evet — Anatolian Paw ödül mamaları köpekler için üretilir. Köpek ödül maması ve doğal köpek ödül maması koleksiyonlarımızda tüm ürünleri görebilirsiniz.",
+          "Bu mağazadaki ödül mamalarının tamamı köpekler içindir. Eğitim ödül mamaları ve çiğneme ürünleri sayfalarında kullanım amacına göre ayrılmış ürünleri görebilirsiniz.",
       },
       {
         question: "Ödül maması ile köpek maması aynı mı?",
@@ -166,15 +174,15 @@ export const DEFAULT_SEARCH_INTENTS: SearchIntentTarget[] = [
     collectionSlug: "dogal-kopek-odul-mamasi",
     title: "Doğal Köpek Ödül Maması | Tahılsız & Katkısız | Anatolian Paw",
     description:
-      "Doğal köpek ödül maması — kurutulmuş dana ciğer, akciğer ve organ etlerinden tahılsız, katkısız ödüller. Tek protein kaynağı, Türkiye üretimi; eğitim ve günlük ödül için ideal. Hızlı kargo, güncel stok.",
+      "Doğal köpek ödül maması: tek hammaddeli kurutulmuş dana akciğer, dana gırtlak, deve derisi, kuzu paça ve tavuk ayağı. İçerik listesi tek satır; tahıl, renklendirici ve koruyucu yok. Türkiye üretimi.",
     h1: "Doğal Köpek Ödül Maması",
-    productKeywords: ["doğal", "köpek", "ödül", "mama", "kurutulmuş", "tahılsız", "ciğer", "akciğer"],
+    productKeywords: ["doğal", "köpek", "ödül", "mama", "kurutulmuş", "tahılsız", "akciğer"],
     suggestedBlogTitle: "Doğal Köpek Ödül Maması Rehberi: İçerik, Fayda ve Seçim",
     faqs: [
       {
         question: "Doğal köpek ödül maması nedir?",
         answer:
-          "Doğal köpek ödül maması; yapay renklendirici, tahıl ve koruyucu içermeyen, tek protein kaynaklı (dana ciğer, akciğer gibi) kurutulmuş veya minimal işlem görmüş ödül ürünleridir. Eğitim ve pozitif pekiştirmede kullanılır.",
+          "Doğal köpek ödül maması; yapay renklendirici, tahıl ve koruyucu içermeyen, tek hammaddeden (dana akciğer, deve derisi gibi) kurutularak üretilen ödül ürünleridir. Eğitim ve pozitif pekiştirmede kullanılır.",
       },
       {
         question: "Doğal köpek ödül maması ile işlenmiş ödül arasındaki fark nedir?",
@@ -184,12 +192,12 @@ export const DEFAULT_SEARCH_INTENTS: SearchIntentTarget[] = [
       {
         question: "Doğal köpek ödül maması fiyatları ne kadar?",
         answer:
-          "Anatolian Paw doğal ödülleri genelde 150–250 TL aralığındadır. Protein türü, gramaj ve kurutma yöntemine göre değişir; güncel fiyatlar ürün sayfalarında listelenir.",
+          "Fiyat hammaddeye ve gramaja göre değişir. Güncel fiyatlar ürün sayfalarında ve doğal köpek ödül maması sayfasındaki tabloda yer alır.",
       },
       {
         question: "Hangi köpekler için uygundur?",
         answer:
-          "Yetişkin ve uygun yaştaki yavru köpekler için kullanılabilir. Tek proteinli ve tahılsız olması, alerji ve hassasiyet riski düşük beslenme arayanlar için idealdir; özel diyette veterinere danışın.",
+          "Yetişkin köpekler için uygundur. Yavru köpeklerde ve özel diyet uygulanan köpeklerde vermeden önce veterinerinize danışın.",
       },
     ],
   },
@@ -202,9 +210,9 @@ export const DEFAULT_SEARCH_INTENTS: SearchIntentTarget[] = [
     staticPageKey: LANDING_ALL,
     title: "Köpek Ödülü | Kurutulmuş Doğal Atıştırmalıklar | Anatolian Paw",
     description:
-      "Köpek ödülü modelleri — dana ciğer, akciğer, kemik ve çiğneme stickleri. Eğitim ve davranış ödüllendirmesi için doğal, tahılsız seçenekler. Türkiye üretimi, hızlı teslimat.",
+      "Köpek ödülü çeşitleri — dana akciğer, dana gırtlak, deve derisi, kuzu paça ve tavuk ayağı. Eğitim ve davranış ödüllendirmesi için doğal, tahılsız seçenekler. Türkiye üretimi, hızlı teslimat.",
     h1: "Köpek Ödülü",
-    productKeywords: ["köpek", "ödül", "ciğer", "akciğer", "kemik", "çiğneme", "doğal"],
+    productKeywords: ["köpek", "ödül", "akciğer", "çiğneme", "doğal"],
     suggestedBlogTitle: "En İyi Köpek Ödülü Türleri: Eğitim ve Sağlık Rehberi",
     faqs: [
       {
@@ -233,7 +241,7 @@ export const DEFAULT_SEARCH_INTENTS: SearchIntentTarget[] = [
     staticPageKey: LANDING_ALL,
     title: "Doğal Köpek Ödül Maması Fiyatları | Anatolian Paw",
     description:
-      "Doğal köpek ödül maması fiyatları 2026 — kurutulmuş organ etleri, kemik ve çiğneme ödülleri. TRY fiyat, stok ve kargo bilgisiyle online sipariş.",
+      "Doğal köpek ödül maması fiyatları 2026 — kurutulmuş dana akciğer, deve derisi, kuzu paça ve diğer doğal ödüller. TRY fiyat, stok ve kargo bilgisiyle online sipariş.",
     h1: "Doğal Köpek Ödül Maması Fiyatları",
     productKeywords: ["fiyat", "doğal", "ödül", "köpek", "mama", "kurutulmuş"],
     suggestedBlogTitle: "Doğal Köpek Ödül Maması Fiyatları 2026 Karşılaştırması",
@@ -241,12 +249,12 @@ export const DEFAULT_SEARCH_INTENTS: SearchIntentTarget[] = [
       {
         question: "Doğal köpek ödül maması fiyatları neden değişir?",
         answer:
-          "Protein türü (dana, kuzu), gramaj, kurutma yöntemi ve paket boyutuna göre fiyat değişir. Tek proteinli organ ödülleri genelde premium segmenttedir.",
+          "Protein türü (dana, deve, kuzu, tavuk), gramaj ve paket boyutuna göre fiyat değişir.",
       },
       {
-        question: "2026'da doğal ödül maması ortalama fiyat aralığı nedir?",
+        question: "Doğal ödül maması fiyatı nereden öğrenilir?",
         answer:
-          "Anatolian Paw ürünlerinde çoğu doğal ödül 150–250 TL bandındadır; kampanya ve paket boyutuna göre güncel fiyat ürün sayfasında görünür.",
+          "Her ürünün güncel fiyatı ürün sayfasında ve köpek ödül maması sayfasındaki karşılaştırma tablosunda görünür; kampanya ve paket boyutuna göre değişebilir.",
       },
       {
         question: "Toplu alımda indirim var mı?",
@@ -264,19 +272,19 @@ export const DEFAULT_SEARCH_INTENTS: SearchIntentTarget[] = [
     staticPageKey: LANDING_ALL,
     title: "Köpek Ödül Maması Fiyatları 2026 | Anatolian Paw",
     description:
-      "Köpek ödül maması fiyat listesi — ciğer, akciğer, kemik ve stick ödüller. Güncel TRY fiyat, stok durumu ve ücretsiz kargo eşiği bilgisiyle hemen sipariş verin.",
+      "Köpek ödül maması fiyat listesi — dana akciğer, dana gırtlak, deve derisi, kuzu paça ve tavuk ayağı. Güncel TRY fiyat, stok durumu ve ücretsiz kargo eşiği bilgisiyle hemen sipariş verin.",
     h1: "Köpek Ödül Maması Fiyatları",
-    productKeywords: ["köpek", "ödül", "mama", "fiyat", "ciğer", "akciğer"],
+    productKeywords: ["köpek", "ödül", "mama", "fiyat", "akciğer"],
     faqs: [
       {
         question: "Köpek ödül maması fiyatları neye göre belirlenir?",
         answer:
-          "Et türü, kurutma süreci, gramaj ve üretim maliyetine göre fiyat oluşur. Organ eti ödülleri genelde daha yüksek protein nedeniyle fiyatlıdır.",
+          "Hammadde, kurutma süreci, gramaj ve üretim maliyetine göre fiyat oluşur.",
       },
       {
         question: "En ucuz köpek ödül maması hangisi?",
         answer:
-          "Küçük gramajlı stick veya mix paketler giriş seviyesi fiyat sunar; içerik listesini fiyata göre değil kaliteye göre değerlendirin.",
+          "Küçük gramajlı paketler giriş seviyesi fiyat sunar; ürünü fiyata göre değil içerik listesine göre değerlendirin.",
       },
       {
         question: "Fiyatlar KDV dahil mi?",
@@ -287,18 +295,23 @@ export const DEFAULT_SEARCH_INTENTS: SearchIntentTarget[] = [
   },
   {
     id: "dog-training-treat",
-    query: "köpek eğitim ödülü",
-    priority: 6,
-    landingPath: LANDING_ALL,
-    landingKind: "staticPage",
-    staticPageKey: LANDING_ALL,
-    title: "Köpek Eğitim Ödülü | Küçük Parça, Yüksek Motivasyon | Anatolian Paw",
+    query: "köpek eğitim ödül maması",
+    priority: 2,
+    landingPath: LANDING_KOPEK_EGITIM_ODUL_MAMASI,
+    landingKind: "collection",
+    collectionSlug: "kopek-egitim-odul-mamasi",
+    title: "Köpek Eğitim Ödül Maması | Küçük Parça, Doğal | Anatolian Paw",
     description:
-      "Köpek eğitim ödülü — küçük boy, yüksek koku ve hızlı tüketim için ideal kurutulmuş et parçaları. Otur, bekle, yanımda yürü komutları için doğal tahılsız seçenekler.",
-    h1: "Köpek Eğitim Ödülü",
-    productKeywords: ["eğitim", "köpek", "ödül", "ciğer", "doğal", "mama"],
+      "Köpek eğitim ödül maması: elle küçük parçalara bölünen kurutulmuş dana akciğer ve akciğerli karışık paketler. Tahılsız, katkısız; eğitimde parça boyutu ve günlük miktar önerileriyle.",
+    h1: "Köpek Eğitim Ödül Maması",
+    productKeywords: ["eğitim", "köpek", "ödül", "akciğer", "doğal", "mama"],
     suggestedBlogTitle: "Köpek Eğitim Ödülü Nasıl Seçilir? Eğitmen Önerileri",
     faqs: [
+      {
+        question: "Eğitim için hangi Anatolian Paw ürünü uygun?",
+        answer:
+          "Kurutulmuş dana akciğer hafif ve gevrek olduğu için elle küçük parçalara ayrılır; küçük ve büyük paket seçenekleri vardır. Akciğerli karışık paketler de eğitimde kullanılabilir.",
+      },
       {
         question: "Eğitim ödülü nasıl olmalı?",
         answer:
@@ -323,11 +336,11 @@ export const DEFAULT_SEARCH_INTENTS: SearchIntentTarget[] = [
     landingPath: LANDING_ALL,
     landingKind: "staticPage",
     staticPageKey: LANDING_ALL,
-    title: "Kurutulmuş Köpek Ödülü | Dana Ciğer ve Organ Etleri | Anatolian Paw",
+    title: "Kurutulmuş Köpek Ödülü | Dana Akciğer, Deve Derisi, Kuzu Paça | Anatolian Paw",
     description:
-      "Kurutulmuş köpek ödülü — düşük ısıda kurutulmuş dana ciğer, akciğer ve protein snackler. Uzun raf ömrü, yoğun lezzet, tahılsız içerik. Türkiye'de üretim, güvenilir kaynak.",
+      "Kurutulmuş köpek ödülü — kurutulmuş dana akciğer, dana gırtlak, deve derisi, kuzu paça ve tavuk ayağı. Uzun raf ömrü, yoğun lezzet, tahılsız içerik. Türkiye'de üretim, güvenilir kaynak.",
     h1: "Kurutulmuş Köpek Ödülü",
-    productKeywords: ["kurutulmuş", "köpek", "ödül", "ciğer", "akciğer", "dana", "doğal"],
+    productKeywords: ["kurutulmuş", "köpek", "ödül", "akciğer", "dana", "doğal"],
     suggestedBlogTitle: "Kurutulmuş Köpek Ödülü: Faydaları ve Saklama İpuçları",
     faqs: [
       {
@@ -341,40 +354,9 @@ export const DEFAULT_SEARCH_INTENTS: SearchIntentTarget[] = [
           "Et düşük ısıda uzun süre kurutularak nemi alınır; böylece koruyucu maddeye gerek kalmadan raf ömrü uzar.",
       },
       {
-        question: "Kurutulmuş ciğer ödülü kimler için?",
+        question: "Kurutulmuş akciğer ödülü kimler için?",
         answer:
-          "Yüksek protein isteyen aktif köpekler ve eğitim ödülü arayanlar için uygundur; böbrek hastalığı olan köpeklerde veterinere danışın.",
-      },
-    ],
-  },
-  {
-    id: "beef-liver-dog-treat",
-    query: "dana ciğer köpek ödülü",
-    priority: 8,
-    landingPath: LANDING_ALL,
-    landingKind: "staticPage",
-    staticPageKey: LANDING_ALL,
-    title: "Dana Ciğer Köpek Ödülü | Kurutulmuş, Tahılsız | Anatolian Paw",
-    description:
-      "Dana ciğer köpek ödülü — yüksek protein, demir ve B vitamini kaynağı kurutulmuş atıştırmalık. Eğitim ve ödüllendirme için küçük parçalara bölünebilir. Doğal içerik, hızlı kargo.",
-    h1: "Dana Ciğer Köpek Ödülü",
-    productKeywords: ["dana", "ciğer", "köpek", "ödül", "kurutulmuş", "doğal"],
-    suggestedBlogTitle: "Dana Ciğer Köpek Ödülü: Besin Değeri ve Kullanım Önerileri",
-    faqs: [
-      {
-        question: "Dana ciğer ödülü neden popüler?",
-        answer:
-          "Yoğun koku ve lezzet nedeniyle köpekler tarafından çok sevilir; eğitimde yüksek motivasyon sağlar.",
-      },
-      {
-        question: "Dana ciğer ödülü her gün verilir mi?",
-        answer:
-          "Ödül olarak sınırlı miktarda verilmelidir; ana protein kaynağı mama olmalı, ciğer günlük ödül bandında kalmalıdır.",
-      },
-      {
-        question: "Dana ciğer alerji yapar mı?",
-        answer:
-          "Sığır proteini hassasiyeti olan köpeklerde kaçınılmalıdır; yeni ödül tek tek ve küçük miktarda denenmelidir.",
+          "Eğitim ödülü arayanlar için uygundur; hafif olduğu için küçük parçalara bölünür. Özel diyet uygulanan köpeklerde veterinere danışın.",
       },
     ],
   },
@@ -387,19 +369,19 @@ export const DEFAULT_SEARCH_INTENTS: SearchIntentTarget[] = [
     staticPageKey: LANDING_ALL,
     title: "Akciğer Köpek Ödülü | Hafif ve Lezzetli | Anatolian Paw",
     description:
-      "Akciğer köpek ödülü — hafif yapılı, kolay çiğnenen kurutulmuş organ atıştırmalığı. Yavru ve yaşlı köpekler için uygun boyut seçenekleri. Tahılsız, katkısız Türkiye üretimi.",
+      "Akciğer köpek ödülü — hafif yapılı, kolay çiğnenen kurutulmuş dana akciğer. Elle küçük parçalara bölünür; eğitim ve günlük ödül için farklı paket boyutları. Tahılsız, katkısız Türkiye üretimi.",
     h1: "Akciğer Köpek Ödülü",
-    productKeywords: ["akciğer", "köpek", "ödül", "kurutulmuş", "doğal", "yavru"],
+    productKeywords: ["akciğer", "köpek", "ödül", "kurutulmuş", "doğal", "dana"],
     faqs: [
       {
         question: "Akciğer ödülü hangi köpekler için uygundur?",
         answer:
-          "Hafif dokusu sayesinde küçük ırklar, yavrular ve yaşlı köpekler için sık tercih edilir; parça boyutuna dikkat edin.",
+          "Hafif ve gevrek dokusu sayesinde küçük ırklarda da sık tercih edilir; parça boyutunu köpeğinize göre ayarlayın. Yavru köpeklerde önce veterinerinize danışın.",
       },
       {
-        question: "Akciğer ile ciğer ödülü farkı nedir?",
+        question: "Akciğer ödülü eğitimde kullanılır mı?",
         answer:
-          "Her ikisi de organ etidir; akciğer genelde daha hafif ve gevrek, ciğer daha yoğun protein ve koku sunar.",
+          "Evet; kurutulmuş dana akciğer elle kolayca küçük parçalara ayrıldığı için eğitim seanslarında pratik bir ödüldür.",
       },
       {
         question: "Akciğer ödülü nasıl saklanır?",
@@ -419,7 +401,7 @@ export const DEFAULT_SEARCH_INTENTS: SearchIntentTarget[] = [
     description:
       "Tahılsız köpek ödülü — buğday, mısır ve gluten içermeyen kurutulmuş et ödülleri. Hassas sindirim ve tahıl intoleransı olan köpekler için. %100 et içerikli seçenekler.",
     h1: "Tahılsız Köpek Ödülü",
-    productKeywords: ["tahılsız", "köpek", "ödül", "doğal", "gluten", "ciğer", "kurutulmuş"],
+    productKeywords: ["tahılsız", "köpek", "ödül", "doğal", "gluten", "akciğer", "kurutulmuş"],
     suggestedBlogTitle: "Tahılsız Köpek Ödülü: Kimler İçin Gerekli?",
     faqs: [
       {
@@ -441,32 +423,37 @@ export const DEFAULT_SEARCH_INTENTS: SearchIntentTarget[] = [
   },
   {
     id: "dog-chew-bone",
-    query: "köpek çiğneme kemiği",
-    priority: 11,
-    landingPath: LANDING_ALL,
-    landingKind: "staticPage",
-    staticPageKey: LANDING_ALL,
-    title: "Köpek Çiğneme Kemiği | Doğal Kemik Ödülleri | Anatolian Paw",
+    query: "köpek çiğneme ürünleri",
+    priority: 2,
+    landingPath: LANDING_KOPEK_CIGNEME_URUNLERI,
+    landingKind: "collection",
+    collectionSlug: "kopek-cigneme-urunleri",
+    title: "Köpek Çiğneme Ürünleri | Doğal Çiğneme Ödülleri | Anatolian Paw",
     description:
-      "Köpek çiğneme kemiği ve kemik ödül çeşitleri — diş temizliği ve uzun süreli meşguliyet için. Doğal kaynaklı, boyuta göre küçük ve orta ırk seçenekleri. Güvenli kullanım önerileriyle.",
-    h1: "Köpek Çiğneme Kemiği",
-    productKeywords: ["kemik", "çiğneme", "köpek", "ödül", "doğal", "stick"],
+      "Köpek çiğneme ürünleri: kurutulmuş deve derisi, dana gırtlak, kuzu paça ve tavuk ayağı. Çiğneme kemiğine doğal alternatifler; boyuta göre seçim ve güvenli kullanım önerileriyle.",
+    h1: "Köpek Çiğneme Ürünleri",
+    productKeywords: ["çiğneme", "köpek", "ödül", "doğal", "deve", "paça", "gırtlak"],
     suggestedBlogTitle: "Köpek Çiğneme Kemiği Seçimi: Güvenlik ve Irk Rehberi",
     faqs: [
       {
-        question: "Köpek çiğneme kemiği ne işe yarar?",
+        question: "Köpek çiğneme ürünleri ne işe yarar?",
         answer:
-          "Diş yüzeyinde birikinti azaltmaya yardımcı olur, çiğneme içgüdüsünü tatmin eder ve sıkıntı anlarında meşgul eder.",
+          "Çiğneme içgüdüsünü karşılar, köpeği meşgul eder ve eşyaları kemirme isteğini azaltmaya yardımcı olur.",
       },
       {
-        question: "Yavru köpeğe kemik verilir mi?",
+        question: "Çiğneme kemiği yerine ne verilebilir?",
         answer:
-          "Diş gelişimi tamamlanana kadar sert kemiklerden kaçının; yaşa uygun yumuşak çiğneme ürünleri tercih edin.",
+          "Kurutulmuş deve derisi, dana gırtlak, kuzu paça ve tavuk ayağı tek hammaddeli doğal çiğneme seçenekleridir.",
       },
       {
-        question: "Çiğneme kemiği ne kadar süre verilmeli?",
+        question: "Yavru köpeğe çiğneme ürünü verilir mi?",
         answer:
-          "Köpek kemiği parçalayıp yutmaya başladığında alın; gözetimsiz uzun süre bırakmayın.",
+          "Yavru köpeklerde vermeden önce veterinerinize danışın; sert ürünlerden kaçının ve çiğnerken yanında bulunun.",
+      },
+      {
+        question: "Çiğneme ürünü ne kadar süre verilmeli?",
+        answer:
+          "Yutabileceği kadar küçülen parçayı alın ve köpeğinizi çiğnerken gözetimsiz bırakmayın. Yanında her zaman temiz su bulunsun.",
       },
     ],
   },
@@ -487,12 +474,12 @@ export const DEFAULT_SEARCH_INTENTS: SearchIntentTarget[] = [
       {
         question: "Yavru köpeğe ne zaman ödül verilir?",
         answer:
-          "Temel komut öğrenimine başladığınızda, genelde 8–10 haftadan sonra küçük ödüllerle pozitif pekiştirme yapılabilir.",
+          "Temel komut öğrenimine başladığınızda küçük ödüllerle pozitif pekiştirme yapılabilir. Hangi yaşta hangi ödüle başlanacağını veterinerinize danışın.",
       },
       {
         question: "Yavru için hangi ödül boyutu?",
         answer:
-          "Noahut büyüklüğünde veya daha küçük parçalar idealdir; boğulma riskine karşı büyük parçalardan kaçının.",
+          "Nohut büyüklüğünde veya daha küçük parçalar idealdir; boğulma riskine karşı büyük parçalardan kaçının.",
       },
       {
         question: "Yavru köpek ödülü kaç kez verilir?",
@@ -508,16 +495,16 @@ export const DEFAULT_SEARCH_INTENTS: SearchIntentTarget[] = [
     landingPath: LANDING_ALL,
     landingKind: "staticPage",
     staticPageKey: LANDING_ALL,
-    title: "Organ Köpek Ödülü | Ciğer, Akciğer, Böbrek | Anatolian Paw",
+    title: "Organ Köpek Ödülü | Dana Akciğer ve Dana Gırtlak | Anatolian Paw",
     description:
-      "Organ köpek ödülü — ciğer, akciğer ve diğer tek protein organ atıştırmalıkları. Yüksek besin yoğunluğu, doğal kaynak, tahılsız formül. Eğitim ve çeşitlilik için ideal tamamlayıcı ödül.",
+      "Organ köpek ödülü — kurutulmuş dana akciğer ve dana gırtlak. Tek hammaddeli, doğal kaynaklı, tahılsız. Eğitim ve çeşitlilik için tamamlayıcı ödül.",
     h1: "Organ Köpek Ödülü",
-    productKeywords: ["organ", "köpek", "ödül", "ciğer", "akciğer", "doğal", "kurutulmuş"],
+    productKeywords: ["organ", "köpek", "ödül", "gırtlak", "akciğer", "doğal", "kurutulmuş"],
     faqs: [
       {
         question: "Organ ödülü nedir?",
         answer:
-          "Sığır veya kuzu ciğer, akciğer gibi sakatat kaynaklı, minimal işlem görmüş kurutulmuş köpek atıştırmalıklarıdır.",
+          "Dana akciğer ve dana gırtlak gibi sakatat kaynaklı, kurutularak üretilen köpek atıştırmalıklarıdır.",
       },
       {
         question: "Organ ödülü her köpek için uygun mu?",
@@ -604,7 +591,7 @@ const BLOG_SLUG_FAQ_MAP: Record<string, SearchIntentFaq[]> = {
   "ev-yapimi-kopek-odulu":
     DEFAULT_SEARCH_INTENTS.find((i) => i.id === "dog-natural-treat")?.faqs ?? [],
   "kopek-egitimi-odul-zamanlama":
-    DEFAULT_SEARCH_INTENTS.find((i) => i.id === "treat-food")?.faqs ?? [],
+    DEFAULT_SEARCH_INTENTS.find((i) => i.id === "dog-training-treat")?.faqs ?? [],
   // Eski önerilen slug'lar (geriye dönük)
   "dogal-kopek-odulu-nedir":
     DEFAULT_SEARCH_INTENTS.find((i) => i.id === "dog-natural-treat")?.faqs ?? [],

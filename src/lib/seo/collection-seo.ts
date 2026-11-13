@@ -3,6 +3,7 @@ import "server-only";
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { getDefaultSite } from "@/lib/site";
+import { loadLandingHeroImage } from "@/lib/seo/landing-page-data";
 import { findIntentForPath, findLandingIntentBySlug } from "@/lib/seo/search-intent";
 import { clampSeoDescription, repairStoredSeoDescription } from "@/lib/seo/seo-text";
 import { getSiteBranding, getSiteSettings, getSiteSeo } from "@/lib/site-settings";
@@ -80,11 +81,13 @@ export const loadCollectionSeo = cache(
     if (landingIntent) {
       const canonicalPath = `/collections/${slug}`;
       const staticMeta = seo.staticPages?.[canonicalPath];
+      // Paylaşım görseli: admin'de seçilmediyse sayfanın kendi ürün alt kümesinden gerçek ürün fotoğrafı
+      const heroImage = staticMeta?.imageUrl?.trim() ? null : await loadLandingHeroImage(slug);
       return {
         kind: "all",
         metaTitle: staticMeta?.seoTitle?.trim() || landingIntent.title,
         metaDescription: staticMeta?.seoDescription?.trim() || landingIntent.description,
-        imageUrl: staticMeta?.imageUrl?.trim() || defaultOg,
+        imageUrl: staticMeta?.imageUrl?.trim() || heroImage || defaultOg,
         canonicalPath,
         breadcrumbLabel: landingIntent.h1 ?? landingIntent.query,
         collectionName: landingIntent.h1 ?? landingIntent.query,

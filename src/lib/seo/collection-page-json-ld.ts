@@ -8,7 +8,12 @@ import {
   buildItemListJsonLd,
 } from "@/lib/seo/json-ld";
 import { loadCollectionSeo } from "@/lib/seo/collection-seo";
-import { findIntentForPath, mergeFaqsForPath } from "@/lib/seo/search-intent";
+import { loadLandingProducts } from "@/lib/seo/landing-page-data";
+import {
+  findIntentForPath,
+  findLandingIntentBySlug,
+  mergeFaqsForPath,
+} from "@/lib/seo/search-intent";
 import { prisma } from "@/lib/prisma";
 import { storefrontListedWhere } from "@/lib/storefront-product-where";
 
@@ -66,6 +71,26 @@ export async function buildCollectionPageJsonLd(slug: string, categorySlug?: str
   const faqs = mergeFaqsForPath(ctx.canonicalPath);
   if (faqs.length) {
     blocks.push(buildFaqPageJsonLd(faqs, ctx.canonicalPath));
+  }
+
+  // Landing sayfalarında ItemList, sayfada görünen ürün alt kümesiyle aynıdır (görselleriyle)
+  const landingIntent = categorySlug?.trim() ? undefined : findLandingIntentBySlug(slug);
+  if (landingIntent) {
+    const landingProducts = await loadLandingProducts(slug.trim().toLowerCase());
+    if (landingProducts.length) {
+      blocks.push(
+        buildItemListJsonLd(
+          landingProducts.map((p) => ({
+            name: p.title,
+            url: `/products/${p.slug}`,
+            image: p.imageUrl ?? undefined,
+          })),
+          landingIntent.h1 ?? ctx.collectionName,
+          ctx.canonicalPath,
+        ),
+      );
+    }
+    return blocks;
   }
 
   const products = await loadListingProducts(site.id, intent?.productKeywords);

@@ -3,6 +3,13 @@ import { ProductBadges } from "@/components/store/ProductBadges";
 import { ProductPrice } from "@/components/store/ProductPrice";
 import { toDisplayPrice } from "@/lib/store/customer-pricing";
 import type { CustomerGroupPricing } from "@/lib/pricing/group-catalog";
+import {
+  PRODUCT_CARD_IMAGE_SIZES,
+  PRODUCT_CARD_IMAGE_WIDTHS,
+  isStoreMediaPath,
+  storeImageSized,
+  storeImageSrcSet,
+} from "@/lib/store-image-srcset";
 
 /** Sunucu bileşeni — vitrin grid (Prisma / client yok) */
 export function ProductCardServer({
@@ -15,6 +22,7 @@ export function ProductCardServer({
   priceMinor,
   compareAtMinor,
   memberPricing,
+  eagerImage = false,
 }: {
   slug: string;
   title: string;
@@ -25,8 +33,11 @@ export function ProductCardServer({
   priceMinor: number;
   compareAtMinor: number | null;
   memberPricing: CustomerGroupPricing | null;
+  /** İlk ekranda görünen kartlar — lazy yükleme uygulanmaz */
+  eagerImage?: boolean;
 }) {
   const display = toDisplayPrice(priceMinor, compareAtMinor, memberPricing);
+  const resizable = isStoreMediaPath(imageUrl);
 
   return (
     <div className="kn-product-card-wrap">
@@ -42,7 +53,15 @@ export function ProductCardServer({
           />
           {imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={imageUrl} alt={title} className="kn-product-card__img" />
+            <img
+              src={resizable ? storeImageSized(imageUrl, 600) : imageUrl}
+              srcSet={storeImageSrcSet(imageUrl, PRODUCT_CARD_IMAGE_WIDTHS)}
+              sizes={resizable ? PRODUCT_CARD_IMAGE_SIZES : undefined}
+              alt={title}
+              className="kn-product-card__img"
+              loading={eagerImage ? undefined : "lazy"}
+              decoding="async"
+            />
           ) : (
             <div className="kn-product-card__img kn-product-card__img--placeholder" />
           )}

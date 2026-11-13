@@ -20,10 +20,17 @@ const DISALLOW = [
   "/theme/techizmet-shop/mirror/",
 ];
 
-/** Ürün görselleri /api/media altında — genel /api/ engeli bunları da kapatıyordu */
-const GOOGLE_CRAWL_ALLOW = ["/", "/products/", "/api/media/", "/uploads/", "/feeds/"];
+/**
+ * Ürün, blog ve sayfa görselleri /api/media altında — genel /api/ engeli bunları da kapatır.
+ * Bu izin eskiden yalnızca Google ve birkaç yapay zekâ botuna verilmişti; Bing, Yandex,
+ * DuckDuckGo ve `*` altındaki tüm botlar görselleri tarayamıyordu (Yandex Görsel'de 0 görsel).
+ * En uzun eşleşen kural kazandığı için `Allow: /api/media/`, `Disallow: /api/` kuralını geçer.
+ */
+const DEFAULT_CRAWL_ALLOW = ["/", "/api/media/", "/gorsel/", "/uploads/"];
 
-const GOOGLE_IMAGE_ALLOW = ["/", "/products/", "/api/media/", "/uploads/"];
+const GOOGLE_CRAWL_ALLOW = ["/", "/products/", "/api/media/", "/gorsel/", "/uploads/", "/feeds/"];
+
+const GOOGLE_IMAGE_ALLOW = ["/", "/products/", "/api/media/", "/gorsel/", "/uploads/"];
 
 /** AI arama / alıntı botları — ürün sayfaları ve beslemeler */
 const AI_SEARCH_ALLOW = [
@@ -34,6 +41,7 @@ const AI_SEARCH_ALLOW = [
   "/feeds/",
   "/llms.txt",
   "/api/media/",
+  "/gorsel/",
   "/uploads/",
 ];
 
@@ -95,19 +103,25 @@ export function buildStoreRobots(settings: SiteSettings, siteName: string): Meta
 
   return {
     rules: [
-      { userAgent: "*", allow: "/", disallow },
+      { userAgent: "*", allow: DEFAULT_CRAWL_ALLOW, disallow },
       { userAgent: "Googlebot", allow: GOOGLE_CRAWL_ALLOW, disallow },
       {
         userAgent: "Googlebot-Image",
         allow: GOOGLE_IMAGE_ALLOW,
         disallow: ["/admin/", "/api/admin/", ...disallow.filter((p) => p !== "/admin/" && !p.startsWith("/api/"))],
       },
-      { userAgent: "Bingbot", allow: "/", disallow },
-      { userAgent: "Yandex", allow: "/", disallow },
-      { userAgent: "DuckDuckBot", allow: "/", disallow },
+      { userAgent: "Bingbot", allow: DEFAULT_CRAWL_ALLOW, disallow },
+      { userAgent: "Yandex", allow: DEFAULT_CRAWL_ALLOW, disallow },
+      { userAgent: "DuckDuckBot", allow: DEFAULT_CRAWL_ALLOW, disallow },
       { userAgent: "OAI-SearchBot", allow: AI_SEARCH_ALLOW, disallow },
       { userAgent: "PerplexityBot", allow: AI_SEARCH_ALLOW, disallow },
       { userAgent: "ClaudeBot", allow: AI_SEARCH_ALLOW, disallow },
+      // Yapay zekâ araması ve kullanıcı adına sayfa açan araçlar (eğitim taraması değil)
+      { userAgent: "Claude-SearchBot", allow: AI_SEARCH_ALLOW, disallow },
+      { userAgent: "ChatGPT-User", allow: AI_SEARCH_ALLOW, disallow },
+      { userAgent: "Claude-User", allow: AI_SEARCH_ALLOW, disallow },
+      { userAgent: "Perplexity-User", allow: AI_SEARCH_ALLOW, disallow },
+      { userAgent: "Applebot", allow: AI_SEARCH_ALLOW, disallow },
       { userAgent: "Google-Extended", allow: AI_SEARCH_ALLOW, disallow },
       { userAgent: "GPTBot", disallow: AI_TRAINING_DISALLOW },
       { userAgent: "CCBot", disallow: AI_TRAINING_DISALLOW },

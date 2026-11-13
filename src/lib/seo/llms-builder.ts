@@ -4,6 +4,7 @@ import { getPublicSiteUrl } from "@/lib/seo/site-url";
 import { aiProductsFeedPath } from "@/lib/seo/ai-products-feed";
 import { googleMerchantFeedPath } from "@/lib/seo/google-merchant-feed";
 import { blogFeedUrl } from "@/lib/seo/rss-feed";
+import { getSearchIntents } from "@/lib/seo/search-intent";
 import type { SiteSettings } from "@/lib/site-settings";
 import { getSiteSeo } from "@/lib/site-settings";
 import { prisma } from "@/lib/prisma";
@@ -58,6 +59,24 @@ export async function buildLlmsTxt(siteId: string, settings: SiteSettings, siteN
     mdLink("Blog", `${origin}/blogs/news`, "Köpek bakımı ve ürün rehberleri"),
     "",
   ];
+
+  // Kullanım amacına / içeriğe göre ayrılmış landing sayfaları (karşılaştırma tablosu + SSS)
+  const landingIntents = getSearchIntents(settings).filter(
+    (i) => i.landingKind === "collection" && Boolean(i.collectionSlug),
+  );
+  if (landingIntents.length) {
+    lines.push("## Kategori sayfaları");
+    for (const intent of landingIntents) {
+      lines.push(
+        mdLink(
+          intent.h1 ?? intent.query,
+          `${origin}/collections/${intent.collectionSlug}`,
+          intent.description,
+        ),
+      );
+    }
+    lines.push("");
+  }
 
   if (collections.filter((c) => c.slug !== "all").length) {
     lines.push("## Koleksiyonlar");

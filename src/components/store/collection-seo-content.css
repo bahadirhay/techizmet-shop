@@ -116,3 +116,117 @@
   border-top: none;
   padding: 0;
 }
+
+/* Landing sayfası: ürün ızgarası ve tablo metin sütunundan geniş olabilir */
+.kn-landing .kn-landing__inner {
+  max-width: 72rem;
+}
+
+.kn-landing .kn-seo-content__intro {
+  max-width: 60rem;
+  margin-bottom: 0.9rem;
+}
+
+.kn-landing__grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .kn-landing__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .kn-landing__grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1.25rem;
+  }
+}
+
+.kn-landing__grid .kn-product-card__img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+}
+
+.kn-landing__group-text {
+  color: #3f3f46;
+  line-height: 1.65;
+  margin: 0 0 1rem;
+  max-width: 60rem;
+}
+
+.kn-landing__group-text a {
+  color: var(--kn-brand);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.kn-landing__group-text a:hover {
+  text-decoration: underline;
+}
+
+.kn-landing__table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 0.5rem;
+}
+
+.kn-landing__table {
+  width: 100%;
+  min-width: 40rem;
+  border-collapse: collapse;
+  font-size: 0.925rem;
+  line-height: 1.45;
+  color: #3f3f46;
+}
+
+.kn-landing__table th,
+.kn-landing__table td {
+  padding: 0.6rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.kn-landing__table thead th {
+  background: rgba(0, 0, 0, 0.03);
+  color: var(--foreground);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.kn-landing__table tbody th {
+  font-weight: 600;
+  min-width: 14rem;
+}
+
+.kn-landing__table tbody th a {
+  color: var(--kn-brand);
+  text-decoration: none;
+}
+
+.kn-landing__table tbody th a:hover {
+  text-decoration: underline;
+}
+
+.kn-landing__table tbody tr:last-child th,
+.kn-landing__table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.kn-landing__table td:nth-last-child(-n + 3) {
+  white-space: nowrap;
+}
+
+.kn-landing__note {
+  margin: 0.5rem 0 0;
+  font-size: 0.825rem;
+  color: #71717a;
+}

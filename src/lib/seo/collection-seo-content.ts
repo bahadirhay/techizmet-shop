@@ -3,11 +3,7 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { storefrontListedWhere } from "@/lib/storefront-product-where";
 import { getDefaultSite } from "@/lib/site";
-import {
-  findIntentForPath,
-  findLandingIntentBySlug,
-  mergeFaqsForPath,
-} from "@/lib/seo/search-intent";
+import { findLandingIntentBySlug, mergeFaqsForPath } from "@/lib/seo/search-intent";
 import type {
   SeoContentCriterion,
   SeoContentFaq,
@@ -15,11 +11,11 @@ import type {
   SeoContentProduct,
 } from "@/components/store/CollectionSeoContent";
 
-/** Doğal köpek ödülü kategorisinde tüm head terimler için geçerli satın alma kriterleri */
+/** Ana sayfadaki genel satın alma ölçütleri — yalnızca mağazada bulunan ürünlere dayanır */
 const DEFAULT_CRITERIA: SeoContentCriterion[] = [
   {
     title: "Protein kaynağı",
-    text: "Tek proteinli (dana ciğer, akciğer gibi) ürünler hassas sindirim ve alerji riski düşük beslenme için daha güvenlidir.",
+    text: "Tek hammaddeli (dana akciğer, deve derisi gibi) ürünlerde köpeğinizin ne yediğini bilirsiniz; hassasiyet durumunda kaynağı ayırt etmek kolaylaşır.",
   },
   {
     title: "Tahılsız ve katkısız içerik",
@@ -27,15 +23,15 @@ const DEFAULT_CRITERIA: SeoContentCriterion[] = [
   },
   {
     title: "Parça boyutu",
-    text: "Eğitim için bir lokmada yutulabilen küçük parçalar; çiğneme ihtiyacı için orta-büyük boy uygundur.",
+    text: "Eğitim için bir lokmada yutulabilen küçük parçalar; çiğneme ihtiyacı için daha sert ve büyük ürünler uygundur.",
   },
   {
     title: "Yaşa uygunluk",
-    text: "Yavru, yetişkin ve yaşlı köpekler için doku ve sertlik farklıdır; etikette yaş önerisini kontrol edin.",
+    text: "Yavru ve yaşlı köpeklerde doku ve sertlik önemlidir; vermeden önce veterinerinize danışın.",
   },
   {
-    title: "Üretim ve tazelik",
-    text: "Düşük ısıda kurutulmuş, Türkiye üretimi ve net içerik/üretim bilgisi olan ürünleri seçin.",
+    title: "Üretim ve saklama",
+    text: "Kurutulmuş, Türkiye üretimi ve içerik bilgisi açık ürünleri seçin; açıldıktan sonra 30 gün içinde tüketin.",
   },
 ];
 
@@ -83,48 +79,9 @@ async function loadTopProducts(
 }
 
 /**
- * Verilen kanonik yol için taranabilir içerik bloğu verisini hazırlar.
- * relatedLinks ile head terim landing sayfaları arasında iç link grafiği kurar.
+ * Ana sayfa için taranabilir marka + head terim bloğu.
+ * Adanmış landing sayfalarının içeriği ayrı üretilir: bkz. landing-page-data.ts.
  */
-export async function loadCollectionSeoContent(
-  canonicalPath: string,
-  opts?: { includeProducts?: boolean },
-): Promise<CollectionSeoContentData | null> {
-  const intent = findIntentForPath(canonicalPath);
-  if (!intent) return null;
-
-  const site = await getDefaultSite();
-  const faqs = mergeFaqsForPath(canonicalPath);
-  const products = opts?.includeProducts
-    ? await loadTopProducts(site.id, { keywords: intent.productKeywords })
-    : [];
-
-  const heading = intent.h1 ?? intent.query;
-  const intro =
-    `${heading} arıyorsanız ${site.name} koleksiyonunda doğal, tahılsız ve katkısız seçenekleri inceleyebilirsiniz. ` +
-    intent.description;
-
-  const relatedLinks: SeoContentLink[] = [];
-  const currentSlug = canonicalPath.replace("/collections/", "").split("?")[0];
-  const landingTargets: { slug: string; label: string }[] = [
-    { slug: "odul-mamasi", label: "Ödül Maması" },
-    { slug: "kopek-odul-mamasi", label: "Köpek Ödül Maması" },
-    { slug: "dogal-kopek-odul-mamasi", label: "Doğal Köpek Ödül Maması" },
-    { slug: "dogal-kopek-odulu", label: "Doğal Köpek Ödülü" },
-  ];
-  for (const t of landingTargets) {
-    if (t.slug !== currentSlug && findLandingIntentBySlug(t.slug)) {
-      relatedLinks.push({ label: t.label, href: `/collections/${t.slug}` });
-    }
-  }
-  if (canonicalPath !== "/collections/all") {
-    relatedLinks.push({ label: "Tüm ürünler", href: "/collections/all" });
-  }
-
-  return { heading, intro, criteria: DEFAULT_CRITERIA, products, faqs, relatedLinks };
-}
-
-/** Ana sayfa için taranabilir marka + head terim bloğu */
 export async function loadHomeSeoContent(): Promise<CollectionSeoContentData | null> {
   const site = await getDefaultSite();
   const primary =
@@ -149,6 +106,8 @@ export async function loadHomeSeoContent(): Promise<CollectionSeoContentData | n
     { label: "Doğal Köpek Ödül Maması", href: "/collections/dogal-kopek-odul-mamasi" },
     { label: "Doğal Köpek Ödülü", href: "/collections/dogal-kopek-odulu" },
     { label: "Ödül Maması", href: "/collections/odul-mamasi" },
+    { label: "Köpek Eğitim Ödül Maması", href: "/collections/kopek-egitim-odul-mamasi" },
+    { label: "Köpek Çiğneme Ürünleri", href: "/collections/kopek-cigneme-urunleri" },
     { label: "Tüm ürünler", href: "/collections/all" },
     { label: "Rehber yazılar", href: "/blogs/news" },
   ];
