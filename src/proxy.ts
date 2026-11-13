@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { LOCALE_COOKIE, resolveLocaleFromRequest, type ShopLocale } from "@/lib/i18n/locale";
+import {
+  LOCALE_COOKIE,
+  resolveLocaleFromRequest as resolveLocaleDefaultTr,
+  resolveLocaleFromRequestByGeo,
+  type ShopLocale,
+} from "@/lib/i18n/locale";
 import {
   ADMIN_SESSION_COOKIE,
   isMaintenanceBypassPath,
@@ -32,6 +37,15 @@ function shopHostRequestHeaders(request: NextRequest, locale?: ShopLocale): Head
   }
 
   return requestHeaders;
+}
+
+/**
+ * Mağazalarda varsayılan dil Türkçe; İngilizce yalnızca ziyaretçi seçerse.
+ * Demo mağaza (shop.techizmet.com) eski IP/tarayıcı dili davranışını korur.
+ */
+function resolveLocaleFromRequest(request: NextRequest): ShopLocale {
+  const host = normalizeRequestHost(request.headers.get("host") ?? "");
+  return isDemoShopHost(host) ? resolveLocaleFromRequestByGeo(request) : resolveLocaleDefaultTr(request);
 }
 
 function nextWithLocaleRequest(request: NextRequest, locale: ShopLocale): NextResponse {

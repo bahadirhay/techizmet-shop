@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { ShopLocale } from "@/lib/i18n/locale";
-import { LOCALE_COOKIE, isShopLocale } from "@/lib/i18n/locale";
+import { LOCALE_COOKIE, isShopLocale, writeShopLocaleCookie } from "@/lib/i18n/locale";
 import { buildLocaleSwitchUrl } from "@/lib/i18n/locale-switch-url";
 
 function readLocaleCookie(): ShopLocale | null {
@@ -44,7 +44,7 @@ export function LocaleSwitcher({
         buildLocaleSwitchUrl(window.location.pathname, window.location.search, window.location.hash),
       );
     } catch {
-      document.cookie = `${LOCALE_COOKIE}=${next}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
+      writeShopLocaleCookie(next);
       window.location.replace(
         buildLocaleSwitchUrl(window.location.pathname, window.location.search, window.location.hash),
       );
