@@ -122,36 +122,38 @@ function mergeNutritionHits(hits: ParsedNutritionHit[]): PetNutritionAnalysis {
 function estimateFromIngredient(title: string, categoryTitles: string[]): PetNutritionAnalysis | null {
   const blob = [title, ...categoryTitles].join(" ").toLowerCase();
 
+  // Notlar müşteriye görünür metne gidebilir — "sektör ortalaması / düzenleyin" gibi
+  // admin yönergesi yazılmaz; paket etiketinin esas olduğu belirtilir.
   const profiles: { match: RegExp; values: PetNutritionValues; note: string }[] = [
     {
       match: /akci[ğg]er|ci[ğg]er|lung|liver/,
       values: { protein: 65, fat: 10, fiber: 1, moisture: 10, ash: 8 },
-      note: "Kurutulmuş sakatat (akciğer/ciğer) — sektör ortalaması",
+      note: "Tipik kurutulmuş sakatat (akciğer/ciğer) aralığı",
     },
     {
       match: /tendon|deri|kulak/,
       values: { protein: 85, fat: 5, fiber: 0, moisture: 8, ash: 4 },
-      note: "Kurutulmuş tendon/deri — sektör ortalaması",
+      note: "Tipik kurutulmuş tendon/deri aralığı",
     },
     {
       match: /kemik|bone/,
       values: { protein: 28, fat: 12, fiber: 0, moisture: 15, ash: 45 },
-      note: "Kemik ödülü — sektör ortalaması",
+      note: "Tipik kemik ödülü aralığı",
     },
     {
       match: /bal[ıi]k|fish|somon|salmon/,
       values: { protein: 62, fat: 8, fiber: 0, moisture: 12, ash: 7 },
-      note: "Kurutulmuş balık — sektör ortalaması",
+      note: "Tipik kurutulmuş balık aralığı",
     },
     {
       match: /dana|sı[ğg][ıi]r|beef|kuzu|lamb|tavuk|chicken/,
       values: { protein: 58, fat: 15, fiber: 1, moisture: 12, ash: 7 },
-      note: "Kurutulmuş et ödülü — sektör ortalaması",
+      note: "Tipik kurutulmuş et ödülü aralığı",
     },
     {
       match: /köpek|kedi|pet|ödül|snack|treat|mama/,
       values: { protein: 55, fat: 14, fiber: 2, moisture: 12, ash: 7 },
-      note: "Genel pet ödül maması — sektör ortalaması",
+      note: "Tipik pet ödül maması aralığı",
     },
   ];
 
@@ -308,22 +310,24 @@ export function buildPetNutritionKeyFeaturesBlock(input: {
   if (nutritionLines.length >= 3) {
     lines.push(...nutritionLines);
     if (input.nutrition?.source === "web") {
-      lines.push(`- Kaynak: pazaryeri / üretici analiz tablosu${input.nutrition.referenceTitle ? ` (${input.nutrition.referenceTitle})` : ""}`);
+      lines.push(
+        `- Kaynak: üretici / pazaryeri analiz tablosu${
+          input.nutrition.referenceTitle ? ` (${input.nutrition.referenceTitle})` : ""
+        }`,
+      );
     } else if (input.nutrition?.source === "estimate") {
-      lines.push(`- Not: ${input.nutrition.sourceNote ?? "Tahmini değerler — etiketinize göre doğrulayın"}`);
+      lines.push(
+        `- Not: ${input.nutrition.sourceNote ?? "Yaklaşık analitik değerler"} — paket etiketindeki analiz geçerlidir`,
+      );
     }
   } else {
-    lines.push(`  • Ham protein: … %`);
-    lines.push(`  • Ham yağ: … %`);
-    lines.push(`  • Ham selüloz (lif): … %`);
-    lines.push(`  • Nem: … %`);
-    lines.push(`  • Kül: … %`);
-    lines.push(`- Besin tablosu bulunamadı — üretici etiketine göre güncelleyin`);
+    // Boş "… %" satırları ve admin yönergesi yayına yazılmaz
+    lines.push(`- Analitik bileşenler paket etiketinde yer alır`);
   }
 
   lines.push(
-    `- Katkı maddesi, renklendirici veya koruyucu içermez (ürününüze göre düzenleyin)`,
-    `- Eğitim ödülü ve pozitif pekiştirme için ideal boyut`,
+    `- Katkı maddesi, renklendirici veya koruyucu içermez`,
+    `- Tahılsız formül — eğitim ve günlük ödül için uygundur`,
     `- Hava almayan ambalajda tazelik korunur`,
     brand ? `- ${brand} marka güvencesi` : `- ${input.siteName} kalite kontrolü`,
   );
