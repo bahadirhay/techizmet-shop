@@ -2,23 +2,37 @@ import Link from "next/link";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { FinanceProfitabilityView } from "@/components/admin/FinanceProfitabilityView";
 import { ensureFinanceDefaults } from "@/lib/finance/defaults";
-import { loadProfitabilityReport } from "@/lib/finance/profitability";
+import {
+  loadProfitabilityReport,
+  type ProfitabilityPeriodInput,
+} from "@/lib/finance/profitability";
 import { requireStaffPage } from "@/lib/staff-auth";
 
-function parsePeriod(raw: string | undefined): number {
-  const n = Number(raw);
-  if (n === 7 || n === 30 || n === 90) return n;
-  return 30;
+const PRESET_DAYS = new Set([7, 30, 90, 365]);
+
+function parsePeriod(sp: {
+  days?: string;
+  from?: string;
+  to?: string;
+}): ProfitabilityPeriodInput {
+  const from = sp.from?.trim();
+  const to = sp.to?.trim();
+  if (from || to) {
+    return { from: from || undefined, to: to || undefined };
+  }
+  const n = Number(sp.days);
+  if (PRESET_DAYS.has(n)) return { days: n };
+  return { days: 30 };
 }
 
 export default async function FinanceProfitabilityPage({
   searchParams,
 }: {
-  searchParams: Promise<{ days?: string }>;
+  searchParams: Promise<{ days?: string; from?: string; to?: string }>;
 }) {
   const auth = await requireStaffPage();
-  const { days } = await searchParams;
-  const period = parsePeriod(days);
+  const sp = await searchParams;
+  const period = parsePeriod(sp);
 
   await ensureFinanceDefaults(auth.siteId);
   const report = await loadProfitabilityReport(auth.siteId, period);

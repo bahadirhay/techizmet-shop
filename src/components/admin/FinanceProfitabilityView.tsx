@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { formatTry } from "@/lib/admin/money";
 import type { ProductProfitRow, ProfitabilityReport } from "@/lib/finance/profitability";
-import { btnSecondary } from "@/components/admin/AdminForm";
+import { btnSecondary, inputClass } from "@/components/admin/AdminForm";
 
 const EVA_STATUS: Record<string, { label: string; className: string }> = {
   pending: { label: "Fatura bekliyor", className: "bg-amber-100 text-amber-900" },
@@ -148,28 +148,74 @@ function ProductProfitRowView({ p }: { p: ProductProfitRow }) {
 }
 
 export function FinanceProfitabilityView({ report }: { report: ProfitabilityReport }) {
-  const periods = [7, 30, 90];
+  const presets: { days: number; label: string }[] = [
+    { days: 7, label: "Son 7 gün" },
+    { days: 30, label: "Son 30 gün" },
+    { days: 90, label: "Son 90 gün" },
+    { days: 365, label: "Son 1 yıl" },
+  ];
+  const isCustom = report.periodLabel.includes("–");
 
   return (
     <div>
-      <div className="flex flex-wrap items-center gap-2">
-        {periods.map((d) => (
-          <Link
-            key={d}
-            href={`/admin/finance/profitability?days=${d}`}
+      <div className="flex flex-wrap items-end gap-2">
+        {presets.map((p) => {
+          const active = !isCustom && report.periodDays === p.days;
+          return (
+            <Link
+              key={p.days}
+              href={`/admin/finance/profitability?days=${p.days}`}
+              className={`rounded-lg border px-3 py-1.5 text-sm ${
+                active
+                  ? "border-zinc-900 bg-zinc-900 text-white"
+                  : "border-zinc-200 bg-white hover:bg-zinc-50"
+              }`}
+            >
+              {p.label}
+            </Link>
+          );
+        })}
+        <form
+          method="get"
+          action="/admin/finance/profitability"
+          className="flex flex-wrap items-end gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2"
+        >
+          <label className="text-xs text-zinc-500">
+            Başlangıç
+            <input
+              type="date"
+              name="from"
+              required
+              defaultValue={report.periodFrom}
+              className={`${inputClass} mt-1 min-w-[9.5rem]`}
+            />
+          </label>
+          <label className="text-xs text-zinc-500">
+            Bitiş
+            <input
+              type="date"
+              name="to"
+              required
+              defaultValue={report.periodTo}
+              className={`${inputClass} mt-1 min-w-[9.5rem]`}
+            />
+          </label>
+          <button
+            type="submit"
             className={`rounded-lg border px-3 py-1.5 text-sm ${
-              report.periodDays === d
+              isCustom
                 ? "border-zinc-900 bg-zinc-900 text-white"
-                : "border-zinc-200 bg-white hover:bg-zinc-50"
+                : "border-zinc-300 bg-zinc-50 hover:bg-zinc-100"
             }`}
           >
-            Son {d} gün
-          </Link>
-        ))}
+            Uygula
+          </button>
+        </form>
         <Link href="/admin/finance/reconciliation" className={btnSecondary}>
           Mutabakat →
         </Link>
       </div>
+      <p className="mt-2 text-xs text-zinc-500">Dönem: {report.periodLabel}</p>
 
       <div className="admin-kpi-grid mt-6">
         <div className="admin-kpi" style={{ ["--kpi-accent" as string]: "#2563eb" }}>

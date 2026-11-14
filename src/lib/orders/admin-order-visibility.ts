@@ -20,10 +20,14 @@ export const profitabilityOrdersBaseFilter = {
   ...excludeUnpaidCardOrdersFilter,
 };
 
-export function profitabilityOrdersWhere(siteId: string, from: Date): Prisma.StoreOrderWhereInput {
+export function profitabilityOrdersWhere(
+  siteId: string,
+  from: Date,
+  to?: Date,
+): Prisma.StoreOrderWhereInput {
   return {
     siteId,
-    createdAt: { gte: from },
+    createdAt: to ? { gte: from, lte: to } : { gte: from },
     ...profitabilityOrdersBaseFilter,
   };
 }

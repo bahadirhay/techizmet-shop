@@ -99,8 +99,21 @@ export type OrderProfitRow = {
   hasPartialDeductions: boolean;
 };
 
+export type ProfitabilityPeriodInput = {
+  /** Son N gün (preset). from/to yoksa kullanılır. */
+  days?: number;
+  /** YYYY-MM-DD veya Date — dönem başlangıcı (dahil) */
+  from?: Date | string;
+  /** YYYY-MM-DD veya Date — dönem bitişi (dahil, gün sonu) */
+  to?: Date | string;
+};
+
 export type ProfitabilityReport = {
+  /** Preset gün sayısı; özel aralıkta yaklaşık gün sayısı */
   periodDays: number;
+  periodFrom: string;
+  periodTo: string;
+  periodLabel: string;
   channels: ChannelProfitRow[];
   categories: CategoryProfitRow[];
   topProducts: ProductProfitRow[];
@@ -115,6 +128,113 @@ function periodStart(days: number): Date {
   d.setHours(0, 0, 0, 0);
   d.setDate(d.getDate() - (days - 1));
   return d;
+}
+
+function endOfDay(d: Date): Date {
+  const x = new Date(d);
+  x.setHours(23, 59, 59, 999);
+  return x;
+}
+
+function startOfDay(d: Date): Date {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+function parseDateInput(raw: Date | string | undefined): Date | null {
+  if (!raw) return null;
+  if (raw instanceof Date) {
+    return Number.isNaN(raw.getTime()) ? null : raw;
+  }
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw.trim());
+  if (!m) return null;
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function toIsoDateLocal(d: Date): string {
+  const y = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${mo}-${day}`;
+}
+
+function formatTrDate(d: Date): string {
+  return d.toLocaleDateString("tr-TR", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+/** Dönem aralığını çözer: özel from/to veya son N gün. */
+export function resolveProfitabilityPeriod(input: ProfitabilityPeriodInput | number = 30): {
+  from: Date;
+  to: Date;
+  periodDays: number;
+  periodFrom: string;
+  periodTo: string;
+  periodLabel: string;
+  isCustomRange: boolean;
+} {
+  const opts: ProfitabilityPeriodInput =
+    typeof input === "number" ? { days: input } : input;
+
+  const parsedFrom = parseDateInput(opts.from);
+  const parsedTo = parseDateInput(opts.to);
+
+  if (parsedFrom || parsedTo) {
+    let from = startOfDay(parsedFrom ?? parsedTo!);
+    let to = endOfDay(parsedTo ?? parsedFrom!);
+    if (from.getTime() > to.getTime()) {
+      const swap = from;
+      from = startOfDay(to);
+      to = endOfDay(swap);
+    }
+    // Max 3 yıl
+    const maxSpan = 3 * 366 * 86400000;
+    if (to.getTime() - from.getTime() > maxSpan) {
+      from = startOfDay(new Date(to.getTime() - maxSpan));
+    }
+    const periodDays = Math.max(
+      1,
+      Math.round((startOfDay(to).getTime() - from.getTime()) / 86400000) + 1,
+    );
+    return {
+      from,
+      to,
+      periodDays,
+      periodFrom: toIsoDateLocal(from),
+      periodTo: toIsoDateLocal(to),
+      periodLabel: `${formatTrDate(from)} – ${formatTrDate(to)}`,
+      isCustomRange: true,
+    };
+  }
+
+  const days =
+    opts.days === 7 || opts.days === 30 || opts.days === 90 || opts.days === 365
+      ? opts.days
+      : 30;
+  const from = periodStart(days);
+  const to = endOfDay(new Date());
+  const label =
+    days === 365
+      ? "Son 1 yıl"
+      : days === 90
+        ? "Son 90 gün"
+        : days === 30
+          ? "Son 30 gün"
+          : `Son ${days} gün`;
+  return {
+    from,
+    to,
+    periodDays: days,
+    periodFrom: toIsoDateLocal(from),
+    periodTo: toIsoDateLocal(to),
+    periodLabel: label,
+    isCustomRange: false,
+  };
 }
 
 function channelLabel(channel: string): string {
@@ -138,12 +258,19 @@ function resolveOrderSnapshot(order: {
 
 export async function loadProfitabilityReport(
   siteId: string,
-  periodDays = 30,
+  period: ProfitabilityPeriodInput | number = 30,
 ): Promise<ProfitabilityReport> {
-  const from = periodStart(periodDays);
+  const {
+    from,
+    to,
+    periodDays,
+    periodFrom,
+    periodTo,
+    periodLabel,
+  } = resolveProfitabilityPeriod(period);
 
   const orders = await prisma.storeOrder.findMany({
-    where: profitabilityOrdersWhere(siteId, from),
+    where: profitabilityOrdersWhere(siteId, from, to),
     select: {
       id: true,
       orderNumber: true,
@@ -176,7 +303,7 @@ export async function loadProfitabilityReport(
     where: {
       siteId,
       kind: "marketplace_payout",
-      txDate: { gte: from },
+      txDate: { gte: from, lte: to },
     },
     select: { amountMinor: true, marketplacePlatform: true },
   });
@@ -578,6 +705,9 @@ export async function loadProfitabilityReport(
 
   return {
     periodDays,
+    periodFrom,
+    periodTo,
+    periodLabel,
     channels,
     categories,
     topProducts,
@@ -590,8 +720,8 @@ export async function loadProfitabilityReport(
 
 export async function loadProfitabilityKpis(
   siteId: string,
-  periodDays = 30,
+  period: ProfitabilityPeriodInput | number = 30,
 ): Promise<ProfitabilityKpis> {
-  const report = await loadProfitabilityReport(siteId, periodDays);
+  const report = await loadProfitabilityReport(siteId, period);
   return report.totals;
 }
