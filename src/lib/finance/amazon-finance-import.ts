@@ -47,7 +47,9 @@ export async function importAmazonFinance(
   }
 
   const sinceDays = options.sinceDays ?? 30;
-  const postedBefore = new Date();
+  // Amazon: StartedBefore, sunucu saatine göre "şimdiden en fazla ~2 dk ileride" olabilir.
+  // Vercel/yerel saat Amazon'dan öndeyse `new Date()` InvalidInput verir — 5 dk geri çek.
+  const postedBefore = new Date(Date.now() - 5 * 60_000);
   const postedAfter = new Date(postedBefore.getTime() - sinceDays * 86400000);
   const accounts = await loadFinanceAccounts(siteId, "amazon_tr");
   const errors: string[] = [];

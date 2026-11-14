@@ -141,10 +141,14 @@ export async function fetchAmazonFinancialEventGroups(
   const groups: AmazonFinancialEventGroup[] = [];
   let nextToken: string | undefined;
 
+  // Saat kayması: Amazon "şimdiden 2 dk'dan ileri" tarihleri reddeder.
+  const safeBeforeMs = Math.min(postedBefore.getTime(), Date.now() - 5 * 60_000);
+  const safeAfterMs = Math.min(postedAfter.getTime(), safeBeforeMs - 60_000);
+
   do {
     const qs = new URLSearchParams({
-      FinancialEventGroupStartedAfter: postedAfter.toISOString(),
-      FinancialEventGroupStartedBefore: postedBefore.toISOString(),
+      FinancialEventGroupStartedAfter: new Date(safeAfterMs).toISOString(),
+      FinancialEventGroupStartedBefore: new Date(safeBeforeMs).toISOString(),
       MaxResultsPerPage: "100",
     });
     if (nextToken) qs.set("NextToken", nextToken);
