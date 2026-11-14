@@ -330,7 +330,8 @@ export async function importTrendyolFinance(
   }
 
   let payoutsCreated = 0;
-  let payoutsSkipped = 0;
+  let payoutsSkippedExisting = 0;
+  let payoutsSkippedZero = 0;
 
   for (const row of payoutResult.rows) {
     const paymentOrderId = row.paymentOrderId ?? Number(row.id.replace(/\D/g, "") || 0);
@@ -344,13 +345,17 @@ export async function importTrendyolFinance(
       },
     });
     if (existing) {
-      payoutsSkipped += 1;
+      payoutsSkippedExisting += 1;
       continue;
     }
 
-    const amountMinor = tryAmountToMinor(row.credit || row.sellerRevenue || 0);
+    // PaymentOrder satırlarında tutar `debt` alanında gelir (credit/sellerRevenue boş).
+    // Örn. "TRENDYOL Marketplace Ödeme" → debt: 331.58, credit: 0
+    const amountMinor = tryAmountToMinor(
+      row.credit || row.sellerRevenue || row.debt || 0,
+    );
     if (amountMinor <= 0) {
-      payoutsSkipped += 1;
+      payoutsSkippedZero += 1;
       continue;
     }
 
@@ -452,10 +457,12 @@ export async function importTrendyolFinance(
     }
   }
 
+  const payoutsSkipped = payoutsSkippedExisting + payoutsSkippedZero;
   const message = [
     commissionsPosted ? `${commissionsPosted} sipariş gerçek komisyonu` : null,
     payoutsCreated ? `${payoutsCreated} hakediş` : null,
-    payoutsSkipped ? `${payoutsSkipped} hakediş atlandı` : null,
+    payoutsSkippedExisting ? `${payoutsSkippedExisting} hakediş zaten kayıtlı` : null,
+    payoutsSkippedZero ? `${payoutsSkippedZero} hakediş tutarsız (0 TL)` : null,
     deductionsCreated ? `${deductionsCreated} kesinti faturası` : null,
     deductionsLinked ? `${deductionsLinked} siparişe bağlandı` : null,
     ordersTagged ? `${ordersTagged} sipariş paymentOrderId ile işaretlendi` : null,
