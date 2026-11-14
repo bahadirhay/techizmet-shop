@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { formatTry } from "@/lib/format";
+import type { ProductBlogGuideLink } from "@/lib/blog/product-blog-guides";
 import "./product-mirror-seo.css";
 
 /** Mirror iframe dışında Google/AI için taranabilir ürün özeti */
@@ -8,11 +9,13 @@ export function ProductMirrorSeoAside({
   description,
   priceMinor,
   slug,
+  guideLinks = [],
 }: {
   title: string;
   description?: string | null;
   priceMinor: number;
   slug: string;
+  guideLinks?: ProductBlogGuideLink[];
 }) {
   const lead = (description ?? "")
     .replace(/<[^>]+>/g, " ")
@@ -34,6 +37,16 @@ export function ProductMirrorSeoAside({
           <Link href="/collections/dogal-kopek-odul-mamasi">Doğal köpek ödül maması</Link>
           <Link href="/collections/all">Tüm ürünler</Link>
         </nav>
+        {guideLinks.length > 0 ? (
+          <nav className="kn-product-mirror-seo__guides" aria-label="Rehber yazılar">
+            <p className="kn-product-mirror-seo__guides-label">Rehberler</p>
+            {guideLinks.map((g) => (
+              <Link key={g.href} href={g.href}>
+                {g.title}
+              </Link>
+            ))}
+          </nav>
+        ) : null}
       </div>
     </section>
   );

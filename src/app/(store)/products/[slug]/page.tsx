@@ -7,6 +7,7 @@ import { ThemeShellProductView } from "@/components/store/ThemeShellProductView"
 import { JsonLdScript } from "@/components/store/JsonLdScript";
 import { ProductSeoShell } from "@/components/store/ProductSeoShell";
 import { ProductMirrorSeoAside } from "@/components/store/ProductMirrorSeoAside";
+import { resolveProductBlogGuides } from "@/lib/blog/product-blog-guides";
 import { ProductReviews } from "@/components/store/ProductReviews";
 import { resolveMirrorProductTemplateSlug } from "@/lib/mirror-html-path";
 import { ProductPurchasePanel } from "@/components/store/ProductPurchasePanel";
@@ -110,6 +111,12 @@ export default async function ProductPage({
     }
 
     const jsonLd = await buildProductPageJsonLd(slug);
+    const guideLinks = await resolveProductBlogGuides(
+      site.id,
+      { slug, title: seoCtx.visibleTitle },
+      locale,
+      2,
+    );
     return (
       <>
         {jsonLd ? <JsonLdScript data={jsonLd} /> : null}
@@ -125,6 +132,7 @@ export default async function ProductPage({
           description={seoCtx.visibleDescription}
           priceMinor={seoCtx.priceMinor}
           slug={slug}
+          guideLinks={guideLinks}
         />
       </>
     );

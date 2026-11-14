@@ -45,3 +45,30 @@
 .kn-product-mirror-seo__links a:hover {
   text-decoration: underline;
 }
+
+.kn-product-mirror-seo__guides {
+  margin-top: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.kn-product-mirror-seo__guides-label {
+  margin: 0 0 0.15rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #71717a;
+}
+
+.kn-product-mirror-seo__guides a {
+  color: var(--kn-brand);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.kn-product-mirror-seo__guides a:hover {
+  text-decoration: underline;
+}

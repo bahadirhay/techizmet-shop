@@ -1,4 +1,3 @@
-import { readThemeShellPilotLive } from "@/lib/theme-shell-pilot-live";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { BlogArticlePageView } from "@/components/store/BlogArticlePageView";
@@ -6,23 +5,22 @@ import {
   getBlogPostBySlug,
   getPublishedBlogPostBySlug,
 } from "@/lib/blog/blog-posts-server";
-import { blogTitle, type BlogPostRecord } from "@/lib/blog/blog-post-types";
+import { resolveBlogFaqs } from "@/lib/blog/blog-faq";
+import { listRelatedBlogPosts } from "@/lib/blog/related-blog-posts";
+import { blogBody, blogTitle, type BlogPostRecord } from "@/lib/blog/blog-post-types";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import { getStoreLocale } from "@/lib/i18n/server";
 import { repairStoredSeoDescription, repairStoredSeoTitle } from "@/lib/seo/seo-text";
 import { JsonLdScript } from "@/components/store/JsonLdScript";
 import { buildPageMetadata } from "@/lib/seo/metadata";
+import { buildBreadcrumbListJsonLd } from "@/lib/seo/json-ld";
 import { buildNewsArticleJsonLd } from "@/lib/seo/site-json-ld";
 import { blogFeedUrl } from "@/lib/seo/rss-feed";
-import { findFaqsForBlogSlug } from "@/lib/seo/search-intent";
 import { buildSiteMetadata } from "@/lib/site-metadata";
-import { getHomepageMode, getSiteSettings } from "@/lib/site-settings";
+import { getSiteSettings } from "@/lib/site-settings";
 import { getDefaultSite } from "@/lib/site";
 import { getStaffAccessOptional } from "@/lib/staff-auth";
-import {
-  isThemeShellEnabledForBlogArticlePath,
-  type ThemeShellPilotQuery,
-} from "@/lib/theme-shell-pilot";
+import type { ThemeShellPilotQuery } from "@/lib/theme-shell-pilot";
 
 type BlogArticleSearchParams = ThemeShellPilotQuery & {
   preview?: string | null;
@@ -40,9 +38,11 @@ function blogMetaTitle(post: BlogPostRecord, locale: ShopLocale, siteName: strin
   });
 }
 
-function blogMetaDescription(post: BlogPostRecord): string {
+function blogMetaDescription(post: BlogPostRecord, locale: ShopLocale): string {
   const stored = post.seoDescription?.trim();
-  return stored ? repairStoredSeoDescription(stored) : (post.excerptTr?.trim() ?? "");
+  if (stored) return repairStoredSeoDescription(stored);
+  if (locale === "en") return (post.excerptEn ?? post.excerptTr)?.trim() ?? "";
+  return (post.excerptTr ?? post.excerptEn)?.trim() ?? "";
 }
 
 async function resolveBlogPostForPage(siteId: string, slug: string, preview?: string | null) {
@@ -72,11 +72,19 @@ export async function generateMetadata({
   if (!post) return base;
   const locale = await getStoreLocale();
   const title = blogMetaTitle(post, locale, site.name);
+  const publishedIso = post.publishedAt?.toISOString() ?? null;
+  const modifiedIso = (post.updatedAt ?? post.publishedAt)?.toISOString() ?? null;
   const pageMeta = buildPageMetadata(base, {
     title,
-    description: blogMetaDescription(post) || base.description,
+    description: blogMetaDescription(post, locale) || base.description,
     imageUrl: post.imageUrl,
     canonicalPath: `/blogs/news/${slug}`,
+    article: {
+      publishedTime: publishedIso,
+      modifiedTime: modifiedIso,
+      authors: [post.author?.trim() || site.name],
+      section: "Blog",
+    },
   });
   return {
     ...pageMeta,
@@ -104,12 +112,7 @@ export default async function BlogArticlePage({
   const query = await searchParams;
   const site = await getDefaultSite();
   const settings = await getSiteSettings(site.id);
-  const homepageMode = getHomepageMode(settings);
   const locale = await getStoreLocale();
-  const themeShellLive = readThemeShellPilotLive();
-  const useThemeShell =
-    homepageMode === "mirror" &&
-    isThemeShellEnabledForBlogArticlePath(`/blogs/news/${slug}`, query, themeShellLive);
 
   const { post, draftPreview } = await resolveBlogPostForPage(site.id, slug, query.preview);
   if (!post) notFound();
@@ -120,12 +123,13 @@ export default async function BlogArticlePage({
   const path = `/blogs/news/${slug}`;
   const publishedIso = post.publishedAt?.toISOString() ?? null;
   const modifiedIso = (post.updatedAt ?? post.publishedAt)?.toISOString() ?? null;
+  const visibleTitle = blogTitle(post, locale);
 
   const jsonLd =
     post.published && !draftPreview
       ? buildNewsArticleJsonLd({
           headline,
-          description: blogMetaDescription(post) || post.excerptTr,
+          description: blogMetaDescription(post, locale) || post.excerptTr,
           path,
           imageUrl: post.imageUrl,
           datePublished: publishedIso,
@@ -137,13 +141,25 @@ export default async function BlogArticlePage({
         })
       : null;
 
-  const blogFaqs = post.published ? findFaqsForBlogSlug(slug) : [];
+  const breadcrumbJsonLd =
+    post.published && !draftPreview
+      ? buildBreadcrumbListJsonLd([
+          { name: "Ana sayfa", path: "/" },
+          { name: "Blog", path: "/blogs/news" },
+          { name: visibleTitle, path },
+        ])
+      : null;
+
+  const bodyHtml = blogBody(post, locale);
+  const { faqs, renderVisible } = post.published
+    ? resolveBlogFaqs(slug, bodyHtml)
+    : { faqs: [], renderVisible: false };
   const faqJsonLd =
-    blogFaqs.length > 0
+    faqs.length > 0
       ? {
           "@context": "https://schema.org",
           "@type": "FAQPage",
-          mainEntity: blogFaqs.map((f) => ({
+          mainEntity: faqs.map((f) => ({
             "@type": "Question",
             name: f.question,
             acceptedAnswer: { "@type": "Answer", text: f.answer },
@@ -151,28 +167,26 @@ export default async function BlogArticlePage({
         }
       : null;
 
+  const relatedPosts =
+    post.published && !draftPreview
+      ? await listRelatedBlogPosts(site.id, post, locale, 3)
+      : [];
+
   const article = (
     <BlogArticlePageView
       post={post}
       locale={locale}
       siteName={site.name}
       draftPreview={draftPreview && !post.published}
+      relatedPosts={relatedPosts}
+      faqs={renderVisible ? faqs : []}
     />
   );
-
-  if (useThemeShell || homepageMode === "mirror") {
-    return (
-      <>
-        {jsonLd ? <JsonLdScript data={jsonLd} /> : null}
-        {faqJsonLd ? <JsonLdScript data={faqJsonLd} /> : null}
-        {article}
-      </>
-    );
-  }
 
   return (
     <>
       {jsonLd ? <JsonLdScript data={jsonLd} /> : null}
+      {breadcrumbJsonLd ? <JsonLdScript data={breadcrumbJsonLd} /> : null}
       {faqJsonLd ? <JsonLdScript data={faqJsonLd} /> : null}
       {article}
     </>

@@ -2916,6 +2916,52 @@ button.header--icon-link-text {
 .kn-blog-article__empty {
   color: #666;
 }
+.kn-blog-article__faq {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+.kn-blog-article__faq-title,
+.kn-blog-article__related-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 1rem;
+}
+.kn-blog-article__faq-list {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.kn-blog-article__faq-item dt {
+  font-weight: 700;
+  margin: 0 0 0.35rem;
+}
+.kn-blog-article__faq-item dd {
+  margin: 0;
+  line-height: 1.65;
+  color: #3f3f46;
+}
+.kn-blog-article__related {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+.kn-blog-article__related-list {
+  margin: 0;
+  padding-left: 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.kn-blog-article__related-list a {
+  color: var(--kn-brand, #6d28d9);
+  font-weight: 600;
+  text-decoration: none;
+}
+.kn-blog-article__related-list a:hover {
+  text-decoration: underline;
+}
 .kn-blog-article__footer {
   margin-top: 2.5rem;
   padding-top: 1.5rem;

@@ -21,9 +21,9 @@ export type TrendyolDeductionCategory =
   | "unknown";
 
 export function classifyDeductionTx(tx: {
-  notes: string | null;
-  description: string | null;
-  reconciliationStatus: string | null;
+  notes?: string | null;
+  description?: string | null;
+  reconciliationStatus?: string | null;
 }): TrendyolDeductionCategory {
   const notes = (tx.notes ?? "").toLowerCase();
   const desc = (tx.description ?? "").toLocaleLowerCase("tr-TR");

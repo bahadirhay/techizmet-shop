@@ -68,7 +68,7 @@ export async function buildStoreSitemapEntries(siteId: string): Promise<Metadata
     }),
     prisma.storeBlogPost.findMany({
       where: { siteId, published: true },
-      select: { slug: true, updatedAt: true, publishedAt: true },
+      select: { slug: true, updatedAt: true, publishedAt: true, imageUrl: true },
     }),
     buildMediaNameMap(prisma, siteId),
   ]);
@@ -142,11 +142,18 @@ export async function buildStoreSitemapEntries(siteId: string): Promise<Metadata
         priority: 0.55,
       })),
     ...extraMirrorPages,
-    ...blogPosts.map((p) => ({
-      url: `${root}/blogs/news/${p.slug}`,
-      lastModified: p.updatedAt ?? p.publishedAt ?? now,
-      changeFrequency: "monthly" as const,
-      priority: 0.6,
-    })),
+    ...blogPosts.map((p) => {
+      const rawImage = p.imageUrl?.trim() || null;
+      const imagePath = rawImage
+        ? descriptiveMediaUrl(rawImage, mediaNames) || rawImage
+        : null;
+      return {
+        url: `${root}/blogs/news/${p.slug}`,
+        lastModified: p.updatedAt ?? p.publishedAt ?? now,
+        changeFrequency: "monthly" as const,
+        priority: 0.6,
+        ...(imagePath ? { images: [absoluteAssetUrl(root, imagePath)] } : {}),
+      };
+    }),
   ].filter((entry) => allowUrl(entry.url));
 }
