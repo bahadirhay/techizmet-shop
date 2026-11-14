@@ -2,11 +2,145 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { Fragment, useRef, useState } from "react";
 import { formatTry } from "@/lib/admin/money";
 import { MARKETPLACE_PLATFORMS } from "@/lib/admin/marketplace-platforms";
-import type { PayoutReconciliationReport } from "@/lib/finance/payout-reconciliation";
+import type {
+  PayoutBatchRow,
+  PayoutReconciliationReport,
+} from "@/lib/finance/payout-reconciliation";
 import { btnPrimary, btnSecondary, inputClass } from "@/components/admin/AdminForm";
+
+function PayoutBatchRows({
+  batch: b,
+  open,
+  statusLabel,
+  statusClassName,
+  platformLabel,
+  onToggle,
+}: {
+  batch: PayoutBatchRow;
+  open: boolean;
+  statusLabel: string;
+  statusClassName: string;
+  platformLabel: string;
+  onToggle: () => void;
+}) {
+  return (
+    <Fragment>
+      <tr
+        className="border-b border-zinc-100 cursor-pointer hover:bg-zinc-50/80"
+        onClick={onToggle}
+      >
+        <td className="py-2 text-zinc-400 text-xs">{open ? "▼" : "▶"}</td>
+        <td className="py-2">{new Date(b.payoutDate).toLocaleDateString("tr-TR")}</td>
+        <td className="py-2">{platformLabel}</td>
+        <td className="py-2 font-mono text-xs">{b.paymentOrderId ?? "—"}</td>
+        <td className="py-2 text-right tabular-nums font-medium">
+          {formatTry(b.payoutAmountMinor)}
+        </td>
+        <td className="py-2 text-right tabular-nums">
+          {b.expectedNetMinor != null ? formatTry(b.expectedNetMinor) : "—"}
+        </td>
+        <td className="py-2 text-right tabular-nums">
+          {b.varianceMinor != null ? (
+            <span className={Math.abs(b.varianceMinor) > 100 ? "text-red-700" : "text-emerald-700"}>
+              {b.varianceMinor > 0 ? "+" : ""}
+              {formatTry(b.varianceMinor)}
+            </span>
+          ) : (
+            "—"
+          )}
+        </td>
+        <td className="py-2 text-right tabular-nums">{b.orderCount || "—"}</td>
+        <td className="py-2">
+          <span className={`rounded-full px-2 py-0.5 text-xs ${statusClassName}`}>
+            {statusLabel}
+          </span>
+        </td>
+      </tr>
+      {open ? (
+        <tr className="border-b border-zinc-100 bg-zinc-50/60">
+          <td colSpan={9} className="px-3 py-4">
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                  Ödeme günü kırılımı
+                </p>
+                {b.breakdown.length === 0 ? (
+                  <p className="mt-2 text-sm text-amber-800">
+                    Kırılım yok. Trendyol&apos;dan yeniden çekerek Satış / Kargo / Komisyon /
+                    Platform / Stopaj kalemlerini doldurun.
+                  </p>
+                ) : (
+                  <ul className="mt-2 divide-y divide-zinc-200 rounded-lg border border-zinc-200 bg-white">
+                    {b.breakdown.map((line) => (
+                      <li
+                        key={line.key}
+                        className="flex items-start justify-between gap-3 px-3 py-2 text-sm"
+                      >
+                        <div className="min-w-0">
+                          <p className="font-medium text-zinc-900">{line.label}</p>
+                          {line.description ? (
+                            <p className="mt-0.5 text-xs text-zinc-500 leading-snug">
+                              {line.description}
+                            </p>
+                          ) : null}
+                        </div>
+                        <p
+                          className={`shrink-0 tabular-nums font-medium ${
+                            line.amountMinor < 0
+                              ? "text-red-700"
+                              : line.amountMinor > 0
+                                ? "text-emerald-800"
+                                : "text-zinc-400"
+                          }`}
+                        >
+                          {formatTry(line.amountMinor)}
+                        </p>
+                      </li>
+                    ))}
+                    <li className="flex items-center justify-between gap-3 bg-zinc-100 px-3 py-2 text-sm font-semibold">
+                      <span>Kırılım neti</span>
+                      <span className="tabular-nums">
+                        {formatTry(b.breakdown.reduce((s, l) => s + l.amountMinor, 0))}
+                      </span>
+                    </li>
+                  </ul>
+                )}
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                  Fark nedeni
+                </p>
+                <ul className="mt-2 space-y-1.5 text-sm text-zinc-700">
+                  {(b.varianceReasons?.length
+                    ? b.varianceReasons
+                    : ["Detay için kırılımı Trendyol’dan çekin."]
+                  ).map((reason) => (
+                    <li key={reason} className="flex gap-2">
+                      <span className="text-zinc-400">·</span>
+                      <span>{reason}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-3 text-xs text-zinc-500">
+                  Bankaya yatan: {formatTry(b.payoutAmountMinor)}
+                  {b.expectedNetMinor != null
+                    ? ` · Beklenen: ${formatTry(b.expectedNetMinor)}`
+                    : ""}
+                  {b.varianceMinor != null
+                    ? ` · Fark: ${b.varianceMinor > 0 ? "+" : ""}${formatTry(b.varianceMinor)}`
+                    : ""}
+                </p>
+              </div>
+            </div>
+          </td>
+        </tr>
+      ) : null}
+    </Fragment>
+  );
+}
 
 const STATUS_LABELS: Record<
   PayoutReconciliationReport["batches"][number]["status"],
@@ -44,6 +178,7 @@ export function MarketplacePayoutsView({
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const anyActive = FINANCE_PLATFORMS.some((p) => activePlatforms[p]);
 
@@ -266,7 +401,8 @@ export function MarketplacePayoutsView({
       <section className="admin-card admin-card-pad mt-8 overflow-x-auto">
         <h2 className="font-semibold">Hakediş ödemeleri</h2>
         <p className="mt-1 text-xs text-zinc-500">
-          Bankaya yatan tutar vs sipariş netleri (ödeme / settlement / event group eşleşmesi)
+          Bankaya yatan tutar vs Trendyol ödeme günü kırılımı (satış, kargo, komisyon, platform,
+          stopaj…). Satıra tıklayınca kalem detayı açılır.
         </p>
         {report.batches.length === 0 ? (
           <p className="mt-4 text-sm text-zinc-500">
@@ -276,6 +412,7 @@ export function MarketplacePayoutsView({
           <table className="mt-4 w-full min-w-[720px] text-sm">
             <thead>
               <tr className="border-b text-left text-xs text-zinc-500">
+                <th className="pb-2 w-8" />
                 <th className="pb-2">Tarih</th>
                 <th className="pb-2">Platform</th>
                 <th className="pb-2">Ödeme no</th>
@@ -291,32 +428,17 @@ export function MarketplacePayoutsView({
                 const st = STATUS_LABELS[b.status];
                 const platformLabel =
                   MARKETPLACE_PLATFORMS.find((x) => x.id === b.platform)?.label ?? b.platform;
+                const open = expandedId === b.id;
                 return (
-                  <tr key={b.id} className="border-b border-zinc-100">
-                    <td className="py-2">{new Date(b.payoutDate).toLocaleDateString("tr-TR")}</td>
-                    <td className="py-2">{platformLabel}</td>
-                    <td className="py-2 font-mono text-xs">{b.paymentOrderId ?? "—"}</td>
-                    <td className="py-2 text-right tabular-nums font-medium">
-                      {formatTry(b.payoutAmountMinor)}
-                    </td>
-                    <td className="py-2 text-right tabular-nums">
-                      {b.expectedNetMinor != null ? formatTry(b.expectedNetMinor) : "—"}
-                    </td>
-                    <td className="py-2 text-right tabular-nums">
-                      {b.varianceMinor != null ? (
-                        <span className={Math.abs(b.varianceMinor) > 100 ? "text-red-700" : "text-emerald-700"}>
-                          {b.varianceMinor > 0 ? "+" : ""}
-                          {formatTry(b.varianceMinor)}
-                        </span>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td className="py-2 text-right tabular-nums">{b.orderCount || "—"}</td>
-                    <td className="py-2">
-                      <span className={`rounded-full px-2 py-0.5 text-xs ${st.className}`}>{st.label}</span>
-                    </td>
-                  </tr>
+                  <PayoutBatchRows
+                    key={b.id}
+                    batch={b}
+                    open={open}
+                    statusLabel={st.label}
+                    statusClassName={st.className}
+                    platformLabel={platformLabel}
+                    onToggle={() => setExpandedId(open ? null : b.id)}
+                  />
                 );
               })}
             </tbody>

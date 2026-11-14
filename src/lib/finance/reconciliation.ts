@@ -81,19 +81,43 @@ export async function loadMarketplaceReconciliation(
     const estimatedMinor = orderDeductions
       .filter((d) => d.reconciliationStatus === "estimated")
       .reduce((s, d) => s + d.amountMinor, 0);
-    const confirmedMinor = orderDeductions
-      .filter((d) => d.reconciliationStatus !== "estimated")
-      .reduce((s, d) => s + d.amountMinor, 0);
+    const confirmedTxs = orderDeductions.filter(
+      (d) => d.reconciliationStatus !== "estimated",
+    );
+    const confirmedMinor = confirmedTxs.reduce((s, d) => s + d.amountMinor, 0);
     const snap = parseOrderFinanceSnapshot(o.financeSnapshotJson);
+    const snapCommission = snap?.totalCommissionMinor ?? 0;
+    const snapOther =
+      (snap?.shippingDeductionMinor ?? 0) + (snap?.marketplaceFixedFeeMinor ?? 0);
     const snapEstimated =
-      snap && o.marketplacePlatform
-        ? snap.totalCommissionMinor +
-          snap.shippingDeductionMinor +
-          (snap.marketplaceFixedFeeMinor ?? 0)
+      snap && o.marketplacePlatform ? snapCommission + snapOther : 0;
+    const fromTy = confirmedTxs.some((d) => {
+      const n = d.notes ?? "";
+      return n === "trendyol-settlement-commission" || n.startsWith("trendyol-payout-");
+    });
+    const confirmedCommission = confirmedTxs
+      .filter((d) => (d.notes ?? "") === "trendyol-settlement-commission")
+      .reduce((s, d) => s + d.amountMinor, 0);
+    const confirmedOther = confirmedTxs
+      .filter((d) => (d.notes ?? "").startsWith("trendyol-payout-"))
+      .reduce((s, d) => s + d.amountMinor, 0);
+    // Gösterim tahmini: komisyon tahmini + TY ek kalemleri (kargo/platform/stopaj)
+    const effectiveEstimated = fromTy
+      ? snapCommission + Math.max(snapOther, confirmedOther)
+      : estimatedMinor > 0
+        ? estimatedMinor
+        : snapEstimated;
+    // Net için: gerçek + kalan tahmin (hibrit)
+    const deductionsMinor =
+      confirmedMinor > 0 || estimatedMinor > 0
+        ? confirmedMinor + estimatedMinor
+        : effectiveEstimated;
+    const varianceMinor =
+      confirmedMinor > 0
+        ? fromTy
+          ? confirmedCommission - snapCommission
+          : confirmedMinor - effectiveEstimated
         : 0;
-    const effectiveEstimated = estimatedMinor > 0 ? estimatedMinor : snapEstimated;
-    const deductionsMinor = confirmedMinor > 0 ? confirmedMinor : effectiveEstimated;
-    const varianceMinor = confirmedMinor > 0 ? confirmedMinor - effectiveEstimated : 0;
     const hasEstimated = estimatedMinor > 0 || snapEstimated > 0;
     const hasConfirmed = confirmedMinor > 0;
     const expectedMinor = income?.amountMinor ?? o.totalMinor;

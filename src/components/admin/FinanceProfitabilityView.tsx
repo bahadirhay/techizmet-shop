@@ -253,7 +253,9 @@ export function FinanceProfitabilityView({ report }: { report: ProfitabilityRepo
                       {o.deductionsMinor > 0 ? (
                         <span>
                           {formatTry(o.deductionsMinor)}
-                          {!o.hasConfirmedDeductions ? (
+                          {o.hasPartialDeductions ? (
+                            <span className="ml-1 text-xs text-amber-700">(kısmi)</span>
+                          ) : !o.hasConfirmedDeductions ? (
                             <span className="ml-1 text-xs text-amber-700">(tahmini)</span>
                           ) : null}
                         </span>
@@ -470,7 +472,8 @@ export function FinanceProfitabilityView({ report }: { report: ProfitabilityRepo
       <section className="admin-card admin-card-pad mt-8 overflow-x-auto">
         <h2 className="font-semibold">Tahmin vs gerçek (kesinti)</h2>
         <p className="mt-1 text-xs text-zinc-500">
-          Otomatik tahmin ile kesinti faturası tutarını karşılaştırın
+          Trendyol hakediş kırılımı (komisyon + kargo + platform + stopaj) geldiyse kaynak TY
+          kabul edilir ve uyumlu sayılır. Amazon vb. için fatura/kesinti onayı beklenir.
         </p>
         {report.estimateVsActual.length === 0 ? (
           <p className="mt-4 text-sm text-zinc-500">Pazaryeri siparişi veya tahmin yok.</p>

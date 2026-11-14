@@ -7,6 +7,7 @@ import {
   marketplaceDeductionsFromSnapshot,
   orderTotalCostMinor,
 } from "@/lib/finance/economics-math";
+import { classifyDeductionTx } from "@/lib/finance/trendyol-deduction-notes";
 import { MARKETPLACE_PLATFORMS } from "@/lib/admin/marketplace-platforms";
 import { profitabilityOrdersWhere } from "@/lib/orders/admin-order-visibility";
 import { prisma } from "@/lib/prisma";
@@ -94,6 +95,8 @@ export type OrderProfitRow = {
   netProfitMinor: number | null;
   marginPercent: number | null;
   hasConfirmedDeductions: boolean;
+  /** Gerçek + kalan tahmini karışık (ör. komisyon gerçek, kargo tahmini) */
+  hasPartialDeductions: boolean;
 };
 
 export type ProfitabilityReport = {
@@ -164,6 +167,7 @@ export async function loadProfitabilityReport(
           orderId: true,
           amountMinor: true,
           reconciliationStatus: true,
+          notes: true,
         },
       })
     : [];
@@ -210,6 +214,8 @@ export async function loadProfitabilityReport(
     channelMap.set(channel, row);
   }
 
+  // Kanal kesintileri: tx bazlı (onaylı + kalan tahmini). Snapshot tahmini yalnızca tx yoksa.
+  const channelTxEstimated = new Map<string, number>();
   for (const d of deductions) {
     if (!d.orderId) continue;
     const order = orders.find((o) => o.id === d.orderId);
@@ -217,13 +223,19 @@ export async function loadProfitabilityReport(
     const channel = order.marketplacePlatform ?? "web";
     const row = channelMap.get(channel);
     if (!row) continue;
-    if (d.reconciliationStatus === "estimated") continue;
-    row.confirmedDeductionsMinor += d.amountMinor;
+    if (d.reconciliationStatus === "estimated") {
+      channelTxEstimated.set(channel, (channelTxEstimated.get(channel) ?? 0) + d.amountMinor);
+    } else {
+      row.confirmedDeductionsMinor += d.amountMinor;
+    }
   }
 
   for (const row of channelMap.values()) {
-    const deductionsForNet =
-      row.confirmedDeductionsMinor > 0 ? row.confirmedDeductionsMinor : row.estimatedDeductionsMinor;
+    const txEst = channelTxEstimated.get(row.channel) ?? 0;
+    if (row.confirmedDeductionsMinor > 0 || txEst > 0) {
+      row.estimatedDeductionsMinor = txEst;
+    }
+    const deductionsForNet = row.confirmedDeductionsMinor + row.estimatedDeductionsMinor;
     if (row.costMinor > 0 || deductionsForNet > 0) {
       row.netProfitMinor = row.grossMinor - deductionsForNet - row.costMinor;
       row.marginPercent =
@@ -235,22 +247,61 @@ export async function loadProfitabilityReport(
 
   for (const order of orders.filter((o) => o.marketplacePlatform)) {
     const snap = resolveOrderSnapshot(order);
-    const estimatedMinor = snap
-      ? snap.totalCommissionMinor +
-        snap.shippingDeductionMinor +
-        (snap.marketplaceFixedFeeMinor ?? 0)
-      : 0;
+    const snapCommission = snap?.totalCommissionMinor ?? 0;
+    const snapOther =
+      (snap?.shippingDeductionMinor ?? 0) + (snap?.marketplaceFixedFeeMinor ?? 0);
+    const snapEstimated = snapCommission + snapOther;
+
     const orderDeductions = deductions.filter((d) => d.orderId === order.id);
-    const confirmedMinor = orderDeductions
-      .filter((d) => d.reconciliationStatus !== "estimated")
-      .reduce((s, d) => s + d.amountMinor, 0);
+    const confirmedTxs = orderDeductions.filter(
+      (d) => d.reconciliationStatus !== "estimated",
+    );
+    const confirmedMinor = confirmedTxs.reduce((s, d) => s + d.amountMinor, 0);
 
-    if (estimatedMinor === 0 && confirmedMinor === 0) continue;
+    if (snapEstimated === 0 && confirmedMinor === 0) continue;
 
-    const varianceMinor = confirmedMinor - estimatedMinor;
+    // Gerçek komisyon vs ek kalemler (kargo/platform/stopaj…)
+    let confirmedCommission = 0;
+    let confirmedOther = 0;
+    let fromTrendyolSource = false;
+    for (const d of confirmedTxs) {
+      const cat = classifyDeductionTx(d);
+      const notes = d.notes ?? "";
+      if (
+        notes === "trendyol-settlement-commission" ||
+        notes.startsWith("trendyol-payout-")
+      ) {
+        fromTrendyolSource = true;
+      }
+      if (cat === "commission") confirmedCommission += d.amountMinor;
+      else confirmedOther += d.amountMinor;
+    }
+
+    /**
+     * Eski tahmin çoğu zaman yalnız komisyondu; TY hakedişinden kargo/platform/stopaj
+     * gelince toplam "fark" şişiyordu.
+     * - Tam TY paketi (komisyon + hakediş kalemleri) → kaynak TY, uyumlu.
+     * - Yalnız komisyon / diğer platform → komisyon sapmasına bak.
+     */
+    let estimatedMinor = snapCommission + snapOther;
+    let varianceMinor = 0;
     let status: EstimateVsActualRow["status"] = "pending";
+
     if (confirmedMinor > 0) {
-      status = Math.abs(varianceMinor) > 100 ? "variance" : "ok";
+      if (fromTrendyolSource && confirmedOther > 0) {
+        // Hakediş kırılımı geldi: gerçek kesinti = doğruluk kaynağı
+        estimatedMinor = confirmedMinor;
+        varianceMinor = 0;
+        status = "ok";
+      } else if (fromTrendyolSource) {
+        // Yalnız settlement komisyonu; ek kalemler henüz yok
+        estimatedMinor = snapCommission + snapOther;
+        varianceMinor = confirmedCommission - snapCommission;
+        status = Math.abs(varianceMinor) > 100 ? "variance" : "ok";
+      } else {
+        varianceMinor = confirmedMinor - estimatedMinor;
+        status = Math.abs(varianceMinor) > 100 ? "variance" : "ok";
+      }
     }
 
     estimateVsActual.push({
@@ -267,10 +318,30 @@ export async function loadProfitabilityReport(
 
   estimateVsActual.sort((a, b) => b.orderDate.getTime() - a.orderDate.getTime());
 
+  // Sipariş başına: onaylı + kalan tahmini (çift sayım yok — import kategori bazlı siler)
   const confirmedDedByOrder = new Map<string, number>();
+  const estimatedDedByOrder = new Map<string, number>();
+  const hasPayoutExtraByOrder = new Map<string, boolean>();
   for (const d of deductions) {
-    if (!d.orderId || d.reconciliationStatus === "estimated") continue;
-    confirmedDedByOrder.set(d.orderId, (confirmedDedByOrder.get(d.orderId) ?? 0) + d.amountMinor);
+    if (!d.orderId) continue;
+    if (d.reconciliationStatus === "estimated") {
+      estimatedDedByOrder.set(
+        d.orderId,
+        (estimatedDedByOrder.get(d.orderId) ?? 0) + d.amountMinor,
+      );
+    } else {
+      confirmedDedByOrder.set(
+        d.orderId,
+        (confirmedDedByOrder.get(d.orderId) ?? 0) + d.amountMinor,
+      );
+      const notes = d.notes ?? "";
+      if (
+        notes.startsWith("trendyol-payout-") &&
+        notes !== "trendyol-payout-other"
+      ) {
+        hasPayoutExtraByOrder.set(d.orderId, true);
+      }
+    }
   }
 
   const ordersByProfit: OrderProfitRow[] = orders
@@ -279,11 +350,25 @@ export async function loadProfitabilityReport(
       const snap = resolveOrderSnapshot(order);
       const isMarketplace = Boolean(order.marketplacePlatform);
       const gross = snap?.grossMinor ?? order.totalMinor;
-      const estimatedDed =
+      const snapshotDed =
         snap && isMarketplace ? marketplaceDeductionsFromSnapshot(snap) : 0;
       const confirmedDed = confirmedDedByOrder.get(order.id) ?? 0;
+      const estimatedTxDed = estimatedDedByOrder.get(order.id) ?? 0;
       const hasConfirmedDeductions = confirmedDed > 0;
-      const deductionsMinor = hasConfirmedDeductions ? confirmedDed : estimatedDed;
+      const hasEstimatedTx = estimatedTxDed > 0;
+      // Gerçek + kalan tahmin; hiç tx yoksa snapshot tahmini
+      const deductionsMinor =
+        confirmedDed > 0 || estimatedTxDed > 0
+          ? confirmedDed + estimatedTxDed
+          : snapshotDed;
+      // Komisyon geldi, kargo/platform/stopaj henüz yok → kısmi
+      const commissionOnlyConfirmed =
+        hasConfirmedDeductions &&
+        channel === "trendyol" &&
+        !hasPayoutExtraByOrder.get(order.id) &&
+        !hasEstimatedTx;
+      const hasPartialDeductions =
+        (hasConfirmedDeductions && hasEstimatedTx) || commissionOnlyConfirmed;
       const cost = snap ? orderTotalCostMinor(snap, isMarketplace) : 0;
       let netProfitMinor: number | null = null;
       let marginPercent: number | null = null;
@@ -304,6 +389,7 @@ export async function loadProfitabilityReport(
         netProfitMinor,
         marginPercent,
         hasConfirmedDeductions,
+        hasPartialDeductions,
       };
     })
     .sort((a, b) => b.orderDate.getTime() - a.orderDate.getTime())
@@ -331,8 +417,7 @@ export async function loadProfitabilityReport(
     const payoutsMinor = payouts
       .filter((p) => p.marketplacePlatform === platform)
       .reduce((s, p) => s + p.amountMinor, 0);
-    const effectiveDeductions =
-      confirmedDeductionsMinor > 0 ? confirmedDeductionsMinor : estimatedDeductionsMinor;
+    const effectiveDeductions = confirmedDeductionsMinor + estimatedDeductionsMinor;
 
     return {
       platform,
@@ -362,8 +447,14 @@ export async function loadProfitabilityReport(
     const confirmedOrderDed = orderDeductions
       .filter((d) => d.reconciliationStatus !== "estimated")
       .reduce((s, d) => s + d.amountMinor, 0);
+    const estimatedTxDed = orderDeductions
+      .filter((d) => d.reconciliationStatus === "estimated")
+      .reduce((s, d) => s + d.amountMinor, 0);
     const estimatedOrderDed = isMarketplace ? marketplaceDeductionsFromSnapshot(snap) : 0;
-    const effectiveDed = confirmedOrderDed > 0 ? confirmedOrderDed : estimatedOrderDed;
+    const effectiveDed =
+      confirmedOrderDed > 0 || estimatedTxDed > 0
+        ? confirmedOrderDed + estimatedTxDed
+        : estimatedOrderDed;
     const gross = snap.grossMinor;
     const cost = orderTotalCostMinor(snap, isMarketplace);
 

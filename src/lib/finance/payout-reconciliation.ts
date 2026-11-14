@@ -1,7 +1,15 @@
 import "server-only";
 
 import { ensureFinanceDefaults } from "@/lib/finance/defaults";
+import { TRENDYOL_PAYOUT_LINE_DEFS } from "@/lib/finance/trendyol-payout-breakdown";
 import { prisma } from "@/lib/prisma";
+
+export type PayoutBreakdownLine = {
+  key: string;
+  label: string;
+  description?: string;
+  amountMinor: number;
+};
 
 export type PayoutBatchRow = {
   id: string;
@@ -14,6 +22,9 @@ export type PayoutBatchRow = {
   status: "ok" | "variance" | "pending_orders" | "manual";
   platform: string;
   description: string;
+  /** Partner paneli kalemleri — farkın nedeni */
+  breakdown: PayoutBreakdownLine[];
+  varianceReasons: string[];
 };
 
 export type PayoutReconciliationReport = {
@@ -32,6 +43,8 @@ function parsePayoutNotes(notes: string | null): {
   financialEventGroupId?: string;
   expectedNetMinor?: number;
   orderIds?: string[];
+  breakdown?: { key: string; label: string; amountMinor: number }[];
+  breakdownSource?: string;
 } | null {
   if (!notes?.trim()) return null;
   try {
@@ -39,10 +52,80 @@ function parsePayoutNotes(notes: string | null): {
       paymentOrderId?: number;
       expectedNetMinor?: number;
       orderIds?: string[];
+      breakdown?: { key: string; label: string; amountMinor: number }[];
+      breakdownSource?: string;
     };
   } catch {
     return null;
   }
+}
+
+const LINE_DESC = Object.fromEntries(
+  TRENDYOL_PAYOUT_LINE_DEFS.map((d) => [d.key, d.description]),
+) as Record<string, string>;
+
+function enrichBreakdown(
+  raw: { key: string; label: string; amountMinor: number }[] | undefined,
+): PayoutBreakdownLine[] {
+  if (!raw?.length) return [];
+  const byKey = new Map(raw.map((l) => [l.key, l]));
+  // Partner paneli sırası + bilinen tüm kalemler (0 olsa da göster)
+  const orderedKeys = TRENDYOL_PAYOUT_LINE_DEFS.map((d) => d.key as string);
+  const extra = raw.filter((l) => !orderedKeys.includes(l.key));
+  return [
+    ...orderedKeys.map((key) => {
+      const hit = byKey.get(key);
+      const def = TRENDYOL_PAYOUT_LINE_DEFS.find((d) => d.key === key);
+      return {
+        key,
+        label: hit?.label ?? def?.label ?? key,
+        description: LINE_DESC[key],
+        amountMinor: hit?.amountMinor ?? 0,
+      };
+    }),
+    ...extra.map((l) => ({
+      key: l.key,
+      label: l.label,
+      amountMinor: l.amountMinor,
+    })),
+  ];
+}
+
+function buildVarianceReasons(
+  payoutAmountMinor: number,
+  expectedNetMinor: number | null,
+  breakdown: PayoutBreakdownLine[],
+): string[] {
+  const reasons: string[] = [];
+  if (expectedNetMinor == null) {
+    reasons.push("Beklenen net hesaplanamadı — kırılım henüz çekilmemiş olabilir.");
+    return reasons;
+  }
+
+  const variance = payoutAmountMinor - expectedNetMinor;
+  if (Math.abs(variance) <= 100) {
+    reasons.push("Bankaya yatan tutar, Trendyol ödeme günü kırılımıyla uyumlu.");
+  } else {
+    reasons.push(
+      `Banka − kırılım neti = ${(variance / 100).toLocaleString("tr-TR", { minimumFractionDigits: 2 })} ₺ fark.`,
+    );
+  }
+
+  const cuts = breakdown.filter((l) => l.key !== "sales" && l.amountMinor !== 0);
+  if (cuts.length) {
+    const top = [...cuts].sort((a, b) => Math.abs(b.amountMinor) - Math.abs(a.amountMinor));
+    for (const line of top.slice(0, 5)) {
+      reasons.push(
+        `${line.label}: ${(line.amountMinor / 100).toLocaleString("tr-TR", { minimumFractionDigits: 2 })} ₺`,
+      );
+    }
+  } else if (!breakdown.length) {
+    reasons.push(
+      "Kargo / platform / stopaj kalemleri yok — yeniden Trendyol'dan çekin.",
+    );
+  }
+
+  return reasons;
 }
 
 export async function loadPayoutReconciliation(
@@ -86,15 +169,25 @@ export async function loadPayoutReconciliation(
                   ? p.marketplaceRef.replace("eventGroup:", "").slice(0, 16)
                   : null;
 
-    const expectedNetMinor = meta?.expectedNetMinor ?? null;
+    const breakdown = enrichBreakdown(meta?.breakdown);
+    const expectedNetMinor =
+      meta?.expectedNetMinor ??
+      (breakdown.length ? breakdown.reduce((s, l) => s + l.amountMinor, 0) : null);
     const orderCount = meta?.orderIds?.length ?? 0;
     const varianceMinor =
       expectedNetMinor != null ? p.amountMinor - expectedNetMinor : null;
+    const varianceReasons = buildVarianceReasons(
+      p.amountMinor,
+      expectedNetMinor,
+      breakdown,
+    );
 
     let status: PayoutBatchRow["status"] = "manual";
     if (paymentOrderId) {
-      if (orderCount === 0) status = "pending_orders";
+      if (!breakdown.length && orderCount === 0) status = "pending_orders";
       else if (varianceMinor != null && Math.abs(varianceMinor) > 100) status = "variance";
+      else if (orderCount === 0 && breakdown.length) status = "ok";
+      else if (orderCount === 0) status = "pending_orders";
       else status = "ok";
     }
 
@@ -109,6 +202,8 @@ export async function loadPayoutReconciliation(
       status,
       platform: p.marketplacePlatform ?? "—",
       description: p.description,
+      breakdown,
+      varianceReasons,
     };
   });
 

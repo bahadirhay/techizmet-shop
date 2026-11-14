@@ -11,12 +11,29 @@ import {
   type TrendyolFinancialRow,
 } from "@/lib/marketplace/trendyol/finance-api";
 import { parseTrendyolConfig } from "@/lib/marketplace/trendyol/client";
+import {
+  breakdownToNotesPayload,
+  fetchTrendyolPayoutBreakdown,
+  type TrendyolPayoutBreakdown,
+  type TrendyolPayoutLineKey,
+} from "@/lib/finance/trendyol-payout-breakdown";
+import {
+  TY_PAYOUT_ADVERTISING_NOTE,
+  TY_PAYOUT_CARGO_NOTE,
+  TY_PAYOUT_MICRO_EXPORT_NOTE,
+  TY_PAYOUT_OTHER_NOTE,
+  TY_PAYOUT_PENALTY_NOTE,
+  TY_PAYOUT_PLATFORM_NOTE,
+  TY_PAYOUT_STOPPAGE_NOTE,
+  TY_SETTLEMENT_COMMISSION_NOTE,
+} from "@/lib/finance/trendyol-deduction-notes";
 import { prisma } from "@/lib/prisma";
 
 export type TrendyolFinanceImportResult = {
   payouts: { created: number; skipped: number };
   deductions: { created: number; skipped: number; linked: number };
   commissionsPosted: number;
+  payoutDeductionsAllocated: number;
   ordersTagged: number;
   errors: string[];
   message: string;
@@ -34,11 +51,20 @@ type OrderCommissionSummary = {
   shipmentPackageId: number | null;
   /** Split model — CommissionNegative satırlarından */
   commissionMinor: number;
-  /** Sale model — Sale satırlarındaki commissionAmount alanından */
+  /** Sale model — Sale/İndirim satırlarındaki net commissionAmount */
   saleCommissionMinor: number;
 };
 
-/** Settlement satırlarından sipariş bazında GERÇEK komisyonu toplar. */
+function normalizeTyType(type: string): string {
+  return type.toLocaleLowerCase("tr-TR");
+}
+
+function isCancelType(type: string): boolean {
+  const t = normalizeTyType(type);
+  return t.includes("cancel") || t.includes("iptal");
+}
+
+/** Settlement satırlarından sipariş bazında GERÇEK komisyonu toplar (EN + TR etiket). */
 function buildOrderCommissionSummary(
   settlements: TrendyolFinancialRow[],
 ): Map<string, OrderCommissionSummary> {
@@ -59,13 +85,37 @@ function buildOrderCommissionSummary(
     }
 
     const type = row.transactionType;
-    const isCancel = type.includes("Cancel");
-    if (type.includes("Commission")) {
+    const typeNorm = normalizeTyType(type);
+    const cancel = isCancelType(type);
+    const sign = cancel ? -1 : 1;
+
+    if (typeNorm.includes("commission") || typeNorm.includes("komisyon")) {
       const amt = tryAmountToMinor(row.debt) || tryAmountToMinor(row.commissionAmount ?? 0);
-      entry.commissionMinor += isCancel ? -amt : amt;
-    } else if (type === "Sale" || type.includes("SellerRevenue")) {
-      const amt = tryAmountToMinor(row.commissionAmount ?? 0);
-      entry.saleCommissionMinor += isCancel ? -amt : amt;
+      // CommissionNegative → kesinti artar; CommissionPositive → azalır
+      if (typeNorm.includes("positive") || typeNorm.includes("pozitif")) {
+        entry.commissionMinor -= sign * amt;
+      } else {
+        entry.commissionMinor += sign * amt;
+      }
+    } else if (
+      typeNorm === "sale" ||
+      typeNorm === "satış" ||
+      typeNorm === "satis" ||
+      typeNorm.includes("sellerrevenue") ||
+      typeNorm.includes("hakediş") ||
+      typeNorm.includes("hakedis")
+    ) {
+      entry.saleCommissionMinor += sign * tryAmountToMinor(row.commissionAmount ?? 0);
+    } else if (
+      typeNorm === "return" ||
+      typeNorm === "iade" ||
+      typeNorm.includes("discount") ||
+      typeNorm.includes("indirim") ||
+      typeNorm.includes("coupon") ||
+      typeNorm.includes("kupon")
+    ) {
+      // İndirim/iadede komisyon düşer
+      entry.saleCommissionMinor -= sign * tryAmountToMinor(row.commissionAmount ?? 0);
     }
 
     map.set(orderNumber, entry);
@@ -74,9 +124,10 @@ function buildOrderCommissionSummary(
   return map;
 }
 
-/** Split modelde CommissionNegative, aksi halde Sale satırındaki commissionAmount. */
+/** Split modelde Commission* , aksi halde Sale/İndirim net commissionAmount. */
 function resolveRealCommissionMinor(summary: OrderCommissionSummary): number {
-  const value = summary.commissionMinor > 0 ? summary.commissionMinor : summary.saleCommissionMinor;
+  const value =
+    summary.commissionMinor !== 0 ? summary.commissionMinor : summary.saleCommissionMinor;
   return value > 0 ? value : 0;
 }
 
@@ -192,6 +243,7 @@ export async function importTrendyolFinance(
       payouts: { created: 0, skipped: 0 },
       deductions: { created: 0, skipped: 0, linked: 0 },
       commissionsPosted: 0,
+      payoutDeductionsAllocated: 0,
       ordersTagged: 0,
       errors: ["Trendyol API bilgileri eksik (Pazaryeri ayarları)"],
       message: "Trendyol API yapılandırılmamış",
@@ -203,9 +255,14 @@ export async function importTrendyolFinance(
   const startMs = endMs - sinceDays * 86400000;
 
   const settlementTypes = [
-    "SellerRevenuePositive",
-    "CommissionNegative",
     "Sale",
+    "Return",
+    "Discount",
+    "Coupon",
+    "SellerRevenuePositive",
+    "SellerRevenueNegative",
+    "CommissionNegative",
+    "CommissionPositive",
   ];
 
   const settlementResult = await fetchTrendyolFinanceRange(
@@ -272,9 +329,8 @@ export async function importTrendyolFinance(
     where: { siteId, kind: "bank" },
   });
 
-  // Settlement'tan gelen GERÇEK komisyonu sipariş bazında onaylı kesinti olarak yaz;
-  // aynı siparişin otomatik tahminlerini sil ki raporlar tahmin yerine gerçeği kullansın.
-  const SETTLEMENT_COMMISSION_NOTE = "trendyol-settlement-commission";
+  // Settlement'tan gelen GERÇEK komisyonu yaz; yalnızca "Tahmini komisyon" silinsin
+  // (kargo / platform tahminleri kalsın — PO dağıtımı veya fatura gelene kadar).
   let commissionsPosted = 0;
 
   for (const summary of orderCommissionSummary.values()) {
@@ -297,7 +353,13 @@ export async function importTrendyolFinance(
         siteId,
         orderId: order.id,
         kind: "marketplace_deduction",
-        OR: [{ reconciliationStatus: "estimated" }, { notes: SETTLEMENT_COMMISSION_NOTE }],
+        OR: [
+          { notes: TY_SETTLEMENT_COMMISSION_NOTE },
+          {
+            reconciliationStatus: "estimated",
+            description: { startsWith: "Tahmini komisyon" },
+          },
+        ],
       },
     });
 
@@ -315,7 +377,7 @@ export async function importTrendyolFinance(
         marketplacePlatform: "trendyol",
         marketplaceRef: `settlementCommission:${order.id}`,
         reconciliationStatus: "matched",
-        notes: SETTLEMENT_COMMISSION_NOTE,
+        notes: TY_SETTLEMENT_COMMISSION_NOTE,
       },
     });
 
@@ -329,11 +391,20 @@ export async function importTrendyolFinance(
     commissionsPosted += 1;
   }
 
+  let payoutDeductionsAllocated = 0;
+
   let payoutsCreated = 0;
   let payoutsSkippedExisting = 0;
   let payoutsSkippedZero = 0;
+  let payoutsBreakdownUpdated = 0;
+  let payoutIndex = 0;
 
   for (const row of payoutResult.rows) {
+    if (payoutIndex > 0) {
+      // Ödeme emirleri arasında kısa bekleme — CHE 429
+      await new Promise((r) => setTimeout(r, 800));
+    }
+    payoutIndex += 1;
     const paymentOrderId = row.paymentOrderId ?? Number(row.id.replace(/\D/g, "") || 0);
     const ref = payoutRef(paymentOrderId || row.id);
     const existing = await prisma.financeTransaction.findFirst({
@@ -344,23 +415,94 @@ export async function importTrendyolFinance(
         marketplaceRef: ref,
       },
     });
-    if (existing) {
-      payoutsSkippedExisting += 1;
-      continue;
-    }
 
     // PaymentOrder satırlarında tutar `debt` alanında gelir (credit/sellerRevenue boş).
     // Örn. "TRENDYOL Marketplace Ödeme" → debt: 331.58, credit: 0
     const amountMinor = tryAmountToMinor(
       row.credit || row.sellerRevenue || row.debt || 0,
     );
+
+    const summary = paymentOrderId ? paymentOrderSummary.get(paymentOrderId) : undefined;
+    const txDate = new Date(row.paymentDate || row.transactionDate || Date.now());
+
+    let notesPayload: Record<string, unknown> | null = paymentOrderId
+      ? {
+          paymentOrderId,
+          expectedNetMinor: summary?.expectedNetMinor,
+          orderIds: summary?.orderIds ?? [],
+          orderNumbers: summary?.orderNumbers ?? [],
+        }
+      : null;
+
+    if (paymentOrderId) {
+      try {
+        const breakdown = await fetchTrendyolPayoutBreakdown(creds, paymentOrderId);
+        const rateLimited = breakdown.errors.some((e) => e.includes("HTTP 429"));
+        const delta = Math.abs(amountMinor - breakdown.computedNetMinor);
+        // Eksik/429 kırılımı kaydetme — önceki doğru notes'u bozma
+        if (!rateLimited && breakdown.rawRowCount > 0 && (amountMinor <= 0 || delta <= 200)) {
+          const orderIds = summary?.orderIds?.length
+            ? summary.orderIds
+            : (notesPayload?.orderIds as string[] | undefined) ?? [];
+          notesPayload = {
+            ...breakdownToNotesPayload(breakdown, orderIds),
+            orderIds,
+          };
+          const allocated = await allocatePayoutBreakdownToOrders(
+            siteId,
+            paymentOrderId,
+            breakdown,
+            orderIds,
+            {
+              deductionCategoryId: deductionCategory?.id,
+              accountId: trendyolAccount?.id,
+            },
+          );
+          payoutDeductionsAllocated += allocated;
+        } else if (breakdown.errors.length) {
+          errors.push(
+            ...breakdown.errors
+              .filter((e) => e.includes("HTTP 429"))
+              .slice(0, 1)
+              .map((e) => `paymentOrder ${paymentOrderId}: ${e}`),
+          );
+          if (!rateLimited) {
+            errors.push(
+              ...breakdown.errors
+                .filter((e) => !e.includes("HTTP 429"))
+                .slice(0, 3),
+            );
+          }
+        }
+      } catch (e) {
+        errors.push(
+          `paymentOrder ${paymentOrderId} kırılım: ${e instanceof Error ? e.message : String(e)}`,
+        );
+      }
+    }
+
+    if (existing) {
+      // Mevcut kayda yalnızca tutarlı partner paneli kırılımını yaz
+      if (notesPayload && "breakdown" in notesPayload) {
+        await prisma.financeTransaction.update({
+          where: { id: existing.id },
+          data: {
+            notes: JSON.stringify(notesPayload),
+            reconciliationStatus: summary?.orderIds.length
+              ? "matched"
+              : existing.reconciliationStatus,
+          },
+        });
+        payoutsBreakdownUpdated += 1;
+      }
+      payoutsSkippedExisting += 1;
+      continue;
+    }
+
     if (amountMinor <= 0) {
       payoutsSkippedZero += 1;
       continue;
     }
-
-    const summary = paymentOrderId ? paymentOrderSummary.get(paymentOrderId) : undefined;
-    const txDate = new Date(row.paymentDate || row.transactionDate || Date.now());
 
     await prisma.financeTransaction.create({
       data: {
@@ -374,16 +516,7 @@ export async function importTrendyolFinance(
         marketplacePlatform: "trendyol",
         marketplaceRef: ref,
         reconciliationStatus: summary?.orderIds.length ? "matched" : "open",
-        notes: summary
-          ? JSON.stringify({
-              paymentOrderId,
-              expectedNetMinor: summary.expectedNetMinor,
-              orderIds: summary.orderIds,
-              orderNumbers: summary.orderNumbers,
-            })
-          : paymentOrderId
-            ? JSON.stringify({ paymentOrderId })
-            : null,
+        notes: notesPayload ? JSON.stringify(notesPayload) : null,
       },
     });
     payoutsCreated += 1;
@@ -460,8 +593,16 @@ export async function importTrendyolFinance(
   const payoutsSkipped = payoutsSkippedExisting + payoutsSkippedZero;
   const message = [
     commissionsPosted ? `${commissionsPosted} sipariş gerçek komisyonu` : null,
+    payoutDeductionsAllocated
+      ? `${payoutDeductionsAllocated} siparişe kargo/platform/stopaj dağıtıldı`
+      : null,
     payoutsCreated ? `${payoutsCreated} hakediş` : null,
-    payoutsSkippedExisting ? `${payoutsSkippedExisting} hakediş zaten kayıtlı` : null,
+    payoutsBreakdownUpdated
+      ? `${payoutsBreakdownUpdated} hakediş kırılımı güncellendi`
+      : null,
+    payoutsSkippedExisting && payoutsBreakdownUpdated === 0
+      ? `${payoutsSkippedExisting} hakediş zaten kayıtlı`
+      : null,
     payoutsSkippedZero ? `${payoutsSkippedZero} hakediş tutarsız (0 TL)` : null,
     deductionsCreated ? `${deductionsCreated} kesinti faturası` : null,
     deductionsLinked ? `${deductionsLinked} siparişe bağlandı` : null,
@@ -478,8 +619,202 @@ export async function importTrendyolFinance(
       linked: deductionsLinked,
     },
     commissionsPosted,
+    payoutDeductionsAllocated,
     ordersTagged,
     errors,
     message: message || "Yeni kayıt yok (dönem zaten içe aktarılmış olabilir)",
   };
+}
+
+const PAYOUT_LINE_ALLOCATION: {
+  key: TrendyolPayoutLineKey;
+  note: string;
+  description: (orderNumber: string) => string;
+  /** Silinecek tahmini açıklama öneki */
+  clearEstimatedPrefix?: string;
+}[] = [
+  {
+    key: "cargo",
+    note: TY_PAYOUT_CARGO_NOTE,
+    description: (n) => `Trendyol kargo kesintisi — ${n}`,
+    clearEstimatedPrefix: "Tahmini kargo",
+  },
+  {
+    key: "platformFee",
+    note: TY_PAYOUT_PLATFORM_NOTE,
+    description: (n) => `Trendyol platform hizmet bedeli — ${n}`,
+    clearEstimatedPrefix: "Tahmini sabit",
+  },
+  {
+    key: "stoppage",
+    note: TY_PAYOUT_STOPPAGE_NOTE,
+    description: (n) => `Trendyol e-ticaret stopajı — ${n}`,
+  },
+  {
+    key: "penalty",
+    note: TY_PAYOUT_PENALTY_NOTE,
+    description: (n) => `Trendyol ceza kesintisi — ${n}`,
+  },
+  {
+    key: "advertising",
+    note: TY_PAYOUT_ADVERTISING_NOTE,
+    description: (n) => `Trendyol reklam harcaması — ${n}`,
+  },
+  {
+    key: "microExportReturn",
+    note: TY_PAYOUT_MICRO_EXPORT_NOTE,
+    description: (n) => `Trendyol yurtdışı operasyon iade bedeli — ${n}`,
+  },
+  {
+    key: "other",
+    note: TY_PAYOUT_OTHER_NOTE,
+    description: (n) => `Trendyol diğer kesinti — ${n}`,
+  },
+];
+
+/**
+ * Hakediş kırılımındaki komisyon dışı kalemleri bağlı siparişlere brüt oranıyla dağıtır.
+ * Komisyon settlement satırından geldiği için burada yazılmaz.
+ */
+async function allocatePayoutBreakdownToOrders(
+  siteId: string,
+  paymentOrderId: number,
+  breakdown: TrendyolPayoutBreakdown,
+  knownOrderIds: string[],
+  ctx: { deductionCategoryId?: string; accountId?: string },
+): Promise<number> {
+  const orders = await resolvePaymentOrderOrders(
+    siteId,
+    paymentOrderId,
+    knownOrderIds,
+    breakdown.orderNumbers,
+  );
+  if (orders.length === 0) return 0;
+
+  const grossTotal = orders.reduce((s, o) => s + o.totalMinor, 0);
+  if (grossTotal <= 0) return 0;
+
+  let written = 0;
+
+  for (const spec of PAYOUT_LINE_ALLOCATION) {
+    const line = breakdown.lines.find((l) => l.key === spec.key);
+    // Panelde kesintiler negatif; mutlak tutarı dağıt
+    const totalAbs = line ? Math.abs(line.amountMinor) : 0;
+    if (totalAbs <= 0) continue;
+
+    let allocated = 0;
+    for (let i = 0; i < orders.length; i++) {
+      const order = orders[i]!;
+      const share =
+        i === orders.length - 1
+          ? totalAbs - allocated
+          : Math.round((totalAbs * order.totalMinor) / grossTotal);
+      allocated += share;
+      if (share <= 0) continue;
+
+      if (spec.clearEstimatedPrefix) {
+        await prisma.financeTransaction.deleteMany({
+          where: {
+            siteId,
+            orderId: order.id,
+            kind: "marketplace_deduction",
+            reconciliationStatus: "estimated",
+            description: { startsWith: spec.clearEstimatedPrefix },
+          },
+        });
+      }
+
+      const ref = `payoutDeduction:${paymentOrderId}:${spec.key}:${order.id}`;
+      await prisma.financeTransaction.deleteMany({
+        where: {
+          siteId,
+          kind: "marketplace_deduction",
+          OR: [{ marketplaceRef: ref }, { notes: spec.note, orderId: order.id }],
+        },
+      });
+
+      const income = await prisma.financeTransaction.findFirst({
+        where: { siteId, orderId: order.id, kind: "sale_income" },
+        select: { id: true },
+      });
+
+      await prisma.financeTransaction.create({
+        data: {
+          siteId,
+          txDate: new Date(),
+          kind: "marketplace_deduction",
+          amountMinor: share,
+          categoryId: ctx.deductionCategoryId,
+          accountId: ctx.accountId,
+          orderId: order.id,
+          linkedTxId: income?.id ?? null,
+          description: spec.description(order.orderNumber),
+          marketplacePlatform: "trendyol",
+          marketplaceRef: ref,
+          reconciliationStatus: "matched",
+          notes: spec.note,
+        },
+      });
+      written += 1;
+    }
+  }
+
+  return written;
+}
+
+async function resolvePaymentOrderOrders(
+  siteId: string,
+  paymentOrderId: number,
+  knownOrderIds: string[],
+  orderNumbers: string[],
+): Promise<{ id: string; orderNumber: string; totalMinor: number }[]> {
+  const byId = new Map<string, { id: string; orderNumber: string; totalMinor: number }>();
+
+  if (knownOrderIds.length) {
+    const rows = await prisma.storeOrder.findMany({
+      where: { siteId, id: { in: knownOrderIds } },
+      select: { id: true, orderNumber: true, totalMinor: true },
+    });
+    for (const r of rows) byId.set(r.id, r);
+  }
+
+  // Meta'da paymentOrderId işaretli siparişler
+  const tagged = await prisma.storeOrder.findMany({
+    where: {
+      siteId,
+      marketplacePlatform: "trendyol",
+      marketplaceMetaJson: { contains: `"paymentOrderId":${paymentOrderId}` },
+    },
+    select: { id: true, orderNumber: true, totalMinor: true, marketplaceMetaJson: true },
+  });
+  for (const r of tagged) {
+    try {
+      const meta = JSON.parse(r.marketplaceMetaJson || "{}") as { paymentOrderId?: number };
+      if (meta.paymentOrderId === paymentOrderId) {
+        byId.set(r.id, {
+          id: r.id,
+          orderNumber: r.orderNumber,
+          totalMinor: r.totalMinor,
+        });
+      }
+    } catch {
+      /* */
+    }
+  }
+
+  for (const num of orderNumbers) {
+    const hit = await findTrendyolOrder(siteId, {
+      orderNumber: num,
+      shipmentPackageId: null,
+    });
+    if (hit) {
+      byId.set(hit.id, {
+        id: hit.id,
+        orderNumber: hit.orderNumber,
+        totalMinor: hit.totalMinor,
+      });
+    }
+  }
+
+  return [...byId.values()];
 }

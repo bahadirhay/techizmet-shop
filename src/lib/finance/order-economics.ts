@@ -15,6 +15,7 @@ import {
   bundleSnapshotTotalCostMinor,
   parseComponentsSnapshotJson,
 } from "@/lib/product-bundle";
+import { classifyDeductionTx } from "@/lib/finance/trendyol-deduction-notes";
 import { prisma } from "@/lib/prisma";
 
 export type OrderFinanceComponentCost = {
@@ -385,48 +386,70 @@ async function ensureEstimatedMarketplaceDeductions(
     where: { siteId, kind: "expense", name: "Pazaryeri komisyon / indirim faturası" },
   });
 
-  // Onaylı (gerçek) kesinti girildiyse tahmini kayıtları güncelleme.
+  // Kategori bazlı: gerçek komisyon varsa yalnızca o tahmin atlanır; kargo/platform
+  // tahmini, PO dağıtımı gelene kadar kalabilir.
   const existingDeductions = await prisma.financeTransaction.findMany({
     where: {
       siteId,
       orderId,
       kind: "marketplace_deduction",
     },
-    select: { id: true, reconciliationStatus: true },
+    select: { id: true, reconciliationStatus: true, description: true, notes: true },
   });
 
-  const hasConfirmed = existingDeductions.some((d) => d.reconciliationStatus !== "estimated");
-  if (hasConfirmed) return;
+  const confirmedCategories = new Set(
+    existingDeductions
+      .filter((d) => d.reconciliationStatus !== "estimated")
+      .map((d) => classifyDeductionTx(d)),
+  );
 
-  if (existingDeductions.length > 0) {
+  const toCreate: { amountMinor: number; description: string; category: string }[] = [];
+
+  if (snapshot.totalCommissionMinor > 0 && !confirmedCategories.has("commission")) {
+    toCreate.push({
+      amountMinor: snapshot.totalCommissionMinor,
+      description: `Tahmini komisyon — ${orderNumber} (${platform})`,
+      category: "commission",
+    });
+  }
+  if (
+    snapshot.shippingDeductionMinor > 0 &&
+    !confirmedCategories.has("cargo")
+  ) {
+    toCreate.push({
+      amountMinor: snapshot.shippingDeductionMinor,
+      description: `Tahmini kargo kesintisi — ${orderNumber} (${platform})`,
+      category: "cargo",
+    });
+  }
+  if (
+    (snapshot.marketplaceFixedFeeMinor ?? 0) > 0 &&
+    !confirmedCategories.has("platform") &&
+    !confirmedCategories.has("stoppage")
+  ) {
+    toCreate.push({
+      amountMinor: snapshot.marketplaceFixedFeeMinor ?? 0,
+      description: `Tahmini sabit pazaryeri gideri — ${orderNumber} (${platform})`,
+      category: "platform",
+    });
+  }
+
+  // Yeniden yazılacak tahmin kategorilerinin eski estimated satırlarını temizle
+  for (const item of toCreate) {
+    const prefix =
+      item.category === "commission"
+        ? "Tahmini komisyon"
+        : item.category === "cargo"
+          ? "Tahmini kargo"
+          : "Tahmini sabit";
     await prisma.financeTransaction.deleteMany({
       where: {
         siteId,
         orderId,
         kind: "marketplace_deduction",
         reconciliationStatus: "estimated",
+        description: { startsWith: prefix },
       },
-    });
-  }
-
-  const toCreate: { amountMinor: number; description: string }[] = [];
-
-  if (snapshot.totalCommissionMinor > 0) {
-    toCreate.push({
-      amountMinor: snapshot.totalCommissionMinor,
-      description: `Tahmini komisyon — ${orderNumber} (${platform})`,
-    });
-  }
-  if (snapshot.shippingDeductionMinor > 0) {
-    toCreate.push({
-      amountMinor: snapshot.shippingDeductionMinor,
-      description: `Tahmini kargo kesintisi — ${orderNumber} (${platform})`,
-    });
-  }
-  if ((snapshot.marketplaceFixedFeeMinor ?? 0) > 0) {
-    toCreate.push({
-      amountMinor: snapshot.marketplaceFixedFeeMinor ?? 0,
-      description: `Tahmini sabit pazaryeri gideri — ${orderNumber} (${platform})`,
     });
   }
 
@@ -448,7 +471,7 @@ async function ensureEstimatedMarketplaceDeductions(
     });
   }
 
-  if (income && toCreate.length > 0) {
+  if (income && toCreate.length > 0 && !confirmedCategories.size) {
     await prisma.financeTransaction.update({
       where: { id: income.id },
       data: { reconciliationStatus: "open" },

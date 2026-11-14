@@ -179,7 +179,83 @@ export async function fetchTrendyolFinanceRange(
   return { rows, errors };
 }
 
+/** paymentOrderId ile settlements / otherfinancials — tarih aralığı gerekmez. */
+export async function fetchTrendyolByPaymentOrderId(
+  creds: TrendyolCredentials,
+  endpoint: "settlements" | "otherfinancials",
+  transactionType: string,
+  paymentOrderId: number | string,
+): Promise<{ rows: TrendyolFinancialRow[]; error?: string }> {
+  return fetchAllPages(
+    creds,
+    (page) =>
+      `/sellers/${creds.sellerId}/${endpoint}?transactionType=${encodeURIComponent(transactionType)}&paymentOrderId=${paymentOrderId}&page=${page}&size=500`,
+  );
+}
+
+async function mapPool<T, R>(
+  items: T[],
+  concurrency: number,
+  worker: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let next = 0;
+  async function run() {
+    while (next < items.length) {
+      const i = next++;
+      results[i] = await worker(items[i]);
+    }
+  }
+  const n = Math.max(1, Math.min(concurrency, items.length));
+  await Promise.all(Array.from({ length: n }, () => run()));
+  return results;
+}
+
+export async function fetchTrendyolPaymentOrderBundle(
+  creds: TrendyolCredentials,
+  paymentOrderId: number | string,
+  options: {
+    settlementTypes: string[];
+    otherTypes: string[];
+  },
+): Promise<{ rows: TrendyolFinancialRow[]; errors: string[] }> {
+  const jobs: { endpoint: "settlements" | "otherfinancials"; type: string }[] = [
+    ...options.settlementTypes.map((type) => ({
+      endpoint: "settlements" as const,
+      type,
+    })),
+    ...options.otherTypes.map((type) => ({
+      endpoint: "otherfinancials" as const,
+      type,
+    })),
+  ];
+
+  // Trendyol CHE rate-limit'e takılmamak için sınırlı paralellik
+  const settled = await mapPool(jobs, 3, async ({ endpoint, type }) => {
+    const result = await fetchTrendyolByPaymentOrderId(
+      creds,
+      endpoint,
+      type,
+      paymentOrderId,
+    );
+    return { label: `${endpoint}/${type}`, result };
+  });
+
+  const rows: TrendyolFinancialRow[] = [];
+  const errors: string[] = [];
+  for (const { label, result } of settled) {
+    if (result.error) errors.push(`${label}: ${result.error}`);
+    rows.push(...result.rows);
+  }
+  return { rows, errors };
+}
+
 export function tryAmountToMinor(amount: number): number {
   if (!Number.isFinite(amount) || amount <= 0) return 0;
+  return Math.round(amount * 100);
+}
+
+export function toMinorSigned(amount: number): number {
+  if (!Number.isFinite(amount)) return 0;
   return Math.round(amount * 100);
 }
