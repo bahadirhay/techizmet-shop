@@ -8,7 +8,7 @@ import { MARKETPLACE_PLATFORMS } from "@/lib/admin/marketplace-platforms";
 import type {
   PayoutBatchRow,
   PayoutReconciliationReport,
-} from "@/lib/finance/payout-reconciliation";
+} from "@/lib/finance/payout-types";
 import { btnPrimary, btnSecondary, inputClass } from "@/components/admin/AdminForm";
 
 function PayoutBatchRows({
