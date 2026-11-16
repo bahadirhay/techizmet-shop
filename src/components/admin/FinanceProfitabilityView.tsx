@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useMemo, useState } from "react";
 import { formatTry } from "@/lib/admin/money";
 import type { ProductProfitRow, ProfitabilityReport } from "@/lib/finance/profitability";
 import { btnSecondary, inputClass } from "@/components/admin/AdminForm";
@@ -98,6 +99,11 @@ function ProductProfitRowView({ p }: { p: ProductProfitRow }) {
           </p>
         ) : null}
       </td>
+      <td className="py-3 whitespace-nowrap">
+        <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-700">
+          {p.channelLabel}
+        </span>
+      </td>
       <td className="py-3 text-right tabular-nums">{p.qtySold}</td>
       <td className="py-3">
         <MoneyCell totalMinor={p.grossMinor} perUnitMinor={perUnitMinor(p.grossMinor, p.qtySold)} />
@@ -144,6 +150,79 @@ function ProductProfitRowView({ p }: { p: ProductProfitRow }) {
         )}
       </td>
     </tr>
+  );
+}
+
+function ProductProfitSection({ products }: { products: ProductProfitRow[] }) {
+  const [channelFilter, setChannelFilter] = useState<string>("all");
+
+  const channelOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const p of products) map.set(p.channel, p.channelLabel);
+    return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1], "tr"));
+  }, [products]);
+
+  const visible = useMemo(() => {
+    const filtered =
+      channelFilter === "all" ? products : products.filter((p) => p.channel === channelFilter);
+    return [...filtered].sort((a, b) => b.grossMinor - a.grossMinor).slice(0, 15);
+  }, [products, channelFilter]);
+
+  return (
+    <section className="admin-card admin-card-pad mt-8 overflow-x-auto">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="font-semibold">Ürün bazlı (top 15)</h2>
+          <p className="mt-1 text-sm text-zinc-600">
+            Seçilen dönemdeki satışlar <strong>ürün × kanal</strong> olarak toplanır.{" "}
+            <strong>Toplam kâr = Brüt satış − Toplam maliyet − Pazaryeri kesintisi</strong>. Net marj = Toplam
+            kâr ÷ Brüt satış.
+          </p>
+        </div>
+        <label className="text-xs text-zinc-500">
+          Kanal
+          <select
+            className={`${inputClass} mt-1 min-w-[10rem]`}
+            value={channelFilter}
+            onChange={(e) => setChannelFilter(e.target.value)}
+          >
+            <option value="all">Tümü</option>
+            {channelOptions.map(([id, label]) => (
+              <option key={id} value={id}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <p className="mt-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
+        Aynı ürün Trendyol ve web&apos;de ayrı satırdır — kesinti ve marj kanal bazında farklıdır. Düşük marj
+        ürün kartındaki <em>maliyet</em> alanından da kaynaklanabilir.
+      </p>
+      {visible.length === 0 ? (
+        <p className="mt-4 text-sm text-zinc-500">Bu kanalda dönem içi ürün satışı yok.</p>
+      ) : (
+        <table className="mt-4 w-full min-w-[960px] text-sm">
+          <thead>
+            <tr className="border-b text-left text-xs text-zinc-500">
+              <th className="pb-2 pr-3">Ürün</th>
+              <th className="pb-2">Kanal</th>
+              <th className="pb-2 text-right">Adet</th>
+              <th className="pb-2 text-right">Brüt satış</th>
+              <th className="pb-2 text-right">Toplam maliyet</th>
+              <th className="pb-2 text-right">Toplam kâr</th>
+              <th className="pb-2 text-right">1 adet kâr</th>
+              <th className="pb-2 text-right">Net marj</th>
+            </tr>
+          </thead>
+          <tbody>
+            {visible.map((p) => (
+              <ProductProfitRowView key={`${p.productId ?? p.title}::${p.channel}`} p={p} />
+            ))}
+          </tbody>
+        </table>
+      )}
+    </section>
   );
 }
 
@@ -437,37 +516,7 @@ export function FinanceProfitabilityView({ report }: { report: ProfitabilityRepo
       ) : null}
 
       {report.topProducts.length > 0 ? (
-        <section className="admin-card admin-card-pad mt-8 overflow-x-auto">
-          <h2 className="font-semibold">Ürün bazlı (top 15)</h2>
-          <p className="mt-1 text-sm text-zinc-600">
-            Seçilen dönemdeki satışlar toplanır.{" "}
-            <strong>Toplam kâr = Brüt satış − Toplam maliyet − Pazaryeri kesintisi</strong>. Net marj = Toplam kâr ÷
-            Brüt satış.
-          </p>
-          <p className="mt-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
-            Düşük marj (ör. %9) geçmiş ortalamadan değil; bu dönemde satılan adetlerin gerçek maliyet ve fiyatından
-            gelir. Tavuk ayağı örneğinde ürün maliyeti (~₺189/adet) satış fiyatına (~₺239/adet) çok yakınsa marj
-            düşük çıkar — ürün kartındaki <em>maliyet</em> alanını doğrulayın.
-          </p>
-          <table className="mt-4 w-full min-w-[900px] text-sm">
-            <thead>
-              <tr className="border-b text-left text-xs text-zinc-500">
-                <th className="pb-2 pr-3">Ürün</th>
-                <th className="pb-2 text-right">Adet</th>
-                <th className="pb-2 text-right">Brüt satış</th>
-                <th className="pb-2 text-right">Toplam maliyet</th>
-                <th className="pb-2 text-right">Toplam kâr</th>
-                <th className="pb-2 text-right">1 adet kâr</th>
-                <th className="pb-2 text-right">Net marj</th>
-              </tr>
-            </thead>
-            <tbody>
-              {report.topProducts.map((p) => (
-                <ProductProfitRowView key={p.productId ?? p.title} p={p} />
-              ))}
-            </tbody>
-          </table>
-        </section>
+        <ProductProfitSection products={report.topProducts} />
       ) : null}
 
       {report.payouts.length > 0 ? (

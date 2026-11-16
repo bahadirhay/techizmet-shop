@@ -48,6 +48,9 @@ export type PlatformPayoutRow = {
 export type ProductProfitRow = {
   productId: string | null;
   title: string;
+  /** marketplacePlatform veya "web" */
+  channel: string;
+  channelLabel: string;
   qtySold: number;
   grossMinor: number;
   deductionsMinor: number;
@@ -594,17 +597,22 @@ export async function loadProfitabilityReport(
       hasActualNet = true;
     }
 
+    const channel = order.marketplacePlatform ?? "web";
+
     for (const line of snap.lines) {
       const share = gross > 0 ? line.lineMinor / gross : 0;
       const lineDed = isMarketplace ? Math.round(effectiveDed * share) : 0;
       const lineProductCost = lineProductCostMinor(line);
       const lineOperatingCost = isMarketplace ? 0 : lineWebOperatingCostMinor(snap, line);
       const lineCost = lineProductCost + lineOperatingCost;
-      const productKey = line.productId ?? `title:${line.title}`;
+      // Ürün × kanal — aynı ürün farklı platformlarda ayrı satır
+      const productKey = `${line.productId ?? `title:${line.title}`}::${channel}`;
 
       const pRow = productMap.get(productKey) ?? {
         productId: line.productId,
         title: line.title,
+        channel,
+        channelLabel: channelLabel(channel),
         qtySold: 0,
         grossMinor: 0,
         deductionsMinor: 0,
@@ -691,9 +699,10 @@ export async function loadProfitabilityReport(
   const categories = [...categoryMap.values()]
     .filter((c) => c.grossMinor > 0)
     .sort((a, b) => b.grossMinor - a.grossMinor);
+  // Filtre için yeterli satır; UI kanal seçimine göre top 15 gösterir
   const topProducts = [...productMap.values()]
     .sort((a, b) => b.grossMinor - a.grossMinor)
-    .slice(0, 15);
+    .slice(0, 60);
 
   const totals: ProfitabilityKpis = {
     grossMinor: totalGross,
