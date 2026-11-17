@@ -42,6 +42,8 @@ function addDays(base: Date, days: number): Date {
 export function buildFinanceInvoiceLinesFromOrder(order: {
   shippingMinor: number;
   discountMinor: number;
+  subtotalMinor?: number;
+  totalMinor?: number;
   lines: {
     title: string;
     qty: number;
@@ -51,9 +53,16 @@ export function buildFinanceInvoiceLinesFromOrder(order: {
   }[];
 }): NormalizedInvoiceLine[] {
   const lines: NormalizedInvoiceLine[] = [];
+  // Trendyol: lineMinor zaten net; web: lineMinor − discountMinor.
+  const discountEmbedded =
+    order.subtotalMinor != null &&
+    order.totalMinor != null &&
+    Math.abs(order.subtotalMinor + order.shippingMinor - order.totalMinor) <= 2;
 
   for (const l of order.lines) {
-    const netMinor = Math.max(0, l.lineMinor - (l.discountMinor ?? 0));
+    const netMinor = discountEmbedded
+      ? Math.max(0, l.lineMinor)
+      : Math.max(0, l.lineMinor - (l.discountMinor ?? 0));
     const row = lineFromMinorInclVat(
       l.title,
       l.qty,

@@ -7,13 +7,13 @@ export type TrendyolOrderLine = {
   barcode?: string;
   merchantSku?: string;
   productName?: string;
-  /** İndirimli net birim fiyat (KDV dâhil) — Trendyol'un faturalanacak tutarı. */
+  /** İndirimli net birim fiyat (KDV dâhil) — faturalanacak tutar. */
   price?: number;
   /** İndirimsiz (liste) birim fiyat (KDV dâhil). */
   amount?: number;
-  /** Satır toplam satıcı indirimi. */
+  /** Satıcı indirimi (birim). */
   discount?: number;
-  /** Satır toplam Trendyol indirimi. */
+  /** Trendyol indirimi (birim). */
   tyDiscount?: number;
   /** KDV oranı (%). */
   vatRate?: number;
@@ -35,6 +35,14 @@ export type TrendyolShipmentPackage = {
   cargoTrackingLink?: string;
   /** Kargo gönderi (sender) numarası. */
   cargoSenderNumber?: string;
+  /** Paket liste tutarı (indirimsiz). */
+  packageGrossAmount?: number;
+  /** Satıcı karşılamalı indirim toplamı. */
+  packageSellerDiscount?: number;
+  /** Trendyol karşılamalı indirim toplamı. */
+  packageTyDiscount?: number;
+  /** Faturalanacak / müşteri ödediği net. */
+  packageTotalPrice?: number;
   lines: TrendyolOrderLine[];
   shipmentAddress?: {
     firstName?: string;
@@ -58,17 +66,22 @@ function str(v: unknown): string | undefined {
 }
 
 function parseLine(raw: Record<string, unknown>): TrendyolOrderLine {
+  // Yeni API: lineUnitPrice / lineGrossAmount / lineSellerDiscount / lineTyDiscount
+  // Eski API: price / amount / discount / tyDiscount
+  const price = num(raw.lineUnitPrice) ?? num(raw.price);
+  const amount = num(raw.lineGrossAmount) ?? num(raw.amount);
+  const discount = num(raw.lineSellerDiscount) ?? num(raw.discount);
+  const tyDiscount = num(raw.lineTyDiscount) ?? num(raw.tyDiscount);
   return {
     lineId: Number(raw.lineId ?? raw.id ?? 0),
     quantity: Number(raw.quantity ?? 1),
     barcode: typeof raw.barcode === "string" ? raw.barcode : undefined,
     merchantSku: typeof raw.merchantSku === "string" ? raw.merchantSku : typeof raw.stockCode === "string" ? raw.stockCode : undefined,
     productName: typeof raw.productName === "string" ? raw.productName : undefined,
-    // Trendyol `price` = indirim uygulanmış net birim fiyat = faturalanacak tutar.
-    price: num(raw.price),
-    amount: num(raw.amount),
-    discount: num(raw.discount),
-    tyDiscount: num(raw.tyDiscount),
+    price,
+    amount,
+    discount,
+    tyDiscount,
     vatRate: num(raw.vatRate) ?? num(raw.vatBaseAmount),
   };
 }
@@ -91,6 +104,10 @@ function parsePackage(raw: Record<string, unknown>): TrendyolShipmentPackage | n
     cargoProviderName: str(raw.cargoProviderName),
     cargoTrackingLink: str(raw.cargoTrackingLink),
     cargoSenderNumber: str(raw.cargoSenderNumber),
+    packageGrossAmount: num(raw.packageGrossAmount),
+    packageSellerDiscount: num(raw.packageSellerDiscount),
+    packageTyDiscount: num(raw.packageTyDiscount),
+    packageTotalPrice: num(raw.packageTotalPrice),
     lines: linesRaw.map((l) => parseLine(l as Record<string, unknown>)).filter((l) => l.lineId > 0),
     shipmentAddress:
       raw.shipmentAddress && typeof raw.shipmentAddress === "object"

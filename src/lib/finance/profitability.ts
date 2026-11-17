@@ -92,7 +92,12 @@ export type OrderProfitRow = {
   channel: string;
   label: string;
   orderDate: Date;
+  /** Faturalanacak / net brüt (indirim sonrası) */
   grossMinor: number;
+  /** Satıcı karşılamalı indirim (varsa) */
+  discountMinor: number;
+  /** İndirim öncesi liste tutarı (gross + discount) */
+  listMinor: number;
   deductionsMinor: number;
   costMinor: number;
   netProfitMinor: number | null;
@@ -280,6 +285,7 @@ export async function loadProfitabilityReport(
       marketplacePlatform: true,
       totalMinor: true,
       subtotalMinor: true,
+      discountMinor: true,
       createdAt: true,
       financeSnapshotJson: true,
     },
@@ -509,6 +515,7 @@ export async function loadProfitabilityReport(
         marginPercent =
           gross > 0 ? Math.round((netProfitMinor / gross) * 1000) / 10 : null;
       }
+      const discountMinor = Math.max(0, order.discountMinor ?? snap?.discountMinor ?? 0);
       return {
         orderId: order.id,
         orderNumber: order.orderNumber,
@@ -516,6 +523,8 @@ export async function loadProfitabilityReport(
         label: channelLabel(channel),
         orderDate: order.createdAt,
         grossMinor: gross,
+        discountMinor,
+        listMinor: gross + discountMinor,
         deductionsMinor,
         costMinor: cost,
         netProfitMinor,

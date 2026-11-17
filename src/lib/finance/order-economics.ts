@@ -196,8 +196,15 @@ export async function buildOrderFinanceSnapshot(order: OrderInput): Promise<Orde
   let shippingDeductionMinor = 0;
   let shippingRuleResolved = false;
 
+  // Web: lineMinor brüt, discount ayrı → net = line − discount; total = subtotal − discount + kargo.
+  // Trendyol vb.: lineMinor zaten fatura neti, discountMinor yalnızca görünürlük; total ≈ subtotal + kargo.
+  const discountEmbeddedInLines =
+    Math.abs(order.subtotalMinor + order.shippingMinor - order.totalMinor) <= 2;
+
   for (const line of order.lines) {
-    const netLineMinor = Math.max(0, line.lineMinor - (line.discountMinor ?? 0));
+    const netLineMinor = discountEmbeddedInLines
+      ? Math.max(0, line.lineMinor)
+      : Math.max(0, line.lineMinor - (line.discountMinor ?? 0));
     const product = line.productId ? productById.get(line.productId) : undefined;
     const categoryId = product?.categoryId ?? null;
 

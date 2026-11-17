@@ -73,6 +73,7 @@ export function buildInvoiceDetailsFromOrder(
     billingTaxOffice?: string | null;
     shippingMinor: number;
     discountMinor: number;
+    subtotalMinor?: number;
     totalMinor: number;
     createdAt: Date;
     lines: OrderLine[];
@@ -99,14 +100,17 @@ export function buildInvoiceDetailsFromOrder(
   // ayrı alanlara yazıldığı için burada tekrar EKLENMEZ — aksi halde adres çift çıkar.
   const fullAddress = dedupeAddressSegments(address.line1);
 
+  // Web: lineMinor − discount; Trendyol: lineMinor zaten fatura neti.
+  const discountEmbedded =
+    order.subtotalMinor != null &&
+    Math.abs(order.subtotalMinor + order.shippingMinor - order.totalMinor) <= 2;
+
   const items: InvoiceItem[] = order.lines.map((l) => {
     const rate = l.vatRate ?? defaultVatRate;
-    return lineItemFromMinor(
-      l.title,
-      l.qty,
-      Math.max(0, l.lineMinor - (l.discountMinor ?? 0)),
-      rate,
-    );
+    const netMinor = discountEmbedded
+      ? Math.max(0, l.lineMinor)
+      : Math.max(0, l.lineMinor - (l.discountMinor ?? 0));
+    return lineItemFromMinor(l.title, l.qty, netMinor, rate);
   });
 
   if (order.shippingMinor > 0) {

@@ -22,7 +22,21 @@ export type MarketplaceOrderMeta = {
   shipmentPackageId: number;
   orderNumber: string;
   tyStatus?: string;
-  lines: { lineId: number; quantity: number; barcode?: string; merchantSku?: string }[];
+  /** Trendyol paket indirim kırılımı (TRY, birim değil paket toplamı) */
+  packageGrossAmount?: number | null;
+  packageSellerDiscount?: number | null;
+  packageTyDiscount?: number | null;
+  packageTotalPrice?: number | null;
+  lines: {
+    lineId: number;
+    quantity: number;
+    barcode?: string;
+    merchantSku?: string;
+    listUnit?: number | null;
+    netUnit?: number | null;
+    sellerDiscountUnit?: number | null;
+    tyDiscountUnit?: number | null;
+  }[];
   invoiceNumber?: string;
   invoiceLink?: string;
 };

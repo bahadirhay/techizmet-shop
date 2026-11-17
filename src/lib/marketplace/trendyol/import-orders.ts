@@ -21,9 +21,8 @@ function tryMinorFromTry(amount: number | undefined, fallback = 0): number {
 
 /**
  * Trendyol satırının faturalanacak net tutarı (KDV dâhil, kuruş).
- * Trendyol `price` = indirim uygulanmış birim fiyat; bu, panelde görünen
- * "Faturalanacak Tutar" ile birebir eşleşir. `price` yoksa liste fiyatından
- * (amount) satıcı + Trendyol indirimlerini düşerek hesaplarız.
+ * `price` / `lineUnitPrice` = indirim sonrası birim = panel "Faturalanacak Tutar".
+ * Yoksa liste (amount/lineGrossAmount) − satıcı − TY indirimi (birim × adet).
  */
 function trendyolLineNetMinor(line: {
   quantity: number;
@@ -37,9 +36,35 @@ function trendyolLineNetMinor(line: {
     return Math.round(line.price * qty * 100);
   }
   if (line.amount != null && Number.isFinite(line.amount)) {
-    const gross = line.amount * qty;
-    const disc = (line.discount ?? 0) + (line.tyDiscount ?? 0);
-    return Math.round(Math.max(0, gross - disc) * 100);
+    // discount / tyDiscount birim bazlıdır (API lineSellerDiscount / lineTyDiscount)
+    const unitNet = Math.max(0, line.amount - (line.discount ?? 0) - (line.tyDiscount ?? 0));
+    return Math.round(unitNet * qty * 100);
+  }
+  return 0;
+}
+
+/** Satır satıcı indirimi toplamı (kuruş). */
+function trendyolLineSellerDiscountMinor(line: {
+  quantity: number;
+  amount?: number;
+  discount?: number;
+  price?: number;
+  tyDiscount?: number;
+}): number {
+  const qty = line.quantity > 0 ? line.quantity : 1;
+  if (line.discount != null && Number.isFinite(line.discount) && line.discount > 0) {
+    return Math.round(line.discount * qty * 100);
+  }
+  // İndirim alanı yoksa liste − (fatura + TY) farkından satıcı payını çıkar
+  if (
+    line.amount != null &&
+    line.price != null &&
+    Number.isFinite(line.amount) &&
+    Number.isFinite(line.price) &&
+    line.amount > line.price
+  ) {
+    const unitSeller = Math.max(0, line.amount - line.price - (line.tyDiscount ?? 0));
+    return Math.round(unitSeller * qty * 100);
   }
   return 0;
 }
@@ -133,6 +158,20 @@ async function repairExistingTrendyolOrder(
           lines: [],
         } satisfies MarketplaceOrderMeta);
     meta.tyStatus = pkg.status;
+    meta.packageGrossAmount = pkg.packageGrossAmount ?? null;
+    meta.packageSellerDiscount = pkg.packageSellerDiscount ?? null;
+    meta.packageTyDiscount = pkg.packageTyDiscount ?? null;
+    meta.packageTotalPrice = pkg.packageTotalPrice ?? null;
+    meta.lines = pkg.lines.map((l) => ({
+      lineId: l.lineId,
+      quantity: l.quantity,
+      barcode: l.barcode,
+      merchantSku: l.merchantSku,
+      listUnit: l.amount ?? null,
+      netUnit: l.price ?? null,
+      sellerDiscountUnit: l.discount ?? null,
+      tyDiscountUnit: l.tyDiscount ?? null,
+    }));
     const nextMetaJson = JSON.stringify(meta);
     if (nextMetaJson !== order.marketplaceMetaJson) marketplaceMetaJson = nextMetaJson;
   } catch {
@@ -196,6 +235,8 @@ async function repairExistingTrendyolOrder(
   if (order.lines.length !== pkg.lines.length) return changed;
 
   let subtotalMinor = 0;
+  let sellerDiscountMinor = 0;
+  const repairedLines: { id: string; lineMinor: number; unitMinor: number; discountMinor: number; vatRate: number | null }[] = [];
   for (let i = 0; i < pkg.lines.length; i++) {
     const tl = pkg.lines[i]!;
     const item = order.lines[i]!;
@@ -203,41 +244,116 @@ async function repairExistingTrendyolOrder(
     let lineMinor = trendyolLineNetMinor(tl);
     if (lineMinor <= 0) {
       subtotalMinor += item.lineMinor;
+      sellerDiscountMinor += item.discountMinor ?? 0;
       continue;
     }
     const unitMinor = Math.round(lineMinor / qty);
+    const discountMinor = trendyolLineSellerDiscountMinor(tl);
     const vatRate = tl.vatRate != null ? Math.round(tl.vatRate) : item.vatRate ?? null;
     subtotalMinor += lineMinor;
-    if (item.lineMinor !== lineMinor || item.unitMinor !== unitMinor || item.vatRate !== vatRate) {
+    sellerDiscountMinor += discountMinor;
+    repairedLines.push({ id: item.id, lineMinor, unitMinor, discountMinor, vatRate });
+  }
+
+  const packageTotalMinor =
+    pkg.packageTotalPrice != null && Number.isFinite(pkg.packageTotalPrice)
+      ? Math.round(pkg.packageTotalPrice * 100)
+      : 0;
+  if (packageTotalMinor > 0 && repairedLines.length === 1) {
+    const only = repairedLines[0]!;
+    const delta = packageTotalMinor - only.lineMinor;
+    only.lineMinor = packageTotalMinor;
+    only.unitMinor = Math.round(packageTotalMinor / Math.max(1, pkg.lines[0]?.quantity || 1));
+    subtotalMinor = packageTotalMinor;
+    if (delta !== 0) {
+      /* pakete kilitlendi */
+    }
+  } else if (packageTotalMinor > 0 && repairedLines.length > 0 && Math.abs(subtotalMinor - packageTotalMinor) <= 2) {
+    const last = repairedLines[repairedLines.length - 1]!;
+    last.lineMinor += packageTotalMinor - subtotalMinor;
+    subtotalMinor = packageTotalMinor;
+  }
+
+  for (let i = 0; i < repairedLines.length; i++) {
+    const next = repairedLines[i]!;
+    const item = order.lines[i]!;
+    if (
+      item.lineMinor !== next.lineMinor ||
+      item.unitMinor !== next.unitMinor ||
+      item.vatRate !== next.vatRate ||
+      (item.discountMinor ?? 0) !== next.discountMinor
+    ) {
       await prisma.storeOrderLine.update({
-        where: { id: item.id },
-        data: { unitMinor, lineMinor, vatRate },
+        where: { id: next.id },
+        data: {
+          unitMinor: next.unitMinor,
+          lineMinor: next.lineMinor,
+          discountMinor: next.discountMinor,
+          vatRate: next.vatRate,
+        },
       });
       changed = true;
     }
   }
 
-  const newTotal = subtotalMinor + (order.shippingMinor ?? 0) - (order.discountMinor ?? 0);
-  if (order.subtotalMinor !== subtotalMinor || order.totalMinor !== newTotal) {
+  // Faturalanacak tutar = satır netleri; satıcı indirimi ayrı alanda tutulur (çift düşülmez)
+  const newTotal = subtotalMinor + (order.shippingMinor ?? 0);
+  if (
+    order.subtotalMinor !== subtotalMinor ||
+    order.totalMinor !== newTotal ||
+    (order.discountMinor ?? 0) !== sellerDiscountMinor
+  ) {
     await prisma.storeOrder.update({
       where: { id: order.id },
-      data: { subtotalMinor, totalMinor: newTotal },
+      data: {
+        subtotalMinor,
+        totalMinor: newTotal,
+        discountMinor: sellerDiscountMinor,
+      },
     });
     changed = true;
   }
 
-  // Snapshot her zaman güncel fatura tutarıyla uyumlu olsun (eski katalog fiyatı kalıntısı).
+  // Snapshot: fatura tutarı + indirim alanı güncel kalsın (eski katalog / discountMinor=0 kalıntısı).
   const fresh = await prisma.storeOrder.findFirst({
     where: { id: orderId, siteId },
-    select: { totalMinor: true, financeSnapshotJson: true },
+    select: {
+      totalMinor: true,
+      discountMinor: true,
+      subtotalMinor: true,
+      financeSnapshotJson: true,
+    },
   });
   const snap = parseOrderFinanceSnapshot(fresh?.financeSnapshotJson);
-  if (fresh && (!snap || snap.grossMinor !== fresh.totalMinor)) {
+  if (
+    fresh &&
+    (!snap ||
+      snap.grossMinor !== fresh.totalMinor ||
+      (snap.discountMinor ?? 0) !== (fresh.discountMinor ?? 0))
+  ) {
     try {
       await applyOrderFinanceSnapshot(siteId, orderId);
       changed = true;
     } catch {
-      /* snapshot hatası onarımı durdurmaz */
+      // Tam rebuild başarısızsa (ör. cache dışı CLI) en azından brüt/indirim alanlarını yaz.
+      if (snap) {
+        try {
+          await prisma.storeOrder.update({
+            where: { id: orderId },
+            data: {
+              financeSnapshotJson: JSON.stringify({
+                ...snap,
+                grossMinor: fresh.totalMinor,
+                subtotalMinor: fresh.subtotalMinor,
+                discountMinor: fresh.discountMinor ?? 0,
+              }),
+            },
+          });
+          changed = true;
+        } catch {
+          /* snapshot yama da başarısız olabilir */
+        }
+      }
     }
   }
   return changed;
@@ -300,11 +416,19 @@ async function importOneTrendyolPackage(
       shipmentPackageId: pkg.shipmentPackageId,
       orderNumber: pkg.orderNumber,
       tyStatus: pkg.status,
+      packageGrossAmount: pkg.packageGrossAmount ?? null,
+      packageSellerDiscount: pkg.packageSellerDiscount ?? null,
+      packageTyDiscount: pkg.packageTyDiscount ?? null,
+      packageTotalPrice: pkg.packageTotalPrice ?? null,
       lines: pkg.lines.map((l) => ({
         lineId: l.lineId,
         quantity: l.quantity,
         barcode: l.barcode,
         merchantSku: l.merchantSku,
+        listUnit: l.amount ?? null,
+        netUnit: l.price ?? null,
+        sellerDiscountUnit: l.discount ?? null,
+        tyDiscountUnit: l.tyDiscount ?? null,
       })),
     };
 
@@ -323,6 +447,7 @@ async function importOneTrendyolPackage(
       qty: number;
       unitMinor: number;
       lineMinor: number;
+      discountMinor: number;
       vatRate: number | null;
     }[] = [];
 
@@ -338,7 +463,9 @@ async function importOneTrendyolPackage(
           ? resolveMarketplaceSalePriceMinor(product, "trendyol") * qty
           : tryMinorFromTry(line.price) * qty;
       }
+      // Paket seviyesi fatura tutarı varsa satırları ona göre hizala (yuvarlama farkı)
       const unitMinor = Math.round(lineMinor / qty);
+      const discountMinor = trendyolLineSellerDiscountMinor(line);
       orderLines.push({
         productId: product?.id ?? null,
         title: line.productName ?? product?.title ?? `Trendyol #${line.lineId}`,
@@ -346,11 +473,30 @@ async function importOneTrendyolPackage(
         qty: line.quantity,
         unitMinor,
         lineMinor,
+        discountMinor,
         vatRate: line.vatRate != null ? Math.round(line.vatRate) : product?.vatRate ?? null,
       });
     }
 
-    const subtotalMinor = orderLines.reduce((s, l) => s + l.lineMinor, 0);
+    let subtotalMinor = orderLines.reduce((s, l) => s + l.lineMinor, 0);
+    const packageTotalMinor =
+      pkg.packageTotalPrice != null && Number.isFinite(pkg.packageTotalPrice)
+        ? Math.round(pkg.packageTotalPrice * 100)
+        : 0;
+    // Tek satırlı paketlerde fatura tutarını paket neti ile kilitle
+    if (packageTotalMinor > 0 && orderLines.length === 1) {
+      orderLines[0]!.lineMinor = packageTotalMinor;
+      orderLines[0]!.unitMinor = Math.round(
+        packageTotalMinor / Math.max(1, orderLines[0]!.qty),
+      );
+      subtotalMinor = packageTotalMinor;
+    } else if (packageTotalMinor > 0 && Math.abs(subtotalMinor - packageTotalMinor) <= 2) {
+      // Kuruş yuvarlama: pakete hizala
+      const delta = packageTotalMinor - subtotalMinor;
+      orderLines[orderLines.length - 1]!.lineMinor += delta;
+      subtotalMinor = packageTotalMinor;
+    }
+    const discountMinor = orderLines.reduce((s, l) => s + l.discountMinor, 0);
 
     const lineExtras = await Promise.all(
       orderLines.map((l) => marketplaceOrderLineExtras(prisma, l.productId, l.qty)),
@@ -388,6 +534,7 @@ async function importOneTrendyolPackage(
               })
             : null,
           subtotalMinor,
+          discountMinor,
           totalMinor: subtotalMinor,
           paymentMethod: "marketplace",
           paymentStatus: "paid",
@@ -405,6 +552,7 @@ async function importOneTrendyolPackage(
               qty: l.qty,
               unitMinor: l.unitMinor,
               lineMinor: l.lineMinor,
+              discountMinor: l.discountMinor,
               vatRate: l.vatRate,
               lineKind: lineExtras[i]?.lineKind ?? "standard",
               bundleProductId: lineExtras[i]?.bundleProductId ?? null,

@@ -332,19 +332,21 @@ export function FinanceProfitabilityView({ report }: { report: ProfitabilityRepo
       <section className="admin-card admin-card-pad mt-8 overflow-x-auto">
         <h2 className="font-semibold">Sipariş bazlı kârlılık</h2>
         <p className="mt-1 text-xs text-zinc-500">
-          Dönem içi siparişler (en fazla 200). Detay kırılımı için siparişe tıklayın — tam P&amp;L sipariş
-          sayfasında.
+          Dönem içi siparişler (en fazla 200). Brüt = faturalanacak net tutar. Trendyol satıcı
+          indirimi varsa Liste / İndirim sütunlarında görünür. Detay için siparişe tıklayın.
         </p>
         {report.ordersByProfit.length === 0 ? (
           <p className="mt-4 text-sm text-zinc-500">Bu dönemde sipariş yok.</p>
         ) : (
-          <table className="mt-4 w-full min-w-[780px] text-sm">
+          <table className="mt-4 w-full min-w-[900px] text-sm">
             <thead>
               <tr className="border-b text-left text-xs text-zinc-500">
                 <th className="pb-2">Sipariş</th>
                 <th className="pb-2">Kanal</th>
                 <th className="pb-2">Tarih</th>
-                <th className="pb-2 text-right">Brüt</th>
+                <th className="pb-2 text-right">Liste</th>
+                <th className="pb-2 text-right">İndirim</th>
+                <th className="pb-2 text-right">Fatura (brüt)</th>
                 <th className="pb-2 text-right">Kesinti</th>
                 <th className="pb-2 text-right">Maliyet</th>
                 <th className="pb-2 text-right">Net kâr</th>
@@ -359,6 +361,7 @@ export function FinanceProfitabilityView({ report }: { report: ProfitabilityRepo
                     : o.netProfitMinor >= 0
                       ? "profit"
                       : "loss";
+                const hasDiscount = o.discountMinor > 0;
                 return (
                   <tr key={o.orderId} className="border-b border-zinc-100">
                     <td className="py-2 font-medium">
@@ -373,7 +376,19 @@ export function FinanceProfitabilityView({ report }: { report: ProfitabilityRepo
                     <td className="py-2 text-zinc-500 whitespace-nowrap">
                       {new Date(o.orderDate).toLocaleDateString("tr-TR")}
                     </td>
-                    <td className="py-2 text-right tabular-nums">{formatTry(o.grossMinor)}</td>
+                    <td className="py-2 text-right tabular-nums text-zinc-500">
+                      {hasDiscount ? formatTry(o.listMinor) : "—"}
+                    </td>
+                    <td className="py-2 text-right tabular-nums">
+                      {hasDiscount ? (
+                        <span className="text-amber-800">−{formatTry(o.discountMinor)}</span>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="py-2 text-right tabular-nums font-medium">
+                      {formatTry(o.grossMinor)}
+                    </td>
                     <td className="py-2 text-right tabular-nums">
                       {o.deductionsMinor > 0 ? (
                         <span>

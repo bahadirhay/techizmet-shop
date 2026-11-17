@@ -352,10 +352,14 @@ export async function issueOrderInvoice(
         const defaultRate = config.defaultVatRate;
         // Satırları KDV oranına göre grupla
         const rateGroups = new Map<number, number>(); // rate → netMinor
+        const discountEmbedded =
+          Math.abs(order.subtotalMinor + order.shippingMinor - order.totalMinor) <= 2;
         for (const l of order.lines) {
           const rate = l.vatRate ?? defaultRate;
           const normalRate = rate <= 2 ? 1 : rate <= 15 ? 10 : 20;
-          const lineNet = Math.max(0, l.lineMinor - (l.discountMinor ?? 0));
+          const lineNet = discountEmbedded
+            ? Math.max(0, l.lineMinor)
+            : Math.max(0, l.lineMinor - (l.discountMinor ?? 0));
           rateGroups.set(normalRate, (rateGroups.get(normalRate) ?? 0) + lineNet);
         }
         if (order.shippingMinor > 0) {
