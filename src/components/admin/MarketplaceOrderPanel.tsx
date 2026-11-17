@@ -75,7 +75,11 @@ export function MarketplaceOrderPanel({
       ) : null}
       <p className="mt-3 text-xs text-amber-900">
         e-Arşiv faturası için yukarıdaki <strong>GİB e-Arşiv fatura</strong> panelini kullanın.
-        {platform === "trendyol" ? " Kesim sonrası Trendyol'a otomatik iletilebilir." : null}
+        {platform === "trendyol"
+          ? " Kesim sonrası Trendyol'a otomatik iletilebilir."
+          : platform === "amazon_tr"
+            ? " İmzalı fatura PDF Amazon’a (UPLOAD_VAT_INVOICE) gönderilebilir."
+            : null}
       </p>
       {msg ? <p className="mt-2 text-sm text-amber-950">{msg}</p> : null}
     </div>
