@@ -1,6 +1,7 @@
 /** Admin sidebar — ShopPHP tarzı gruplu menü */
 
 import { MARKETPLACE_PLATFORMS } from "@/lib/admin/marketplace-platforms";
+import { inventorySeoLandingPages } from "@/lib/admin/site-pages-inventory";
 import { VITRIN_PAGES } from "@/lib/mirror-vitrin-pages";
 
 export type NavBadgeKey =
@@ -71,6 +72,12 @@ const VITRIN_PAGE_NAV_CHILDREN: AdminNavLink[] = [
     perm: "content.pages" as const,
   },
 ];
+
+const SEO_LANDING_NAV_CHILDREN: AdminNavLink[] = inventorySeoLandingPages().map((p) => ({
+  href: `/admin/pages#${p.key}`,
+  label: p.label,
+  perm: "content.pages" as const,
+}));
 
 /**
  * ShopPHP benzeri admin menü — sıra ve etiketler işletme paneline göre.
@@ -268,6 +275,12 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
         label: "Vitrin Sayfaları",
         perm: "content.pages",
         children: VITRIN_PAGE_NAV_CHILDREN,
+      },
+      {
+        href: "/admin/pages#seo-landings",
+        label: "SEO Landing Sayfaları",
+        perm: "content.pages",
+        children: SEO_LANDING_NAV_CHILDREN,
       },
       {
         href: "/admin/settings/product-explore",

@@ -21,6 +21,7 @@ const landingSlugSet = new Set([
 ]);
 
 function PageRow({
+  id,
   label,
   route,
   adminHref,
@@ -28,6 +29,7 @@ function PageRow({
   note,
   trailing,
 }: {
+  id?: string;
   label: string;
   route: string;
   adminHref?: string;
@@ -36,7 +38,7 @@ function PageRow({
   trailing?: ReactNode;
 }) {
   return (
-    <li className="flex items-center justify-between gap-4 px-4 py-3">
+    <li id={id} className="flex scroll-mt-24 items-center justify-between gap-4 px-4 py-3">
       <div className="min-w-0">
         <p className="font-medium">{label}</p>
         <p className="text-sm text-zinc-500">{route}</p>
@@ -63,23 +65,26 @@ function PageRow({
 }
 
 function InventorySection({
+  id,
   title,
   description,
   rows,
 }: {
+  id?: string;
   title: string;
   description: string;
   rows: SitePageInventoryRow[];
 }) {
   if (rows.length === 0) return null;
   return (
-    <section className="mt-10">
+    <section id={id} className="mt-10 scroll-mt-24">
       <h2 className="text-lg font-semibold text-zinc-900">{title}</h2>
       <p className="mt-1 text-sm text-zinc-600">{description}</p>
       <ul className="mt-4 divide-y rounded-xl border bg-white">
         {rows.map((row) => (
           <PageRow
             key={row.key}
+            id={row.key}
             label={row.label}
             route={row.route}
             adminHref={row.adminHref}
@@ -217,6 +222,7 @@ export default async function PagesListPage() {
       </section>
 
       <InventorySection
+        id="seo-landings"
         title="SEO landing sayfaları"
         description="Arama niyeti / hammadde hub sayfaları — /collections/... altında yayınlanır."
         rows={seoLandings}
