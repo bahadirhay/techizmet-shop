@@ -57,20 +57,42 @@ export function OrderInvoicePanel({
   const [previewOpen, setPreviewOpen] = useState(false);
   const [highlight, setHighlight] = useState(false);
   const [manualNumber, setManualNumber] = useState("");
+  const [amazonPdfName, setAmazonPdfName] = useState<string | null>(null);
+  const amazonPdfRef = useRef<HTMLInputElement>(null);
+  const isAmazon = marketplacePlatform === "amazon_tr";
 
   async function resendMarketplace() {
-    if (!invoiceLink) return;
+    if (!isAmazon && !invoiceLink) return;
     setBusy(true);
     setMsg(null);
-    const res = await fetch(`/api/admin/orders/${orderId}/marketplace/invoice`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ invoiceLink, invoiceNumber: invoiceNumber ?? undefined }),
-    });
+
+    let res: Response;
+    if (isAmazon) {
+      const fd = new FormData();
+      if (invoiceLink) fd.append("invoiceLink", invoiceLink);
+      if (invoiceNumber) fd.append("invoiceNumber", invoiceNumber);
+      const file = amazonPdfRef.current?.files?.[0];
+      if (file) fd.append("file", file);
+      res = await fetch(`/api/admin/orders/${orderId}/marketplace/invoice`, {
+        method: "POST",
+        body: fd,
+      });
+    } else {
+      res = await fetch(`/api/admin/orders/${orderId}/marketplace/invoice`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invoiceLink, invoiceNumber: invoiceNumber ?? undefined }),
+      });
+    }
+
     const json = (await res.json()) as { error?: string; result?: { message: string } };
     setBusy(false);
     setMsg(res.ok ? (json.result?.message ?? "Pazaryerine gönderildi") : (json.error ?? "Hata"));
-    if (res.ok) router.refresh();
+    if (res.ok) {
+      if (amazonPdfRef.current) amazonPdfRef.current.value = "";
+      setAmazonPdfName(null);
+      router.refresh();
+    }
   }
 
   async function sendInvoiceEmail() {
@@ -269,15 +291,34 @@ export function OrderInvoicePanel({
 
       {hasInvoice &&
       marketplacePlatform &&
-      (invoiceStatus === "signed" || invoiceStatus === "marketplace_sent") ? (
-        <div className="mt-3">
+      (invoiceStatus === "signed" || invoiceStatus === "marketplace_sent" || invoiceStatus === "manual") ? (
+        <div className="mt-3 space-y-2">
+          {isAmazon ? (
+            <div className="rounded-lg border border-emerald-200 bg-white p-3">
+              <p className="text-sm font-medium text-emerald-950">Amazon’a fatura PDF gönder</p>
+              <p className="mt-1 text-xs text-emerald-800">
+                Önce GİB PDF’i otomatik alınır. Olmazsa GİB’den indirdiğiniz PDF’i seçin; Amazon Feeds
+                (UPLOAD_VAT_INVOICE) ile yüklenir.
+              </p>
+              <input
+                ref={amazonPdfRef}
+                type="file"
+                accept="application/pdf,.pdf"
+                className="mt-2 block w-full text-sm file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-emerald-700 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white"
+                onChange={(e) => setAmazonPdfName(e.target.files?.[0]?.name ?? null)}
+              />
+              {amazonPdfName ? (
+                <p className="mt-1 text-xs text-emerald-800">Seçilen: {amazonPdfName}</p>
+              ) : null}
+            </div>
+          ) : null}
           <button
             type="button"
             className={btnSecondary}
-            disabled={busy}
+            disabled={busy || (!isAmazon && !invoiceLink)}
             onClick={() => void resendMarketplace()}
           >
-            Pazaryerine tekrar gönder
+            {isAmazon ? "Amazon’a fatura gönder" : "Pazaryerine tekrar gönder"}
           </button>
         </div>
       ) : null}

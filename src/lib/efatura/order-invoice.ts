@@ -38,7 +38,7 @@ function siteBaseUrl(): string {
   );
 }
 
-function parseInvoiceMeta(raw: string | null | undefined): OrderInvoiceMeta {
+export function parseInvoiceMeta(raw: string | null | undefined): OrderInvoiceMeta {
   if (!raw?.trim()) return {};
   try {
     return JSON.parse(raw) as OrderInvoiceMeta;

@@ -23,11 +23,17 @@ import {
   parseAmazonConfig,
   resolveAmazonMarketplaceId,
 } from "@/lib/marketplace/amazon/client";
+import {
+  estimateVatMinorFromGrossLines,
+  formatAmazonMoneyFromMinor,
+  uploadAmazonVatInvoice,
+} from "@/lib/marketplace/amazon/invoices";
 import { fetchAmazonOrders } from "@/lib/marketplace/amazon/orders";
-import { importAmazonOrders } from "@/lib/marketplace/amazon/import-orders";
+import { importAmazonOrders, type AmazonOrderMeta } from "@/lib/marketplace/amazon/import-orders";
 import { syncAmazonPriceAndInventory } from "@/lib/marketplace/amazon/inventory";
 import { syncProductsToAmazon } from "@/lib/marketplace/amazon/products";
 import { resolveAmazonListingSku } from "@/lib/marketplace/amazon/sku";
+import { fetchSignedInvoicePdfBytes } from "@/lib/efatura/fetch-invoice-pdf";
 import { syncProductsToTrendyol } from "@/lib/marketplace/trendyol";
 import { fetchTrendyolCatalog } from "@/lib/marketplace/trendyol/products";
 import { fetchHepsiburadaCatalog } from "@/lib/marketplace/hepsiburada/products";
@@ -543,17 +549,17 @@ export async function approveMarketplaceOrder(
 export async function sendMarketplaceInvoice(
   siteId: string,
   orderId: string,
-  input: { invoiceLink: string; invoiceNumber?: string },
+  input: { invoiceLink: string; invoiceNumber?: string; pdf?: Buffer },
 ): Promise<MarketplaceActionResult> {
   const order = await prisma.storeOrder.findFirst({
     where: { id: orderId, siteId },
+    include: {
+      lines: { select: { lineMinor: true, vatRate: true, discountMinor: true } },
+    },
   });
   if (!order?.marketplacePlatform || !order.marketplaceMetaJson) {
     return { ok: false, itemsCount: 0, message: "Pazaryeri siparişi değil" };
   }
-
-  const meta = parseMarketplaceOrderMeta(order.marketplaceMetaJson);
-  if (!meta) return { ok: false, itemsCount: 0, message: "Meta veri okunamadı" };
 
   const integration = await prisma.marketplaceIntegration.findFirst({
     where: { siteId, platform: order.marketplacePlatform, active: true },
@@ -561,6 +567,9 @@ export async function sendMarketplaceInvoice(
   const config = parseConfig(integration?.configJson ?? null);
 
   if (order.marketplacePlatform === "trendyol") {
+    const meta = parseMarketplaceOrderMeta(order.marketplaceMetaJson);
+    if (!meta) return { ok: false, itemsCount: 0, message: "Meta veri okunamadı" };
+
     const creds = parseTrendyolConfig(config);
     if (!creds) return { ok: false, itemsCount: 0, message: "Trendyol API eksik" };
 
@@ -595,6 +604,7 @@ export async function sendMarketplaceInvoice(
           invoiceNumber,
           invoiceLink: input.invoiceLink,
         }),
+        invoiceStatus: linkResult.ok ? "marketplace_sent" : order.invoiceStatus,
         adminNotes: [order.adminNotes, `Fatura: ${invoiceNumber}`].filter(Boolean).join(" · "),
       },
     });
@@ -606,6 +616,83 @@ export async function sendMarketplaceInvoice(
         ? `${invResult.message} · ${linkResult.message}`
         : linkResult.message,
     };
+  }
+
+  if (order.marketplacePlatform === "amazon_tr") {
+    let amzMeta: AmazonOrderMeta | null = null;
+    try {
+      amzMeta = JSON.parse(order.marketplaceMetaJson) as AmazonOrderMeta;
+    } catch {
+      amzMeta = null;
+    }
+    const amazonOrderId = amzMeta?.amazonOrderId?.trim() || amzMeta?.orderNumber?.trim();
+    if (!amazonOrderId) {
+      return { ok: false, itemsCount: 0, message: "Amazon sipariş numarası meta’da yok" };
+    }
+
+    const creds = parseAmazonConfig(config);
+    if (!creds) return { ok: false, itemsCount: 0, message: "Amazon SP-API ayarları eksik" };
+
+    const invoiceNumber = input.invoiceNumber?.trim();
+    if (!invoiceNumber || invoiceNumber.toUpperCase().startsWith("DRAFT")) {
+      return {
+        ok: false,
+        itemsCount: 0,
+        message: "Amazon için imzalı fatura numarası gerekli",
+      };
+    }
+
+    let pdf = input.pdf;
+    if (!pdf?.length) {
+      const fetched = await fetchSignedInvoicePdfBytes(siteId, order);
+      if (!fetched.ok) {
+        return {
+          ok: false,
+          itemsCount: 0,
+          message: `${fetched.message} · GİB PDF alınamadıysa admin’den PDF yükleyerek tekrar deneyin.`,
+        };
+      }
+      pdf = fetched.pdf;
+    }
+
+    const vatMinor = estimateVatMinorFromGrossLines(
+      order.lines.map((l) => ({
+        lineMinor: Math.max(0, l.lineMinor - (l.discountMinor ?? 0)),
+        vatRate: l.vatRate,
+      })),
+    );
+    const totalMinor = order.totalMinor;
+
+    const upload = await uploadAmazonVatInvoice(creds, config, {
+      amazonOrderId,
+      invoiceNumber,
+      pdf,
+      totalAmount: formatAmazonMoneyFromMinor(totalMinor),
+      totalVatAmount: formatAmazonMoneyFromMinor(vatMinor),
+      marketplaceId: resolveAmazonMarketplaceId(config),
+    });
+
+    if (!upload.ok) {
+      return { ok: false, itemsCount: 0, message: upload.message };
+    }
+
+    await prisma.storeOrder.update({
+      where: { id: orderId },
+      data: {
+        marketplaceMetaJson: JSON.stringify({
+          ...(amzMeta ?? { platform: "amazon_tr", amazonOrderId, orderNumber: amazonOrderId, lines: [] }),
+          invoiceNumber,
+          invoiceLink: input.invoiceLink,
+          amazonInvoiceFeedId: upload.feedId ?? null,
+        }),
+        invoiceStatus: "marketplace_sent",
+        adminNotes: [order.adminNotes, `Amazon fatura: ${invoiceNumber}`]
+          .filter(Boolean)
+          .join(" · "),
+      },
+    });
+
+    return { ok: true, itemsCount: 1, message: upload.message };
   }
 
   return { ok: false, itemsCount: 0, message: "Platform desteklenmiyor" };
