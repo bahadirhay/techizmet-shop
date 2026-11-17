@@ -17,6 +17,7 @@ import {
   mergeFaqsForPath,
   type SearchIntentFaq,
 } from "@/lib/seo/search-intent";
+import { getSiteSettings } from "@/lib/site-settings";
 
 export type LandingProduct = {
   id: string;
@@ -59,6 +60,8 @@ export type LandingPageData = {
   /** Hero tek cümle — yoksa klasik H1+intro düzeni */
   heroLead: string | null;
   heroImageUrl: string | null;
+  /** Hero CTA metni */
+  ctaLabel: string;
   intro: string[];
   paths: LandingPathCard[];
   products: LandingProduct[];
@@ -203,8 +206,19 @@ export async function loadLandingPageData(slug: string): Promise<LandingPageData
   }
   relatedLinks.push({ label: "Tüm ürünler", href: "/collections/all" });
 
-  const heading = intent.h1 ?? intent.query;
-  const heroImageUrl = products.find((p) => p.imageUrl)?.imageUrl ?? null;
+  const settings = await getSiteSettings(site.id);
+  const overlay = settings.seo?.landingPages?.[cleanSlug];
+
+  const heading =
+    overlay?.heading?.trim() || intent.h1 || intent.query;
+  const defaultHeroImage = products.find((p) => p.imageUrl)?.imageUrl ?? null;
+  const heroImageUrl = overlay?.heroImageUrl?.trim() || defaultHeroImage;
+  const heroLead = overlay?.heroLead?.trim() || def?.heroLead || null;
+  const intro =
+    overlay?.intro && overlay.intro.length > 0
+      ? overlay.intro.map((p) => p.trim()).filter(Boolean)
+      : def?.intro ?? [intent.description];
+  const ctaLabel = overlay?.ctaLabel?.trim() || "Ürünleri gör";
 
   const paths: LandingPathCard[] = (def?.paths ?? []).map((path) => {
     const imageUrl =
@@ -228,9 +242,10 @@ export async function loadLandingPageData(slug: string): Promise<LandingPageData
     canonicalPath: `/collections/${cleanSlug}`,
     heading,
     brandName: site.name?.trim() || "Anatolian Paw",
-    heroLead: def?.heroLead ?? null,
+    heroLead,
     heroImageUrl,
-    intro: def?.intro ?? [intent.description],
+    ctaLabel,
+    intro,
     paths,
     products,
     hasFacts: products.some((p) => p.ingredients.length > 0),

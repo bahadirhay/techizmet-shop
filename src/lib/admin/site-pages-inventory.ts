@@ -76,8 +76,8 @@ export function inventorySeoLandingPages(): SitePageInventoryRow[] {
     key: `landing:${slug}`,
     label: landingLabel(slug),
     route: `/collections/${slug}`,
-    adminHref: "/admin/settings/search-intent",
-    note: "SEO landing — Hedef Aramalar / landing içeriği",
+    adminHref: `/admin/pages/landing/${slug}`,
+    note: "SEO landing — hero ve metin düzenlenebilir",
   }));
 }
 

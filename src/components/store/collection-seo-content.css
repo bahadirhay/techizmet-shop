@@ -171,13 +171,18 @@
 }
 
 .kn-landing-hero__copy {
+  /* Geniş ekranda hizayı padding ile değil margin ile ver — aksi halde
+     padding-left, 40rem kutuyu yiyip metni dikey şerit haline getiriyordu. */
   position: relative;
   z-index: 1;
-  width: min(40rem, 100%);
+  box-sizing: border-box;
+  width: min(36rem, calc(100% - 2rem));
+  max-width: 36rem;
+  margin: 0;
+  margin-left: max(1rem, calc((100% - 72rem) / 2 + 1rem));
   padding: clamp(2rem, 6vw, 4rem) 1rem clamp(2.25rem, 5vw, 3.25rem);
-  margin: 0 auto 0 0;
-  max-width: 72rem;
-  padding-left: max(1rem, calc((100% - 72rem) / 2 + 1rem));
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
 .kn-landing-hero__brand {
@@ -187,6 +192,8 @@
   letter-spacing: 0.01em;
   line-height: 1.1;
   color: #fff;
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
 .kn-landing-hero__title {
@@ -195,14 +202,18 @@
   font-weight: 600;
   line-height: 1.3;
   color: rgba(247, 244, 239, 0.92);
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
 .kn-landing-hero__lead {
   margin: 0 0 1.35rem;
-  max-width: 34rem;
+  max-width: none;
   font-size: 1.02rem;
   line-height: 1.55;
   color: rgba(247, 244, 239, 0.88);
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
 .kn-landing-hero__cta {
@@ -210,13 +221,14 @@
   align-items: center;
   justify-content: center;
   min-height: 2.75rem;
-  padding: 0.65rem 1.25rem;
+  padding: 0.65rem 1.35rem;
   border-radius: 0.35rem;
   background: #f7f4ef;
   color: #1c2430;
   font-weight: 650;
   font-size: 0.95rem;
   text-decoration: none;
+  white-space: nowrap;
 }
 
 .kn-landing-hero__cta:hover {

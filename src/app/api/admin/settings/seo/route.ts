@@ -36,6 +36,9 @@ export async function PATCH(req: Request) {
   if (seoPatch && !("searchIntentMeta" in (body.seo ?? {}))) {
     delete seoPatch.searchIntentMeta;
   }
+  if (seoPatch && !("landingPages" in (body.seo ?? {}))) {
+    delete seoPatch.landingPages;
+  }
   if (seoPatch && "robotsDisallowPaths" in seoPatch) {
     seoPatch.robotsDisallowPaths = normalizeRobotsDisallowPaths(seoPatch.robotsDisallowPaths);
   }

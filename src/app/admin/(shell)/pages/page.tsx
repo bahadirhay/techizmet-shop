@@ -89,7 +89,7 @@ function InventorySection({
             route={row.route}
             adminHref={row.adminHref}
             note={row.note}
-            adminLabel={row.adminHref?.includes("search-intent") ? "Hedef Aramalar" : "Düzenle"}
+            adminLabel="Düzenle"
           />
         ))}
       </ul>

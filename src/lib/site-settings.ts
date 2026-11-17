@@ -284,6 +284,20 @@ export type SiteSettings = {
       string,
       { seoTitle?: string; seoDescription?: string; appliedAt?: string }
     >;
+    /**
+     * SEO landing sayfa içerik üst yazımı (`/collections/{slug}`).
+     * Kod varsayılanlarını ezer; admin Sayfalar → SEO Landing’den düzenlenir.
+     */
+    landingPages?: Record<
+      string,
+      {
+        heading?: string;
+        heroLead?: string;
+        intro?: string[];
+        ctaLabel?: string;
+        heroImageUrl?: string;
+      }
+    >;
     /** Arama motoru / dizin dağıtım durumu */
     distribution?: import("@/lib/seo/distribution-types").SiteDistributionSettings;
   };

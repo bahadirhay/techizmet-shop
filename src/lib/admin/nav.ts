@@ -74,7 +74,7 @@ const VITRIN_PAGE_NAV_CHILDREN: AdminNavLink[] = [
 ];
 
 const SEO_LANDING_NAV_CHILDREN: AdminNavLink[] = inventorySeoLandingPages().map((p) => ({
-  href: `/admin/pages#${p.key}`,
+  href: p.adminHref ?? `/admin/pages#${p.key}`,
   label: p.label,
   perm: "content.pages" as const,
 }));

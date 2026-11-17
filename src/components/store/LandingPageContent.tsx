@@ -97,7 +97,7 @@ export function LandingPageContent({
             <h1 className="kn-landing-hero__title">{data.heading}</h1>
             <p className="kn-landing-hero__lead">{data.heroLead}</p>
             <a className="kn-landing-hero__cta" href="#urunler">
-              Ürünleri gör
+              {data.ctaLabel || "Ürünleri gör"}
             </a>
           </div>
         </div>
