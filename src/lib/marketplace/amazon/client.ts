@@ -94,6 +94,42 @@ export async function amazonSpApiRequest(
   return { ok: res.ok, status: res.status, json, text };
 }
 
+/**
+ * PII (alıcı adı / teslimat adresi) için Restricted Data Token.
+ * Tax Invoicing / Direct-to-Consumer Shipping rolleri gerekir.
+ */
+export async function createAmazonRestrictedDataToken(
+  creds: AmazonSpApiCredentials,
+  accessToken: string,
+  resources: {
+    method?: "GET" | "POST";
+    path: string;
+    dataElements?: Array<"buyerInfo" | "shippingAddress">;
+  }[],
+): Promise<{ token: string; error?: string }> {
+  const body = {
+    restrictedResources: resources.map((r) => ({
+      method: r.method ?? "GET",
+      path: r.path,
+      dataElements: r.dataElements ?? ["buyerInfo", "shippingAddress"],
+    })),
+  };
+  const res = await amazonSpApiRequest(creds, accessToken, "/tokens/2021-03-01/restrictedDataToken", {
+    method: "POST",
+    body,
+  });
+  if (!res.ok) {
+    return {
+      token: "",
+      error: `RDT HTTP ${res.status}: ${res.text.slice(0, 240)}`,
+    };
+  }
+  const json = res.json as { restrictedDataToken?: string } | null;
+  const token = json?.restrictedDataToken?.trim() ?? "";
+  if (!token) return { token: "", error: "RDT yanıtı boş" };
+  return { token };
+}
+
 export type AmazonFinancialEventGroup = {
   financialEventGroupId: string;
   processingStatus: string | null;

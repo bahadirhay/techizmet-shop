@@ -61,6 +61,24 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     shipmentMetaJson = withDeliveredAt(shipmentMetaJson);
   }
 
+  const customerName =
+    body.customerName !== undefined ? String(body.customerName).trim() || null : undefined;
+  const customerPhone =
+    body.customerPhone !== undefined ? String(body.customerPhone).trim() || null : undefined;
+  let shippingAddressJson: string | null | undefined = undefined;
+  if (body.shippingAddress != null && typeof body.shippingAddress === "object") {
+    const a = body.shippingAddress as Record<string, unknown>;
+    shippingAddressJson = JSON.stringify({
+      line1: String(a.line1 ?? "").trim(),
+      city: String(a.city ?? "").trim(),
+      district: String(a.district ?? "").trim(),
+      postalCode: String(a.postalCode ?? "").trim(),
+    });
+  } else if (body.shippingAddressJson !== undefined) {
+    shippingAddressJson =
+      body.shippingAddressJson == null ? null : String(body.shippingAddressJson).trim() || null;
+  }
+
   const order = await prisma.storeOrder.update({
     where: { id },
     data: {
@@ -72,6 +90,9 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
         body.trackingNumber !== undefined ? String(body.trackingNumber).trim() || null : undefined,
       paymentStatus: body.paymentStatus != null ? newPaymentStatus : undefined,
       adminNotes: body.adminNotes !== undefined ? String(body.adminNotes).trim() || null : undefined,
+      customerName: customerName !== undefined ? customerName : undefined,
+      customerPhone: customerPhone !== undefined ? customerPhone : undefined,
+      shippingAddressJson: shippingAddressJson !== undefined ? shippingAddressJson : undefined,
     },
     include: { lines: true, carrier: true },
   });

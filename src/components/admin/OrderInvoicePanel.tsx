@@ -23,6 +23,8 @@ export function OrderInvoicePanel({
   invoiceLink,
   invoiceIssuedAt,
   customerEmail,
+  customerName: initialCustomerName = "",
+  shippingAddress: initialShippingAddress = null,
   efaturaEnabled,
   efaturaReady,
   focusInvoice = false,
@@ -39,6 +41,13 @@ export function OrderInvoicePanel({
   invoiceIssuedAt: Date | null;
   /** Müşteri e-posta adresi — fatura linkini gönderebilmek için */
   customerEmail: string | null;
+  customerName?: string | null;
+  shippingAddress?: {
+    line1?: string;
+    city?: string;
+    district?: string;
+    postalCode?: string;
+  } | null;
   /** Ayarlarda entegrasyon açık mı */
   efaturaEnabled: boolean;
   /** GİB kullanıcı + parola tamam mı (kesim için) */
@@ -60,6 +69,33 @@ export function OrderInvoicePanel({
   const [amazonPdfName, setAmazonPdfName] = useState<string | null>(null);
   const amazonPdfRef = useRef<HTMLInputElement>(null);
   const isAmazon = marketplacePlatform === "amazon_tr";
+  const [buyerName, setBuyerName] = useState(initialCustomerName?.trim() ?? "");
+  const [addrLine1, setAddrLine1] = useState(initialShippingAddress?.line1 ?? "");
+  const [addrDistrict, setAddrDistrict] = useState(initialShippingAddress?.district ?? "");
+  const [addrCity, setAddrCity] = useState(initialShippingAddress?.city ?? "");
+  const [addrPostal, setAddrPostal] = useState(initialShippingAddress?.postalCode ?? "");
+
+  async function saveBuyer() {
+    setBusy(true);
+    setMsg(null);
+    const res = await fetch(`/api/admin/orders/${orderId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        customerName: buyerName.trim(),
+        shippingAddress: {
+          line1: addrLine1.trim(),
+          district: addrDistrict.trim(),
+          city: addrCity.trim(),
+          postalCode: addrPostal.trim(),
+        },
+      }),
+    });
+    const json = (await res.json().catch(() => ({}))) as { error?: string };
+    setBusy(false);
+    setMsg(res.ok ? "Alıcı bilgisi kaydedildi — ön izlemeyi yenileyin." : (json.error ?? "Kayıt başarısız"));
+    if (res.ok) router.refresh();
+  }
 
   async function resendMarketplace() {
     if (!isAmazon && !invoiceLink) return;
@@ -205,6 +241,64 @@ export function OrderInvoicePanel({
         </div>
       ) : (
         <>
+          {marketplacePlatform ? (
+            <div className="mt-3 space-y-2 rounded-lg border border-emerald-200 bg-white p-3">
+              <p className="text-sm font-medium text-emerald-950">Fatura alıcısı</p>
+              {isAmazon ? (
+                <p className="text-xs text-amber-800">
+                  Amazon uygulamasında tam adres yetkisi yoksa ad/sokak buradan girilir. Seller Central →
+                  Uygulama rolleri: Direct-to-Consumer Shipping + Tax Invoicing.
+                </p>
+              ) : null}
+              <AdminField label="Ad Soyad">
+                <input
+                  className={inputClass}
+                  value={buyerName}
+                  onChange={(e) => setBuyerName(e.target.value)}
+                  placeholder="Alıcı adı"
+                />
+              </AdminField>
+              <AdminField label="Adres">
+                <input
+                  className={inputClass}
+                  value={addrLine1}
+                  onChange={(e) => setAddrLine1(e.target.value)}
+                  placeholder="Sokak / site / daire"
+                />
+              </AdminField>
+              <div className="grid gap-2 sm:grid-cols-3">
+                <AdminField label="İlçe">
+                  <input
+                    className={inputClass}
+                    value={addrDistrict}
+                    onChange={(e) => setAddrDistrict(e.target.value)}
+                  />
+                </AdminField>
+                <AdminField label="İl">
+                  <input
+                    className={inputClass}
+                    value={addrCity}
+                    onChange={(e) => setAddrCity(e.target.value)}
+                  />
+                </AdminField>
+                <AdminField label="Posta kodu">
+                  <input
+                    className={inputClass}
+                    value={addrPostal}
+                    onChange={(e) => setAddrPostal(e.target.value)}
+                  />
+                </AdminField>
+              </div>
+              <button
+                type="button"
+                className={btnSecondary}
+                disabled={busy}
+                onClick={() => void saveBuyer()}
+              >
+                Alıcıyı kaydet
+              </button>
+            </div>
+          ) : null}
           <AdminField label="Alıcı VKN/TCKN (isteğe bağlı)">
             <input
               className={inputClass}

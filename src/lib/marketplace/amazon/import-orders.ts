@@ -17,12 +17,42 @@ export type AmazonOrderMeta = {
   lines: { orderItemId: string; quantity: number; sellerSku?: string; asin?: string }[];
 };
 
+function amazonCustomerPatch(order: AmazonOrder): {
+  customerName?: string;
+  customerEmail?: string | null;
+  customerPhone?: string | null;
+  shippingAddressJson?: string;
+} {
+  const patch: {
+    customerName?: string;
+    customerEmail?: string | null;
+    customerPhone?: string | null;
+    shippingAddressJson?: string;
+  } = {};
+  const name = order.shippingAddress?.name?.trim();
+  if (name) patch.customerName = name;
+  if (order.buyerEmail?.trim()) patch.customerEmail = order.buyerEmail.trim();
+  if (order.shippingAddress?.phone?.trim()) {
+    patch.customerPhone = order.shippingAddress.phone.trim();
+  }
+  if (order.shippingAddress && (order.shippingAddress.line1 || order.shippingAddress.city)) {
+    patch.shippingAddressJson = JSON.stringify({
+      line1: order.shippingAddress.line1 ?? "",
+      city: order.shippingAddress.city ?? "",
+      district: order.shippingAddress.district ?? "",
+      postalCode: order.shippingAddress.postalCode ?? "",
+    });
+  }
+  return patch;
+}
+
 export async function importAmazonOrders(
   siteId: string,
   orders: AmazonOrder[],
-): Promise<{ imported: number; skipped: number; productIds: string[]; message: string }> {
+): Promise<{ imported: number; skipped: number; repaired: number; productIds: string[]; message: string }> {
   let imported = 0;
   let skipped = 0;
+  let repaired = 0;
   const notes: string[] = [];
   const touchedProductIds = new Set<string>();
 
@@ -32,7 +62,27 @@ export async function importAmazonOrders(
       where: { siteId, marketplaceRef: ref },
     });
     if (existing) {
-      skipped++;
+      const needsBuyer =
+        !existing.customerName ||
+        existing.customerName === "Amazon Müşteri" ||
+        !existing.shippingAddressJson;
+      const patch = needsBuyer ? amazonCustomerPatch(order) : {};
+      if (needsBuyer && (patch.customerName || patch.shippingAddressJson)) {
+        await prisma.storeOrder.update({
+          where: { id: existing.id },
+          data: {
+            ...(patch.customerName ? { customerName: patch.customerName } : {}),
+            ...(patch.customerEmail !== undefined ? { customerEmail: patch.customerEmail } : {}),
+            ...(patch.customerPhone !== undefined ? { customerPhone: patch.customerPhone } : {}),
+            ...(patch.shippingAddressJson
+              ? { shippingAddressJson: patch.shippingAddressJson }
+              : {}),
+          },
+        });
+        repaired++;
+      } else {
+        skipped++;
+      }
       continue;
     }
 
@@ -156,10 +206,11 @@ export async function importAmazonOrders(
   return {
     imported,
     skipped,
+    repaired,
     productIds: [...touchedProductIds],
     message:
-      imported || skipped
-        ? `${imported} yeni sipariş, ${skipped} atlandı${notes.length ? ` · ${notes.slice(0, 3).join("; ")}` : ""}`
+      imported || skipped || repaired
+        ? `${imported} yeni, ${repaired} alıcı güncellendi, ${skipped} atlandı${notes.length ? ` · ${notes.slice(0, 3).join("; ")}` : ""}`
         : "Yeni sipariş yok",
   };
 }

@@ -196,6 +196,21 @@ export default async function OrderDetailPage({
         invoiceLink={order.invoiceLink}
         invoiceIssuedAt={order.invoiceIssuedAt}
         customerEmail={order.customerEmail}
+        customerName={order.customerName}
+        shippingAddress={(() => {
+          try {
+            return order.shippingAddressJson
+              ? (JSON.parse(order.shippingAddressJson) as {
+                  line1?: string;
+                  city?: string;
+                  district?: string;
+                  postalCode?: string;
+                })
+              : null;
+          } catch {
+            return null;
+          }
+        })()}
         efaturaEnabled={efaturaConfig.enabled}
         efaturaReady={efaturaReady(efaturaConfig)}
         focusInvoice={focusInvoice}
