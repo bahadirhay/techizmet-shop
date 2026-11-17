@@ -44,11 +44,23 @@ export type LandingGroup = {
   products: LandingProduct[];
 };
 
+export type LandingPathCard = {
+  label: string;
+  href: string;
+  text: string;
+  imageUrl: string | null;
+};
+
 export type LandingPageData = {
   slug: string;
   canonicalPath: string;
   heading: string;
+  brandName: string;
+  /** Hero tek cümle — yoksa klasik H1+intro düzeni */
+  heroLead: string | null;
+  heroImageUrl: string | null;
   intro: string[];
+  paths: LandingPathCard[];
   products: LandingProduct[];
   /** Hammadde bilgisi bulunan ürün var mı (tablodaki içerik/doku sütunları) */
   hasFacts: boolean;
@@ -192,12 +204,34 @@ export async function loadLandingPageData(slug: string): Promise<LandingPageData
   relatedLinks.push({ label: "Tüm ürünler", href: "/collections/all" });
 
   const heading = intent.h1 ?? intent.query;
+  const heroImageUrl = products.find((p) => p.imageUrl)?.imageUrl ?? null;
+
+  const paths: LandingPathCard[] = (def?.paths ?? []).map((path) => {
+    const imageUrl =
+      (path.imageIngredientKey
+        ? products.find(
+            (p) =>
+              p.imageUrl &&
+              p.ingredients.some((i) => i.key === path.imageIngredientKey),
+          )?.imageUrl
+        : null) ?? heroImageUrl;
+    return {
+      label: path.label,
+      href: path.href,
+      text: path.text,
+      imageUrl,
+    };
+  });
 
   return {
     slug: cleanSlug,
     canonicalPath: `/collections/${cleanSlug}`,
     heading,
+    brandName: site.name?.trim() || "Anatolian Paw",
+    heroLead: def?.heroLead ?? null,
+    heroImageUrl,
     intro: def?.intro ?? [intent.description],
+    paths,
     products,
     hasFacts: products.some((p) => p.ingredients.length > 0),
     tableHeading: def?.tableHeading ?? `${heading} karşılaştırma tablosu`,

@@ -108,6 +108,9 @@ export async function loadHomeSeoContent(): Promise<CollectionSeoContentData | n
     { label: "Ödül Maması", href: "/collections/odul-mamasi" },
     { label: "Köpek Eğitim Ödül Maması", href: "/collections/kopek-egitim-odul-mamasi" },
     { label: "Köpek Çiğneme Ürünleri", href: "/collections/kopek-cigneme-urunleri" },
+    { label: "Dana Akciğer Köpek Ödülü", href: "/collections/dana-akciger-kopek-odulu" },
+    { label: "Deve Derisi Köpek Ödülü", href: "/collections/deve-derisi-kopek-odulu" },
+    { label: "Dana Gırtlak Köpek Ödülü", href: "/collections/dana-girtlak-kopek-odulu" },
     { label: "Tüm ürünler", href: "/collections/all" },
     { label: "Rehber yazılar", href: "/blogs/news" },
   ];

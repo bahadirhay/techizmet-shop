@@ -91,8 +91,23 @@ export type LandingGroupDef = {
   link?: { label: string; href: string };
 };
 
+/** Hub’daki görsel karar kartları — tıklanınca alt landing */
+export type LandingPathDef = {
+  label: string;
+  href: string;
+  text: string;
+  /** Kart görseli için ürün hammaddesi */
+  imageIngredientKey?: LandingIngredientKey;
+};
+
 export type LandingContentDef = {
   intro: string[];
+  /**
+   * Hero tek cümle. Tanımlıysa sayfa marketplace ızgarası yerine
+   * marka hero + (opsiyonel) karar şeridi ile açılır.
+   */
+  heroLead?: string;
+  paths?: LandingPathDef[];
   /** Sayfada gösterilecek ürünler; yoksa tüm vitrin ürünleri */
   filter?: (ingredients: LandingIngredient[]) => boolean;
   tableHeading: string;
@@ -138,9 +153,30 @@ const RULE_SUPERVISE: LandingCriterion = {
 
 export const LANDING_CONTENT: Record<string, LandingContentDef> = {
   "kopek-odul-mamasi": {
+    heroLead:
+      "Kurutulmuş, tahılsız ve katkısız köpek ödül mamaları — eğitimde küçük parçalar, çiğnemede sert ürünler.",
     intro: [
-      "Köpek ödül maması, ana öğünün yerine geçmeyen; eğitimde, ödüllendirmede ve çiğneme ihtiyacında verilen atıştırmalıktır. Anatolian Paw köpek ödül mamaları kurutulmuş tek hammaddeden ya da iki hammaddenin karışımından oluşur: dana akciğer, dana gırtlak, deve derisi, kuzu paça ve tavuk ayağı.",
-      "Aşağıdaki tabloda bütün ürünleri içerik, doku, paket boyutu ve fiyatla yan yana görebilirsiniz. Eğitim için elle bölünen akciğer ödüllerine, çiğneme için deve derisi ve kuzu paça gibi sert ürünlere bakın.",
+      "Tüm Anatolian Paw ürünleri bu sayfada: dana akciğer, dana gırtlak, deve derisi, kuzu paça, tavuk ayağı ve karışık paketler. Amaç veya hammaddene göre aşağıdaki yollardan da gidebilirsiniz.",
+    ],
+    paths: [
+      {
+        label: "Eğitim ödülü",
+        href: "/collections/kopek-egitim-odul-mamasi",
+        text: "Elle bölünen, bir lokmada yenen dana akciğer.",
+        imageIngredientKey: "dana-akciger",
+      },
+      {
+        label: "Çiğneme",
+        href: "/collections/kopek-cigneme-urunleri",
+        text: "Deve derisi, gırtlak, paça ve tavuk ayağı.",
+        imageIngredientKey: "deve-derisi",
+      },
+      {
+        label: "Tek protein",
+        href: "/collections/dogal-kopek-odul-mamasi",
+        text: "İçerik listesi tek satır; tahıl ve katkı yok.",
+        imageIngredientKey: "dana-girtlak",
+      },
     ],
     tableHeading: "Köpek ödül maması karşılaştırma tablosu",
     criteriaHeading: "Köpek ödül maması nasıl seçilir?",
@@ -161,7 +197,15 @@ export const LANDING_CONTENT: Record<string, LandingContentDef> = {
       RULE_STORAGE,
     ],
     blogSlugs: ["kopek-odul-mamasi-nasil-secilir", "kopek-odul-mamasi-gunluk-kalori", "kopek-odul-mamasi"],
-    related: ["kopek-egitim-odul-mamasi", "kopek-cigneme-urunleri", "dogal-kopek-odul-mamasi", "odul-mamasi"],
+    related: [
+      "kopek-egitim-odul-mamasi",
+      "kopek-cigneme-urunleri",
+      "dana-akciger-kopek-odulu",
+      "deve-derisi-kopek-odulu",
+      "dana-girtlak-kopek-odulu",
+      "dogal-kopek-odul-mamasi",
+      "odul-mamasi",
+    ],
   },
 
   "dogal-kopek-odul-mamasi": {
@@ -315,7 +359,12 @@ export const LANDING_CONTENT: Record<string, LandingContentDef> = {
       },
     ],
     blogSlugs: ["kopek-egitimi-odul-zamanlama", "kopek-tuvalet-egitimi-odul", "yavru-kopeklere-odul-mamasi"],
-    related: ["kopek-cigneme-urunleri", "kopek-odul-mamasi", "odul-mamasi"],
+    related: [
+      "dana-akciger-kopek-odulu",
+      "kopek-cigneme-urunleri",
+      "kopek-odul-mamasi",
+      "odul-mamasi",
+    ],
   },
 
   "kopek-cigneme-urunleri": {
@@ -341,11 +390,13 @@ export const LANDING_CONTENT: Record<string, LandingContentDef> = {
         title: "Deve derisi",
         text: "Sert dokulu; uzun süre çiğnenir. Güçlü çiğneyen yetişkin köpekler için uygundur.",
         filter: singleOf("Deve"),
+        link: { label: "Deve derisi köpek ödülü", href: "/collections/deve-derisi-kopek-odulu" },
       },
       {
         title: "Dana gırtlak",
         text: "Kıkırdaklı ve daha sert; çiğneme ihtiyacını karşılar.",
         filter: singleOf("Dana"),
+        link: { label: "Dana gırtlak köpek ödülü", href: "/collections/dana-girtlak-kopek-odulu" },
       },
       {
         title: "Kuzu paça",
@@ -364,7 +415,98 @@ export const LANDING_CONTENT: Record<string, LandingContentDef> = {
       },
     ],
     blogSlugs: ["kopek-dis-sagligi-kemik", "kurutulmus-deve-derisi-kopek-odulu"],
-    related: ["kopek-egitim-odul-mamasi", "kopek-odul-mamasi", "dogal-kopek-odulu"],
+    related: [
+      "deve-derisi-kopek-odulu",
+      "dana-girtlak-kopek-odulu",
+      "kopek-egitim-odul-mamasi",
+      "kopek-odul-mamasi",
+      "dogal-kopek-odulu",
+    ],
+  },
+
+  "dana-akciger-kopek-odulu": {
+    heroLead:
+      "Hafif ve gevrek kurutulmuş dana akciğer — elle küçük parçalara bölünür; eğitim ve günlük ödül için.",
+    intro: [
+      "Bu sayfada dana akciğer içeren Anatolian Paw ürünleri vardır: tek hammaddeli paketler ve akciğerli karışımlar. Tahıl, renklendirici ve koruyucu eklenmez.",
+    ],
+    filter: (ings) => hasIngredient(ings, "dana-akciger"),
+    tableHeading: "Dana akciğer köpek ödülü karşılaştırması",
+    criteriaHeading: "Dana akciğer ödülü nasıl kullanılır?",
+    criteria: [
+      {
+        title: "Parça boyutu",
+        text: "Eğitimde nohut büyüklüğünde veya daha küçük parçalar yeterlidir.",
+      },
+      {
+        title: "İlk paket",
+        text: "Köpeğiniz ilk kez deniyorsa küçük gramajla başlayın.",
+      },
+      RULE_DAILY,
+      RULE_WATER,
+      RULE_STORAGE,
+    ],
+    blogSlugs: ["kopek-egitimi-odul-zamanlama", "kopek-odul-mamasi-nasil-secilir"],
+    related: [
+      "kopek-egitim-odul-mamasi",
+      "kopek-odul-mamasi",
+      "dogal-kopek-odul-mamasi",
+      "deve-derisi-kopek-odulu",
+      "dana-girtlak-kopek-odulu",
+    ],
+  },
+
+  "deve-derisi-kopek-odulu": {
+    heroLead:
+      "Kurutulmuş deve derisi — sert dokulu, uzun süre çiğnenen doğal köpek ödülü; tek hammadde, katkısız.",
+    intro: [
+      "Deve derisi içeren Anatolian Paw ürünleri bu sayfada toplanır. Güçlü çiğneyen yetişkin köpekler için uygundur; çiğnerken yanında bulunun.",
+    ],
+    filter: (ings) => hasIngredient(ings, "deve-derisi"),
+    tableHeading: "Deve derisi köpek ödülü karşılaştırması",
+    criteriaHeading: "Deve derisi ödülü güvenle nasıl verilir?",
+    criteria: [
+      RULE_SUPERVISE,
+      {
+        title: "Boyut",
+        text: "Köpeğinizin bütün olarak yutabileceği kadar küçülen parçayı alın.",
+      },
+      RULE_WATER,
+      RULE_DAILY,
+      RULE_PUPPY,
+    ],
+    blogSlugs: ["kurutulmus-deve-derisi-kopek-odulu", "kopek-dis-sagligi-kemik"],
+    related: [
+      "kopek-cigneme-urunleri",
+      "dana-girtlak-kopek-odulu",
+      "kopek-odul-mamasi",
+      "dogal-kopek-odul-mamasi",
+    ],
+  },
+
+  "dana-girtlak-kopek-odulu": {
+    heroLead:
+      "Kurutulmuş dana gırtlak — kıkırdaklı, sert dokulu çiğneme ödülü; tek hammaddeli ve tahılsız.",
+    intro: [
+      "Dana gırtlak içeren ürünler bu sayfada. Çiğneme ihtiyacını karşılayan kıkırdaklı doku; tahıl ve katkı içermez.",
+    ],
+    filter: (ings) => hasIngredient(ings, "dana-girtlak"),
+    tableHeading: "Dana gırtlak köpek ödülü karşılaştırması",
+    criteriaHeading: "Dana gırtlak ödülü nasıl verilir?",
+    criteria: [
+      RULE_SUPERVISE,
+      RULE_WATER,
+      RULE_DAILY,
+      RULE_STORAGE,
+      RULE_PUPPY,
+    ],
+    blogSlugs: ["kopek-dis-sagligi-kemik", "kopek-odul-mamasi-nasil-secilir"],
+    related: [
+      "kopek-cigneme-urunleri",
+      "deve-derisi-kopek-odulu",
+      "dana-akciger-kopek-odulu",
+      "kopek-odul-mamasi",
+    ],
   },
 };
 

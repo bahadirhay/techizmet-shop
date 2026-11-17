@@ -9,6 +9,11 @@ import { toDisplayPrice } from "@/lib/store/customer-pricing";
 /** İlk satırdaki kart sayısı — bu görseller lazy yüklenmez */
 const EAGER_CARD_COUNT = 4;
 
+function productImageSrc(url: string, width: number): string {
+  if (url.includes("?")) return `${url}&width=${width}`;
+  return `${url}?width=${width}`;
+}
+
 function ProductGrid({
   products,
   memberPricing,
@@ -65,47 +70,122 @@ export function LandingPageContent({
   memberPricing: CustomerGroupPricing | null;
 }) {
   const hasGroups = data.groups.length > 0;
+  const useHero = Boolean(data.heroLead);
 
   return (
     <section className="kn-seo-content" aria-label={data.heading}>
-      <div className="kn-seo-content__inner kn-landing__inner">
-        <h1 className="kn-seo-content__title">{data.heading}</h1>
-        {data.intro.map((paragraph) => (
-          <p key={paragraph} className="kn-seo-content__intro">
-            {paragraph}
-          </p>
-        ))}
-
-        {hasGroups ? (
-          data.groups.map((group, groupIndex) => (
-            <div key={group.title} className="kn-landing__group">
-              <h2 className="kn-seo-content__subtitle">{group.title}</h2>
-              <p className="kn-landing__group-text">
-                {group.text}
-                {group.link ? (
-                  <>
-                    {" "}
-                    <Link href={group.link.href}>{group.link.label} →</Link>
-                  </>
-                ) : null}
-              </p>
-              <ProductGrid
-                products={group.products}
-                memberPricing={memberPricing}
-                eagerCount={groupIndex === 0 ? EAGER_CARD_COUNT : 0}
+      {useHero ? (
+        <div className="kn-landing-hero">
+          {data.heroImageUrl ? (
+            <div className="kn-landing-hero__media" aria-hidden="true">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={productImageSrc(data.heroImageUrl, 1400)}
+                alt=""
+                width={1400}
+                height={900}
+                fetchPriority="high"
+                decoding="async"
               />
             </div>
-          ))
-        ) : data.products.length ? (
+          ) : (
+            <div className="kn-landing-hero__media kn-landing-hero__media--empty" aria-hidden="true" />
+          )}
+          <div className="kn-landing-hero__veil" aria-hidden="true" />
+          <div className="kn-landing-hero__copy">
+            <p className="kn-landing-hero__brand">{data.brandName}</p>
+            <h1 className="kn-landing-hero__title">{data.heading}</h1>
+            <p className="kn-landing-hero__lead">{data.heroLead}</p>
+            <a className="kn-landing-hero__cta" href="#urunler">
+              Ürünleri gör
+            </a>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="kn-seo-content__inner kn-landing__inner">
+        {!useHero ? (
           <>
-            <h2 className="kn-seo-content__subtitle">Ürünler</h2>
-            <ProductGrid
-              products={data.products}
-              memberPricing={memberPricing}
-              eagerCount={EAGER_CARD_COUNT}
-            />
+            <h1 className="kn-seo-content__title">{data.heading}</h1>
+            {data.intro.map((paragraph) => (
+              <p key={paragraph} className="kn-seo-content__intro">
+                {paragraph}
+              </p>
+            ))}
           </>
         ) : null}
+
+        {data.paths.length > 0 ? (
+          <nav className="kn-landing-paths" aria-label="Nasıl seçmek istersiniz?">
+            <p className="kn-landing-paths__label">Nasıl seçmek istersiniz?</p>
+            <ul className="kn-landing-paths__list">
+              {data.paths.map((path) => (
+                <li key={path.href}>
+                  <Link href={path.href} className="kn-landing-path">
+                    <span className="kn-landing-path__media">
+                      {path.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={productImageSrc(path.imageUrl, 480)}
+                          alt=""
+                          width={480}
+                          height={360}
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      ) : null}
+                    </span>
+                    <span className="kn-landing-path__body">
+                      <span className="kn-landing-path__label">{path.label}</span>
+                      <span className="kn-landing-path__text">{path.text}</span>
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        ) : null}
+
+        {useHero
+          ? data.intro.map((paragraph) => (
+              <p key={paragraph} className="kn-seo-content__intro kn-landing__intro-after">
+                {paragraph}
+              </p>
+            ))
+          : null}
+
+        <div id="urunler">
+          {hasGroups ? (
+            data.groups.map((group, groupIndex) => (
+              <div key={group.title} className="kn-landing__group">
+                <h2 className="kn-seo-content__subtitle">{group.title}</h2>
+                <p className="kn-landing__group-text">
+                  {group.text}
+                  {group.link ? (
+                    <>
+                      {" "}
+                      <Link href={group.link.href}>{group.link.label} →</Link>
+                    </>
+                  ) : null}
+                </p>
+                <ProductGrid
+                  products={group.products}
+                  memberPricing={memberPricing}
+                  eagerCount={groupIndex === 0 ? EAGER_CARD_COUNT : 0}
+                />
+              </div>
+            ))
+          ) : data.products.length ? (
+            <>
+              <h2 className="kn-seo-content__subtitle">Ürünler</h2>
+              <ProductGrid
+                products={data.products}
+                memberPricing={memberPricing}
+                eagerCount={EAGER_CARD_COUNT}
+              />
+            </>
+          ) : null}
+        </div>
 
         {data.products.length ? (
           <>

@@ -111,6 +111,11 @@
   padding: 1.5rem 1rem 3rem;
 }
 
+.kn-landing:has(.kn-landing-hero) {
+  max-width: none;
+  padding: 0 0 3rem;
+}
+
 .kn-landing .kn-seo-content {
   background: transparent;
   border-top: none;
@@ -120,6 +125,184 @@
 /* Landing sayfası: ürün ızgarası ve tablo metin sütunundan geniş olabilir */
 .kn-landing .kn-landing__inner {
   max-width: 72rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+/* —— Hub / hammadde hero —— */
+.kn-landing-hero {
+  position: relative;
+  min-height: min(72vh, 36rem);
+  display: grid;
+  align-items: end;
+  overflow: hidden;
+  background: #1c2430;
+  color: #f7f4ef;
+}
+
+.kn-landing-hero__media {
+  position: absolute;
+  inset: 0;
+}
+
+.kn-landing-hero__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+
+.kn-landing-hero__media--empty {
+  background:
+    radial-gradient(ellipse at 70% 20%, rgba(245, 236, 220, 0.14), transparent 55%),
+    linear-gradient(160deg, #243247 0%, #1c2430 55%, #121820 100%);
+}
+
+.kn-landing-hero__veil {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(18, 24, 32, 0.82) 0%, rgba(18, 24, 32, 0.45) 48%, rgba(18, 24, 32, 0.2) 100%),
+    linear-gradient(0deg, rgba(18, 24, 32, 0.75) 0%, transparent 55%);
+  pointer-events: none;
+}
+
+.kn-landing-hero__copy {
+  position: relative;
+  z-index: 1;
+  width: min(40rem, 100%);
+  padding: clamp(2rem, 6vw, 4rem) 1rem clamp(2.25rem, 5vw, 3.25rem);
+  margin: 0 auto 0 0;
+  max-width: 72rem;
+  padding-left: max(1rem, calc((100% - 72rem) / 2 + 1rem));
+}
+
+.kn-landing-hero__brand {
+  margin: 0 0 0.55rem;
+  font-size: clamp(1.85rem, 4vw, 2.65rem);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.1;
+  color: #fff;
+}
+
+.kn-landing-hero__title {
+  margin: 0 0 0.75rem;
+  font-size: clamp(1.2rem, 2.2vw, 1.55rem);
+  font-weight: 600;
+  line-height: 1.3;
+  color: rgba(247, 244, 239, 0.92);
+}
+
+.kn-landing-hero__lead {
+  margin: 0 0 1.35rem;
+  max-width: 34rem;
+  font-size: 1.02rem;
+  line-height: 1.55;
+  color: rgba(247, 244, 239, 0.88);
+}
+
+.kn-landing-hero__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.65rem 1.25rem;
+  border-radius: 0.35rem;
+  background: #f7f4ef;
+  color: #1c2430;
+  font-weight: 650;
+  font-size: 0.95rem;
+  text-decoration: none;
+}
+
+.kn-landing-hero__cta:hover {
+  background: #fff;
+}
+
+.kn-landing-paths {
+  margin: 1.75rem 0 0.5rem;
+}
+
+.kn-landing-paths__label {
+  margin: 0 0 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #71717a;
+}
+
+.kn-landing-paths__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 720px) {
+  .kn-landing-paths__list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+  }
+}
+
+.kn-landing-path {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100%;
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 0.4rem;
+  overflow: hidden;
+  background: #fff;
+  transition: border-color 0.15s ease;
+}
+
+.kn-landing-path:hover {
+  border-color: var(--kn-brand);
+}
+
+.kn-landing-path__media {
+  display: block;
+  aspect-ratio: 4 / 3;
+  background: #e4e4e7;
+  overflow: hidden;
+}
+
+.kn-landing-path__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.kn-landing-path__body {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.85rem 0.95rem 1rem;
+}
+
+.kn-landing-path__label {
+  font-weight: 650;
+  font-size: 1.02rem;
+  color: var(--foreground);
+}
+
+.kn-landing-path__text {
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: #52525b;
+}
+
+.kn-landing__intro-after {
+  margin-top: 1.25rem;
 }
 
 .kn-landing .kn-seo-content__intro {
@@ -196,7 +379,10 @@
 }
 
 .kn-landing__table thead th {
-  background: rgba(0, 0, 0, 0.03);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f4f4f5;
   color: var(--foreground);
   font-weight: 600;
   white-space: nowrap;

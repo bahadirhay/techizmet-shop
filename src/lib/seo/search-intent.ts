@@ -39,6 +39,9 @@ const LANDING_ODUL_MAMASI = "/collections/odul-mamasi";
 /** Kullanım amacına göre landing sayfaları — kendi ürün alt kümesi (bkz. landing-content.ts) */
 const LANDING_KOPEK_EGITIM_ODUL_MAMASI = "/collections/kopek-egitim-odul-mamasi";
 const LANDING_KOPEK_CIGNEME_URUNLERI = "/collections/kopek-cigneme-urunleri";
+const LANDING_DANA_AKCIGER = "/collections/dana-akciger-kopek-odulu";
+const LANDING_DEVE_DERISI = "/collections/deve-derisi-kopek-odulu";
+const LANDING_DANA_GIRTLAK = "/collections/dana-girtlak-kopek-odulu";
 
 /**
  * Google'da öncelikli 3 hedef sorgu — admin Google Sıralama paneli + ana sayfa meta.
@@ -363,14 +366,14 @@ export const DEFAULT_SEARCH_INTENTS: SearchIntentTarget[] = [
   {
     id: "lung-dog-treat",
     query: "akciğer köpek ödülü",
-    priority: 9,
-    landingPath: LANDING_ALL,
-    landingKind: "staticPage",
-    staticPageKey: LANDING_ALL,
-    title: "Akciğer Köpek Ödülü | Hafif ve Lezzetli | Anatolian Paw",
+    priority: 6,
+    landingPath: LANDING_DANA_AKCIGER,
+    landingKind: "collection",
+    collectionSlug: "dana-akciger-kopek-odulu",
+    title: "Dana Akciğer Köpek Ödülü | Kurutulmuş, Eğitim İçin | Anatolian Paw",
     description:
-      "Akciğer köpek ödülü — hafif yapılı, kolay çiğnenen kurutulmuş dana akciğer. Elle küçük parçalara bölünür; eğitim ve günlük ödül için farklı paket boyutları. Tahılsız, katkısız Türkiye üretimi.",
-    h1: "Akciğer Köpek Ödülü",
+      "Dana akciğer köpek ödülü — hafif ve gevrek kurutulmuş akciğer. Elle küçük parçalara bölünür; eğitim ve günlük ödül paketleri. Tahılsız, katkısız, Türkiye üretimi.",
+    h1: "Dana Akciğer Köpek Ödülü",
     productKeywords: ["akciğer", "köpek", "ödül", "kurutulmuş", "doğal", "dana"],
     faqs: [
       {
@@ -387,6 +390,66 @@ export const DEFAULT_SEARCH_INTENTS: SearchIntentTarget[] = [
         question: "Akciğer ödülü nasıl saklanır?",
         answer:
           "Orijinal ambalajında serin ve kuru yerde muhafaza edin; nem alan ürünleri tüketmeyin.",
+      },
+    ],
+  },
+  {
+    id: "camel-hide-dog-treat",
+    query: "deve derisi köpek ödülü",
+    priority: 6,
+    landingPath: LANDING_DEVE_DERISI,
+    landingKind: "collection",
+    collectionSlug: "deve-derisi-kopek-odulu",
+    title: "Deve Derisi Köpek Ödülü | Kurutulmuş Çiğneme | Anatolian Paw",
+    description:
+      "Deve derisi köpek ödülü — sert, uzun süre çiğnenen kurutulmuş doğal ödül. Tek hammaddeli, tahılsız ve katkısız; çiğneme ihtiyacı için.",
+    h1: "Deve Derisi Köpek Ödülü",
+    productKeywords: ["deve", "derisi", "köpek", "ödül", "çiğneme", "kurutulmuş", "doğal"],
+    faqs: [
+      {
+        question: "Deve derisi köpek ödülü ne işe yarar?",
+        answer:
+          "Çiğneme içgüdüsünü karşılar ve köpeği bir süre meşgul eder. Sert dokulu doğal bir çiğneme alternatifidir.",
+      },
+      {
+        question: "Deve derisi yavru köpeğe verilir mi?",
+        answer:
+          "Yavru ve dişleri henüz gelişmemiş köpeklerde vermeden önce veterinerinize danışın; çiğnerken yanında bulunun.",
+      },
+      {
+        question: "Deve derisi tahıl içerir mi?",
+        answer:
+          "Anatolian Paw deve derisi ödülleri tek hammaddelidir; tahıl, renklendirici ve koruyucu eklenmez.",
+      },
+    ],
+  },
+  {
+    id: "trachea-dog-treat",
+    query: "dana gırtlak köpek ödülü",
+    priority: 7,
+    landingPath: LANDING_DANA_GIRTLAK,
+    landingKind: "collection",
+    collectionSlug: "dana-girtlak-kopek-odulu",
+    title: "Dana Gırtlak Köpek Ödülü | Kurutulmuş Çiğneme | Anatolian Paw",
+    description:
+      "Dana gırtlak köpek ödülü — kıkırdaklı, sert dokulu kurutulmuş çiğneme ödülü. Tek hammaddeli, tahılsız; çiğneme ihtiyacı için.",
+    h1: "Dana Gırtlak Köpek Ödülü",
+    productKeywords: ["gırtlak", "dana", "köpek", "ödül", "çiğneme", "kurutulmuş", "doğal"],
+    faqs: [
+      {
+        question: "Dana gırtlak ödülü nasıl bir dokuya sahiptir?",
+        answer:
+          "Kıkırdaklı ve serttir; çiğneme ihtiyacını karşılamak için tercih edilir.",
+      },
+      {
+        question: "Dana gırtlak güvenle nasıl verilir?",
+        answer:
+          "Köpeğiniz çiğnerken yanında bulunun; yutabileceği kadar küçülen parçayı alın ve yanında temiz su bulundurun.",
+      },
+      {
+        question: "Dana gırtlak tahılsız mı?",
+        answer:
+          "Evet; Anatolian Paw dana gırtlak ürünlerinde tahıl, renklendirici ve koruyucu yoktur.",
       },
     ],
   },
