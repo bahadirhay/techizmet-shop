@@ -99,6 +99,7 @@ export type AmazonFinancialEventGroup = {
   processingStatus: string | null;
   fundTransferStatus: string | null;
   fundTransferDate: Date | null;
+  groupStart: Date | null;
   originalTotalMinor: number;
   convertedTotalMinor: number;
 };
@@ -117,16 +118,23 @@ function parseCurrencyMinor(raw: unknown): number {
   return Math.round(Math.abs(amount) * 100);
 }
 
+function parseOptionalDate(raw: unknown): Date | null {
+  if (raw == null) return null;
+  const d = new Date(String(raw));
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
 function parseGroup(raw: Record<string, unknown>): AmazonFinancialEventGroup | null {
   const id = String(raw.FinancialEventGroupId ?? "").trim();
   if (!id) return null;
-  const fundDateRaw = raw.FundTransferDate ?? raw.FinancialEventGroupEnd;
-  const fundTransferDate = fundDateRaw ? new Date(String(fundDateRaw)) : null;
+  const fundTransferDate =
+    parseOptionalDate(raw.FundTransferDate) ?? parseOptionalDate(raw.FinancialEventGroupEnd);
   return {
     financialEventGroupId: id,
     processingStatus: raw.ProcessingStatus != null ? String(raw.ProcessingStatus) : null,
     fundTransferStatus: raw.FundTransferStatus != null ? String(raw.FundTransferStatus) : null,
-    fundTransferDate: fundTransferDate && !Number.isNaN(fundTransferDate.getTime()) ? fundTransferDate : null,
+    fundTransferDate,
+    groupStart: parseOptionalDate(raw.FinancialEventGroupStart),
     originalTotalMinor: parseCurrencyMinor(raw.OriginalTotal),
     convertedTotalMinor: parseCurrencyMinor(raw.ConvertedTotal),
   };

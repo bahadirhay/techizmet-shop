@@ -2,10 +2,10 @@ import "server-only";
 
 import type { MarketplaceFinanceImportResult } from "@/lib/finance/marketplace-finance-types";
 import {
-  createPayoutIfNew,
   findMarketplaceOrder,
   loadFinanceAccounts,
   tagOrderSettlementId,
+  upsertMarketplacePayout,
 } from "@/lib/finance/marketplace-finance-shared";
 import { getIntegrationConfig } from "@/lib/marketplace/actions";
 import {
@@ -13,7 +13,58 @@ import {
   fetchAmazonFinancialEventsByGroup,
   getAmazonAccessToken,
   parseAmazonConfig,
+  type AmazonFinancialEventGroup,
 } from "@/lib/marketplace/amazon/client";
+
+type TransferOutcome = "succeeded" | "processing" | "failed" | "pending";
+
+function classifyAmazonTransfer(group: AmazonFinancialEventGroup): TransferOutcome | null {
+  const fund = (group.fundTransferStatus ?? "").toLowerCase();
+  if (fund === "failed") return "failed";
+  if (fund === "succeeded") return "succeeded";
+  if (fund === "processing") return "processing";
+
+  const processing = (group.processingStatus ?? "").toLowerCase();
+  // Seller Central'da görünen bekleyen ödeme: Open veya Pending
+  if (processing === "open" || processing === "pending") return "pending";
+
+  if (processing === "closed") {
+    // Closed ama transfer durumu yok/Unknown — tarih varsa geçmiş ödeme denemesi
+    if (group.fundTransferDate) return "succeeded";
+    return null;
+  }
+
+  if (group.fundTransferDate) return "processing";
+  return null;
+}
+
+function outcomeMeta(outcome: TransferOutcome): {
+  reconciliationStatus: string;
+  descriptionPrefix: string;
+} {
+  switch (outcome) {
+    case "failed":
+      return {
+        reconciliationStatus: "failed",
+        descriptionPrefix: "Amazon hakediş (transfer başarısız)",
+      };
+    case "pending":
+      return {
+        reconciliationStatus: "pending",
+        descriptionPrefix: "Amazon hakediş (bekleyen)",
+      };
+    case "processing":
+      return {
+        reconciliationStatus: "pending",
+        descriptionPrefix: "Amazon hakediş (işleniyor)",
+      };
+    case "succeeded":
+      return {
+        reconciliationStatus: "matched",
+        descriptionPrefix: "Amazon hakediş",
+      };
+  }
+}
 
 export async function importAmazonFinance(
   siteId: string,
@@ -64,17 +115,14 @@ export async function importAmazonFinance(
 
   let payoutsCreated = 0;
   let payoutsSkipped = 0;
+  let payoutsUpdated = 0;
   let ordersTagged = 0;
+  let pendingCount = 0;
+  let failedCount = 0;
 
   for (const group of groupsResult.groups) {
-    const payoutMinor = group.convertedTotalMinor || group.originalTotalMinor;
-    if (payoutMinor <= 0) continue;
-
-    const closed =
-      group.processingStatus === "Closed" ||
-      group.fundTransferStatus === "Succeeded" ||
-      group.fundTransferStatus === "Processing";
-    if (!closed && !group.fundTransferDate) continue;
+    const outcome = classifyAmazonTransfer(group);
+    if (!outcome) continue;
 
     const eventsResult = await fetchAmazonFinancialEventsByGroup(
       creds,
@@ -82,6 +130,16 @@ export async function importAmazonFinance(
       group.financialEventGroupId,
     );
     if (eventsResult.error) errors.push(eventsResult.error);
+
+    const expectedNetMinor = Math.max(
+      0,
+      eventsResult.events.shipmentNetMinor - eventsResult.events.feeMinor,
+    );
+
+    // Closed gruplarda OriginalTotal bazen null gelir — event netine düş.
+    const payoutMinor =
+      group.convertedTotalMinor || group.originalTotalMinor || expectedNetMinor;
+    if (payoutMinor <= 0) continue;
 
     const orderIds: string[] = [];
     for (const amazonOrderId of eventsResult.events.amazonOrderIds) {
@@ -100,35 +158,47 @@ export async function importAmazonFinance(
       if (tagged) ordersTagged += 1;
     }
 
-    const expectedNetMinor = Math.max(
-      0,
-      eventsResult.events.shipmentNetMinor - eventsResult.events.feeMinor,
-    );
+    const { reconciliationStatus, descriptionPrefix } = outcomeMeta(outcome);
+    const statusForOrders =
+      outcome === "succeeded"
+        ? orderIds.length
+          ? "matched"
+          : "open"
+        : reconciliationStatus;
 
-    const result = await createPayoutIfNew({
+    if (outcome === "pending" || outcome === "processing") pendingCount += 1;
+    if (outcome === "failed") failedCount += 1;
+
+    const result = await upsertMarketplacePayout({
       siteId,
       platform: "amazon_tr",
       marketplaceRef: `eventGroup:${group.financialEventGroupId}`,
       amountMinor: payoutMinor,
-      txDate: group.fundTransferDate ?? new Date(),
-      description: `Amazon hakediş · ${group.financialEventGroupId.slice(0, 12)}…`,
+      txDate: group.fundTransferDate ?? group.groupStart ?? new Date(),
+      description: `${descriptionPrefix} · ${group.financialEventGroupId.slice(0, 12)}…`,
       accounts,
-      reconciliationStatus: orderIds.length ? "matched" : "open",
+      reconciliationStatus: statusForOrders,
       notes: JSON.stringify({
         financialEventGroupId: group.financialEventGroupId,
         expectedNetMinor: expectedNetMinor || null,
         orderIds,
         amazonOrderIds: eventsResult.events.amazonOrderIds,
         fundTransferStatus: group.fundTransferStatus,
+        processingStatus: group.processingStatus,
+        transferOutcome: outcome,
       }),
     });
     if (result === "created") payoutsCreated += 1;
+    else if (result === "updated") payoutsUpdated += 1;
     else payoutsSkipped += 1;
   }
 
   const message = [
     payoutsCreated ? `${payoutsCreated} hakediş` : null,
+    payoutsUpdated ? `${payoutsUpdated} güncellendi` : null,
     payoutsSkipped ? `${payoutsSkipped} atlandı` : null,
+    pendingCount ? `${pendingCount} bekleyen` : null,
+    failedCount ? `${failedCount} başarısız transfer` : null,
     ordersTagged ? `${ordersTagged} sipariş işaretlendi` : null,
   ]
     .filter(Boolean)

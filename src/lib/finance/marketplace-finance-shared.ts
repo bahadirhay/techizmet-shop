@@ -167,6 +167,76 @@ export async function createPayoutIfNew(input: {
   return "created";
 }
 
+/** Amazon gibi durum değişen hakedişlerde create veya status/tutar güncelle. */
+export async function upsertMarketplacePayout(input: {
+  siteId: string;
+  platform: string;
+  marketplaceRef: string;
+  amountMinor: number;
+  txDate: Date;
+  description: string;
+  accounts: FinanceAccounts;
+  notes?: string | null;
+  reconciliationStatus?: string;
+}): Promise<"created" | "updated" | "skipped"> {
+  if (input.amountMinor <= 0) return "skipped";
+
+  const existing = await prisma.financeTransaction.findFirst({
+    where: {
+      siteId: input.siteId,
+      kind: "marketplace_payout",
+      marketplacePlatform: input.platform,
+      marketplaceRef: input.marketplaceRef,
+    },
+  });
+
+  const status = input.reconciliationStatus ?? "open";
+
+  if (!existing) {
+    await prisma.financeTransaction.create({
+      data: {
+        siteId: input.siteId,
+        txDate: input.txDate,
+        kind: "marketplace_payout",
+        amountMinor: input.amountMinor,
+        categoryId: input.accounts.payoutCategoryId,
+        accountId: input.accounts.bankAccountId ?? input.accounts.platformAccountId,
+        description: input.description,
+        marketplacePlatform: input.platform,
+        marketplaceRef: input.marketplaceRef,
+        reconciliationStatus: status,
+        notes: input.notes,
+      },
+    });
+    return "created";
+  }
+
+  const same =
+    existing.amountMinor === input.amountMinor &&
+    existing.reconciliationStatus === status &&
+    existing.description === input.description &&
+    (existing.notes ?? null) === (input.notes ?? null) &&
+    existing.txDate.getTime() === input.txDate.getTime();
+  if (same) return "skipped";
+
+  await prisma.financeTransaction.update({
+    where: { id: existing.id },
+    data: {
+      amountMinor: input.amountMinor,
+      txDate: input.txDate,
+      description: input.description,
+      reconciliationStatus: status,
+      notes: input.notes,
+      categoryId: input.accounts.payoutCategoryId ?? existing.categoryId,
+      accountId:
+        input.accounts.bankAccountId ??
+        input.accounts.platformAccountId ??
+        existing.accountId,
+    },
+  });
+  return "updated";
+}
+
 export async function createDeductionIfNew(input: {
   siteId: string;
   platform: string;

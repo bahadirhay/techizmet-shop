@@ -68,7 +68,12 @@ export async function loadFinanceSummary(siteId: string, periodDays = 30): Promi
 
   const payouts = orderIds.length
     ? await prisma.financeTransaction.findMany({
-        where: { siteId, kind: "marketplace_payout", txDate: { gte: from } },
+        where: {
+          siteId,
+          kind: "marketplace_payout",
+          txDate: { gte: from },
+          reconciliationStatus: { notIn: ["pending", "failed"] },
+        },
         select: { amountMinor: true },
       })
     : [];

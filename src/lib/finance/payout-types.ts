@@ -15,9 +15,17 @@ export type PayoutBatchRow = {
   expectedNetMinor: number | null;
   orderCount: number;
   varianceMinor: number | null;
-  status: "ok" | "variance" | "pending_orders" | "manual";
+  status:
+    | "ok"
+    | "variance"
+    | "pending_orders"
+    | "manual"
+    | "pending_payout"
+    | "transfer_failed";
   platform: string;
   description: string;
+  /** Amazon: bankaya yatmadı / bekliyor */
+  transferOutcome?: "succeeded" | "processing" | "failed" | "pending" | null;
   /** Partner paneli kalemleri — farkın nedeni */
   breakdown: PayoutBreakdownLine[];
   varianceReasons: string[];

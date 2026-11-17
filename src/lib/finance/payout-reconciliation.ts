@@ -23,6 +23,9 @@ function parsePayoutNotes(notes: string | null): {
   orderIds?: string[];
   breakdown?: { key: string; label: string; amountMinor: number }[];
   breakdownSource?: string;
+  fundTransferStatus?: string | null;
+  processingStatus?: string | null;
+  transferOutcome?: "succeeded" | "processing" | "failed" | "pending" | null;
 } | null {
   if (!notes?.trim()) return null;
   try {
@@ -32,6 +35,9 @@ function parsePayoutNotes(notes: string | null): {
       orderIds?: string[];
       breakdown?: { key: string; label: string; amountMinor: number }[];
       breakdownSource?: string;
+      fundTransferStatus?: string | null;
+      processingStatus?: string | null;
+      transferOutcome?: "succeeded" | "processing" | "failed" | "pending" | null;
     };
   } catch {
     return null;
@@ -160,13 +166,46 @@ export async function loadPayoutReconciliation(
       breakdown,
     );
 
+    const transferOutcome =
+      meta?.transferOutcome ??
+      (p.reconciliationStatus === "failed"
+        ? "failed"
+        : p.reconciliationStatus === "pending"
+          ? "pending"
+          : null);
+
     let status: PayoutBatchRow["status"] = "manual";
-    if (paymentOrderId) {
+    if (transferOutcome === "failed" || p.reconciliationStatus === "failed") {
+      status = "transfer_failed";
+    } else if (
+      transferOutcome === "pending" ||
+      transferOutcome === "processing" ||
+      p.reconciliationStatus === "pending"
+    ) {
+      status = "pending_payout";
+    } else if (paymentOrderId) {
       if (!breakdown.length && orderCount === 0) status = "pending_orders";
       else if (varianceMinor != null && Math.abs(varianceMinor) > 100) status = "variance";
       else if (orderCount === 0 && breakdown.length) status = "ok";
       else if (orderCount === 0) status = "pending_orders";
       else status = "ok";
+    }
+
+    const amazonReasons: string[] = [];
+    if (status === "transfer_failed") {
+      amazonReasons.push(
+        "Amazon banka transferi başarısız (FailedDisbursement). Seller Central → Ödemeler’de IBAN / micro-deposit kontrol edin.",
+      );
+      if (meta?.fundTransferStatus) {
+        amazonReasons.push(`FundTransferStatus: ${meta.fundTransferStatus}`);
+      }
+    } else if (status === "pending_payout") {
+      amazonReasons.push(
+        "Hakediş henüz bankaya yatmadı — Amazon’da grup Open veya transfer işleniyor.",
+      );
+      if (meta?.processingStatus) {
+        amazonReasons.push(`ProcessingStatus: ${meta.processingStatus}`);
+      }
     }
 
     return {
@@ -176,12 +215,13 @@ export async function loadPayoutReconciliation(
       payoutAmountMinor: p.amountMinor,
       expectedNetMinor,
       orderCount,
-      varianceMinor,
+      varianceMinor: status === "pending_payout" || status === "transfer_failed" ? null : varianceMinor,
       status,
       platform: p.marketplacePlatform ?? "—",
       description: p.description,
       breakdown,
-      varianceReasons,
+      varianceReasons: amazonReasons.length ? amazonReasons : varianceReasons,
+      transferOutcome,
     };
   });
 
@@ -194,8 +234,12 @@ export async function loadPayoutReconciliation(
     },
   });
 
-  const totalPayout = batches.reduce((s, b) => s + b.payoutAmountMinor, 0);
-  const withExpected = batches.filter((b) => b.expectedNetMinor != null);
+  // Bekleyen / başarısız transferleri "bankaya yatan" toplamına katma
+  const settledBatches = batches.filter(
+    (b) => b.status !== "pending_payout" && b.status !== "transfer_failed",
+  );
+  const totalPayout = settledBatches.reduce((s, b) => s + b.payoutAmountMinor, 0);
+  const withExpected = settledBatches.filter((b) => b.expectedNetMinor != null);
   const totalExpected =
     withExpected.length > 0
       ? withExpected.reduce((s, b) => s + (b.expectedNetMinor ?? 0), 0)

@@ -125,7 +125,11 @@ function PayoutBatchRows({
                   ))}
                 </ul>
                 <p className="mt-3 text-xs text-zinc-500">
-                  Bankaya yatan: {formatTry(b.payoutAmountMinor)}
+                  {b.status === "transfer_failed"
+                    ? `Başarısız transfer tutarı: ${formatTry(b.payoutAmountMinor)}`
+                    : b.status === "pending_payout"
+                      ? `Bekleyen bakiye: ${formatTry(b.payoutAmountMinor)}`
+                      : `Bankaya yatan: ${formatTry(b.payoutAmountMinor)}`}
                   {b.expectedNetMinor != null
                     ? ` · Beklenen: ${formatTry(b.expectedNetMinor)}`
                     : ""}
@@ -150,6 +154,8 @@ const STATUS_LABELS: Record<
   variance: { label: "Fark var", className: "bg-red-100 text-red-800" },
   pending_orders: { label: "Sipariş eşleşmedi", className: "bg-amber-100 text-amber-900" },
   manual: { label: "Manuel / CSV", className: "bg-zinc-100 text-zinc-700" },
+  pending_payout: { label: "Bekleyen ödeme", className: "bg-sky-100 text-sky-900" },
+  transfer_failed: { label: "Transfer başarısız", className: "bg-red-100 text-red-900" },
 };
 
 const FINANCE_PLATFORMS = ["trendyol", "hepsiburada", "amazon_tr"] as const;
@@ -367,7 +373,8 @@ export function MarketplacePayoutsView({
           </p>
           <p>
             <strong>Amazon:</strong> sellerId, LWA Client ID/Secret, Refresh Token (SP-API Finances,
-            bölge: EU)
+            bölge: EU). Open/Pending bakiyeler &quot;Bekleyen ödeme&quot;, Failed transfer
+            &quot;Transfer başarısız&quot; olarak görünür; toplama dahil edilmez.
           </p>
         </div>
 
@@ -416,7 +423,7 @@ export function MarketplacePayoutsView({
                 <th className="pb-2">Tarih</th>
                 <th className="pb-2">Platform</th>
                 <th className="pb-2">Ödeme no</th>
-                <th className="pb-2 text-right">Bankaya yatan</th>
+                <th className="pb-2 text-right">Tutar</th>
                 <th className="pb-2 text-right">Beklenen net</th>
                 <th className="pb-2 text-right">Fark</th>
                 <th className="pb-2 text-right">Sipariş</th>

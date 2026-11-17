@@ -307,6 +307,8 @@ export async function loadProfitabilityReport(
       siteId,
       kind: "marketplace_payout",
       txDate: { gte: from, lte: to },
+      // Amazon bekleyen / başarısız transferleri banka hakedişi sayma
+      reconciliationStatus: { notIn: ["pending", "failed"] },
     },
     select: { amountMinor: true, marketplacePlatform: true },
   });
