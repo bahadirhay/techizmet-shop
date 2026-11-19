@@ -42,7 +42,7 @@ export default async function FinanceProfitabilityPage({
       <AdminPageHeader
         breadcrumb={[{ label: "Ön muhasebe", href: "/admin/finance" }, { label: "Kârlılık" }]}
         title="Pazaryeri kârlılık raporu"
-        description="Kanal bazlı brüt ciro, tahmini/onaylı kesintiler, net kâr marjı, hakediş bekleyen tutar ve tahmin–gerçek fark analizi."
+        description="Tümü, satış kanalları ve her pazaryeri ayrı: brüt ciro, kesintiler, net kâr marjı, hakediş ve tahmin–gerçek fark."
         actions={
           <Link
             href="/admin/finance/payouts"

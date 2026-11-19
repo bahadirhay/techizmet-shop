@@ -3,7 +3,11 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { formatTry } from "@/lib/admin/money";
-import type { ProductProfitRow, ProfitabilityReport } from "@/lib/finance/profitability";
+import type {
+  ChannelProfitRow,
+  ProductProfitRow,
+  ProfitabilityReport,
+} from "@/lib/finance/profitability";
 import { btnSecondary, inputClass } from "@/components/admin/AdminForm";
 
 const EVA_STATUS: Record<string, { label: string; className: string }> = {
@@ -153,14 +157,50 @@ function ProductProfitRowView({ p }: { p: ProductProfitRow }) {
   );
 }
 
-function ProductProfitSection({ products }: { products: ProductProfitRow[] }) {
-  const [channelFilter, setChannelFilter] = useState<string>("all");
+function ChannelSelect({
+  channels,
+  value,
+  onChange,
+}: {
+  channels: ChannelProfitRow[];
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const sales = channels.filter((c) => c.group === "sales");
+  const marketplaces = channels.filter((c) => c.group === "marketplace");
+  return (
+    <select
+      className={`${inputClass} mt-1 min-w-[10rem]`}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    >
+      <option value="all">Tümü</option>
+      <optgroup label="Satış kanalları">
+        {sales.map((c) => (
+          <option key={c.channel} value={c.channel}>
+            {c.label}
+          </option>
+        ))}
+      </optgroup>
+      <optgroup label="Pazaryerleri">
+        {marketplaces.map((c) => (
+          <option key={c.channel} value={c.channel}>
+            {c.label}
+          </option>
+        ))}
+      </optgroup>
+    </select>
+  );
+}
 
-  const channelOptions = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const p of products) map.set(p.channel, p.channelLabel);
-    return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1], "tr"));
-  }, [products]);
+function ProductProfitSection({
+  products,
+  channels,
+}: {
+  products: ProductProfitRow[];
+  channels: ChannelProfitRow[];
+}) {
+  const [channelFilter, setChannelFilter] = useState<string>("all");
 
   const visible = useMemo(() => {
     const filtered =
@@ -181,18 +221,7 @@ function ProductProfitSection({ products }: { products: ProductProfitRow[] }) {
         </div>
         <label className="text-xs text-zinc-500">
           Kanal
-          <select
-            className={`${inputClass} mt-1 min-w-[10rem]`}
-            value={channelFilter}
-            onChange={(e) => setChannelFilter(e.target.value)}
-          >
-            <option value="all">Tümü</option>
-            {channelOptions.map(([id, label]) => (
-              <option key={id} value={id}>
-                {label}
-              </option>
-            ))}
-          </select>
+          <ChannelSelect channels={channels} value={channelFilter} onChange={setChannelFilter} />
         </label>
       </div>
       <p className="mt-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
@@ -226,7 +255,124 @@ function ProductProfitSection({ products }: { products: ProductProfitRow[] }) {
   );
 }
 
+function summarizeChannels(rows: ChannelProfitRow[]): ChannelProfitRow {
+  const grossMinor = rows.reduce((s, r) => s + r.grossMinor, 0);
+  const orderCount = rows.reduce((s, r) => s + r.orderCount, 0);
+  const estimatedDeductionsMinor = rows.reduce((s, r) => s + r.estimatedDeductionsMinor, 0);
+  const confirmedDeductionsMinor = rows.reduce((s, r) => s + r.confirmedDeductionsMinor, 0);
+  const costMinor = rows.reduce((s, r) => s + r.costMinor, 0);
+  const active = rows.filter((r) => r.orderCount > 0);
+  const netProfitMinor =
+    active.length > 0 && active.every((r) => r.netProfitMinor != null)
+      ? active.reduce((s, r) => s + (r.netProfitMinor ?? 0), 0)
+      : null;
+  return {
+    channel: "all",
+    label: "Tümü",
+    group: "sales",
+    orderCount,
+    grossMinor,
+    estimatedDeductionsMinor,
+    confirmedDeductionsMinor,
+    costMinor,
+    netProfitMinor,
+    marginPercent:
+      netProfitMinor != null && grossMinor > 0
+        ? Math.round((netProfitMinor / grossMinor) * 1000) / 10
+        : null,
+  };
+}
+
+function ChannelGroupLabel({ label }: { label: string }) {
+  return (
+    <tr className="border-b border-zinc-200 bg-zinc-50">
+      <td colSpan={8} className="py-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+        {label}
+      </td>
+    </tr>
+  );
+}
+
+function ChannelProfitTable({ channels }: { channels: ChannelProfitRow[] }) {
+  const total = summarizeChannels(channels);
+  const sales = channels.filter((c) => c.group === "sales");
+  const marketplaces = channels.filter((c) => c.group === "marketplace");
+  const hasOrders = channels.some((c) => c.orderCount > 0);
+
+  return (
+    <>
+      {!hasOrders ? (
+        <p className="mt-4 text-sm text-zinc-500">Bu dönemde sipariş yok. Kanallar yine de listelenir.</p>
+      ) : null}
+      <table className="mt-4 w-full min-w-[720px] text-sm">
+        <thead>
+          <tr className="border-b text-left text-xs text-zinc-500">
+            <th className="pb-2">Kanal</th>
+            <th className="pb-2 text-right">Sipariş</th>
+            <th className="pb-2 text-right">Brüt</th>
+            <th className="pb-2 text-right">Tahmini kesinti</th>
+            <th className="pb-2 text-right">Onaylı kesinti</th>
+            <th className="pb-2 text-right">Toplam maliyet</th>
+            <th className="pb-2 text-right">Net kâr</th>
+            <th className="pb-2 text-right">Marj</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr className="border-b border-zinc-200 bg-zinc-100 font-semibold">
+            <td className="py-2">{total.label}</td>
+            <ChannelProfitCells row={total} />
+          </tr>
+          <ChannelGroupLabel label="Satış kanalları" />
+          {sales.map((c) => (
+            <tr key={c.channel} className="border-b border-zinc-100">
+              <td className="py-2 pl-3 font-medium">{c.label}</td>
+              <ChannelProfitCells row={c} />
+            </tr>
+          ))}
+          <ChannelGroupLabel label="Pazaryerleri" />
+          {marketplaces.map((c) => (
+            <tr key={c.channel} className="border-b border-zinc-100">
+              <td className="py-2 pl-3 font-medium">{c.label}</td>
+              <ChannelProfitCells row={c} />
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </>
+  );
+}
+
+function ChannelProfitCells({ row }: { row: ChannelProfitRow }) {
+  return (
+    <>
+      <td className="py-2 text-right tabular-nums">{row.orderCount}</td>
+      <td className="py-2 text-right tabular-nums">{formatTry(row.grossMinor)}</td>
+      <td className="py-2 text-right tabular-nums text-amber-800">
+        {row.estimatedDeductionsMinor > 0 ? formatTry(row.estimatedDeductionsMinor) : "—"}
+      </td>
+      <td className="py-2 text-right tabular-nums">
+        {row.confirmedDeductionsMinor > 0 ? formatTry(row.confirmedDeductionsMinor) : "—"}
+      </td>
+      <td className="py-2 text-right tabular-nums">{row.costMinor > 0 ? formatTry(row.costMinor) : "—"}</td>
+      <td className="py-2 text-right tabular-nums font-medium">
+        {row.netProfitMinor != null ? formatTry(row.netProfitMinor) : "—"}
+      </td>
+      <td className="py-2 text-right tabular-nums">
+        {row.marginPercent != null ? `%${row.marginPercent}` : "—"}
+      </td>
+    </>
+  );
+}
+
 export function FinanceProfitabilityView({ report }: { report: ProfitabilityReport }) {
+  const [orderChannel, setOrderChannel] = useState<string>("all");
+  const visibleOrders = useMemo(
+    () =>
+      orderChannel === "all"
+        ? report.ordersByProfit
+        : report.ordersByProfit.filter((o) => o.channel === orderChannel),
+    [report.ordersByProfit, orderChannel],
+  );
   const presets: { days: number; label: string }[] = [
     { days: 7, label: "Son 7 gün" },
     { days: 30, label: "Son 30 gün" },
@@ -330,13 +476,34 @@ export function FinanceProfitabilityView({ report }: { report: ProfitabilityRepo
       </div>
 
       <section className="admin-card admin-card-pad mt-8 overflow-x-auto">
-        <h2 className="font-semibold">Sipariş bazlı kârlılık</h2>
+        <h2 className="font-semibold">Kanal kârlılığı</h2>
         <p className="mt-1 text-xs text-zinc-500">
-          Dönem içi siparişler (en fazla 200). Brüt = faturalanacak net tutar. Trendyol satıcı
-          indirimi varsa Liste / İndirim sütunlarında görünür. Detay için siparişe tıklayın.
+          Tümü, satış kanalları ve pazaryerleri ayrı satır. Brüt, kesinti, toplam maliyet (ürün + paket +
+          kart), net marj.
         </p>
-        {report.ordersByProfit.length === 0 ? (
-          <p className="mt-4 text-sm text-zinc-500">Bu dönemde sipariş yok.</p>
+        <ChannelProfitTable channels={report.channels} />
+      </section>
+
+      <section className="admin-card admin-card-pad mt-8 overflow-x-auto">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="font-semibold">Sipariş bazlı kârlılık</h2>
+            <p className="mt-1 text-xs text-zinc-500">
+              Dönem içi siparişler (en fazla 200). Brüt = faturalanacak net tutar. Trendyol satıcı
+              indirimi varsa Liste / İndirim sütunlarında görünür. Detay için siparişe tıklayın.
+            </p>
+          </div>
+          <label className="text-xs text-zinc-500">
+            Kanal
+            <ChannelSelect channels={report.channels} value={orderChannel} onChange={setOrderChannel} />
+          </label>
+        </div>
+        {visibleOrders.length === 0 ? (
+          <p className="mt-4 text-sm text-zinc-500">
+            {report.ordersByProfit.length === 0
+              ? "Bu dönemde sipariş yok."
+              : "Son 200 sipariş içinde bu kanal yok."}
+          </p>
         ) : (
           <table className="mt-4 w-full min-w-[900px] text-sm">
             <thead>
@@ -354,7 +521,7 @@ export function FinanceProfitabilityView({ report }: { report: ProfitabilityRepo
               </tr>
             </thead>
             <tbody>
-              {report.ordersByProfit.map((o) => {
+              {visibleOrders.map((o) => {
                 const profitTone =
                   o.netProfitMinor == null
                     ? "default"
@@ -434,53 +601,6 @@ export function FinanceProfitabilityView({ report }: { report: ProfitabilityRepo
         )}
       </section>
 
-      <section className="admin-card admin-card-pad mt-8 overflow-x-auto">
-        <h2 className="font-semibold">Kanal kârlılığı</h2>
-        <p className="mt-1 text-xs text-zinc-500">Web vs pazaryeri — brüt, kesinti, toplam maliyet (ürün + paket + kart), net marj</p>
-        {report.channels.length === 0 ? (
-          <p className="mt-4 text-sm text-zinc-500">Bu dönemde sipariş yok.</p>
-        ) : (
-          <table className="mt-4 w-full min-w-[720px] text-sm">
-            <thead>
-              <tr className="border-b text-left text-xs text-zinc-500">
-                <th className="pb-2">Kanal</th>
-                <th className="pb-2 text-right">Sipariş</th>
-                <th className="pb-2 text-right">Brüt</th>
-                <th className="pb-2 text-right">Tahmini kesinti</th>
-                <th className="pb-2 text-right">Onaylı kesinti</th>
-                <th className="pb-2 text-right">Toplam maliyet</th>
-                <th className="pb-2 text-right">Net kâr</th>
-                <th className="pb-2 text-right">Marj</th>
-              </tr>
-            </thead>
-            <tbody>
-              {report.channels.map((c) => (
-                <tr key={c.channel} className="border-b border-zinc-100">
-                  <td className="py-2 font-medium">{c.label}</td>
-                  <td className="py-2 text-right tabular-nums">{c.orderCount}</td>
-                  <td className="py-2 text-right tabular-nums">{formatTry(c.grossMinor)}</td>
-                  <td className="py-2 text-right tabular-nums text-amber-800">
-                    {c.estimatedDeductionsMinor > 0 ? formatTry(c.estimatedDeductionsMinor) : "—"}
-                  </td>
-                  <td className="py-2 text-right tabular-nums">
-                    {c.confirmedDeductionsMinor > 0 ? formatTry(c.confirmedDeductionsMinor) : "—"}
-                  </td>
-                  <td className="py-2 text-right tabular-nums">
-                    {c.costMinor > 0 ? formatTry(c.costMinor) : "—"}
-                  </td>
-                  <td className="py-2 text-right tabular-nums font-medium">
-                    {c.netProfitMinor != null ? formatTry(c.netProfitMinor) : "—"}
-                  </td>
-                  <td className="py-2 text-right tabular-nums">
-                    {c.marginPercent != null ? `%${c.marginPercent}` : "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </section>
-
       {report.categories.length > 0 ? (
         <section className="admin-card admin-card-pad mt-8 overflow-x-auto">
           <h2 className="font-semibold">Kategori kârlılığı</h2>
@@ -531,14 +651,14 @@ export function FinanceProfitabilityView({ report }: { report: ProfitabilityRepo
       ) : null}
 
       {report.topProducts.length > 0 ? (
-        <ProductProfitSection products={report.topProducts} />
+        <ProductProfitSection products={report.topProducts} channels={report.channels} />
       ) : null}
 
       {report.payouts.length > 0 ? (
         <section className="admin-card admin-card-pad mt-8 overflow-x-auto">
           <h2 className="font-semibold">Hakediş özeti</h2>
           <p className="mt-1 text-xs text-zinc-500">
-            Brüt satış − kesintiler − bankaya yatan hakediş = bekleyen alacak
+            Her pazaryeri ayrı satır. Brüt satış − kesintiler − bankaya yatan hakediş = bekleyen alacak.
           </p>
           <table className="mt-4 w-full min-w-[640px] text-sm">
             <thead>
@@ -551,6 +671,26 @@ export function FinanceProfitabilityView({ report }: { report: ProfitabilityRepo
               </tr>
             </thead>
             <tbody>
+              <tr className="border-b border-zinc-200 bg-zinc-50 font-semibold">
+                <td className="py-2">Tümü</td>
+                <td className="py-2 text-right tabular-nums">
+                  {formatTry(report.payouts.reduce((s, p) => s + p.grossSalesMinor, 0))}
+                </td>
+                <td className="py-2 text-right tabular-nums">
+                  {formatTry(
+                    report.payouts.reduce(
+                      (s, p) => s + p.confirmedDeductionsMinor + p.estimatedDeductionsMinor,
+                      0,
+                    ),
+                  )}
+                </td>
+                <td className="py-2 text-right tabular-nums">
+                  {formatTry(report.payouts.reduce((s, p) => s + p.payoutsMinor, 0))}
+                </td>
+                <td className="py-2 text-right tabular-nums">
+                  {formatTry(report.payouts.reduce((s, p) => s + p.pendingReceivableMinor, 0))}
+                </td>
+              </tr>
               {report.payouts.map((p) => (
                 <tr key={p.platform} className="border-b border-zinc-100">
                   <td className="py-2 font-medium">{p.label}</td>

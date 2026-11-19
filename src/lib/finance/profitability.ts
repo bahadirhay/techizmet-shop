@@ -15,6 +15,8 @@ import { prisma } from "@/lib/prisma";
 export type ChannelProfitRow = {
   channel: string;
   label: string;
+  /** web = satış kanalı, diğerleri pazaryeri */
+  group: "sales" | "marketplace";
   orderCount: number;
   grossMinor: number;
   estimatedDeductionsMinor: number;
@@ -251,6 +253,38 @@ function channelLabel(channel: string): string {
   return mp?.label ?? channel;
 }
 
+function channelGroup(channel: string): ChannelProfitRow["group"] {
+  return channel === "web" ? "sales" : "marketplace";
+}
+
+function emptyChannelRow(channel: string): ChannelProfitRow {
+  return {
+    channel,
+    label: channelLabel(channel),
+    group: channelGroup(channel),
+    orderCount: 0,
+    grossMinor: 0,
+    estimatedDeductionsMinor: 0,
+    confirmedDeductionsMinor: 0,
+    costMinor: 0,
+    netProfitMinor: null,
+    marginPercent: null,
+  };
+}
+
+/** Satış kanalı (web) önce, sonra bilinen pazaryerleri sabit sırada. */
+function compareChannels(a: ChannelProfitRow, b: ChannelProfitRow): number {
+  if (a.group !== b.group) return a.group === "sales" ? -1 : 1;
+  if (a.group === "marketplace") {
+    const ai = MARKETPLACE_PLATFORMS.findIndex((p) => p.id === a.channel);
+    const bi = MARKETPLACE_PLATFORMS.findIndex((p) => p.id === b.channel);
+    const ar = ai === -1 ? 1000 : ai;
+    const br = bi === -1 ? 1000 : bi;
+    if (ar !== br) return ar - br;
+  }
+  return b.grossMinor - a.grossMinor;
+}
+
 function resolveOrderSnapshot(order: {
   totalMinor: number;
   subtotalMinor: number;
@@ -333,17 +367,7 @@ export async function loadProfitabilityReport(
       : 0;
     const cost = snap ? orderTotalCostMinor(snap, isMarketplace) : 0;
 
-    const row = channelMap.get(channel) ?? {
-      channel,
-      label: channelLabel(channel),
-      orderCount: 0,
-      grossMinor: 0,
-      estimatedDeductionsMinor: 0,
-      confirmedDeductionsMinor: 0,
-      costMinor: 0,
-      netProfitMinor: null,
-      marginPercent: null,
-    };
+    const row = channelMap.get(channel) ?? emptyChannelRow(channel);
 
     row.orderCount += 1;
     row.grossMinor += gross;
@@ -537,7 +561,12 @@ export async function loadProfitabilityReport(
     .slice(0, 200);
 
   const platformIds = [
-    ...new Set(orders.map((o) => o.marketplacePlatform).filter(Boolean) as string[]),
+    ...MARKETPLACE_PLATFORMS.map((p) => p.id),
+    ...new Set(
+      orders
+        .map((o) => o.marketplacePlatform)
+        .filter((id): id is string => Boolean(id) && !MARKETPLACE_PLATFORMS.some((p) => p.id === id)),
+    ),
   ];
   const payoutRows: PlatformPayoutRow[] = platformIds.map((platform) => {
     const platformOrders = orders.filter((o) => o.marketplacePlatform === platform);
@@ -701,11 +730,20 @@ export async function loadProfitabilityReport(
     }
   }
 
-  const channels = [...channelMap.values()].sort((a, b) => b.grossMinor - a.grossMinor);
-  const totalGross = channels.reduce((s, c) => s + c.grossMinor, 0);
-  const totalNet = channels.every((c) => c.netProfitMinor != null)
-    ? channels.reduce((s, c) => s + (c.netProfitMinor ?? 0), 0)
-    : null;
+  const activeChannels = [...channelMap.values()];
+  const totalGross = activeChannels.reduce((s, c) => s + c.grossMinor, 0);
+  const totalNet =
+    activeChannels.length > 0 && activeChannels.every((c) => c.netProfitMinor != null)
+      ? activeChannels.reduce((s, c) => s + (c.netProfitMinor ?? 0), 0)
+      : null;
+
+  // Dönemde satışı olmasa da satış kanalı ve her pazaryeri satırı görünsün.
+  if (!channelMap.has("web")) channelMap.set("web", emptyChannelRow("web"));
+  for (const platform of MARKETPLACE_PLATFORMS) {
+    if (!channelMap.has(platform.id)) channelMap.set(platform.id, emptyChannelRow(platform.id));
+  }
+
+  const channels = [...channelMap.values()].sort(compareChannels);
 
   const categories = [...categoryMap.values()]
     .filter((c) => c.grossMinor > 0)
