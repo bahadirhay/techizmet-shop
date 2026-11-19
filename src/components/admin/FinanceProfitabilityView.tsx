@@ -342,6 +342,115 @@ function ChannelProfitTable({ channels }: { channels: ChannelProfitRow[] }) {
   );
 }
 
+function ChannelSummaryCard({
+  row,
+  pendingMinor,
+}: {
+  row: ChannelProfitRow;
+  pendingMinor?: number;
+}) {
+  const quiet = row.orderCount === 0;
+  const accent = row.channel === "all" ? "#2563eb" : row.group === "sales" ? "#52525b" : "#ea580c";
+  return (
+    <div
+      className={`admin-kpi ${quiet ? "opacity-70" : ""}`}
+      style={{ ["--kpi-accent" as string]: accent }}
+    >
+      <p className="admin-kpi-label">{row.label}</p>
+      <p className="admin-kpi-value text-[1.35rem]">{formatTry(row.grossMinor)}</p>
+      <p className="admin-kpi-meta">
+        {row.orderCount} sipariş
+        {row.netProfitMinor != null ? ` · Net ${formatTry(row.netProfitMinor)}` : ""}
+        {row.marginPercent != null ? ` · %${row.marginPercent}` : ""}
+      </p>
+      {pendingMinor != null && pendingMinor > 0 ? (
+        <p className="admin-kpi-meta">Bekleyen hakediş {formatTry(pendingMinor)}</p>
+      ) : null}
+    </div>
+  );
+}
+
+function ChannelSplit({ report }: { report: ProfitabilityReport }) {
+  const sales = report.channels.filter((c) => c.group === "sales");
+  const marketplaces = report.channels.filter((c) => c.group === "marketplace");
+  const marketplaceTotal = summarizeChannels(marketplaces);
+  marketplaceTotal.channel = "marketplaces";
+  marketplaceTotal.group = "marketplace";
+  marketplaceTotal.label = "Pazaryerleri toplamı";
+  const payoutByPlatform = new Map(report.payouts.map((p) => [p.platform, p.pendingReceivableMinor]));
+
+  return (
+    <>
+      <section className="mt-6">
+        <h2 className="font-semibold">Tümü</h2>
+        <p className="mt-1 text-xs text-zinc-500">Satış kanalları ve pazaryerleri birlikte.</p>
+        <div className="admin-kpi-grid mt-3">
+          <div className="admin-kpi" style={{ ["--kpi-accent" as string]: "#2563eb" }}>
+            <p className="admin-kpi-label">Brüt ciro</p>
+            <p className="admin-kpi-value">{formatTry(report.totals.grossMinor)}</p>
+          </div>
+          <div className="admin-kpi" style={{ ["--kpi-accent" as string]: "#16a34a" }}>
+            <p className="admin-kpi-label">Tahmini net kâr</p>
+            <p className="admin-kpi-value">
+              {report.totals.estimatedNetProfitMinor != null
+                ? formatTry(report.totals.estimatedNetProfitMinor)
+                : "—"}
+            </p>
+            <p className="text-xs text-zinc-500 mt-1">Kargo, komisyon ve maliyet dahil</p>
+          </div>
+          <div className="admin-kpi" style={{ ["--kpi-accent" as string]: "#059669" }}>
+            <p className="admin-kpi-label">Gerçek net kâr</p>
+            <p className="admin-kpi-value">
+              {report.totals.actualNetProfitMinor != null
+                ? formatTry(report.totals.actualNetProfitMinor)
+                : "—"}
+            </p>
+            <p className="text-xs text-zinc-500 mt-1">Onaylı kesintilerle</p>
+          </div>
+          <div className="admin-kpi" style={{ ["--kpi-accent" as string]: "var(--kn-brand)" }}>
+            <p className="admin-kpi-label">Bekleyen hakediş</p>
+            <p className="admin-kpi-value">{formatTry(report.totals.pendingReceivableMinor)}</p>
+          </div>
+          <div className="admin-kpi" style={{ ["--kpi-accent" as string]: "#dc2626" }}>
+            <p className="admin-kpi-label">Tahmin/gerçek fark</p>
+            <p className="admin-kpi-value">{report.totals.varianceOrders} sipariş</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="mt-8">
+        <h2 className="font-semibold">Satış kanalları</h2>
+        <p className="mt-1 text-xs text-zinc-500">Web sitesi ayrı. Tutar brüt cirodur.</p>
+        <div className="admin-kpi-grid mt-3">
+          {sales.map((c) => (
+            <ChannelSummaryCard key={c.channel} row={c} />
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-8">
+        <h2 className="font-semibold">Pazaryerleri</h2>
+        <p className="mt-1 text-xs text-zinc-500">
+          Önce pazaryerlerinin toplamı, sonra her pazaryeri kendi kartında.
+        </p>
+        <div className="admin-kpi-grid mt-3">
+          <ChannelSummaryCard
+            row={marketplaceTotal}
+            pendingMinor={report.totals.pendingReceivableMinor}
+          />
+          {marketplaces.map((c) => (
+            <ChannelSummaryCard
+              key={c.channel}
+              row={c}
+              pendingMinor={payoutByPlatform.get(c.channel)}
+            />
+          ))}
+        </div>
+      </section>
+    </>
+  );
+}
+
 function ChannelProfitCells({ row }: { row: ChannelProfitRow }) {
   return (
     <>
@@ -442,44 +551,12 @@ export function FinanceProfitabilityView({ report }: { report: ProfitabilityRepo
       </div>
       <p className="mt-2 text-xs text-zinc-500">Dönem: {report.periodLabel}</p>
 
-      <div className="admin-kpi-grid mt-6">
-        <div className="admin-kpi" style={{ ["--kpi-accent" as string]: "#2563eb" }}>
-          <p className="admin-kpi-label">Brüt ciro</p>
-          <p className="admin-kpi-value">{formatTry(report.totals.grossMinor)}</p>
-        </div>
-        <div className="admin-kpi" style={{ ["--kpi-accent" as string]: "#16a34a" }}>
-          <p className="admin-kpi-label">Tahmini net kâr</p>
-          <p className="admin-kpi-value">
-            {report.totals.estimatedNetProfitMinor != null
-              ? formatTry(report.totals.estimatedNetProfitMinor)
-              : "—"}
-          </p>
-          <p className="text-xs text-zinc-500 mt-1">Kargo, komisyon ve maliyet dahil</p>
-        </div>
-        <div className="admin-kpi" style={{ ["--kpi-accent" as string]: "#059669" }}>
-          <p className="admin-kpi-label">Gerçek net kâr</p>
-          <p className="admin-kpi-value">
-            {report.totals.actualNetProfitMinor != null
-              ? formatTry(report.totals.actualNetProfitMinor)
-              : "—"}
-          </p>
-          <p className="text-xs text-zinc-500 mt-1">Onaylı kesintilerle</p>
-        </div>
-        <div className="admin-kpi" style={{ ["--kpi-accent" as string]: "var(--kn-brand)" }}>
-          <p className="admin-kpi-label">Bekleyen hakediş</p>
-          <p className="admin-kpi-value">{formatTry(report.totals.pendingReceivableMinor)}</p>
-        </div>
-        <div className="admin-kpi" style={{ ["--kpi-accent" as string]: "#dc2626" }}>
-          <p className="admin-kpi-label">Tahmin/gerçek fark</p>
-          <p className="admin-kpi-value">{report.totals.varianceOrders} sipariş</p>
-        </div>
-      </div>
+      <ChannelSplit report={report} />
 
       <section className="admin-card admin-card-pad mt-8 overflow-x-auto">
-        <h2 className="font-semibold">Kanal kârlılığı</h2>
+        <h2 className="font-semibold">Kanal detayı</h2>
         <p className="mt-1 text-xs text-zinc-500">
-          Tümü, satış kanalları ve pazaryerleri ayrı satır. Brüt, kesinti, toplam maliyet (ürün + paket +
-          kart), net marj.
+          Aynı ayrımın tam tablosu: kesinti, maliyet ve net marj.
         </p>
         <ChannelProfitTable channels={report.channels} />
       </section>
