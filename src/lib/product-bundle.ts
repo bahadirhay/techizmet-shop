@@ -35,6 +35,9 @@ export type BundleComponentSnapshot = {
   qty: number;
   /** Sipariş anı birim maliyet (kuruş) */
   costMinor?: number | null;
+  /** Sipariş anı KDV dahil katalog birim fiyatı — fatura payı ağırlığı */
+  unitPriceMinor?: number | null;
+  vatRate?: number | null;
 };
 
 export type BundleOrderLineMeta = {
@@ -74,16 +77,38 @@ export function buildComponentsSnapshot(
   components: ResolvedBundleComponent[],
   bundleQty: number,
   costByProductId?: Map<string, number | null>,
+  priceByProductId?: Map<string, { priceMinor: number; vatRate: number }>,
 ): BundleComponentSnapshot[] {
   const qty = Math.max(1, bundleQty);
-  return components.map((c) => ({
-    productId: c.productId,
-    variantId: c.variantId,
-    title: c.title,
-    sku: c.sku,
-    qty: c.qtyPerBundle * qty,
-    costMinor: costByProductId?.get(c.productId) ?? null,
-  }));
+  return components.map((c) => {
+    const price = priceByProductId?.get(c.productId);
+    return {
+      productId: c.productId,
+      variantId: c.variantId,
+      title: c.title,
+      sku: c.sku,
+      qty: c.qtyPerBundle * qty,
+      costMinor: costByProductId?.get(c.productId) ?? null,
+      unitPriceMinor: price?.priceMinor ?? null,
+      vatRate: price?.vatRate ?? null,
+    };
+  });
+}
+
+/** Tutarları ağırlığa göre kuruşa böler; toplam birebir korunur. */
+export function allocateMinor(total: number, weights: number[]): number[] {
+  if (weights.length === 0) return [];
+  const safe = weights.map((w) => (Number.isFinite(w) && w > 0 ? w : 0));
+  const sum = safe.reduce((s, w) => s + w, 0);
+  if (sum <= 0) {
+    const base = Math.trunc(total / weights.length);
+    const out = weights.map(() => base);
+    out[out.length - 1] = total - base * (weights.length - 1);
+    return out;
+  }
+  const out = safe.map((w) => Math.round((total * w) / sum));
+  out[out.length - 1] += total - out.reduce((s, n) => s + n, 0);
+  return out;
 }
 
 export async function buildComponentsSnapshotForOrder(
@@ -95,11 +120,14 @@ export async function buildComponentsSnapshotForOrder(
   const rows = productIds.length
     ? await db.storeProduct.findMany({
         where: { id: { in: productIds } },
-        select: { id: true, costMinor: true },
+        select: { id: true, costMinor: true, priceMinor: true, vatRate: true },
       })
     : [];
   const costByProductId = new Map(rows.map((r) => [r.id, r.costMinor]));
-  return buildComponentsSnapshot(components, bundleQty, costByProductId);
+  const priceByProductId = new Map(
+    rows.map((r) => [r.id, { priceMinor: r.priceMinor, vatRate: r.vatRate }]),
+  );
+  return buildComponentsSnapshot(components, bundleQty, costByProductId, priceByProductId);
 }
 
 export function parseComponentsSnapshotJson(raw: string | null | undefined): BundleComponentSnapshot[] {
@@ -122,6 +150,9 @@ export function parseComponentsSnapshotJson(raw: string | null | undefined): Bun
           qty: Math.max(1, parseInt(String(item.qty ?? 1), 10) || 1),
           costMinor:
             item.costMinor != null ? parseInt(String(item.costMinor), 10) || null : null,
+          unitPriceMinor:
+            item.unitPriceMinor != null ? parseInt(String(item.unitPriceMinor), 10) || null : null,
+          vatRate: item.vatRate != null ? parseInt(String(item.vatRate), 10) || null : null,
         };
         return snapshot;
       })

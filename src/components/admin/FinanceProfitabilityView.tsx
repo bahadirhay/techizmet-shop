@@ -102,6 +102,12 @@ function ProductProfitRowView({ p }: { p: ProductProfitRow }) {
             Düşük marj — ürün maliyetini kontrol edin
           </p>
         ) : null}
+        {p.components?.map((c) => (
+          <p key={c.title} className="mt-1 text-xs font-normal text-zinc-500">
+            {c.title} × {c.qty} · satış {formatTry(c.grossMinor)}
+            {c.costMinor > 0 ? ` · maliyet ${formatTry(c.costMinor)}` : ""}
+          </p>
+        ))}
       </td>
       <td className="py-3 whitespace-nowrap">
         <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-700">

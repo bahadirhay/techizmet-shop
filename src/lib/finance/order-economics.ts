@@ -19,9 +19,12 @@ import { classifyDeductionTx } from "@/lib/finance/trendyol-deduction-notes";
 import { prisma } from "@/lib/prisma";
 
 export type OrderFinanceComponentCost = {
+  productId?: string | null;
   title: string;
   qty: number;
   costMinor: number | null;
+  /** KDV dahil katalog birim fiyat — ciro payı ağırlığı */
+  unitPriceMinor?: number | null;
 };
 
 export type OrderFinanceLineSnapshot = {
@@ -233,9 +236,11 @@ export async function buildOrderFinanceSnapshot(order: OrderInput): Promise<Orde
       ? parseComponentsSnapshotJson(line.componentsSnapshotJson)
       : [];
     const componentCosts: OrderFinanceComponentCost[] = componentSnapshot.map((c) => ({
+      productId: c.productId,
       title: c.title,
       qty: c.qty,
       costMinor: c.costMinor ?? null,
+      unitPriceMinor: c.unitPriceMinor ?? null,
     }));
 
     let lineCostMinor: number | null = null;

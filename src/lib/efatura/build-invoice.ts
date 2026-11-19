@@ -1,7 +1,16 @@
 import type { InvoiceDetails, InvoiceItem } from "fatura";
 import { normalizeConsumerTaxId } from "@/lib/efatura/consumer-tax-id";
 import type { ResolvedEfaturaConfig } from "@/lib/efatura/settings";
+import { allocateMinor } from "@/lib/product-bundle";
 import { dedupeAddressSegments } from "@/lib/tr-address/format";
+
+export type InvoiceBundleComponent = {
+  title: string;
+  qty: number;
+  vatRate: number;
+  /** KDV dahil pay ağırlığı (katalog birim × adet) */
+  weightMinor: number;
+};
 
 type OrderLine = {
   title: string;
@@ -9,6 +18,8 @@ type OrderLine = {
   lineMinor: number;
   discountMinor?: number;
   vatRate?: number | null;
+  lineKind?: string | null;
+  invoiceComponents?: InvoiceBundleComponent[] | null;
 };
 
 type ShippingAddress = {
@@ -105,13 +116,25 @@ export function buildInvoiceDetailsFromOrder(
     order.subtotalMinor != null &&
     Math.abs(order.subtotalMinor + order.shippingMinor - order.totalMinor) <= 2;
 
-  const items: InvoiceItem[] = order.lines.map((l) => {
+  const items: InvoiceItem[] = [];
+  for (const l of order.lines) {
     const rate = l.vatRate ?? defaultVatRate;
     const netMinor = discountEmbedded
       ? Math.max(0, l.lineMinor)
       : Math.max(0, l.lineMinor - (l.discountMinor ?? 0));
-    return lineItemFromMinor(l.title, l.qty, netMinor, rate);
-  });
+    const components = l.lineKind === "bundle" ? l.invoiceComponents ?? [] : [];
+    if (components.length === 0) {
+      items.push(lineItemFromMinor(l.title, l.qty, netMinor, rate));
+      continue;
+    }
+    const shares = allocateMinor(
+      netMinor,
+      components.map((c) => c.weightMinor),
+    );
+    components.forEach((c, i) => {
+      items.push(lineItemFromMinor(c.title, c.qty, shares[i] ?? 0, c.vatRate || rate));
+    });
+  }
 
   if (order.shippingMinor > 0) {
     items.push(lineItemFromMinor("Kargo", 1, order.shippingMinor, defaultVatRate));

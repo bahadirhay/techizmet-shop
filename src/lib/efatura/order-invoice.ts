@@ -1,7 +1,7 @@
 import "server-only";
 
 import { nanoid } from "nanoid";
-import { buildInvoiceDetailsFromOrder } from "@/lib/efatura/build-invoice";
+import { buildInvoiceDetailsFromStoredOrder } from "@/lib/efatura/prepare-order-invoice";
 import { efaturaReady, getEfaturaConfig, type ResolvedEfaturaConfig } from "@/lib/efatura/settings";
 import { sendMarketplaceInvoice } from "@/lib/marketplace/actions";
 import { prisma } from "@/lib/prisma";
@@ -139,7 +139,11 @@ export async function issueOrderInvoice(
     };
   }
 
-  const invoiceDetails = buildInvoiceDetailsFromOrder(order, config, options.recipientTaxId);
+  const invoiceDetails = await buildInvoiceDetailsFromStoredOrder(
+    order,
+    config,
+    options.recipientTaxId,
+  );
   const sign = options.sign ?? config.autoSign;
 
   type FaturaClient = {

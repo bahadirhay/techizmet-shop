@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createFaturaClient } from "fatura";
-import { buildInvoiceDetailsFromOrder } from "@/lib/efatura/build-invoice";
+import { buildInvoiceDetailsFromStoredOrder } from "@/lib/efatura/prepare-order-invoice";
 import { renderInvoicePreviewHtml } from "@/lib/efatura/render-invoice-preview-html";
 import {
   efaturaReady,
@@ -183,7 +183,7 @@ export async function buildOrderInvoicePreview(
     }
   }
 
-  const details = buildInvoiceDetailsFromOrder(order, config, options.recipientTaxId);
+  const details = await buildInvoiceDetailsFromStoredOrder(order, config, options.recipientTaxId);
   const sellerProfile = await resolveSellerProfile(siteId, config);
   const html = renderInvoicePreviewHtml(details, {
     storeName,

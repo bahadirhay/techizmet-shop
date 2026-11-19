@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { formatTry } from "@/lib/admin/money";
+import { allocateMinor } from "@/lib/product-bundle";
 import type { OrderFinanceSnapshot } from "@/lib/finance/order-economics";
 import { financeKindLabel } from "@/lib/finance/types";
 import { btnPrimary, btnSecondary } from "@/components/admin/AdminForm";
@@ -302,14 +303,29 @@ export function OrderFinancePanel({
                           <span className="ml-1 text-[10px] text-violet-700">paket</span>
                         ) : null}
                       </div>
-                      {line.componentCosts?.map((c, j) => (
-                        <div key={j} className="pl-2 text-[10px] text-blue-800/70">
-                          ↳ {c.title} ×{c.qty}
-                          {c.costMinor != null && c.costMinor > 0
-                            ? ` · ${formatTry(c.costMinor * c.qty)}`
-                            : ""}
-                        </div>
-                      ))}
+                      {(() => {
+                        const parts = line.componentCosts ?? [];
+                        const shares = allocateMinor(
+                          line.lineMinor,
+                          parts.map((x) => {
+                            const unit =
+                              x.unitPriceMinor != null && x.unitPriceMinor > 0
+                                ? x.unitPriceMinor
+                                : x.costMinor != null && x.costMinor > 0
+                                  ? x.costMinor
+                                  : 1;
+                            return unit * Math.max(1, x.qty);
+                          }),
+                        );
+                        return parts.map((c, j) => (
+                          <div key={j} className="pl-2 text-[10px] text-blue-800/70">
+                            ↳ {c.title} ×{c.qty} · satış {formatTry(shares[j] ?? 0)}
+                            {c.costMinor != null && c.costMinor > 0
+                              ? ` · maliyet ${formatTry(c.costMinor * c.qty)}`
+                              : ""}
+                          </div>
+                        ));
+                      })()}
                     </td>
                     <td className="py-1 pr-2 text-right tabular-nums">{formatTry(line.lineMinor)}</td>
                     <td className="py-1 pr-2 text-right tabular-nums">

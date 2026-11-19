@@ -9,6 +9,7 @@ import {
 } from "@/lib/finance/economics-math";
 import { classifyDeductionTx } from "@/lib/finance/trendyol-deduction-notes";
 import { MARKETPLACE_PLATFORMS } from "@/lib/admin/marketplace-platforms";
+import { allocateMinor } from "@/lib/product-bundle";
 import { profitabilityOrdersWhere } from "@/lib/orders/admin-order-visibility";
 import { prisma } from "@/lib/prisma";
 
@@ -63,6 +64,17 @@ export type ProductProfitRow = {
   costMinor: number;
   netProfitMinor: number | null;
   marginPercent: number | null;
+  /**
+   * Paketin içindeki ürünler. Ciro payları pakete eklenmez; toplam paket satırındadır.
+   */
+  components?: ProductProfitComponent[];
+};
+
+export type ProductProfitComponent = {
+  title: string;
+  qty: number;
+  grossMinor: number;
+  costMinor: number;
 };
 
 export type CategoryProfitRow = {
@@ -667,6 +679,36 @@ export async function loadProfitabilityReport(
       pRow.productCostMinor += lineProductCost;
       pRow.operatingCostMinor += lineOperatingCost;
       pRow.costMinor += lineCost;
+      if (line.lineKind === "bundle" && line.componentCosts?.length) {
+        const weights = line.componentCosts.map((c) => {
+          const unit =
+            c.unitPriceMinor != null && c.unitPriceMinor > 0
+              ? c.unitPriceMinor
+              : c.costMinor != null && c.costMinor > 0
+                ? c.costMinor
+                : 1;
+          return unit * Math.max(1, c.qty);
+        });
+        const grossShares = allocateMinor(line.lineMinor, weights);
+        const list = pRow.components ?? [];
+        line.componentCosts.forEach((c, i) => {
+          const found = list.find((x) => x.title === c.title);
+          const cost = c.costMinor != null && c.costMinor > 0 ? c.costMinor * c.qty : 0;
+          if (found) {
+            found.qty += c.qty;
+            found.grossMinor += grossShares[i] ?? 0;
+            found.costMinor += cost;
+          } else {
+            list.push({
+              title: c.title,
+              qty: c.qty,
+              grossMinor: grossShares[i] ?? 0,
+              costMinor: cost,
+            });
+          }
+        });
+        pRow.components = list;
+      }
       productMap.set(productKey, pRow);
 
       const catKey = line.categoryId ?? "__none__";
