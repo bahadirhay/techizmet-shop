@@ -560,13 +560,12 @@ export async function loadProfitabilityReport(
     .sort((a, b) => b.orderDate.getTime() - a.orderDate.getTime())
     .slice(0, 200);
 
+  const seenPlatforms = new Set(
+    orders.map((o) => o.marketplacePlatform).filter((id): id is string => Boolean(id)),
+  );
   const platformIds = [
-    ...MARKETPLACE_PLATFORMS.map((p) => p.id),
-    ...new Set(
-      orders
-        .map((o) => o.marketplacePlatform)
-        .filter((id): id is string => Boolean(id) && !MARKETPLACE_PLATFORMS.some((p) => p.id === id)),
-    ),
+    ...MARKETPLACE_PLATFORMS.map((p) => p.id).filter((id) => seenPlatforms.has(id)),
+    ...[...seenPlatforms].filter((id) => !MARKETPLACE_PLATFORMS.some((p) => p.id === id)),
   ];
   const payoutRows: PlatformPayoutRow[] = platformIds.map((platform) => {
     const platformOrders = orders.filter((o) => o.marketplacePlatform === platform);
@@ -737,13 +736,9 @@ export async function loadProfitabilityReport(
       ? activeChannels.reduce((s, c) => s + (c.netProfitMinor ?? 0), 0)
       : null;
 
-  // Dönemde satışı olmasa da satış kanalı ve her pazaryeri satırı görünsün.
-  if (!channelMap.has("web")) channelMap.set("web", emptyChannelRow("web"));
-  for (const platform of MARKETPLACE_PLATFORMS) {
-    if (!channelMap.has(platform.id)) channelMap.set(platform.id, emptyChannelRow(platform.id));
-  }
-
-  const channels = [...channelMap.values()].sort(compareChannels);
+  const channels = [...channelMap.values()]
+    .filter((c) => c.orderCount > 0)
+    .sort(compareChannels);
 
   const categories = [...categoryMap.values()]
     .filter((c) => c.grossMinor > 0)

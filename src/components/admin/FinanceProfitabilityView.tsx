@@ -166,8 +166,8 @@ function ChannelSelect({
   value: string;
   onChange: (value: string) => void;
 }) {
-  const sales = channels.filter((c) => c.group === "sales");
-  const marketplaces = channels.filter((c) => c.group === "marketplace");
+  const sales = channels.filter((c) => c.group === "sales" && c.orderCount > 0);
+  const marketplaces = channels.filter((c) => c.group === "marketplace" && c.orderCount > 0);
   return (
     <select
       className={`${inputClass} mt-1 min-w-[10rem]`}
@@ -175,20 +175,24 @@ function ChannelSelect({
       onChange={(e) => onChange(e.target.value)}
     >
       <option value="all">Tümü</option>
-      <optgroup label="Satış kanalları">
-        {sales.map((c) => (
-          <option key={c.channel} value={c.channel}>
-            {c.label}
-          </option>
-        ))}
-      </optgroup>
-      <optgroup label="Pazaryerleri">
-        {marketplaces.map((c) => (
-          <option key={c.channel} value={c.channel}>
-            {c.label}
-          </option>
-        ))}
-      </optgroup>
+      {sales.length > 0 ? (
+        <optgroup label="Satış kanalları">
+          {sales.map((c) => (
+            <option key={c.channel} value={c.channel}>
+              {c.label}
+            </option>
+          ))}
+        </optgroup>
+      ) : null}
+      {marketplaces.length > 0 ? (
+        <optgroup label="Pazaryerleri">
+          {marketplaces.map((c) => (
+            <option key={c.channel} value={c.channel}>
+              {c.label}
+            </option>
+          ))}
+        </optgroup>
+      ) : null}
     </select>
   );
 }
@@ -293,17 +297,22 @@ function ChannelGroupLabel({ label }: { label: string }) {
   );
 }
 
+function withSales(channels: ChannelProfitRow[], group: ChannelProfitRow["group"]) {
+  return channels.filter((c) => c.group === group && c.orderCount > 0);
+}
+
 function ChannelProfitTable({ channels }: { channels: ChannelProfitRow[] }) {
-  const total = summarizeChannels(channels);
-  const sales = channels.filter((c) => c.group === "sales");
-  const marketplaces = channels.filter((c) => c.group === "marketplace");
-  const hasOrders = channels.some((c) => c.orderCount > 0);
+  const sales = withSales(channels, "sales");
+  const marketplaces = withSales(channels, "marketplace");
+  const listed = [...sales, ...marketplaces];
+  const total = summarizeChannels(listed);
+
+  if (listed.length === 0) {
+    return <p className="mt-4 text-sm text-zinc-500">Bu dönemde sipariş yok.</p>;
+  }
 
   return (
     <>
-      {!hasOrders ? (
-        <p className="mt-4 text-sm text-zinc-500">Bu dönemde sipariş yok. Kanallar yine de listelenir.</p>
-      ) : null}
       <table className="mt-4 w-full min-w-[720px] text-sm">
         <thead>
           <tr className="border-b text-left text-xs text-zinc-500">
@@ -322,14 +331,14 @@ function ChannelProfitTable({ channels }: { channels: ChannelProfitRow[] }) {
             <td className="py-2">{total.label}</td>
             <ChannelProfitCells row={total} />
           </tr>
-          <ChannelGroupLabel label="Satış kanalları" />
+          {sales.length > 0 ? <ChannelGroupLabel label="Satış kanalları" /> : null}
           {sales.map((c) => (
             <tr key={c.channel} className="border-b border-zinc-100">
               <td className="py-2 pl-3 font-medium">{c.label}</td>
               <ChannelProfitCells row={c} />
             </tr>
           ))}
-          <ChannelGroupLabel label="Pazaryerleri" />
+          {marketplaces.length > 0 ? <ChannelGroupLabel label="Pazaryerleri" /> : null}
           {marketplaces.map((c) => (
             <tr key={c.channel} className="border-b border-zinc-100">
               <td className="py-2 pl-3 font-medium">{c.label}</td>
@@ -371,8 +380,8 @@ function ChannelSummaryCard({
 }
 
 function ChannelSplit({ report }: { report: ProfitabilityReport }) {
-  const sales = report.channels.filter((c) => c.group === "sales");
-  const marketplaces = report.channels.filter((c) => c.group === "marketplace");
+  const sales = withSales(report.channels, "sales");
+  const marketplaces = withSales(report.channels, "marketplace");
   const marketplaceTotal = summarizeChannels(marketplaces);
   marketplaceTotal.channel = "marketplaces";
   marketplaceTotal.group = "marketplace";
@@ -418,35 +427,42 @@ function ChannelSplit({ report }: { report: ProfitabilityReport }) {
         </div>
       </section>
 
-      <section className="mt-8">
-        <h2 className="font-semibold">Satış kanalları</h2>
-        <p className="mt-1 text-xs text-zinc-500">Web sitesi ayrı. Tutar brüt cirodur.</p>
-        <div className="admin-kpi-grid mt-3">
-          {sales.map((c) => (
-            <ChannelSummaryCard key={c.channel} row={c} />
-          ))}
-        </div>
-      </section>
+      {sales.length > 0 ? (
+        <section className="mt-8">
+          <h2 className="font-semibold">Satış kanalları</h2>
+          <p className="mt-1 text-xs text-zinc-500">Bu dönemde satışı olan kanallar. Tutar brüt cirodur.</p>
+          <div className="admin-kpi-grid mt-3">
+            {sales.map((c) => (
+              <ChannelSummaryCard key={c.channel} row={c} />
+            ))}
+          </div>
+        </section>
+      ) : null}
 
-      <section className="mt-8">
-        <h2 className="font-semibold">Pazaryerleri</h2>
-        <p className="mt-1 text-xs text-zinc-500">
-          Önce pazaryerlerinin toplamı, sonra her pazaryeri kendi kartında.
-        </p>
-        <div className="admin-kpi-grid mt-3">
-          <ChannelSummaryCard
-            row={marketplaceTotal}
-            pendingMinor={report.totals.pendingReceivableMinor}
-          />
-          {marketplaces.map((c) => (
+      {marketplaces.length > 0 ? (
+        <section className="mt-8">
+          <h2 className="font-semibold">Pazaryerleri</h2>
+          <p className="mt-1 text-xs text-zinc-500">
+            Yalnızca bu dönemde satışı olan pazaryerleri. Satış gelince kart kendiliğinden eklenir.
+          </p>
+          <div className="admin-kpi-grid mt-3">
             <ChannelSummaryCard
-              key={c.channel}
-              row={c}
-              pendingMinor={payoutByPlatform.get(c.channel)}
+              row={marketplaceTotal}
+              pendingMinor={marketplaces.reduce(
+                (s, c) => s + (payoutByPlatform.get(c.channel) ?? 0),
+                0,
+              )}
             />
-          ))}
-        </div>
-      </section>
+            {marketplaces.map((c) => (
+              <ChannelSummaryCard
+                key={c.channel}
+                row={c}
+                pendingMinor={payoutByPlatform.get(c.channel)}
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
     </>
   );
 }
@@ -556,7 +572,7 @@ export function FinanceProfitabilityView({ report }: { report: ProfitabilityRepo
       <section className="admin-card admin-card-pad mt-8 overflow-x-auto">
         <h2 className="font-semibold">Kanal detayı</h2>
         <p className="mt-1 text-xs text-zinc-500">
-          Aynı ayrımın tam tablosu: kesinti, maliyet ve net marj.
+          Yalnızca bu dönemde satışı olan kanallar. Kesinti, maliyet ve net marj.
         </p>
         <ChannelProfitTable channels={report.channels} />
       </section>
@@ -735,7 +751,7 @@ export function FinanceProfitabilityView({ report }: { report: ProfitabilityRepo
         <section className="admin-card admin-card-pad mt-8 overflow-x-auto">
           <h2 className="font-semibold">Hakediş özeti</h2>
           <p className="mt-1 text-xs text-zinc-500">
-            Her pazaryeri ayrı satır. Brüt satış − kesintiler − bankaya yatan hakediş = bekleyen alacak.
+            Satışı olan pazaryerleri. Brüt satış − kesintiler − bankaya yatan hakediş = bekleyen alacak.
           </p>
           <table className="mt-4 w-full min-w-[640px] text-sm">
             <thead>
