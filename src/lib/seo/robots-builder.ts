@@ -9,7 +9,7 @@ import { normalizeRobotsDisallowPaths } from "@/lib/seo/robots-disallow-paths";
 const DISALLOW = [
   "/admin/",
   "/api/",
-  "/checkout/",
+  "/checkout",
   "/cart",
   "/account/",
   "/bakim/",

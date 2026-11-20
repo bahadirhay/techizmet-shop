@@ -11,6 +11,7 @@ import { loadMirrorFooterData } from "@/lib/mirror-footer-server";
 import { injectFooterIntoMirrorHtml } from "@/lib/mirror-html-footer-inject";
 import { localizeMirrorHtmlChunkForLocale } from "@/lib/mirror-en-locale";
 import { readMirrorPageHtmlForLocale } from "@/lib/mirror-page-html";
+import { stripSvgDocumentTitles } from "@/lib/mirror-html-seo-strip";
 import { sanitizeLegacyThemeCopy } from "@/lib/mirror-theme-copy-sanitize";
 import { withDescriptiveMediaUrls } from "@/lib/media-descriptive-url";
 import { prisma } from "@/lib/prisma";
@@ -120,7 +121,7 @@ async function resolveThemeShellChromeUncached(
     // Şablon alt metni "theking-noor" — marka adıyla değiştir (Google Görsel / AI alıntı)
     out = sanitizeLegacyThemeCopy(out, locale, site?.name?.trim() || "Anatolian Paw");
     out = await withDescriptiveMediaUrls(out);
-    footerHtml = out;
+    footerHtml = stripSvgDocumentTitles(out);
   }
 
   return {
@@ -138,7 +139,7 @@ export async function resolveThemeShellChrome(
 ): Promise<ThemeShellChrome> {
   return unstable_cache(
     () => resolveThemeShellChromeUncached(siteId, locale, footerLogoLight),
-    ["theme-shell-chrome-v2", siteId, locale, footerLogoLight ?? ""],
+    ["theme-shell-chrome-v3", siteId, locale, footerLogoLight ?? ""],
     {
       revalidate: STORE_PUBLIC_REVALIDATE_SEC,
       tags: [storeSettingsTag(siteId), storeMirrorTag(siteId)],

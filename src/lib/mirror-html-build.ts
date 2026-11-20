@@ -14,6 +14,7 @@ import { getSiteSettingsUncached } from "@/lib/site-settings-load";
 import type { ShopLocale } from "@/lib/i18n/locale";
 import { productSlugFromMirrorPath } from "@/lib/mirror-html-processor";
 
+import { stripSvgDocumentTitles } from "@/lib/mirror-html-seo-strip";
 import { LOGO_UNIFY_VERSION } from "@/lib/mirror-logo-unify";
 import { mirrorPrebuildMatchesTenant } from "@/lib/mirror-prebuilt-tenant-shared";
 import { getMirrorPrebuildTenantSlug } from "@/lib/mirror-prebuilt-tenant-server";
@@ -88,7 +89,7 @@ export function isMirrorPathUncacheable(
 
 function cacheKeyForMirror(params: MirrorHtmlBuildParams, layoutOrderKey: string) {
   return [
-    "mirror-html-v16",
+    "mirror-html-v17",
     params.tenantSlug ?? "",
     params.siteId,
     params.normalized,
@@ -142,7 +143,7 @@ export async function buildMirrorHtml(params: MirrorHtmlBuildParams): Promise<st
       mirrorPrebuildMatchesTenant(requestSlug, prebuildSlug)
     ) {
       const prebuilt = await readPrebuiltMirrorHtml(params.normalized);
-      if (prebuilt) return injectMirrorListingCartBridge(prebuilt);
+      if (prebuilt) return stripSvgDocumentTitles(injectMirrorListingCartBridge(prebuilt));
     }
   }
 

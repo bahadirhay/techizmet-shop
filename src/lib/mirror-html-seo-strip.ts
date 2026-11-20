@@ -12,6 +12,26 @@ const DESC_META = /<meta\b[^>]*\bname=["']description["'][^>]*>/gi;
 const ROBOTS_META = /<meta\b[^>]*\bname=["']robots["'][^>]*>/gi;
 const OEMBED_LINK = /<link\b[^>]*\btype=["']application\/json\+oembed["'][^>]*>/gi;
 
+/**
+ * Ödeme SVG'lerindeki <title>Visa</title> Google'ın sayfa başlığı oluyor.
+ * Öğeyi kaldırıp metni aria-label'a taşır; ikon görünür kalır.
+ */
+export function stripSvgDocumentTitles(html: string): string {
+  return html.replace(/<svg\b[^>]*>[\s\S]*?<\/svg>/gi, (svg) => {
+    const title = svg.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i);
+    if (!title) return svg;
+    const label = title[1].replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+    let next = svg.replace(/<title\b[^>]*>[\s\S]*?<\/title>/gi, "");
+    const safe = label.replace(/"/g, "&quot;");
+    if (safe && /\saria-labelledby=/i.test(next)) {
+      next = next.replace(/\saria-labelledby=(["'])[^"']*\1/i, ` aria-label="${safe}"`);
+    } else {
+      next = next.replace(/\saria-labelledby=(["'])[^"']*\1/i, "");
+    }
+    return next;
+  });
+}
+
 export function patchMirrorProductSeoStrip(html: string): string {
   let out = html;
   out = out.replace(CANONICAL_LINK, "");
