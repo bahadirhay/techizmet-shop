@@ -26,14 +26,17 @@ import { loadHomeSeoContent } from "@/lib/seo/collection-seo-content";
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
-  // Ana sayfa meta — hedef kelimeli varsayılanlar buildSiteMetadata içinde
   const base = await buildSiteMetadata();
+  const site = await getDefaultSite();
+  const brand = site.name.trim();
+  const homeTitle = brand.toLocaleLowerCase("tr-TR").includes("anatolian")
+    ? `Kurutulmuş Köpek Ödül Maması | ${brand}`
+    : null;
+  if (homeTitle) return { ...base, title: { absolute: homeTitle } };
   const title = base.title;
-  const homeTitle =
+  const fallback =
     title && typeof title === "object" && "default" in title ? title.default : null;
-  // Kök layout'un "%s · Marka" şablonu ana sayfa başlığına tekrar uygulanmasın
-  // ("… | Anatolian Paw · Anatolian Paw") — başlık olduğu gibi kullanılır.
-  return homeTitle ? { ...base, title: { absolute: homeTitle } } : base;
+  return fallback ? { ...base, title: { absolute: fallback } } : base;
 }
 
 export default async function HomePage({

@@ -3,7 +3,7 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { storefrontListedWhere } from "@/lib/storefront-product-where";
 import { getDefaultSite } from "@/lib/site";
-import { findLandingIntentBySlug, mergeFaqsForPath } from "@/lib/seo/search-intent";
+import { findLandingIntentBySlug } from "@/lib/seo/search-intent";
 import type {
   SeoContentCriterion,
   SeoContentFaq,
@@ -89,23 +89,37 @@ export async function loadHomeSeoContent(): Promise<CollectionSeoContentData | n
     findLandingIntentBySlug("dogal-kopek-odul-mamasi");
   if (!primary) return null;
 
-  const faqs = mergeFaqsForPath(primary.landingPath);
+  const faqs: SeoContentFaq[] = [
+    {
+      question: "Kurutulmuş köpek ödül maması nedir?",
+      answer:
+        "Kurutulmuş köpek ödül maması, tek hammaddenin (dana akciğer, deve derisi, dana gırtlak, kuzu paça veya tavuk ayağı) kurutulmasıyla hazırlanan, ana öğünün yerine geçmeyen ödüldür.",
+    },
+    {
+      question: "Kurutulmuş ödül nasıl saklanır?",
+      answer:
+        "Serin, kuru ve doğrudan güneş almayan bir yerde saklayın. Paket açıldıktan sonra ağzını kapatın ve 30 gün içinde tüketin.",
+    },
+    {
+      question: "Köpek ödül maması ile kurutulmuş ödül aynı sayfada mı?",
+      answer:
+        "Kurutulmuş ürünlerin tamamı ana sayfada özetlenir. Köpek ödül maması ve doğal köpek ödül maması için ayrı koleksiyon sayfaları vardır.",
+    },
+  ];
   const products = await loadTopProducts(site.id, {
     keywords: primary.productKeywords,
     limit: 10,
   });
 
-  const heading = `${site.name} — ${primary.h1 ?? primary.query}`;
+  const heading = "Kurutulmuş Köpek Ödül Maması";
   const intro =
-    `${site.name}, Türkiye'de üretilen %100 doğal kurutulmuş köpek ödül mamaları sunar. ` +
-    `Tahılsız ve katkısız ${primary.query} seçeneklerini inceleyin; eğitim ve günlük ödüllendirme için uygun gramajlarda sipariş verin. ` +
-    primary.description;
+    `${site.name}, Türkiye'de üretilen kurutulmuş köpek ödül mamaları sunar. ` +
+    `Tek hammaddeli ürünler dana akciğer, dana gırtlak, deve derisi, kuzu paça ve tavuk ayağıdır. ` +
+    `Köpek ödül maması ve doğal köpek ödül maması sayfalarından amaca göre seçim yapabilirsiniz.`;
 
   const relatedLinks: SeoContentLink[] = [
     { label: "Köpek Ödül Maması", href: "/collections/kopek-odul-mamasi" },
     { label: "Doğal Köpek Ödül Maması", href: "/collections/dogal-kopek-odul-mamasi" },
-    { label: "Doğal Köpek Ödülü", href: "/collections/dogal-kopek-odulu" },
-    { label: "Ödül Maması", href: "/collections/odul-mamasi" },
     { label: "Köpek Eğitim Ödül Maması", href: "/collections/kopek-egitim-odul-mamasi" },
     { label: "Köpek Çiğneme Ürünleri", href: "/collections/kopek-cigneme-urunleri" },
     { label: "Dana Akciğer Köpek Ödülü", href: "/collections/dana-akciger-kopek-odulu" },

@@ -70,6 +70,20 @@ export function buildLegacySeoRedirects(): NextLegacyRedirect[] {
     });
   }
 
+  // Aynı aramayı bölen landing'ler — tek hedef sayfaya kalıcı yönlendirme
+  out.push(
+    {
+      source: "/collections/dogal-kopek-odulu",
+      destination: "/collections/dogal-kopek-odul-mamasi",
+      permanent: true,
+    },
+    {
+      source: "/collections/odul-mamasi",
+      destination: "/collections/dogal-kopek-odul-mamasi",
+      permanent: true,
+    },
+  );
+
   return out;
 }
 
@@ -85,5 +99,13 @@ export function rewriteLegacyThemeHrefsInHtml(html: string): string {
     out = out.replaceAll(`href="/collections/${slug}.html"`, `href="${LEGACY_COLLECTION_DEST}"`);
   }
   out = out.replaceAll('href="/blog/', 'href="/blogs/news/');
+  out = out.replaceAll(
+    'href="/collections/dogal-kopek-odulu"',
+    'href="/collections/dogal-kopek-odul-mamasi"',
+  );
+  out = out.replaceAll(
+    'href="/collections/odul-mamasi"',
+    'href="/collections/dogal-kopek-odul-mamasi"',
+  );
   return out;
 }

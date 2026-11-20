@@ -32,10 +32,8 @@ export type SearchIntentTarget = {
 
 const LANDING_ALL = "/collections/all";
 /** Head terimler için adanmış landing sayfaları (kendi URL + H1 + içerik) */
-const LANDING_DOGAL_KOPEK_ODULU = "/collections/dogal-kopek-odulu";
 const LANDING_KOPEK_ODUL_MAMASI = "/collections/kopek-odul-mamasi";
 const LANDING_DOGAL_KOPEK_ODUL_MAMASI = "/collections/dogal-kopek-odul-mamasi";
-const LANDING_ODUL_MAMASI = "/collections/odul-mamasi";
 /** Kullanım amacına göre landing sayfaları — kendi ürün alt kümesi (bkz. landing-content.ts) */
 const LANDING_KOPEK_EGITIM_ODUL_MAMASI = "/collections/kopek-egitim-odul-mamasi";
 const LANDING_KOPEK_CIGNEME_URUNLERI = "/collections/kopek-cigneme-urunleri";
@@ -58,10 +56,10 @@ export const DEFAULT_SEARCH_INTENTS: SearchIntentTarget[] = [
   {
     id: "dog-natural-treat",
     query: "doğal köpek ödülü",
-    priority: 3,
-    landingPath: LANDING_DOGAL_KOPEK_ODULU,
-    landingKind: "collection",
-    collectionSlug: "dogal-kopek-odulu",
+    priority: 20,
+    landingPath: LANDING_DOGAL_KOPEK_ODUL_MAMASI,
+    landingKind: "staticPage",
+    staticPageKey: LANDING_DOGAL_KOPEK_ODUL_MAMASI,
     title: "Doğal Köpek Ödülü | Kurutulmuş, Katkısız Ödüller | Anatolian Paw",
     description:
       "Doğal köpek ödülü çeşitleri protein kaynağına göre: dana akciğer, dana gırtlak, deve derisi, kuzu paça ve tavuk ayağı. Kurutulmuş, tahılsız ve katkısız; saklama ve kullanım bilgisiyle.",
@@ -135,10 +133,10 @@ export const DEFAULT_SEARCH_INTENTS: SearchIntentTarget[] = [
   {
     id: "treat-food",
     query: "ödül maması",
-    priority: 1,
-    landingPath: LANDING_ODUL_MAMASI,
-    landingKind: "collection",
-    collectionSlug: "odul-mamasi",
+    priority: 20,
+    landingPath: LANDING_DOGAL_KOPEK_ODUL_MAMASI,
+    landingKind: "staticPage",
+    staticPageKey: LANDING_DOGAL_KOPEK_ODUL_MAMASI,
     title: "Ödül Maması | Köpekler İçin Doğal Ödül Maması Türleri | Anatolian Paw",
     description:
       "Köpekler için ödül maması türleri: eğitimde küçük parçalara bölünen akciğer ödülleri, uzun süre çiğnenen deve derisi ve kuzu paça, karışık paketler. Doğal, tahılsız ve katkısız.",

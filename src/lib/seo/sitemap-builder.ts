@@ -109,7 +109,12 @@ export async function buildStoreSitemapEntries(siteId: string): Promise<Metadata
   return [
     ...staticRoutes,
     ...collections
-      .filter((c) => c.slug !== "all")
+      .filter(
+        (c) =>
+          c.slug !== "all" &&
+          c.slug !== "dogal-kopek-odulu" &&
+          c.slug !== "odul-mamasi",
+      )
       .map((c) => ({
         url: `${root}/collections/${c.slug}`,
         lastModified: now,

@@ -204,7 +204,6 @@ export const LANDING_CONTENT: Record<string, LandingContentDef> = {
       "deve-derisi-kopek-odulu",
       "dana-girtlak-kopek-odulu",
       "dogal-kopek-odul-mamasi",
-      "odul-mamasi",
     ],
   },
 
@@ -236,7 +235,7 @@ export const LANDING_CONTENT: Record<string, LandingContentDef> = {
       RULE_DAILY,
     ],
     blogSlugs: ["dogal-kopek-odulu-nedir", "alerjik-kopek-odul-mamasi", "kopek-odul-mamasi-nasil-secilir"],
-    related: ["kopek-odul-mamasi", "dogal-kopek-odulu", "kopek-egitim-odul-mamasi", "kopek-cigneme-urunleri"],
+    related: ["kopek-odul-mamasi", "kopek-egitim-odul-mamasi", "kopek-cigneme-urunleri"],
   },
 
   "odul-mamasi": {
@@ -363,7 +362,7 @@ export const LANDING_CONTENT: Record<string, LandingContentDef> = {
       "dana-akciger-kopek-odulu",
       "kopek-cigneme-urunleri",
       "kopek-odul-mamasi",
-      "odul-mamasi",
+      "dogal-kopek-odul-mamasi",
     ],
   },
 
@@ -420,7 +419,7 @@ export const LANDING_CONTENT: Record<string, LandingContentDef> = {
       "dana-girtlak-kopek-odulu",
       "kopek-egitim-odul-mamasi",
       "kopek-odul-mamasi",
-      "dogal-kopek-odulu",
+      "dogal-kopek-odul-mamasi",
     ],
   },
 
